@@ -1,7 +1,7 @@
 # aprsd
-Amateur radio APRS daemon which listens for messages and responds
+Amateur radio APRS client which listens for APRS messages and replies.  This is essentially a way for you to send commands to your PC from your Amateur radio and have it respond with something interesting.  It currently just "echoes" what it receives.
 
-Please change callsign and aprs password.
+Please change callsign and aprs password throughout code (not just at top).
 
 Example usage:
 
