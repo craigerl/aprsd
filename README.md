@@ -5,7 +5,7 @@ Please change callsign and aprs password.
 
 Example usage:
 
-
+```
 > craiger@pc:~/ham/aprsd$ ./aprsd.py
 
 > \# aprsc 2.1.4-g408ed49
@@ -37,4 +37,4 @@ Example usage:
 >Message    : Echo: Test - please reply
 
 >\# aprsc 2.1.4-g408ed49 31 Oct 2017 17:07:22 GMT T2TEXAS 205.209.228.93:14580
-
+```
