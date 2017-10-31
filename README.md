@@ -1,5 +1,5 @@
 # aprsd
-Amateur radio APRS client which listens for APRS messages and replies.  This is essentially a way for you to send commands to your PC from your Amateur radio and have it respond with something interesting.  Perhaps you could make a bot?  Like WXBOT?  It currently just "echoes" what it receives.
+Amateur radio APRS client which listens for APRS messages and replies.  This is essentially a way for you to send commands to your PC from your Amateur radio and have it respond with something interesting.  Perhaps you could make a bot?  Like WXBOT?  It currently just replies with the current time.
 
 Please change callsign and aprs password throughout code (not just at top).
 
