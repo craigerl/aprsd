@@ -11,23 +11,30 @@ import sys
 import telnetlib
 import time
 import re
+from random import randint
 
 HOST = "texas.aprs2.net"
 USER = "KM6LYW-9"
 PASS = "11111"
 
 def send_ack(tocall, ack):
+  tocall = tocall.ljust(9) # pad to nine chars
+  line = "KM6LYW-9>APRS,TCPIP*::" + tocall + ":ack" + ack + "\n"
   print "Sending ack __________________"
+  print "Raw        : " + line,
   print "To         : " + tocall
   print "Ack number : " + ack
-  tn.write("KM6LYW-9>APRS,TCPIP*::" + tocall + ":ack" + ack + "\n")
+  tn.write(line)
 
 def send_message(tocall, message):
+  messagecounter = randint(100,999)
+  tocall = tocall.ljust(9) # pad to nine chars
+  line = "KM6LYW-9>APRS,TCPIP*::" + tocall + ":" + message + "{" + str(messagecounter) + "\n"
   print "Sending message_______________"
+  print "Raw        : " + line,
   print "To         : " + tocall
   print "Message    : " + message
-  tocall = tocall.ljust(9) # pad to nine chars
-  tn.write("KM6LYW-9>APRS,TCPIP*::" + tocall + ":" + message + "\n")
+  tn.write(line)
 ### end send_ack()
 
 def process_message(line):
@@ -45,12 +52,19 @@ def process_message(line):
     ack = "none"
 
   print "Received message______________"
+  print "Raw        : " + line
   print "From       : " + fromcall
   print "Message    : " + message
   print "Ack number : " + ack
 
-  send_ack(fromcall, ack)
-  send_message(fromcall, "This is a reply.")
+  if not re.search('^ack[0-9]*', message):
+    send_ack(fromcall, ack)
+    reply = "Echo: " + message
+    send_message(fromcall, reply)
+  else:
+  print "Reply reqd :  This is an ack, not replying."
+
+
 ### end process_message()
   
 tn = telnetlib.Telnet(HOST, 14580)
@@ -63,12 +77,35 @@ while True:
   for char in tn.read_until("\n",100):
     line = line + char 
   line = line.replace('\n', '')
-  print line
   if re.search("::KM6LYW-9 ", line):
      process_message(line)
+  else:
+     print line
+
   
 # end while True
 
 tn.close()
 
 exit()
+######################################### Notes... ##########
+
+#for line in tn.expect(msg_regex):
+#  print ("%s\n") % line 
+
+#for line in tn.read_all():
+#  print ("%s\n") % line 
+
+tn.close()
+
+
+#input = tn.read_until("::KM6LYW-4 :") 
+#tn.write(user + "\n")
+#if password:
+#    tn.read_until("Password: ")
+#    tn.write(password + "\n")
+#
+#tn.write("ls\n")
+#tn.write("exit\n")
+
+print tn.read_all()
