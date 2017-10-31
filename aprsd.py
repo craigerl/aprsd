@@ -88,24 +88,3 @@ while True:
 tn.close()
 
 exit()
-######################################### Notes... ##########
-
-#for line in tn.expect(msg_regex):
-#  print ("%s\n") % line 
-
-#for line in tn.read_all():
-#  print ("%s\n") % line 
-
-tn.close()
-
-
-#input = tn.read_until("::KM6LYW-4 :") 
-#tn.write(user + "\n")
-#if password:
-#    tn.read_until("Password: ")
-#    tn.write(password + "\n")
-#
-#tn.write("ls\n")
-#tn.write("exit\n")
-
-print tn.read_all()
