@@ -6,8 +6,8 @@ Please change callsign and aprs password.
 Example usage:
 
 
->craiger@pc:~/ham/aprsd$ ./aprsd.py
-># aprsc 2.1.4-g408ed49
+> craiger@pc:~/ham/aprsd$ ./aprsd.py
+> # aprsc 2.1.4-g408ed49
 ># logresp KM6LYW-9 unverified, server T2TEXAS
 ># aprsc 2.1.4-g408ed49 31 Oct 2017 17:07:02 GMT T2TEXAS 205.209.228.93:14580
 >KM6LYW>APY01D,ALDER*,WIDE2-1,qAR,N6VUD-15::KM6LYW-9 :Test - please reply{19
