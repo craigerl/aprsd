@@ -33,6 +33,8 @@ Example usage:
 >Sending message_______________
 
 >To         : KM6LYW
+
 >Message    : Echo: Test - please reply
+
 >\# aprsc 2.1.4-g408ed49 31 Oct 2017 17:07:22 GMT T2TEXAS 205.209.228.93:14580
 
