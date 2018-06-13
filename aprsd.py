@@ -308,7 +308,7 @@ while True:
                   to_addr = a.group(1)                                   
                   content = a.group(2)
                   if content == 'mapme':                               # send recipient link to aprs.fi map
-                      content = "Click for my location: http://aprs.fi/" + USER +  "/"
+                      content = "Click for my location: http://aprs.fi/" + BASECALLSIGN 
                   send_result = send_email(to_addr, content)  
                   if send_result != 0:
                       send_message(fromcall, "-" + to_addr + " failed")
