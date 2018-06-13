@@ -1,7 +1,27 @@
 # aprsd
-Amateur radio APRS client which listens for APRS messages and replies.  This is essentially a way for you to send commands to your PC from your Amateur radio and have it respond with something interesting.  Perhaps you could make a bot?  Like WXBOT?  It currently just replies with the current time.
 
-Please change callsign and aprs password throughout code (not just at top).
+Listen on amateur radio aprs-is network for messages and respond to them.
+You must have an amateur radio callsign to use this software.  Put  your
+callsign in the "USER" variable and update your aprs-is password in "PASS".
+You must also have an imap email account available for polling.
+
+Current messages this will respond to:
+
+# APRS messages:
+#   t(ime)                 = respond with the current time
+#   f(ortune)              = respond with a short fortune (requires fuzzyclock python module)
+#   -email_addr email text = send an email
+#   -2                     = display the last 2 emails received
+#   anything else          = respond with usage
+#
+# Meanwhile this code will monitor an imap mailbox and forward email
+# to your BASECALLSIGN over the air.
+
+
+There are additional parameters in the code (sorry), so be sure to set your
+email server, and associated logins, passwords.  search for "yourmaildomain",
+"password".  Search for "shortcuts" to setup email aliases as well.
+
 
 Example usage:
 
