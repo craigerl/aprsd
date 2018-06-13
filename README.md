@@ -6,14 +6,14 @@ callsign in the "USER" variable and update your aprs-is password in "PASS".
 You must also have an imap email account available for polling.
 
 Current messages this will respond to:
-
+'''
 APRS messages:
    t(ime)                 = respond with the current time
    f(ortune)              = respond with a short fortune (requires fuzzyclock python module)
    -email_addr email text = send an email
    -2                     = display the last 2 emails received
    anything else          = respond with usage
-
+'''
  Meanwhile this code will monitor an imap mailbox and forward email
  to your BASECALLSIGN over the air.
 
