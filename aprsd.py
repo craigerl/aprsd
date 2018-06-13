@@ -47,7 +47,7 @@ import signal
 
 HOST = "noam.aprs2.net"     # north america tier2 servers round robin
 USER = "KM6XXX-9"           # callsign of this aprs client with SSID
-PASS = "22452"              # google how to generate this
+PASS = "22222"              # google how to generate this
 BASECALLSIGN = "KM6XXX"     # callsign of radio in the field to which we send email
 
 
