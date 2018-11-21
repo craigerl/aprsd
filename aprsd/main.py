@@ -19,7 +19,8 @@
 # License GPLv2
 #
 
-from fuzzyclock import fuzzy
+# python included libs
+import argparse
 import json
 import urllib
 import sys
@@ -33,11 +34,17 @@ from email.mime.text import MIMEText
 import subprocess
 import datetime
 import calendar
-from imapclient import IMAPClient, SEEN
 import email
 import threading
 import signal
 import pprint
+
+# external lib imports
+from imapclient import IMAPClient, SEEN
+
+# local imports here
+from fuzzyclock import fuzzy
+import utils
 
 # localization, please edit:
 HOST = "noam.aprs2.net"     # north america tier2 servers round robin
@@ -54,6 +61,52 @@ shortcuts = {
 email_sent_dict = {}  # message_number:time combos so we don't resend the same email in five mins {int:int}
 ack_dict = {}         # message_nubmer:ack  combos so we stop sending a message after an ack from radio {int:int}
 message_number = 0    # current aprs radio message number, increments for each message we send over rf {int}
+
+# command line args
+parser = argparse.ArgumentParser()
+parser.add_argument("--user",
+                    metavar="<user>",
+                    default=utils.env("APRS_USER"),
+                    help="The callsign of this ARPS client with SSID"
+                         " Default=env[APRS_USER]")
+
+parser.add_argument("--host",
+                    metavar="<host>",
+                    default=utils.env("APRS_HOST"),
+                    help="The aprs host to use  Default=env[APRS_HOST]")
+parser.add_argument("--password",
+                    metavar="<password>",
+                    default=utils.env("APRS_PASSWORD"),
+                    help="The aprs password  Default=env[APRS_PASSWORD]")
+parser.add_argument("--callsign",
+                    metavar="<callsign>",
+                    default=utils.env("APRS_CALLSIGN"),
+                    help="The callsign of radio in the field to which we send "
+                         "email  Default=env[APRS_CALLSIGN]")
+
+args = parser.parse_args()
+if not args.user:
+    print("Missing the aprs user (env[APRS_USER])")
+    parser.print_help()
+    parser.exit()
+else:
+    USER = args.user
+
+if not args.password:
+    print("Missing the aprs password (env[APRS_PASSWORD])")
+    parser.print_help()
+    parser.exit()
+else:
+    PASS = args.password
+
+if not args.callsign:
+    print("Missing the aprs callsign (env[APRS_CALLSIGN])")
+    parser.print_help()
+    parser.exit()
+else:
+    BASECALLSIGN = args.callsign
+
+
 try:
   tn = telnetlib.Telnet(HOST, 14580)
 except Exception, e:
