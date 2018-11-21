@@ -14,7 +14,7 @@ APRS messages:
                             58F(58F/46F) Partly Cloudy. Tonight, Heavy Rain.
    t(ime)                 = respond with the current time
    f(ortune)              = respond with a short fortune
-   -email_addr email text = send an email
+   -email_addr email text = send an email, say "mapme" to send a current position/map
    -2                     = display the last 2 emails received
    p(ing)                 = respond with Pong!/time
    anything else          = respond with usage
