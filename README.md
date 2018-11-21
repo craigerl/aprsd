@@ -62,13 +62,13 @@ RECEIVE EMAIL (imap server to radio)
 
 ```
 Sending message_______________ 6(Tx3)
-Raw         : KM6LYW-9>APRS::KM6LYW   :-somebody@gmail.com email from internet to radio{6
-To          : KM6LYW   
+Raw         : KM6XXX-9>APRS::KM6XXX   :-somebody@gmail.com email from internet to radio{6
+To          : KM6XXX   
 Message     : -somebody@gmail.com email from internet to radio
 
 Received message______________
-Raw         : KM6LYW>APY400,WIDE1-1,qAO,KM6LYW-1::KM6LYW-9 :ack6
-From        : KM6LYW
+Raw         : KM6XXX>APY400,WIDE1-1,qAO,KM6XXX-1::KM6XXX-9 :ack6
+From        : KM6XXX
 Message     : ack6
 Msg number  : 0
 
