@@ -21,9 +21,9 @@ APRS messages:
 
 ```
 Meanwhile this code will monitor a single imap mailbox and forward email
-to your BASECALLSIGN over the air.  Only radios using BASECALLSIGN may send 
-email, so consider this security risk before using this (or Amatuer radio in
-general).
+to your BASECALLSIGN over the air.  Only radios using the BASECALLSIGN are allowed
+to send email, so consider this security risk before using this (or Amatuer radio in
+general).  Email is single user at this time.
 
 There are additional parameters in the code (sorry), so be sure to set your
 email server, and associated logins, passwords.  search for "yourdomain",
