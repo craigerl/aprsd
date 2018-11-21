@@ -15,13 +15,15 @@ APRS messages:
    t(ime)                 = respond with the current time
    f(ortune)              = respond with a short fortune
    -email_addr email text = send an email, say "mapme" to send a current position/map
-   -2                     = display the last 2 emails received
+   -2                     = resend the last 2 emails from your imap inbox to this radio
    p(ing)                 = respond with Pong!/time
    anything else          = respond with usage
 
 ```
- Meanwhile this code will monitor an imap mailbox and forward email
- to your BASECALLSIGN over the air.
+Meanwhile this code will monitor a single imap mailbox and forward email
+to your BASECALLSIGN over the air.  Only radios using BASECALLSIGN may send 
+email, so consider this security risk before using this (or Amatuer radio in
+general).
 
 There are additional parameters in the code (sorry), so be sure to set your
 email server, and associated logins, passwords.  search for "yourdomain",
