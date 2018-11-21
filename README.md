@@ -45,7 +45,7 @@ Message     : -user@host.com test new shortcuts global, radio to pc
 Msg number  : 29
 
 Sending Email_________________
-To          : cl  (craig@yourdomain.org)
+To          : user@host.com
 Subject     : KM6XXX
 Body        : test new shortcuts global, radio to pc
 
