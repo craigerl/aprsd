@@ -1,4 +1,4 @@
-#!/home/craigerl/.venv/bin/python -u
+#!/usr/bin/python -u
 #
 # Listen on amateur radio aprs-is network for messages and respond to them.
 # You must have an amateur radio callsign to use this software.  Put  your
