@@ -19,7 +19,8 @@
 # License GPLv2
 #
 
-from fuzzyclock import fuzzy
+# python included libs
+import argparse
 import json
 import urllib
 import sys
@@ -33,11 +34,17 @@ from email.mime.text import MIMEText
 import subprocess
 import datetime
 import calendar
-from imapclient import IMAPClient, SEEN
 import email
 import threading
 import signal
 import pprint
+
+# external lib imports
+from imapclient import IMAPClient, SEEN
+
+# local imports here
+from fuzzyclock import fuzzy
+import utils
 
 # localization, please edit:
 HOST = "noam.aprs2.net"     # north america tier2 servers round robin
@@ -54,6 +61,24 @@ shortcuts = {
 email_sent_dict = {}  # message_number:time combos so we don't resend the same email in five mins {int:int}
 ack_dict = {}         # message_nubmer:ack  combos so we stop sending a message after an ack from radio {int:int}
 message_number = 0    # current aprs radio message number, increments for each message we send over rf {int}
+
+# command line args
+parser = argparse.ArgumentParser()
+parser.add_argument("--user",
+                    metavar="<user>",
+                    default=utils.env("APRS_USER"),
+                    help="The callsign of this ARPS client with SSID"
+                         " Default=env[APRS_USER]")
+
+args = parser.parse_args()
+if not args.user:
+    print("Missing the aprs user")
+    parser.print_help()
+    parser.exit()
+else:
+    USER = args.user
+
+
 try:
   tn = telnetlib.Telnet(HOST, 14580)
 except Exception, e:
