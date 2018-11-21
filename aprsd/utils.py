@@ -46,3 +46,4 @@ def get_config():
     else:
         print("%s is missing, please create a config file" % config_file)
         print("example config is\n %s" % example_config)
+        sys.exit(-1)
