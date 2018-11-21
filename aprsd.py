@@ -70,13 +70,41 @@ parser.add_argument("--user",
                     help="The callsign of this ARPS client with SSID"
                          " Default=env[APRS_USER]")
 
+parser.add_argument("--host",
+                    metavar="<host>",
+                    default=utils.env("APRS_HOST"),
+                    help="The aprs host to use  Default=env[APRS_HOST]")
+parser.add_argument("--password",
+                    metavar="<password>",
+                    default=utils.env("APRS_PASSWORD"),
+                    help="The aprs password  Default=env[APRS_PASSWORD]")
+parser.add_argument("--callsign",
+                    metavar="<callsign>",
+                    default=utils.env("APRS_CALLSIGN"),
+                    help="The callsign of radio in the field to which we send "
+                         "email  Default=env[APRS_CALLSIGN]")
+
 args = parser.parse_args()
 if not args.user:
-    print("Missing the aprs user")
+    print("Missing the aprs user (env[APRS_USER])")
     parser.print_help()
     parser.exit()
 else:
     USER = args.user
+
+if not args.password:
+    print("Missing the aprs password (env[APRS_PASSWORD])")
+    parser.print_help()
+    parser.exit()
+else:
+    PASS = args.password
+
+if not args.callsign:
+    print("Missing the aprs callsign (env[APRS_CALLSIGN])")
+    parser.print_help()
+    parser.exit()
+else:
+    BASECALLSIGN = args.callsign
 
 
 try:
