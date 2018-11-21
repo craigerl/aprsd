@@ -9,7 +9,7 @@ Current messages this will respond to:
 ```
 APRS messages:
    l(ocation)             = descriptive location of calling station
-                            8 Miles E Auburn CA 1673' 38.91150,-120.93450 0.1h ago
+                            8 Miles E Auburn CA 1673' 39.91150,-120.93450 0.1h ago
    w(eather)              = temp, (hi/low) forecast, later forecast
                             58F(58F/46F) Partly Cloudy. Tonight, Heavy Rain.
    t(ime)                 = respond with the current time
