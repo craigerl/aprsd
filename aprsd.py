@@ -1,31 +1,27 @@
-#!/usr/bin/python -u
+#!/home/craigerl/.venv/bin/python -u
 #
 # Listen on amateur radio aprs-is network for messages and respond to them.
 # You must have an amateur radio callsign to use this software.  Put  your
 # callsign in the "USER" variable and update your aprs-is password in "PASS".
 # You must also have an imap email account available for polling.
 #
-# There are additional parameters in the code (sorry), so be sure to set your
-# email server, and associated logins, passwords.  search for "yourmaildomain", 
-# "password".  Search for "shortcuts" to setup email aliases as well.
-# 
-#
-#
 # APRS messages:
+#   l(ocation)             = descriptive location of calling station
+#   w(eather)              = temp, (hi/low) forecast, later forecast
 #   t(ime)                 = respond with the current time          
 #   f(ortune)              = respond with a short fortune
 #   -email_addr email text = send an email
 #   -2                     = display the last 2 emails received
+#   p(ing)                 = respond with Pong!/time
 #   anything else          = respond with usage
-#
-# Meanwhile this code will monitor an imap mailbox and forward email
-# to your BASECALLSIGN.
 #
 # (C)2018 Craig Lamparter
 # License GPLv2
 #
 
 from fuzzyclock import fuzzy
+import json
+import urllib
 import sys
 import os
 import telnetlib
@@ -41,23 +37,32 @@ from imapclient import IMAPClient, SEEN
 import email
 import threading
 import signal
+import pprint
 
-
-# edit to taste, be advised there are additional parameters in the code for now
-
+# localization, please edit:
 HOST = "noam.aprs2.net"     # north america tier2 servers round robin
 USER = "KM6XXX-9"           # callsign of this aprs client with SSID
-PASS = "22222"              # google how to generate this
+PASS = "99999"              # google how to generate this
 BASECALLSIGN = "KM6XXX"     # callsign of radio in the field to which we send email
+shortcuts = {
+  "aa" : "5551239999@vtext.com",
+  "cl" : "craiglamparter@somedomain.org",
+  "wb" : "5553909472@vtext.com"
+}
 
 
 
+# globals
+email_sent_dict = {}  # message_number:time combos so we don't resend the same email in five mins {int:int}
+ack_dict = {}         # message_nubmer:ack  combos so we stop sending a message after an ack from radio {int:int}
+message_number = 0    # current aprs radio message number, increments for each message we send over rf {int}
 
 def signal_handler(signal, frame):
    print("Ctrl+C, exiting.")
    #sys.exit(0)  # thread ignores this
    os._exit(0)
 signal.signal(signal.SIGINT, signal_handler)
+### end signal_handler
 
 def parse_email(msgid, data, server):
   envelope = data[b'ENVELOPE']
@@ -72,6 +77,7 @@ def parse_email(msgid, data, server):
   if msg.is_multipart():
     text = ""
     html = None
+    body = "* unreadable msg received" # default in case body somehow isn't set below - happened once
     for part in msg.get_payload():
        if part.get_content_charset() is None:
            # We cannot know the character set, so return decoded "something"
@@ -107,11 +113,11 @@ def resend_email(count):
   year  = date.year
   today = str(day) + "-"  + month + "-" + str(year)
 
-  shortcuts = {"jl" : "jlname@email.com",  "cl" : "clname@email.com"  }
+  global shortcuts
   shortcuts_inverted = dict([[v,k] for k,v in shortcuts.items()]) # swap key/value 
   
-  server = IMAPClient('mail.yourmaildomain.org', use_uid=True)
-  server.login('KM6XXX@yourmaildomain.org', 'password')
+  server = IMAPClient('imap.yourdomain.com', use_uid=True)
+  server.login('KM6XXX@yourdomain.org', 'yourpassword')
   select_info = server.select_folder('INBOX')
 
   messages = server.search(['SINCE', today])
@@ -132,7 +138,13 @@ def resend_email(count):
          msgexists = True
 
   if msgexists is not True:
-     reply = "No new msg"
+     stm = time.localtime()
+     h = stm.tm_hour
+     m = stm.tm_min
+     s = stm.tm_sec
+     # append time as a kind of serial number to prevent FT1XDR from thinking this is a duplicate message.
+     # The FT1XDR pretty much ignores the aprs message number in this regard.  The FTM400 gets it right.
+     reply = "No new msg " + str(h).zfill(2) + ":" + str(m).zfill(2) + ":" + str(s).zfill(2)
      send_message(fromcall, reply)
 
   server.logout()
@@ -145,7 +157,7 @@ def check_email_thread():
 
   threading.Timer(55, check_email_thread).start()     # how do we skip first run?
 
-  shortcuts = {"jl" : "jlname@email.com",  "cl" : "clname@email.com"  }
+  global shortcuts
   shortcuts_inverted = dict([[v,k] for k,v in shortcuts.items()]) # swap key/value 
   
   date = datetime.datetime.now()
@@ -154,8 +166,8 @@ def check_email_thread():
   year  = date.year
   today = str(day) + "-"  + month + "-" + str(year)
   
-  server = IMAPClient('mail.yourmaildomain.org', use_uid=True)
-  server.login('KM6XXX@yourmaildomain.org', 'password')
+  server = IMAPClient('imap.yourdomain.com', use_uid=True)
+  server.login('KM6XXX@yourdomain.org', 'yourpassword')
   select_info = server.select_folder('INBOX')
   
   messages = server.search(['SINCE', today])
@@ -187,27 +199,72 @@ def check_email_thread():
   server.logout()
 ### end check_email()
 
-def send_ack(tocall, ack):
+
+def send_ack_thread(tocall, ack, retry_count):
   tocall = tocall.ljust(9) # pad to nine chars
   line = USER + ">APRS::" + tocall + ":ack" + str(ack) + "\n"
-  print "Sending ack __________________"
-  print "Raw         : " + line,
-  print "To          : " + tocall
-  print "Ack number  : " + str(ack)
-  tn.write(line)
+  for i in range(retry_count, 0, -1):
+     print "Sending ack __________________ Tx(" + str(i) + ")"
+     print "Raw         : " + line,
+     print "To          : " + tocall
+     print "Ack number  : " + str(ack)
+     tn.write(line)
+     time.sleep(31)  # aprs duplicate detection is 30 secs?  (21 only sends first, 28 skips middle)
+  return()
+### end_send_ack_thread
+
+
+def send_ack(tocall, ack):
+  retry_count = 3
+  thread = threading.Thread(target = send_ack_thread, args = (tocall, ack, retry_count))
+  thread.start()
+  return()
 ### end send_ack()
 
+
+def send_message_thread(tocall, message, this_message_number, retry_count):
+  global ack_dict
+  line = USER + ">APRS::" + tocall + ":" + message + "{" + str(this_message_number) + "\n"
+  for i in range(retry_count, 0, -1):
+      print "DEBUG: send_message_thread msg:ack combos are: " 
+      pprint.pprint(ack_dict)
+      if ack_dict[this_message_number] != 1:
+         print "Sending message_______________ " + str(this_message_number) + "(Tx" + str(i) + ")"
+         print "Raw         : " + line,
+         print "To          : " + tocall
+         print "Message     : " + message
+         tn.write(line)   
+         sleeptime = (retry_count - i + 1) * 31  # decaying repeats, 31 to 93 second intervals
+         time.sleep(sleeptime)
+      else:
+         break
+  return
+### end send_message_thread 
+
+
 def send_message(tocall, message):
-  messagecounter = randint(10,99)
-  tocall = tocall.ljust(9) # pad to nine chars
-  message = message[:67]   # yaesu max length allowed, plus 3 for msg number {00 ?
-  line = USER + ">APRS::" + tocall + ":" + message + "{" + str(messagecounter) + "\n"
-  print "Sending message_______________"
-  print "Raw         : " + line,
-  print "To          : " + tocall
-  print "Message     : " + message
-  tn.write(line)    # resends within 8 minutes are tossed
+  global message_number
+  global ack_dict
+  retry_count = 3
+  if message_number > 98:        # global
+      message_number = 0
+  message_number += 1  
+  if len(ack_dict) > 90:          # empty ack dict if it's really big, could result in key error later
+      print "DEBUG: Length of ack dictionary is big at " + str(len(ack_dict)) + " clearing."
+      ack_dict.clear()
+      pprint.pprint(ack_dict)
+      print "DEBUG: Cleared ack dictionary, ack_dict length is now " + str(len(ack_dict)) + "."
+  ack_dict[message_number] = 0   # clear ack for this message number
+  tocall = tocall.ljust(9)       # pad to nine chars
+  message = message[:67]         # max?  ftm400 displays 64, raw msg shows 74
+                                 # and ftm400-send is max 64.  setting this to
+                                 # 67 displays 64 on the ftm400. (+3 {01 suffix)
+                                 # feature req: break long ones into two msgs
+  thread = threading.Thread(target = send_message_thread, args = (tocall, message, message_number, retry_count))
+  thread.start()
+  return()
 ### end send_message()
+
 
 def process_message(line):
   f = re.search('^(.*)>', line)
@@ -216,13 +273,13 @@ def process_message(line):
   m = re.search(searchstring, line)
   fullmessage = m.group(1)
 
-  ack_attached = re.search('(.*){([0-9]+)', fullmessage)
+  ack_attached = re.search('(.*){([0-9A-Z]+)', fullmessage)    # ack formats include: {1, {AB}, {12   
   if ack_attached:                       # "{##" suffix means radio wants an ack back
      message = ack_attached.group(1)     # message content
      ack_num = ack_attached.group(2)     # suffix number to use in ack
   else:
      message = fullmessage
-     ack_num = 0                         # ack not requested, but lets send one as 0
+     ack_num = "0"                        # ack not requested, but lets send one as 0
   
   print "Received message______________"
   print "Raw         : " + line
@@ -230,13 +287,13 @@ def process_message(line):
   print "Message     : " + message
   print "Msg number  : " + str(ack_num)
 
-  return (fromcall, message, ack_num)
-
+  return (fromcall, message, ack_num)  
 ### end process_message()
+
 
 def send_email(to_addr, content):
   print "Sending Email_________________"
-  shortcuts = {"jl" : "jlname@email.com",  "cl" : "clname@email.com"  }
+  global shortcuts
   if to_addr in shortcuts:
      print "To          : " + to_addr , 
      to_addr = shortcuts[to_addr]
@@ -248,20 +305,24 @@ def send_email(to_addr, content):
 
   msg = MIMEText(content)
   msg['Subject'] = subject 
-  msg['From'] = "KM6XXX@yourmaildomain.org"
+  msg['From'] = "KM6XXX@yourdomain.org"
   msg['To'] = to_addr
-  s = smtplib.SMTP_SSL('mail.yourmaildomain.org', 465)
-  s.login("KM6XXX@yourmaildomain.org", "password")
+  s = smtplib.SMTP_SSL('smtp.yourdomain.com', 465)
+  s.login("KM6XXX@yourdomain.org", "yourpassword")
   try: 
-     s.sendmail("KM6XXX@yourmaildomain.org", [to_addr], msg.as_string())
+     s.sendmail("KM6XXX@yourdomain.org", [to_addr], msg.as_string())
   except Exception, e:
      print "Sendmail Error!!!!!!!!!" 
      s.quit()
      return(-1)
   s.quit()
   return(0)
+### end send_email
 
-### main()  
+
+
+
+### main() ###
 try:
   tn = telnetlib.Telnet(HOST, 14580)
 except Exception, e:
@@ -290,9 +351,10 @@ while True:
         message = "noise"
         continue
     
-     # ACK (ack##)                                                     # ignore incoming acks
+     # ACK (ack##)  
      if re.search('^ack[0-9]+', message):                            
-         is_ack = True                               
+         a = re.search('^ack([0-9]+)', message)                       # put message_number:1 in dict to record the ack 
+         ack_dict.update({int(a.group(1)):1}) 
          continue
    
      # EMAIL (-)
@@ -309,11 +371,24 @@ while True:
                   content = a.group(2)
                   if content == 'mapme':                               # send recipient link to aprs.fi map
                       content = "Click for my location: http://aprs.fi/" + BASECALLSIGN 
-                  send_result = send_email(to_addr, content)  
-                  if send_result != 0:
-                      send_message(fromcall, "-" + to_addr + " failed")
+                  too_soon = 0
+                  now = time.time()
+                  if ack in email_sent_dict:   # see if we sent this msg number recently
+                      timedelta = now - email_sent_dict[ack]
+                      if ( timedelta < 300 ):  # five minutes
+                          too_soon = 1
+                  if not too_soon or ack == 0:
+                      send_result = send_email(to_addr, content)  
+                      if send_result != 0:
+                          send_message(fromcall, "-" + to_addr + " failed")
+                      else:
+                          #send_message(fromcall, "-" + to_addr + " sent")
+                          if len(email_sent_dict) > 98:  # clear email sent dictionary if somehow goes over 100
+                              print "DEBUG: email_sent_dict is big (" + str(len(email_sent_dict)) + ") clearing out."
+                              email_sent_dict.clear()
+                          email_sent_dict[ack] = now
                   else:
-                      send_message(fromcall, "-" + to_addr + " sent")
+                      print "\nEmail for message number " + ack + " recently sent, not sending again.\n"
             else:
                send_message(fromcall, "Bad email address")
 
@@ -324,19 +399,78 @@ while True:
         m = stm.tm_min
         cur_time = fuzzy(h, m, 1)
         reply = cur_time + " (" + str(h) + ":" + str(m).rjust(2, '0') + "PDT)" + " (" + message.rstrip() + ")"
-        send_message(fromcall, reply)
-
+        thread = threading.Thread(target = send_message, args = (fromcall, reply))
+        thread.start()
+       
      # FORTUNE (f)
      elif re.search('^f', message):  
         process = subprocess.Popen(['/usr/games/fortune', '-s', '-n 60'], stdout=subprocess.PIPE)
         reply = process.communicate()[0]
         send_message(fromcall, reply.rstrip())
 
+     # PING (p)
+     elif re.search('^p', message):  
+        stm = time.localtime()
+        h = stm.tm_hour
+        m = stm.tm_min
+        s = stm.tm_sec
+        reply = "Pong! " + str(h).zfill(2) + ":" + str(m).zfill(2) + ":" + str(s).zfill(2)
+        send_message(fromcall, reply.rstrip())
+
+     # LOCATION (l)  "8 Miles E Auburn CA 1771' 38.91547,-120.99500 0.1h ago"
+     elif re.search('^l', message):  
+       # get my last location, get descriptive name from weather service
+       try:
+          url = "http://api.aprs.fi/api/get?name=" + fromcall + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
+          response = urllib.urlopen(url)
+          aprs_data = json.loads(response.read())
+          lat =  aprs_data['entries'][0]['lat']
+          lon =  aprs_data['entries'][0]['lng']
+          try:  # altitude not always provided
+             alt =  aprs_data['entries'][0]['altitude']
+          except:
+             alt = 0
+          altfeet = int(alt *  3.28084)
+          aprs_lasttime_seconds = aprs_data['entries'][0]['lasttime']
+          aprs_lasttime_seconds = aprs_lasttime_seconds.encode('ascii',errors='ignore')  #unicode to ascii
+          delta_seconds = time.time() - int(aprs_lasttime_seconds)
+          delta_hours = delta_seconds / 60 / 60
+          url2 = "https://forecast.weather.gov/MapClick.php?lat=" + str(lat) + "&lon=" + str(lon) + "&FcstType=json"
+          response2 = urllib.urlopen(url2)
+          wx_data = json.loads(response2.read())
+          reply = wx_data['location']['areaDescription'] + " " + str(altfeet) + "' " + str(lat) + "," + str(lon) + " " + str("%.1f" % round(delta_hours,1)) + "h ago"
+          reply = reply.encode('ascii',errors='ignore')  # unicode to ascii
+          send_message(fromcall, reply.rstrip())
+       except:
+          reply = "Unable to find you (send beacon?)"
+          send_message(fromcall, reply.rstrip())
+
+     # WEATHER (w)  "42F(68F/48F) Haze. Tonight, Haze then Chance Rain."
+     elif re.search('^w', message):  
+       # get my last location from aprsis then get weather from weather service
+       try:
+          url = "http://api.aprs.fi/api/get?name=" + fromcall + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
+          response = urllib.urlopen(url)
+          aprs_data = json.loads(response.read())
+          lat =  aprs_data['entries'][0]['lat']
+          lon =  aprs_data['entries'][0]['lng']
+          url2 = "https://forecast.weather.gov/MapClick.php?lat=" + str(lat) + "&lon=" + str(lon) + "&FcstType=json"
+          response2 = urllib.urlopen(url2)
+          wx_data = json.loads(response2.read())
+          reply = wx_data['currentobservation']['Temp'] + "F(" + wx_data['data']['temperature'][0] + "F/" + wx_data['data']['temperature'][1] + "F) " + wx_data['data']['weather'][0] + ". " +  wx_data['time']['startPeriodName'][1] + ", " + wx_data['data']['weather'][1] + "."
+          reply = reply.encode('ascii',errors='ignore')  # unicode to ascii
+          send_message(fromcall, reply.rstrip())
+       except:
+          reply = "Unable to find you (send beacon?)"
+          send_message(fromcall, reply)
+
+
      # USAGE
      else:
-        reply = "APRSd v0.99.  Commands: t(ime), f(ortune), -(emailaddr emailbody)"
+        reply = "usage: time, fortune, loc, weath, -emailaddr emailbody, -#(resend)"
         send_message(fromcall, reply)
 
+     time.sleep(1)                     # let any threads do their thing, then ack
      send_ack(fromcall, ack)           # send an ack last
 
   except Exception, e:
