@@ -11,7 +11,7 @@ APRS messages:
    l(ocation)             = descriptive location of calling station
                             8 Miles E Auburn CA 1673' 38.91150,-120.93450 0.1h ago
    w(eather)              = temp, (hi/low) forecast, later forecast
-                            58F(58F/46F) Heavy Rain. Tonight, Heavy Rain.
+                            58F(58F/46F) Partly Cloudy. Tonight, Heavy Rain.
    t(ime)                 = respond with the current time
    f(ortune)              = respond with a short fortune
    -email_addr email text = send an email
@@ -66,9 +66,9 @@ Message     : weather
 Msg number  : 27                                                                                                                                       
 
 Sending message_______________ 6(Tx3)                                                                                                                     
-Raw         : KM6XXX-9>APRS::KM6XXX   :58F(58F/46F) Heavy Rain. Tonight, Heavy Rain.{6                                                                    
+Raw         : KM6XXX-9>APRS::KM6XXX   :58F(58F/46F) Partly cloudy. Tonight, Heavy Rain.{6                                                                    
 To          : KM6XXX                                                                                                                                          
-Message     : 58F(58F/46F) Heavy Rain. Tonight, Heavy Rain.                                                                                                   
+Message     : 58F(58F/46F) Party Cloudy. Tonight, Heavy Rain.                                                                                                   
 
 Sending ack __________________ Tx(3)                                                                                                                          
 Raw         : KM6XXX-9>APRS::KM6XXX   :ack27                                                                                                                  
@@ -93,7 +93,7 @@ Message     : location
 Msg number  : 28
 
 Sending message_______________ 7(Tx3)
-Raw         : KM6XXX-9>APRS::KM6XXX   :8 Miles E Auburn CA 1673' 38.91150,-120.93450 0.1h ago{7
+Raw         : KM6XXX-9>APRS::KM6XXX   :8 Miles NE Auburn CA 1673' 39.91150,-120.93450 0.1h ago{7
 To          : KM6XXX   
 Message     : 8 Miles E Auburn CA 1673' 38.91150,-120.93450 0.1h ago
 
