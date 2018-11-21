@@ -50,7 +50,7 @@ shortcuts = {
   "wb" : "5553909472@vtext.com"
 }
 
-# globals
+# globals - tell me a better way to update data being used by threads
 email_sent_dict = {}  # message_number:time combos so we don't resend the same email in five mins {int:int}
 ack_dict = {}         # message_nubmer:ack  combos so we stop sending a message after an ack from radio {int:int}
 message_number = 0    # current aprs radio message number, increments for each message we send over rf {int}
