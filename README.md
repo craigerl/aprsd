@@ -60,9 +60,9 @@ RECEIVE EMAIL (imap server to radio)
 
 ```
 Sending message_______________ 6(Tx3)
-Raw         : KM6LYW-9>APRS::KM6LYW   :-cl email from internet to radio{6
+Raw         : KM6LYW-9>APRS::KM6LYW   :-somebody@gmail.com email from internet to radio{6
 To          : KM6LYW   
-Message     : -cl email from internet to radio
+Message     : -somebody@gmail.com email from internet to radio
 
 Received message______________
 Raw         : KM6LYW>APY400,WIDE1-1,qAO,KM6LYW-1::KM6LYW-9 :ack6
