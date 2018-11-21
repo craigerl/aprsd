@@ -109,7 +109,11 @@ else:
 
 # Now read the ~/.aprds/config.yml
 config = utils.get_config()
-shortcuts = config['shortcuts']
+if 'shortcuts' in config:
+    shortcuts = config['shortcuts']
+else:
+    print("missing 'shortcuts' section of config.yml")
+    sys.exit(-1)
 
 try:
   tn = telnetlib.Telnet(HOST, 14580)
