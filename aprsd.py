@@ -50,12 +50,16 @@ shortcuts = {
   "wb" : "5553909472@vtext.com"
 }
 
-
-
 # globals
 email_sent_dict = {}  # message_number:time combos so we don't resend the same email in five mins {int:int}
 ack_dict = {}         # message_nubmer:ack  combos so we stop sending a message after an ack from radio {int:int}
 message_number = 0    # current aprs radio message number, increments for each message we send over rf {int}
+try:
+  tn = telnetlib.Telnet(HOST, 14580)
+except Exception, e:
+  print "Telnet session failed.\n"
+  sys.exit(-1)
+
 
 def signal_handler(signal, frame):
    print("Ctrl+C, exiting.")
@@ -324,11 +328,6 @@ def send_email(to_addr, content):
 
 ### main() ###
 def main():
-  try:
-    tn = telnetlib.Telnet(HOST, 14580)
-  except Exception, e:
-    print "Telnet session failed.\n"
-    sys.exit(-1)
 
   time.sleep(2)
 
