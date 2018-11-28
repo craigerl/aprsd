@@ -30,9 +30,14 @@ email server, and associated logins, passwords.  search for "yourdomain",
 "password".  Search for "shortcuts" to setup email aliases as well.
 
 
+Installation:
+```
+pip install aprsd
+```
+
 Example usage:
 ```
-./aprsd.py
+aprsd -h
 ```
 
 Example output:

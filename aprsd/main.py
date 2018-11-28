@@ -43,7 +43,7 @@ import pprint
 from imapclient import IMAPClient, SEEN
 
 # local imports here
-from fuzzyclock import fuzzy
+from aprsd.fuzzyclock import fuzzy
 import utils
 
 # localization, please edit:
@@ -106,6 +106,14 @@ if not args.callsign:
 else:
     BASECALLSIGN = args.callsign
 
+
+# Now read the ~/.aprds/config.yml
+config = utils.get_config()
+if 'shortcuts' in config:
+    shortcuts = config['shortcuts']
+else:
+    print("missing 'shortcuts' section of config.yml")
+    sys.exit(-1)
 
 try:
   tn = telnetlib.Telnet(HOST, 14580)
