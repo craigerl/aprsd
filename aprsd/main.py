@@ -410,48 +410,14 @@ def setup_logging(args):
         sh.setFormatter(log_formatter)
         LOG.addHandler(sh)
 
-# This method tries to parse the config yaml file
-# and consume the settings.
-# If the required params don't exist,
-# it will look in the environment
-def parse_config(args):
-    # for now we still use globals....ugh
-    global CONFIG, LOG
-
-    def fail(msg):
-        LOG.critical(msg)
-        sys.exit(-1)
-
-    def check_option(config, section, name=None):
-        if section in config:
-            if name and name not in config[section]:
-                fail("'%s' was not in '%s' section of config file" %
-                     (name, section))
-        else:
-            fail("'%s' section wasn't in config file" % section)
-
-    # Now read the ~/.aprds/config.yml
-    config = utils.get_config()
-    check_option(config, 'shortcuts')
-    check_option(config, 'ham', 'callsign')
-    check_option(config, 'aprs', 'login')
-    check_option(config, 'aprs', 'password')
-    check_option(config, 'aprs', 'host')
-    check_option(config, 'aprs', 'port')
-    check_option(config, 'imap', 'host')
-    check_option(config, 'imap', 'login')
-    check_option(config, 'imap', 'password')
-
-    CONFIG = config
-    LOG.info("aprsd config loaded")
-
 
 ### main() ###
 def main(args=args):
+    global CONFIG
     setup_logging(args)
 
     LOG.info("APRSD Started")
-    parse_config(args)
+    CONFIG = utils.parse_config(args)
     LOG.debug("Signal handler setup")
     signal.signal(signal.SIGINT, signal_handler)
 
