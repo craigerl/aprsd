@@ -221,7 +221,8 @@ def check_email_thread():
         LOG.exception("Failed to login with IMAP server")
         return
 
-    # select_info = server.select_folder('INBOX')
+    if 'gmail' in CONFIG['imap']['host'].lower():
+        server.select_folder('INBOX', readonly=True)
 
     messages = server.search(['SINCE', today])
     LOG.debug("%d messages received today" % len(messages))
