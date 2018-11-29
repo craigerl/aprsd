@@ -89,11 +89,12 @@ args = parser.parse_args()
 def setup_connection():
     global tn
     host = CONFIG['aprs']['host']
-    LOG.debug("Setting up telnet connection to '%s'" % host)
+    port = CONFIG['aprs']['port']
+    LOG.debug("Setting up telnet connection to '%s:%s'" % (host, port))
     try:
-        tn = telnetlib.Telnet(host, 14580)
+        tn = telnetlib.Telnet(host, port)
     except Exception, e:
-        LOG.critical("Telnet session failed.\n", e)
+        LOG.exception("Telnet session failed.")
         sys.exit(-1)
 
 
@@ -213,8 +214,13 @@ def check_email_thread():
               (CONFIG['imap']['host'],
                CONFIG['imap']['login']))
 
-    server = IMAPClient(CONFIG['imap']['host'], use_uid=True)
-    server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
+    try:
+        server = IMAPClient(CONFIG['imap']['host'], use_uid=True, timeout=5)
+        server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
+    except Exception:
+        LOG.exception("Failed to login with IMAP server")
+        return
+
     # select_info = server.select_folder('INBOX')
 
     messages = server.search(['SINCE', today])
@@ -430,6 +436,7 @@ def parse_config(args):
     check_option(config, 'aprs', 'login')
     check_option(config, 'aprs', 'password')
     check_option(config, 'aprs', 'host')
+    check_option(config, 'aprs', 'port')
     check_option(config, 'imap', 'host')
     check_option(config, 'imap', 'login')
     check_option(config, 'imap', 'password')
@@ -453,17 +460,19 @@ def main(args=args):
     user = CONFIG['aprs']['login']
     password = CONFIG['aprs']['password']
     LOG.info("LOGIN to APRSD with user '%s'" % user)
-    tn.write("user " + user + " pass " + password + " vers aprsd 0.99\n" )
+    tn.write("user %s pass %s vers aprsd 0.99\n" % (user, password) )
     time.sleep(2)
 
     check_email_thread()  # start email reader thread
 
+    LOG.info("Start main loop")
     while True:
         line = ""
         try:
             for char in tn.read_until("\n",100):
                 line = line + char
             line = line.replace('\n', '')
+            print("ASS LINE %s" % line)
             LOG.info(line)
             searchstring = '::' + user
             # is aprs message to us, not beacon, status, etc
