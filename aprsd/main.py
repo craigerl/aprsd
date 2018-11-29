@@ -214,8 +214,13 @@ def check_email_thread():
               (CONFIG['imap']['host'],
                CONFIG['imap']['login']))
 
-    server = IMAPClient(CONFIG['imap']['host'], use_uid=True)
-    server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
+    try:
+        server = IMAPClient(CONFIG['imap']['host'], use_uid=True, timeout=5)
+        server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
+    except Exception:
+        LOG.exception("Failed to login with IMAP server")
+        return
+
     # select_info = server.select_folder('INBOX')
 
     messages = server.search(['SINCE', today])
@@ -460,12 +465,14 @@ def main(args=args):
 
     check_email_thread()  # start email reader thread
 
+    LOG.info("Start main loop")
     while True:
         line = ""
         try:
             for char in tn.read_until("\n",100):
                 line = line + char
             line = line.replace('\n', '')
+            print("ASS LINE %s" % line)
             LOG.info(line)
             searchstring = '::' + user
             # is aprs message to us, not beacon, status, etc
