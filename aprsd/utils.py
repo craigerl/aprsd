@@ -1,12 +1,20 @@
 """Utilities and helper functions."""
 
+import logging
 import os
-import pprint
 import sys
 import yaml
 
 # an example of what should be in the ~/.aprsd/config.yml
 example_config = '''
+ham:
+    callsign: KFART
+
+aprs:
+    login: someusername
+    password: password
+    host: noam.aprs2.net
+
 shortcuts:
     'aa': '5551239999@vtext.com'
     'cl': 'craiglamparter@somedomain.org'
@@ -19,11 +27,9 @@ smtp:
 imap:
     login: imapuser
     password: something dumb
-
-ham:
-    callsign: something
-    basename: somebasename
 '''
+
+log = logging.getLogger('APRSD')
 
 def env(*vars, **kwargs):
     """This returns the first environment variable set.
@@ -44,6 +50,6 @@ def get_config():
             config = yaml.load(stream)
             return config
     else:
-        print("%s is missing, please create a config file" % config_file)
-        print("example config is\n %s" % example_config)
+        log.critical("%s is missing, please create a config file" % config_file)
+        print("\nCopy to ~/.aprsd/config.yml and edit\n\nSample config:\n %s" % example_config)
         sys.exit(-1)
