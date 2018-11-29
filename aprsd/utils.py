@@ -14,6 +14,7 @@ aprs:
     login: someusername
     password: password
     host: noam.aprs2.net
+    port: 14580
 
 shortcuts:
     'aa': '5551239999@vtext.com'
