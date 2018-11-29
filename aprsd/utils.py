@@ -15,6 +15,7 @@ aprs:
     password: password
     host: noam.aprs2.net
     port: 14580
+    logfile: /tmp/aprsd.log
 
 shortcuts:
     'aa': '5551239999@vtext.com'
@@ -24,10 +25,13 @@ shortcuts:
 smtp:
     login: something
     password: some lame password
+    host: imap.gmail.com
+    port: 465
 
 imap:
     login: imapuser
     password: something dumb
+    host: imap.gmail.com
 '''
 
 log = logging.getLogger('APRSD')
@@ -67,13 +71,17 @@ def parse_config(args):
         LOG.critical(msg)
         sys.exit(-1)
 
-    def check_option(config, section, name=None):
+    def check_option(config, section, name=None, default=None):
         if section in config:
             if name and name not in config[section]:
-                fail("'%s' was not in '%s' section of config file" %
-                     (name, section))
+                if not default:
+                    fail("'%s' was not in '%s' section of config file" %
+                         (name, section))
+                else:
+                    config[section][name] = default
         else:
             fail("'%s' section wasn't in config file" % section)
+        return config
 
     # Now read the ~/.aprds/config.yml
     config = get_config()
@@ -83,9 +91,14 @@ def parse_config(args):
     check_option(config, 'aprs', 'password')
     check_option(config, 'aprs', 'host')
     check_option(config, 'aprs', 'port')
+    config = check_option(config, 'aprs', 'logfile', './aprsd.log')
     check_option(config, 'imap', 'host')
     check_option(config, 'imap', 'login')
     check_option(config, 'imap', 'password')
+    check_option(config, 'smtp', 'host')
+    check_option(config, 'smtp', 'port')
+    check_option(config, 'smtp', 'login')
+    check_option(config, 'smtp', 'password')
 
     return config
     LOG.info("aprsd config loaded")

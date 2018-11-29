@@ -222,7 +222,7 @@ def check_email_thread():
         return
 
     if 'gmail' in CONFIG['imap']['host'].lower():
-        server.select_folder('INBOX', readonly=True)
+        server.select_folder('INBOX')
 
     messages = server.search(['SINCE', today])
     LOG.debug("%d messages received today" % len(messages))
@@ -365,12 +365,14 @@ def send_email(to_addr, content):
 
     msg = MIMEText(content)
     msg['Subject'] = subject
-    msg['From'] = "KM6XXX@yourdomain.org"
+    msg['From'] = CONFIG['smtp']['login']
     msg['To'] = to_addr
-    s = smtplib.SMTP_SSL('smtp.yourdomain.com', 465)
-    s.login("KM6XXX@yourdomain.org", "yourpassword")
+    s = smtplib.SMTP_SSL(CONFIG['smtp']['host'],
+                         CONFIG['smtp']['port'])
+    s.login(CONFIG['smtp']['login'],
+            CONFIG['smtp']['password'])
     try:
-        s.sendmail("KM6XXX@yourdomain.org", [to_addr], msg.as_string())
+        s.sendmail(CONFIG['smtp']['login'], [to_addr], msg.as_string())
     except Exception:
         LOG.exception("Sendmail Error!!!!!!!!!")
         s.quit()
@@ -399,7 +401,7 @@ def setup_logging(args):
     date_format = '%m/%d/%Y %I:%M:%S %p'
     log_formatter = logging.Formatter(fmt=log_format,
                                       datefmt=date_format)
-    fh = RotatingFileHandler('aprsd.log',
+    fh = RotatingFileHandler(CONFIG['aprs']['logfile'],
                              maxBytes=(10248576*5),
                              backupCount=4)
     fh.setFormatter(log_formatter)
@@ -414,12 +416,12 @@ def setup_logging(args):
 ### main() ###
 def main(args=args):
     global CONFIG
-    setup_logging(args)
 
-    LOG.info("APRSD Started")
     CONFIG = utils.parse_config(args)
-    LOG.debug("Signal handler setup")
     signal.signal(signal.SIGINT, signal_handler)
+    LOG.info("APRSD Started")
+    LOG.debug(CONFIG)
+    setup_logging(args)
 
     time.sleep(2)
     setup_connection()
