@@ -472,7 +472,6 @@ def main(args=args):
             for char in tn.read_until("\n",100):
                 line = line + char
             line = line.replace('\n', '')
-            print("ASS LINE %s" % line)
             LOG.info(line)
             searchstring = '::' + user
             # is aprs message to us, not beacon, status, etc
