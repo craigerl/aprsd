@@ -54,3 +54,38 @@ def get_config():
         log.critical("%s is missing, please create a config file" % config_file)
         print("\nCopy to ~/.aprsd/config.yml and edit\n\nSample config:\n %s" % example_config)
         sys.exit(-1)
+
+# This method tries to parse the config yaml file
+# and consume the settings.
+# If the required params don't exist,
+# it will look in the environment
+def parse_config(args):
+    # for now we still use globals....ugh
+    global CONFIG, LOG
+
+    def fail(msg):
+        LOG.critical(msg)
+        sys.exit(-1)
+
+    def check_option(config, section, name=None):
+        if section in config:
+            if name and name not in config[section]:
+                fail("'%s' was not in '%s' section of config file" %
+                     (name, section))
+        else:
+            fail("'%s' section wasn't in config file" % section)
+
+    # Now read the ~/.aprds/config.yml
+    config = get_config()
+    check_option(config, 'shortcuts')
+    check_option(config, 'ham', 'callsign')
+    check_option(config, 'aprs', 'login')
+    check_option(config, 'aprs', 'password')
+    check_option(config, 'aprs', 'host')
+    check_option(config, 'aprs', 'port')
+    check_option(config, 'imap', 'host')
+    check_option(config, 'imap', 'login')
+    check_option(config, 'imap', 'password')
+
+    return config
+    LOG.info("aprsd config loaded")
