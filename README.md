@@ -8,8 +8,8 @@ You must also have an imap email account available for polling.
 Current messages this will respond to:
 ```
 APRS messages:
-   l(ocation)             = descriptive current location of your radio
-                            8 Miles E Auburn CA 1673' 39.91150,-120.93450 0.1h ago
+   l(ocation) [callsign]  = descriptive current location of your radio
+                            8 Miles E Auburn CA 1673' 39.92150,-120.93950 0.1h ago
    w(eather)              = weather forecast for your radio's current position
                             58F(58F/46F) Partly Cloudy. Tonight, Heavy Rain.
    t(ime)                 = respond with the current time
