@@ -36,6 +36,7 @@ imap:
 
 log = logging.getLogger('APRSD')
 
+
 def env(*vars, **kwargs):
     """This returns the first environment variable set.
     if none are non-empty, defaults to '' or keyword arg default
@@ -55,9 +56,11 @@ def get_config():
             config = yaml.load(stream)
             return config
     else:
-        log.critical("%s is missing, please create a config file" % config_file)
-        print("\nCopy to ~/.aprsd/config.yml and edit\n\nSample config:\n %s" % example_config)
+        log.critical("%s is missing, please create config file" % config_file)
+        print("\nCopy to ~/.aprsd/config.yml and edit\n\nSample config:\n %s"
+              % example_config)
         sys.exit(-1)
+
 
 # This method tries to parse the config yaml file
 # and consume the settings.
