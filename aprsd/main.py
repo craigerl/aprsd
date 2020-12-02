@@ -184,7 +184,7 @@ def resend_email(count):
                CONFIG['imap']['login']))
     server = IMAPClient(CONFIG['imap']['host'], use_uid=True)
     server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
-    # select_info = server.select_folder('INBOX')
+    select_info = server.select_folder('INBOX')
 
     messages = server.search(['SINCE', today])
     LOG.debug("%d messages received today" % len(messages))
@@ -254,8 +254,9 @@ def check_email_thread():
         LOG.exception("Failed to login with IMAP server")
         return
 
-    if 'gmail' in CONFIG['imap']['host'].lower():
-        server.select_folder('INBOX')
+#    if 'gmail' in CONFIG['imap']['host'].lower():
+#        server.select_folder('INBOX')
+    server.select_folder('INBOX')
 
     messages = server.search(['SINCE', today])
     LOG.debug("%d messages received today" % len(messages))
