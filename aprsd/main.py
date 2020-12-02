@@ -27,13 +27,14 @@ import email
 import json
 import logging
 import os
+import socket
 import pprint
 import re
 import signal
 import smtplib
 import subprocess
 import sys
-import telnetlib
+#import telnetlib
 import threading
 import time
 import urllib
@@ -79,7 +80,7 @@ ack_dict = {}
 # send over rf {int}
 message_number = 0
 
-# global telnet connection object
+# global telnet connection object -- not needed anymore
 tn = None
 
 # command line args
@@ -95,16 +96,31 @@ parser.add_argument("--quiet",
 args = parser.parse_args()
 
 
+#def setup_connection():
+#    global tn
+#    host = CONFIG['aprs']['host']
+#    port = CONFIG['aprs']['port']
+#    LOG.debug("Setting up telnet connection to '%s:%s'" % (host, port))
+#    try:
+#        tn = telnetlib.Telnet(host, port)
+#    except Exception:
+#        LOG.exception("Telnet session failed.")
+#        sys.exit(-1)
+
 def setup_connection():
-    global tn
-    host = CONFIG['aprs']['host']
-    port = CONFIG['aprs']['port']
-    LOG.debug("Setting up telnet connection to '%s:%s'" % (host, port))
+    global sock
+    global sock_file
     try:
-        tn = telnetlib.Telnet(host, port)
-    except Exception:
-        LOG.exception("Telnet session failed.")
-        sys.exit(-1)
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((CONFIG['aprs']['host'], 14580))
+    except Exception, e:
+        print "Unable to connect to APRS-IS server.\n"
+        print str(e)
+        os._exit(1)
+    sock_file = sock.makefile(mode='r', bufsize=0 )
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # disable nagle algorithm
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)  # buffer size
+
 
 
 def signal_handler(signal, frame):
@@ -114,61 +130,52 @@ def signal_handler(signal, frame):
 
 # end signal_handler
 
-
 def parse_email(msgid, data, server):
     envelope = data[b'ENVELOPE']
-    # print('ID:%d  "%s" (%s)' %
-    #       (msgid, envelope.subject.decode(), envelope.date))
-    # email address match
-    f = re.search('([\.\w_-]+@[\.\w_-]+)', str(envelope.from_[0]))
+    f = re.search('([\.\w_-]+@[\.\w_-]+)', str(envelope.from_[0]) )  # email address match
     if f is not None:
-        from_addr = f.group(1)
+       from_addr = f.group(1)
     else:
-        from_addr = "noaddr"
+       from_addr = "noaddr"
     m = server.fetch([msgid], ['RFC822'])
     msg = email.message_from_string(m[msgid]['RFC822'])
     if msg.is_multipart():
-        text = ""
-        html = None
-
-    # default in case body somehow isn't set below - happened once
-    body = "* unreadable msg received"
-    for part in msg.get_payload():
-        if part.get_content_charset() is None:
-            # We cannot know the character set, so return decoded "something"
-            text = part.get_payload(decode=True)
-            continue
-
-        charset = part.get_content_charset()
-
-        if part.get_content_type() == 'text/plain':
-            text = unicode(part.get_payload(decode=True), str(charset),
-                           "ignore").encode('utf8', 'replace')
-
-        if part.get_content_type() == 'text/html':
-            html = unicode(part.get_payload(decode=True), str(charset),
-                           "ignore").encode('utf8', 'replace')
-
-        if text is not None:
-            # strip removes white space fore and aft of string
-            body = text.strip()
-        else:
-            body = html.strip()
+       text = ""
+       html = None
+       body = "* unreadable msg received" # default in case body somehow isn't set below - happened once
+       for part in msg.get_payload():
+          if part.get_content_charset() is None:
+              # We cannot know the character set, so return decoded "something"
+              text = part.get_payload(decode=True)
+              continue
+   
+          charset = part.get_content_charset()
+   
+          if part.get_content_type() == 'text/plain':
+              text = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace')
+   
+          if part.get_content_type() == 'text/html':
+              html = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace')
+   
+          if text is not None:
+             body = text.strip()  # strip removes white space fore and aft of string
+          else:
+             body = html.strip()
     else:
-        text = unicode(msg.get_payload(decode=True), msg.get_content_charset(),
-                       'ignore').encode('utf8', 'replace')
-        body = text.strip()
-
-    # strip all html tags
-    body = re.sub('<[^<]+?>', '', body)
-
-    # strip CR/LF, make it one line, .rstrip fails at this
-    body = body.replace("\n", " ").replace("\r", " ")
+         if msg.get_content_charset() == None:   # email.uscc.net sends no charset, blows up unicode function below
+            text = unicode(msg.get_payload(decode=True), 'US-ASCII', 'ignore').encode('utf8', 'replace')
+         else:
+            text = unicode(msg.get_payload(decode=True), msg.get_content_charset(), 'ignore').encode('utf8', 'replace')
+         body = text.strip()
+   
+    body = re.sub('<[^<]+?>', '', body)                  # strip all html tags
+    body = body.replace("\n", " ").replace("\r", " ")    # strip CR/LF, make it one line, .rstrip fails at this
     return(body, from_addr)
-    # end parse_email
+## end parse_email
 
 
-def resend_email(count):
+
+def resend_email(count, fromcall):
     date = datetime.datetime.now()
     month = date.strftime("%B")[:3]       # Nov, Mar, Apr
     day = date.day
@@ -304,7 +311,8 @@ def send_ack_thread(tocall, ack, retry_count):
         LOG.info("Raw         : %s" % line)
         LOG.info("To          : %s" % tocall)
         LOG.info("Ack number  : %s" % ack)
-        tn.write(line)
+        #tn.write(line)
+        sock.send(line)
         # aprs duplicate detection is 30 secs?
         # (21 only sends first, 28 skips middle)
         time.sleep(31)
@@ -334,7 +342,8 @@ def send_message_thread(tocall, message, this_message_number, retry_count):
             LOG.info("Raw         : " + line)
             LOG.info("To          : " + tocall)
             LOG.info("Message     : " + message)
-            tn.write(line)
+            #tn.write(line)
+            sock.send(line)
             # decaying repeats, 31 to 93 second intervals
             sleeptime = (retry_count - i + 1) * 31
             time.sleep(sleeptime)
@@ -484,7 +493,9 @@ def main(args=args):
     user = CONFIG['aprs']['login']
     password = CONFIG['aprs']['password']
     LOG.info("LOGIN to APRSD with user '%s'" % user)
-    tn.write("user %s pass %s vers aprsd 0.99\n" % (user, password))
+    #tn.write("user %s pass %s vers aprsd 0.99\n" % (user, password))
+    sock.send("user %s pass %s vers aprsd 0.99\n" % (user, password))
+
     time.sleep(2)
 
     check_email_thread()  # start email reader thread
@@ -493,9 +504,10 @@ def main(args=args):
     while True:
         line = ""
         try:
-            for char in tn.read_until("\n", 100):
-                line = line + char
-            line = line.replace('\n', '')
+            #for char in tn.read_until("\n", 100):
+            #    line = line + char
+            #line = line.replace('\n', '')
+            line = sock_file.readline().strip()
             LOG.info(line)
             searchstring = '::%s' % user
             # is aprs message to us, not beacon, status, etc
@@ -518,7 +530,7 @@ def main(args=args):
                 if re.search(searchstring, fromcall):                        # only I can do email
                     r = re.search('^-([0-9])[0-9]*$', message)                # digits only, first one is number of emails to resend
                     if r is not None:
-                        resend_email(r.group(1))
+                        resend_email(r.group(1), fromcall)
                     elif re.search('^-([A-Za-z0-9_\-\.@]+) (.*)', message):   # -user@address.com body of email
                         a = re.search('^-([A-Za-z0-9_\-\.@]+) (.*)', message)  # (same search again)
                         if a is not None:
@@ -548,7 +560,7 @@ def main(args=args):
                         send_message(fromcall, "Bad email address")
 
             # TIME (t)
-            elif re.search('^t', message):
+            elif re.search('^[tT]', message):
                 stm = time.localtime()
                 h = stm.tm_hour
                 m = stm.tm_min
@@ -558,13 +570,13 @@ def main(args=args):
                 thread.start()
 
             # FORTUNE (f)
-            elif re.search('^f', message):
+            elif re.search('^[fF]', message):
                 process = subprocess.Popen(['/usr/games/fortune', '-s', '-n 60'], stdout=subprocess.PIPE)
                 reply = process.communicate()[0]
                 send_message(fromcall, reply.rstrip())
 
             # PING (p)
-            elif re.search('^p', message):
+            elif re.search('^[pP]', message):
                 stm = time.localtime()
                 h = stm.tm_hour
                 m = stm.tm_min
@@ -573,18 +585,50 @@ def main(args=args):
                 send_message(fromcall, reply.rstrip())
 
             # LOCATION (l)  "8 Miles E Auburn CA 1771' 38.91547,-120.99500 0.1h ago"
-            elif re.search('^l', message):
-                # get my last location, get descriptive name from weather service
+#            elif re.search('^l', message):
+#                # get my last location, get descriptive name from weather service
+#                try:
+#                    url = "http://api.aprs.fi/api/get?name=" + fromcall + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
+#                    response = urllib.urlopen(url)
+#                    aprs_data = json.loads(response.read())
+#                    lat =  aprs_data['entries'][0]['lat']
+#                    lon =  aprs_data['entries'][0]['lng']
+#                    try:  # altitude not always provided
+#                        alt =  aprs_data['entries'][0]['altitude']
+#                    except:
+#                        alt = 0
+#                    altfeet = int(alt *  3.28084)
+#                    aprs_lasttime_seconds = aprs_data['entries'][0]['lasttime']
+#                    aprs_lasttime_seconds = aprs_lasttime_seconds.encode('ascii',errors='ignore')  #unicode to ascii
+#                    delta_seconds = time.time() - int(aprs_lasttime_seconds)
+#                    delta_hours = delta_seconds / 60 / 60
+#                    url2 = "https://forecast.weather.gov/MapClick.php?lat=" + str(lat) + "&lon=" + str(lon) + "&FcstType=json"
+#                    response2 = urllib.urlopen(url2)
+#                    wx_data = json.loads(response2.read())
+#                    reply = wx_data['location']['areaDescription'] + " " + str(altfeet) + "' " + str(lat) + "," + str(lon) + " " + str("%.1f" % round(delta_hours,1)) + "h ago"
+#                    reply = reply.encode('ascii', errors='ignore')  # unicode to ascii
+#                    send_message(fromcall, reply.rstrip())
+#                except:
+#                    reply = "Unable to find you (send beacon?)"
+#                    send_message(fromcall, reply.rstrip())
+            elif re.search('^[lL]', message):
+                # get last location of a callsign, get descriptive name from weather service
                 try:
-                    url = "http://api.aprs.fi/api/get?name=" + fromcall + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
+                    a = re.search('^.*\s+(.*)', message)   # optional second argument is a callsign to search
+                    if a is not None:
+                       searchcall = a.group(1)
+                       searchcall = searchcall.upper()
+                    else:
+                       searchcall = fromcall            # if no second argument, search for calling station
+                    url = "http://api.aprs.fi/api/get?name=" + searchcall + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
                     response = urllib.urlopen(url)
                     aprs_data = json.loads(response.read())
                     lat =  aprs_data['entries'][0]['lat']
                     lon =  aprs_data['entries'][0]['lng']
                     try:  # altitude not always provided
-                        alt =  aprs_data['entries'][0]['altitude']
+                       alt =  aprs_data['entries'][0]['altitude']
                     except:
-                        alt = 0
+                       alt = 0
                     altfeet = int(alt *  3.28084)
                     aprs_lasttime_seconds = aprs_data['entries'][0]['lasttime']
                     aprs_lasttime_seconds = aprs_lasttime_seconds.encode('ascii',errors='ignore')  #unicode to ascii
@@ -593,15 +637,15 @@ def main(args=args):
                     url2 = "https://forecast.weather.gov/MapClick.php?lat=" + str(lat) + "&lon=" + str(lon) + "&FcstType=json"
                     response2 = urllib.urlopen(url2)
                     wx_data = json.loads(response2.read())
-                    reply = wx_data['location']['areaDescription'] + " " + str(altfeet) + "' " + str(lat) + "," + str(lon) + " " + str("%.1f" % round(delta_hours,1)) + "h ago"
-                    reply = reply.encode('ascii', errors='ignore')  # unicode to ascii
+                    reply = searchcall + ": " + wx_data['location']['areaDescription'] + " " + str(altfeet) + "' " + str(lat) + "," + str(lon) + " " + str("%.1f" % round(delta_hours,1)) + "h ago"
+                    reply = reply.encode('ascii',errors='ignore')  # unicode to ascii
                     send_message(fromcall, reply.rstrip())
                 except:
-                    reply = "Unable to find you (send beacon?)"
+                    reply = "Unable to find station " + searchcall + ".  Sending beacons?"
                     send_message(fromcall, reply.rstrip())
 
             # WEATHER (w)  "42F(68F/48F) Haze. Tonight, Haze then Chance Rain."
-            elif re.search('^w', message):
+            elif re.search('^[wW]', message):
                 # get my last location from aprsis then get weather from
                 # weather service
                 try:
@@ -633,8 +677,7 @@ def main(args=args):
 
             # USAGE
             else:
-                reply = ("usage: time, fortune, loc, weath, -emailaddr "
-                         "emailbody, -#(resend)")
+                reply = "usage: time, fortune, loc, weath"
                 send_message(fromcall, reply)
 
             # let any threads do their thing, then ack
@@ -650,7 +693,10 @@ def main(args=args):
             os._exit(1)
 
     # end while True
-    tn.close()
+    #tn.close()
+    sock.shutdown(0)
+    sock.close()
+
     exit()
 
 
