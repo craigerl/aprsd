@@ -85,7 +85,7 @@ message_number = 0
 #tn = None
 
 ### set default encoding for python, so body.decode doesn't blow up in email thread
-#reload(sys)  
+#reload(sys)
 #sys.setdefaultencoding('utf8')
 
 #import locale
@@ -370,7 +370,7 @@ def check_email_thread():
 
         # slowly increase delay every iteration, max out at 300 seconds
         # any send/receive/resend activity will reset this to 60 seconds
-        if check_email_delay < 300:  
+        if check_email_delay < 300:
             check_email_delay += 1
         LOG.debug("check_email_delay is " + str(check_email_delay) + " seconds")
 
@@ -512,7 +512,7 @@ def send_message(tocall, message):
     # 67 displays 64 on the ftm400. (+3 {01 suffix)
     # feature req: break long ones into two msgs
     message = message[:67]
-    # We all miss George Carlin 
+    # We all miss George Carlin
     message = re.sub('fuck|shit|cunt|piss|cock|bitch', '****', message)
     thread = threading.Thread(
         target=send_message_thread,
@@ -671,7 +671,7 @@ def main(args=args):
             else:
                 # LOG.debug("Noise: " + line)
                 # detect closed socket, getting lots of empty lines
-                if len(line.strip()) == 0:       
+                if len(line.strip()) == 0:
                     LOG.debug("Zero line length received. Consecutive empty line count: " + str(empty_line_rx))
                     empty_line_rx += 1
                 if empty_line_rx >= 30:
@@ -857,7 +857,7 @@ def main(args=args):
             time.sleep(5)
             continue   # don't know what failed, so wait and then continue main loop again
 
-        LOG.debug("Main loop end") 
+        LOG.debug("Main loop end")
     # end while True
 
 
