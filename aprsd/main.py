@@ -232,75 +232,74 @@ def resend_email(count, fromcall):
     # end resend_email()
 
 
-def check_email_thread():
-    #  print "Email thread disabled."
-    #  return
+def check_email_thread(check_email_delay):
 
-    LOG.debug("Starting Email thread")
-    # how do we skip first run?
-    threading.Timer(55, check_email_thread).start()
+    while True:
+        # threading.Timer(55, check_email_thread).start()
+        
+        time.sleep(check_email_delay)
+    
+        shortcuts = CONFIG['shortcuts']
+        # swap key/value
+        shortcuts_inverted = dict([[v, k] for k, v in shortcuts.items()])
+    
+        date = datetime.datetime.now()
+        month = date.strftime("%B")[:3]       # Nov, Mar, Apr
+        day = date.day
+        year = date.year
+        today = "%s-%s-%s" % (day, month, year)
 
-    shortcuts = CONFIG['shortcuts']
-    # swap key/value
-    shortcuts_inverted = dict([[v, k] for k, v in shortcuts.items()])
+        LOG.debug("Connect to IMAP host '%s' with user '%s'" %
+                  (CONFIG['imap']['host'],
+                   CONFIG['imap']['login']))
 
-    date = datetime.datetime.now()
-    month = date.strftime("%B")[:3]       # Nov, Mar, Apr
-    day = date.day
-    year = date.year
-    today = "%s-%s-%s" % (day, month, year)
+        try:
+            server = IMAPClient(CONFIG['imap']['host'], use_uid=True, timeout=5)
+            server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
+        except Exception:
+            LOG.exception("Failed to login with IMAP server")
+            #return
+            continue
 
-    LOG.debug("Connect to IMAP host '%s' with user '%s'" %
-              (CONFIG['imap']['host'],
-               CONFIG['imap']['login']))
+        server.select_folder('INBOX')
 
-    try:
-        server = IMAPClient(CONFIG['imap']['host'], use_uid=True, timeout=5)
-        server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
-    except Exception:
-        LOG.exception("Failed to login with IMAP server")
-        return
+        messages = server.search(['SINCE', today])
+        LOG.debug("%d messages received today" % len(messages))
 
-#    if 'gmail' in CONFIG['imap']['host'].lower():
-#        server.select_folder('INBOX')
-    server.select_folder('INBOX')
+        for msgid, data in server.fetch(messages, ['ENVELOPE']).items():
+            envelope = data[b'ENVELOPE']
+            LOG.debug('ID:%d  "%s" (%s)' %
+                      (msgid, envelope.subject.decode(), envelope.date))
+            f = re.search('([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)',
+                          str(envelope.from_[0]))
+            if f is not None:
+                from_addr = f.group(1)
+            else:
+                from_addr = "noaddr"
+    
+            if "APRS" not in server.get_flags(msgid)[msgid]:
+                # if msg not flagged as sent via aprs
+                server.fetch([msgid], ['RFC822'])
+                (body, from_addr) = parse_email(msgid, data, server)
+                # unset seen flag, will stay bold in email client
+                server.remove_flags(msgid, [SEEN])
 
-    messages = server.search(['SINCE', today])
-    LOG.debug("%d messages received today" % len(messages))
+                if from_addr in shortcuts_inverted:
+                    # reverse lookup of a shortcut
+                    from_addr = shortcuts_inverted[from_addr]
 
-    for msgid, data in server.fetch(messages, ['ENVELOPE']).items():
-        envelope = data[b'ENVELOPE']
-        LOG.debug('ID:%d  "%s" (%s)' %
-                  (msgid, envelope.subject.decode(), envelope.date))
-        f = re.search('([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)',
-                      str(envelope.from_[0]))
-        if f is not None:
-            from_addr = f.group(1)
-        else:
-            from_addr = "noaddr"
+                reply = "-" + from_addr + " " + body
+                # print "Sending message via aprs: " + reply
+                # radio
+                send_message(CONFIG['ham']['callsign'], reply)
+                # flag message as sent via aprs
+                server.add_flags(msgid, ['APRS'])
+                # unset seen flag, will stay bold in email client
+                server.remove_flags(msgid, [SEEN])
 
-        if "APRS" not in server.get_flags(msgid)[msgid]:
-            # if msg not flagged as sent via aprs
-            server.fetch([msgid], ['RFC822'])
-            (body, from_addr) = parse_email(msgid, data, server)
-            # unset seen flag, will stay bold in email client
-            server.remove_flags(msgid, [SEEN])
+        server.logout()
 
-            if from_addr in shortcuts_inverted:
-                # reverse lookup of a shortcut
-                from_addr = shortcuts_inverted[from_addr]
-
-            reply = "-" + from_addr + " " + body
-            # print "Sending message via aprs: " + reply
-            # radio
-            send_message(CONFIG['ham']['callsign'], reply)
-            # flag message as sent via aprs
-            server.add_flags(msgid, ['APRS'])
-            # unset seen flag, will stay bold in email client
-            server.remove_flags(msgid, [SEEN])
-
-    server.logout()
-    # end check_email()
+# end check_email()
 
 
 def send_ack_thread(tocall, ack, retry_count):
@@ -498,7 +497,9 @@ def main(args=args):
 
     time.sleep(2)
 
-    check_email_thread()  # start email reader thread
+    check_email_delay = 60  # initial email check interval 
+    checkemailthread = threading.Thread(target=check_email_thread, args=(check_email_delay, ))  # args must be tuple
+    checkemailthread.start()
 
     LOG.info("Start main loop")
     while True:
