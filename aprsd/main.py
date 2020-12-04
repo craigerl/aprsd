@@ -116,7 +116,8 @@ def setup_connection():
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((CONFIG['aprs']['host'], 14580))
-            sock.settimeout(60)
+
+            sock.settimeout(300)
             connected = True
         except Exception as e:
             print("Unable to connect to APRS-IS server.\n")
@@ -127,6 +128,7 @@ def setup_connection():
         sock_file = sock.makefile(mode='r')
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # disable nagle algorithm
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)  # buffer size
+
 
 
 def signal_handler(signal, frame):
@@ -607,10 +609,12 @@ def main(args=args):
 
     user = CONFIG['aprs']['login']
     password = CONFIG['aprs']['password']
+
     LOG.debug("LOGIN to APRSD with user '%s'" % user)
     msg = ("user {} pass {} vers aprsd {}\n".format(user, password,
                                                     aprsd.__version__))
     sock.send(msg.encode())
+
 
     time.sleep(2)
 
@@ -791,6 +795,7 @@ def main(args=args):
         except Exception as e:
             LOG.error("Error in mainline loop:")
             LOG.error("%s" % str(e))
+
             if (str(e) == "timed out" or str(e) == "Temporary failure in name resolution" or str(e) == "Network is unreachable"):
                 LOG.error("Attempting to reconnect.")
                 sock.shutdown(0)
@@ -800,6 +805,7 @@ def main(args=args):
                 continue
             # LOG.error("Exiting.")
             # os._exit(1)
+
             time.sleep(5)
             continue   # don't know what failed, so wait and then continue main loop again
 
