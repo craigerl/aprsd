@@ -134,12 +134,10 @@ def setup_connection():
     msg = ("user {} pass {} vers aprsd {}\n".format(user, password, aprsd.__version__))
     sock.send(msg.encode())
 
-
 def signal_handler(signal, frame):
     LOG.info("Ctrl+C, exiting.")
     # sys.exit(0)  # thread ignores this
     os._exit(0)
-# end signal_handler
 
 
 def parse_email(msgid, data, server):
