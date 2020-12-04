@@ -533,9 +533,6 @@ def main(args=args):
     while True:
         line = ""
         try:
-            # for char in tn.read_until("\n", 100):
-            #    line = line + char
-            # line = line.replace('\n', '')
             line = sock_file.readline().strip()
             LOG.info(line)
             searchstring = '::%s' % user
@@ -623,32 +620,6 @@ def main(args=args):
                 send_message(fromcall, reply.rstrip())
 
             # LOCATION (l)  "8 Miles E Auburn CA 1771' 38.91547,-120.99500 0.1h ago"
-#            elif re.search('^l', message):
-#                # get my last location, get descriptive name from weather service
-#                try:
-#                    url = "http://api.aprs.fi/api/get?name=" + fromcall + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
-#                    response = urllib.urlopen(url)
-#                    aprs_data = json.loads(response.read())
-#                    lat =  aprs_data['entries'][0]['lat']
-#                    lon =  aprs_data['entries'][0]['lng']
-#                    try:  # altitude not always provided
-#                        alt =  aprs_data['entries'][0]['altitude']
-#                    except:
-#                        alt = 0
-#                    altfeet = int(alt *  3.28084)
-#                    aprs_lasttime_seconds = aprs_data['entries'][0]['lasttime']
-#                    aprs_lasttime_seconds = aprs_lasttime_seconds.encode('ascii',errors='ignore')  #unicode to ascii
-#                    delta_seconds = time.time() - int(aprs_lasttime_seconds)
-#                    delta_hours = delta_seconds / 60 / 60
-#                    url2 = "https://forecast.weather.gov/MapClick.php?lat=" + str(lat) + "&lon=" + str(lon) + "&FcstType=json"
-#                    response2 = urllib.urlopen(url2)
-#                    wx_data = json.loads(response2.read())
-#                    reply = wx_data['location']['areaDescription'] + " " + str(altfeet) + "' " + str(lat) + "," + str(lon) + " " + str("%.1f" % round(delta_hours,1)) + "h ago"
-#                    reply = reply.encode('ascii', errors='ignore')  # unicode to ascii
-#                    send_message(fromcall, reply.rstrip())
-#                except:
-#                    reply = "Unable to find you (send beacon?)"
-#                    send_message(fromcall, reply.rstrip())
             elif re.search('^[lL]', message):
                 # get last location of a callsign, get descriptive name from weather service
                 try:
@@ -727,7 +698,13 @@ def main(args=args):
             LOG.error("Error in mainline loop:")
             LOG.error("%s" % str(e))
             LOG.error("Exiting.")
-            # sys.exit(1)  # merely a suggestion
+            if str(e) == "timed out":
+               LOG.error("Attempting to reconnect.")
+               sock.shutdown(0)
+               sock.close()
+               setup_connection()
+               sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
+               continue
             os._exit(1)
 
     # end while True
