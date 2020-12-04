@@ -526,7 +526,7 @@ def main(args=args):
     password = CONFIG['aprs']['password']
     LOG.info("LOGIN to APRSD with user '%s'" % user)
     # tn.write("user %s pass %s vers aprsd 0.99\n" % (user, password))
-    sock.send("user %s pass %s vers aprsd 0.99\n" % (user, password))
+    sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
 
     time.sleep(2)
 
@@ -538,6 +538,9 @@ def main(args=args):
     while True:
         line = ""
         try:
+            # for char in tn.read_until("\n", 100):
+            #    line = line + char
+            # line = line.replace('\n', '')
             line = sock_file.readline().strip()
             LOG.info(line)
             searchstring = '::%s' % user
