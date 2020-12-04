@@ -111,17 +111,22 @@ args = parser.parse_args()
 def setup_connection():
     global sock
     global sock_file
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((CONFIG['aprs']['host'], 14580))
-    except Exception as e:
-        print("Unable to connect to APRS-IS server.\n")
-        print(str(e))
-        os._exit(1)
-    sock_file = sock.makefile(mode='r', bufsize=0)
-    # disable nagle algorithm
-    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)  # buffer size
+    connected = False
+    while not connected:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((CONFIG['aprs']['host'], 14580))
+            sock.settimeout(60)
+            connected = True
+        except Exception, e:
+            print "Unable to connect to APRS-IS server.\n"
+            print str(e)
+            time.sleep(5)
+            continue
+            #os._exit(1)
+        sock_file = sock.makefile(mode='r', bufsize=0 )
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # disable nagle algorithm
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)  # buffer size
 
 
 def signal_handler(signal, frame):
@@ -697,15 +702,17 @@ def main(args=args):
         except Exception as e:
             LOG.error("Error in mainline loop:")
             LOG.error("%s" % str(e))
-            LOG.error("Exiting.")
-            if str(e) == "timed out":
+            if str(e) == "timed out" or str(e) == "Temporary failure in name resolution" or  str(e) == "Network is unreachable":
                LOG.error("Attempting to reconnect.")
                sock.shutdown(0)
                sock.close()
                setup_connection()
                sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
                continue
-            os._exit(1)
+            #LOG.error("Exiting.")
+            #os._exit(1)
+            time.sleep(5)
+            continue   # don't know what failed, so wait and then continue main loop again
 
     # end while True
     # tn.close()
