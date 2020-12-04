@@ -39,6 +39,7 @@ args = parser.parse_args()
 CONFIG = None
 LOG = logging.getLogger('ARPSSERVER')
 
+
 class MyAPRSServer(TelnetHandler):
 
     @command('echo')
@@ -60,8 +61,9 @@ class MyAPRSServer(TelnetHandler):
 
 def signal_handler(signal, frame):
     LOG.info("Ctrl+C, exiting.")
-    #sys.exit(0)  # thread ignores this
+    # sys.exit(0)  # thread ignores this
     os._exit(0)
+
 
 # Setup the logging faciility
 # to disable logging to stdout, but still log to file
@@ -83,7 +85,7 @@ def setup_logging(args):
     log_formatter = logging.Formatter(fmt=log_format,
                                       datefmt=date_format)
     fh = RotatingFileHandler('aprs-server.log',
-                             maxBytes=(10248576*5),
+                             maxBytes=(10248576 * 5),
                              backupCount=4)
     fh.setFormatter(log_formatter)
     LOG.addHandler(fh)
@@ -122,7 +124,7 @@ class ClientThread(threading.Thread):
                     msg = self.msg_q.get(True, 0.05)
                     if msg:
                         LOG.info("Sending message '%s'" % msg)
-                        self.conn.send(msg+"\n")
+                        self.conn.send(msg + "\n")
                 except Queue.Empty:
                     pass
 
@@ -145,7 +147,6 @@ class InputThread(threading.Thread):
                 self.msg_q.put(text)
 
 
-
 threads = []
 
 
@@ -166,7 +167,7 @@ def main(args):
     ip = CONFIG['aprs']['host']
     port = CONFIG['aprs']['port']
     LOG.info("Start server listening on %s:%s" % (args.ip, args.port))
-    tcpsock.bind((ip,port))
+    tcpsock.bind((ip, port))
 
     in_t = None
     while True:
@@ -181,7 +182,6 @@ def main(args):
             in_t.daemon = True
             in_t.start()
             in_t.join()
-
 
     for t in threads:
         t.join()
