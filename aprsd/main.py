@@ -115,7 +115,7 @@ def setup_connection():
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((CONFIG['aprs']['host'], 14580))
-            sock.settimeout(60) 
+            sock.settimeout(300) 
             connected = True
         except Exception, e:
             print "Unable to connect to APRS-IS server.\n"
