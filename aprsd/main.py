@@ -41,12 +41,12 @@ import time
 import urllib
 
 from email.mime.text import MIMEText
+import imapclient
+import imaplib
 from logging.handlers import RotatingFileHandler
 
-# external lib imports
-from imapclient import IMAPClient, SEEN
-
 # local imports here
+import aprsd
 from aprsd.fuzzyclock import fuzzy
 from aprsd import utils
 
@@ -118,13 +118,13 @@ def setup_connection():
             sock.connect((CONFIG['aprs']['host'], 14580))
             sock.settimeout(60)
             connected = True
-        except Exception, e:
-            print "Unable to connect to APRS-IS server.\n"
-            print str(e)
+        except Exception as e:
+            print("Unable to connect to APRS-IS server.\n")
+            print(str(e))
             time.sleep(5)
             continue
-            #os._exit(1)
-        sock_file = sock.makefile(mode='r', bufsize=0 )
+            # os._exit(1)
+        sock_file = sock.makefile(mode='r')
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # disable nagle algorithm
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)  # buffer size
 
@@ -145,8 +145,9 @@ def parse_email(msgid, data, server):
         from_addr = f.group(1)
     else:
         from_addr = "noaddr"
+    LOG.debug("Got a message from '{}'".format(from_addr))
     m = server.fetch([msgid], ['RFC822'])
-    msg = email.message_from_string(m[msgid]['RFC822'])
+    msg = email.message_from_string(m[msgid][b'RFC822'].decode())
     if msg.is_multipart():
         text = ""
         html = None
@@ -192,11 +193,94 @@ def parse_email(msgid, data, server):
         body = text.strip()
 
     # strip all html tags
+    body = body.decode()
     body = re.sub('<[^<]+?>', '', body)
     # strip CR/LF, make it one line, .rstrip fails at this
     body = body.replace("\n", " ").replace("\r", " ")
     return(body, from_addr)
 # end parse_email
+
+
+def _imap_connect():
+    imap_port = CONFIG['imap'].get('port', 143)
+    use_ssl = CONFIG['imap'].get('use_ssl', False)
+    host = CONFIG['imap']['host']
+    msg = ("{}{}:{}".format(
+        'TLS ' if use_ssl else '',
+        host,
+        imap_port
+    ))
+    LOG.debug("Connect to IMAP host {} with user '{}'".
+              format(msg, CONFIG['imap']['login']))
+
+    try:
+        server = imapclient.IMAPClient(CONFIG['imap']['host'], port=imap_port,
+                                       use_uid=True, ssl=use_ssl)
+    except Exception:
+        LOG.error("Failed to connect IMAP server")
+        return
+
+    LOG.debug("Connected to IMAP host {}".format(msg))
+
+    try:
+        server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
+    except (imaplib.IMAP4.error, Exception) as e:
+        msg = getattr(e, 'message', repr(e))
+        LOG.error("Failed to login {}".format(msg))
+        return
+
+    LOG.debug("Logged in to IMAP, selecting INBOX")
+    server.select_folder('INBOX')
+    return server
+
+
+def _smtp_connect():
+    host = CONFIG['smtp']['host']
+    smtp_port = CONFIG['smtp']['port']
+    use_ssl = CONFIG['smtp'].get('use_ssl', False)
+    msg = ("{}{}:{}".format(
+        'SSL ' if use_ssl else '',
+        host,
+        smtp_port
+    ))
+    LOG.debug("Connect to SMTP host {} with user '{}'".
+              format(msg, CONFIG['imap']['login']))
+
+    try:
+        if use_ssl:
+            server = smtplib.SMTP_SSL(host=host, port=smtp_port)
+        else:
+            server = smtplib.SMTP(host=host, port=smtp_port)
+    except Exception:
+        LOG.error("Couldn't connect to SMTP Server")
+        return
+
+    LOG.debug("Connected to smtp host {}".format(msg))
+
+    try:
+        server.login(CONFIG['smtp']['login'], CONFIG['smtp']['password'])
+    except Exception:
+        LOG.error("Couldn't connect to SMTP Server")
+        return
+
+    LOG.debug("Logged into SMTP server {}".format(msg))
+    return server
+
+
+def validate_email():
+    """function to simply ensure we can connect to email services.
+
+       This helps with failing early during startup.
+    """
+    LOG.info("Checking IMAP configuration")
+    imap_server = _imap_connect()
+    LOG.info("Checking SMTP configuration")
+    smtp_server = _smtp_connect()
+
+    if imap_server and smtp_server:
+        return True
+    else:
+        return False
 
 
 def resend_email(count, fromcall):
@@ -210,12 +294,11 @@ def resend_email(count, fromcall):
     # swap key/value
     shortcuts_inverted = dict([[v, k] for k, v in shortcuts.items()])
 
-    LOG.debug("resend_email: Connect to IMAP host '%s' with user '%s'" %
-              (CONFIG['imap']['host'],
-               CONFIG['imap']['login']))
-    server = IMAPClient(CONFIG['imap']['host'], use_uid=True)
-    server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
-    server.select_folder('INBOX')
+    try:
+        server = _imap_connect()
+    except Exception as e:
+        LOG.exception("Failed to Connect to IMAP. Cannot resend email ", e)
+        return
 
     messages = server.search(['SINCE', today])
     LOG.debug("%d messages received today" % len(messages))
@@ -229,7 +312,7 @@ def resend_email(count, fromcall):
             # one at a time, otherwise order is random
             (body, from_addr) = parse_email(msgid, data, server)
             # unset seen flag, will stay bold in email client
-            server.remove_flags(msgid, [SEEN])
+            server.remove_flags(msgid, [imapclient.SEEN])
             if from_addr in shortcuts_inverted:
                 # reverse lookup of a shortcut
                 from_addr = shortcuts_inverted[from_addr]
@@ -260,6 +343,7 @@ def check_email_thread(check_email_delay):
 
     while True:
         # threading.Timer(55, check_email_thread).start()
+        LOG.debug("Top of check_email_thread.")
 
         time.sleep(check_email_delay)
 
@@ -273,22 +357,17 @@ def check_email_thread(check_email_delay):
         year = date.year
         today = "%s-%s-%s" % (day, month, year)
 
-        LOG.debug("Connect to IMAP host '%s' with user '%s'" %
-                  (CONFIG['imap']['host'],
-                   CONFIG['imap']['login']))
-
+        server = None
         try:
-            server = IMAPClient(CONFIG['imap']['host'], use_uid=True, timeout=5)
-            server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
-        except Exception:
-            LOG.exception("Failed to login with IMAP server")
-            # return
+            server = _imap_connect()
+        except Exception as e:
+            LOG.exception("Failed to get IMAP server Can't check email.", e)
+
+        if not server:
             continue
 
-        server.select_folder('INBOX')
-
         messages = server.search(['SINCE', today])
-        LOG.debug("%d messages received today" % len(messages))
+        LOG.debug("{} messages received today".format(len(messages)))
 
         for msgid, data in server.fetch(messages, ['ENVELOPE']).items():
             envelope = data[b'ENVELOPE']
@@ -306,7 +385,7 @@ def check_email_thread(check_email_delay):
                 server.fetch([msgid], ['RFC822'])
                 (body, from_addr) = parse_email(msgid, data, server)
                 # unset seen flag, will stay bold in email client
-                server.remove_flags(msgid, [SEEN])
+                server.remove_flags(msgid, [imapclient.SEEN])
 
                 if from_addr in shortcuts_inverted:
                     # reverse lookup of a shortcut
@@ -319,7 +398,7 @@ def check_email_thread(check_email_delay):
                 # flag message as sent via aprs
                 server.add_flags(msgid, ['APRS'])
                 # unset seen flag, will stay bold in email client
-                server.remove_flags(msgid, [SEEN])
+                server.remove_flags(msgid, [imapclient.SEEN])
 
         server.logout()
 
@@ -336,7 +415,7 @@ def send_ack_thread(tocall, ack, retry_count):
         LOG.info("To          : {}".format(tocall))
         LOG.info("Ack number  : {}".format(ack))
         # tn.write(line)
-        sock.send(line)
+        sock.send(line.encode())
         # aprs duplicate detection is 30 secs?
         # (21 only sends first, 28 skips middle)
         time.sleep(31)
@@ -347,6 +426,7 @@ def send_ack_thread(tocall, ack, retry_count):
 def send_ack(tocall, ack):
     retry_count = 3
     thread = threading.Thread(target=send_ack_thread,
+                              name="send_ack",
                               args=(tocall, ack, retry_count))
     thread.start()
     return()
@@ -375,7 +455,7 @@ def send_message_thread(tocall, message, this_message_number, retry_count):
             LOG.info("To          : {}".format(tocall))
             LOG.info("Message     : {}".format(message))
             # tn.write(line)
-            sock.send(line)
+            sock.send(line.encode())
             # decaying repeats, 31 to 93 second intervals
             sleeptime = (retry_count - i + 1) * 31
             time.sleep(sleeptime)
@@ -410,6 +490,7 @@ def send_message(tocall, message):
     message = message[:67]
     thread = threading.Thread(
         target=send_message_thread,
+        name="send_message",
         args=(tocall, message, message_number, retry_count))
     thread.start()
     return()
@@ -463,18 +544,17 @@ def send_email(to_addr, content):
     msg['Subject'] = subject
     msg['From'] = CONFIG['smtp']['login']
     msg['To'] = to_addr
-    s = smtplib.SMTP_SSL(CONFIG['smtp']['host'],
-                         CONFIG['smtp']['port'])
-    s.login(CONFIG['smtp']['login'],
-            CONFIG['smtp']['password'])
-    try:
-        s.sendmail(CONFIG['smtp']['login'], [to_addr], msg.as_string())
-    except Exception:
-        LOG.exception("Sendmail Error!!!!!!!!!")
-        s.quit()
-        return(-1)
-    s.quit()
-    return(0)
+    server = _smtp_connect()
+    if server:
+        try:
+            server.sendmail(CONFIG['smtp']['login'], [to_addr], msg.as_string())
+        except Exception as e:
+            msg = getattr(e, 'message', repr(e))
+            LOG.error("Sendmail Error!!!! '{}'", msg)
+            server.quit()
+            return(-1)
+        server.quit()
+        return(0)
     # end send_email
 
 
@@ -492,7 +572,7 @@ def setup_logging(args):
     log_level = levels[args.loglevel]
 
     LOG.setLevel(log_level)
-    log_format = ("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]"
+    log_format = ("%(asctime)s [%(threadName)-12s] [%(levelname)-5.5s]"
                   " %(message)s")
     date_format = '%m/%d/%Y %I:%M:%S %p'
     log_formatter = logging.Formatter(fmt=log_format,
@@ -515,34 +595,38 @@ def main(args=args):
 
     CONFIG = utils.parse_config(args)
     signal.signal(signal.SIGINT, signal_handler)
-    LOG.info("APRSD Started")
-    LOG.debug(CONFIG)
     setup_logging(args)
+    LOG.info("APRSD Started version: {}".format(aprsd.__version__))
 
     time.sleep(2)
     setup_connection()
+    valid = validate_email()
+    if not valid:
+        LOG.error("Failed to validate email config options")
+        sys.exit(-1)
 
     user = CONFIG['aprs']['login']
     password = CONFIG['aprs']['password']
-    LOG.info("LOGIN to APRSD with user '%s'" % user)
-    # tn.write("user %s pass %s vers aprsd 0.99\n" % (user, password))
-    sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
+    LOG.debug("LOGIN to APRSD with user '%s'" % user)
+    msg = ("user {} pass {} vers aprsd {}\n".format(user, password,
+                                                    aprsd.__version__))
+    sock.send(msg.encode())
 
     time.sleep(2)
 
     check_email_delay = 60  # initial email check interval
-    checkemailthread = threading.Thread(target=check_email_thread, args=(check_email_delay, ))  # args must be tuple
+    checkemailthread = threading.Thread(target=check_email_thread,
+                                        name="check_email",
+                                        args=(check_email_delay, ))  # args must be tuple
     checkemailthread.start()
 
     LOG.info("Start main loop")
     while True:
         line = ""
         try:
-            # for char in tn.read_until("\n", 100):
-            #    line = line + char
-            # line = line.replace('\n', '')
             line = sock_file.readline().strip()
-            LOG.info(line)
+            if line:
+                LOG.info(line)
             searchstring = '::%s' % user
             # is aprs message to us, not beacon, status, etc
             if re.search(searchstring, line):
@@ -609,7 +693,9 @@ def main(args=args):
                 m = stm.tm_min
                 cur_time = fuzzy(h, m, 1)
                 reply = cur_time + " (" + str(h) + ":" + str(m).rjust(2, '0') + "PDT)" + " (" + message.rstrip() + ")"
-                thread = threading.Thread(target=send_message, args=(fromcall, reply))
+                thread = threading.Thread(target=send_message,
+                                          name="send_message",
+                                          args=(fromcall, reply))
                 thread.start()
 
             # FORTUNE (f)
@@ -705,15 +791,15 @@ def main(args=args):
         except Exception as e:
             LOG.error("Error in mainline loop:")
             LOG.error("%s" % str(e))
-            if str(e) == "timed out" or str(e) == "Temporary failure in name resolution" or  str(e) == "Network is unreachable":
-               LOG.error("Attempting to reconnect.")
-               sock.shutdown(0)
-               sock.close()
-               setup_connection()
-               sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
-               continue
-            #LOG.error("Exiting.")
-            #os._exit(1)
+            if (str(e) == "timed out" or str(e) == "Temporary failure in name resolution" or str(e) == "Network is unreachable"):
+                LOG.error("Attempting to reconnect.")
+                sock.shutdown(0)
+                sock.close()
+                setup_connection()
+                sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
+                continue
+            # LOG.error("Exiting.")
+            # os._exit(1)
             time.sleep(5)
             continue   # don't know what failed, so wait and then continue main loop again
 

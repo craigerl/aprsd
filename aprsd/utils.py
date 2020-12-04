@@ -53,7 +53,7 @@ def get_config():
     config_file = os.path.expanduser("~/.aprsd/config.yml")
     if os.path.exists(config_file):
         with open(config_file, "r") as stream:
-            config = yaml.load(stream)
+            config = yaml.load(stream, Loader=yaml.FullLoader)
             return config
     else:
         log.critical("%s is missing, please create config file" % config_file)

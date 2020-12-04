@@ -1,18 +1,10 @@
-#!/bin/python
-
 import argparse
 import logging
-import os
-import select
-import signal
-import socket
 import sys
 import time
-import threading
-import Queue
+import socketserver
 
 from logging.handlers import RotatingFileHandler
-from telnetsrv.green import TelnetHandler, command
 
 from aprsd import utils
 
@@ -34,35 +26,8 @@ parser.add_argument("--ip",
                     default='127.0.0.1',
                     help="The IP to listen on ")
 
-args = parser.parse_args()
-
 CONFIG = None
 LOG = logging.getLogger('ARPSSERVER')
-
-
-class MyAPRSServer(TelnetHandler):
-
-    @command('echo')
-    def command_echo(self, params):
-        LOG.debug("ECHO %s" % params)
-        self.writeresponse(' '.join(params))
-
-    @command('user')
-    def command_user(self, params):
-        LOG.debug("User auth command")
-        self.writeresponse('')
-
-    @command('quit')
-    def command_quit(self, params):
-        LOG.debug("quit called")
-        self.writeresponse('quitting')
-        os.kill(os.getpid(), signal.SIGINT)
-
-
-def signal_handler(signal, frame):
-    LOG.info("Ctrl+C, exiting.")
-    # sys.exit(0)  # thread ignores this
-    os._exit(0)
 
 
 # Setup the logging faciility
@@ -96,96 +61,33 @@ def setup_logging(args):
         LOG.addHandler(sh)
 
 
-class ClientThread(threading.Thread):
-    def __init__(self, msg_q, ip, port, conn, *args, **kwargs):
-        super(ClientThread, self).__init__()
-        self.msg_q = msg_q
-        self.ip = ip
-        self.port = port
-        self.conn = conn
-        LOG.info("[+] New thread started for %s:%s" % (ip, port))
+class MyAPRSTCPHandler(socketserver.BaseRequestHandler):
 
-    def send_command(self, msg):
-        LOG.info("Sending command '%s'" % msg)
-        self.conn.send(msg)
-
-    def run(self):
-        while True:
-            LOG.debug("Wait for data")
-            readable, writeable, exceptional = select.select([self.conn],
-                                                             [], [],
-                                                             1)
-            LOG.debug("select returned %s" % readable)
-            if readable:
-                data = self.conn.recv(2048)
-                LOG.info("got data '%s'" % data)
-            else:
-                try:
-                    msg = self.msg_q.get(True, 0.05)
-                    if msg:
-                        LOG.info("Sending message '%s'" % msg)
-                        self.conn.send(msg + "\n")
-                except Queue.Empty:
-                    pass
+    def handle(self):
+        # self.request is the TCP socket connected to the client
+        self.data = self.request.recv(1024).strip()
+        LOG.debug("{} wrote:".format(self.client_address[0]))
+        LOG.debug(self.data)
+        # just send back the same data, but upper-cased
+        self.request.sendall(self.data.upper())
 
 
-class InputThread(threading.Thread):
-    def __init__(self, msg_q):
-        super(InputThread, self).__init__()
-        self.msg_q = msg_q
-        LOG.info("User input thread started")
-
-    def run(self):
-        while True:
-            text = raw_input("Prompt> ")
-            LOG.debug("Got input '%s'" % text)
-            if text == 'quit':
-                LOG.info("Quitting Input Thread")
-                sys.exit(0)
-            else:
-                LOG.info("add '%s' to message Q" % text)
-                self.msg_q.put(text)
-
-
-threads = []
-
-
-def main(args):
-    global CONFIG, threads
+def main():
+    global CONFIG
+    args = parser.parse_args()
     setup_logging(args)
     LOG.info("Test APRS server starting.")
     time.sleep(1)
-    signal.signal(signal.SIGINT, signal_handler)
 
     CONFIG = utils.parse_config(args)
 
-    msg_q = Queue.Queue()
-
-    tcpsock = socket.socket(socket.AF_INET,
-                            socket.SOCK_STREAM)
-    tcpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     ip = CONFIG['aprs']['host']
     port = CONFIG['aprs']['port']
     LOG.info("Start server listening on %s:%s" % (args.ip, args.port))
-    tcpsock.bind((ip, port))
 
-    in_t = None
-    while True:
-        tcpsock.listen(4)
-        LOG.info("Waiting for incomming connections....")
-        (conn, (ip, port)) = tcpsock.accept()
-        newthread = ClientThread(msg_q, ip, port, conn)
-        newthread.start()
-        threads.append(newthread)
-        if not in_t:
-            in_t = InputThread(msg_q)
-            in_t.daemon = True
-            in_t.start()
-            in_t.join()
-
-    for t in threads:
-        t.join()
+    with socketserver.TCPServer((ip, port), MyAPRSTCPHandler) as server:
+        server.serve_forever()
 
 
 if __name__ == "__main__":
-    main(args)
+    main()
