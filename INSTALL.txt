@@ -16,3 +16,7 @@ mkdir -p ~/.aprsd
 ./bin/aprsd
 
 vi ~/.aprsd/config.yml
+
+./bin/aprsd
+
+# profit! #
