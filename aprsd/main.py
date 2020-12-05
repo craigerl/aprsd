@@ -500,6 +500,8 @@ def send_message(tocall, message):
     # 67 displays 64 on the ftm400. (+3 {01 suffix)
     # feature req: break long ones into two msgs
     message = message[:67]
+    # We all miss George Carlin 
+    message = re.sub('fuck|shit|cunt|piss|cock|bitch', '****', message)
     thread = threading.Thread(
         target=send_message_thread,
         name="send_message",
