@@ -31,21 +31,22 @@ import socket
 import pprint
 import re
 import signal
+import six
 import smtplib
 import subprocess
 import sys
-#import telnetlib
+# import telnetlib
 import threading
 import time
 import urllib
 
 from email.mime.text import MIMEText
+import imapclient
+import imaplib
 from logging.handlers import RotatingFileHandler
 
-# external lib imports
-from imapclient import IMAPClient, SEEN
-
 # local imports here
+import aprsd
 from aprsd.fuzzyclock import fuzzy
 from aprsd import utils
 
@@ -96,7 +97,7 @@ parser.add_argument("--quiet",
 args = parser.parse_args()
 
 
-#def setup_connection():
+# def setup_connection():
 #    global tn
 #    host = CONFIG['aprs']['host']
 #    port = CONFIG['aprs']['port']
@@ -115,15 +116,16 @@ def setup_connection():
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((CONFIG['aprs']['host'], 14580))
-            sock.settimeout(300) 
+
+            sock.settimeout(300)
             connected = True
-        except Exception, e:
-            print "Unable to connect to APRS-IS server.\n"
-            print str(e)
+        except Exception as e:
+            print("Unable to connect to APRS-IS server.\n")
+            print(str(e))
             time.sleep(5)
             continue
-            #os._exit(1)
-        sock_file = sock.makefile(mode='r', bufsize=0 )
+            # os._exit(1)
+        sock_file = sock.makefile(mode='r')
         sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # disable nagle algorithm
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)  # buffer size
 
@@ -134,51 +136,153 @@ def signal_handler(signal, frame):
     # sys.exit(0)  # thread ignores this
     os._exit(0)
 
-# end signal_handler
 
+# end signal_handler
 def parse_email(msgid, data, server):
     envelope = data[b'ENVELOPE']
-    f = re.search('([\.\w_-]+@[\.\w_-]+)', str(envelope.from_[0]) )  # email address match
+    # email address match
+    # use raw string to avoid invalid escape secquence errors r"string here"
+    f = re.search(r"([\.\w_-]+@[\.\w_-]+)", str(envelope.from_[0]))
     if f is not None:
-       from_addr = f.group(1)
+        from_addr = f.group(1)
     else:
-       from_addr = "noaddr"
+        from_addr = "noaddr"
+    LOG.debug("Got a message from '{}'".format(from_addr))
     m = server.fetch([msgid], ['RFC822'])
-    msg = email.message_from_string(m[msgid]['RFC822'])
+    msg = email.message_from_string(m[msgid][b'RFC822'].decode())
     if msg.is_multipart():
-       text = ""
-       html = None
-       body = "* unreadable msg received" # default in case body somehow isn't set below - happened once
-       for part in msg.get_payload():
-          if part.get_content_charset() is None:
-              # We cannot know the character set, so return decoded "something"
-              text = part.get_payload(decode=True)
-              continue
-   
-          charset = part.get_content_charset()
-   
-          if part.get_content_type() == 'text/plain':
-              text = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace')
-   
-          if part.get_content_type() == 'text/html':
-              html = unicode(part.get_payload(decode=True), str(charset), "ignore").encode('utf8', 'replace')
-   
-          if text is not None:
-             body = text.strip()  # strip removes white space fore and aft of string
-          else:
-             body = html.strip()
-    else:
-         if msg.get_content_charset() == None:   # email.uscc.net sends no charset, blows up unicode function below
-            text = unicode(msg.get_payload(decode=True), 'US-ASCII', 'ignore').encode('utf8', 'replace')
-         else:
-            text = unicode(msg.get_payload(decode=True), msg.get_content_charset(), 'ignore').encode('utf8', 'replace')
-         body = text.strip()
-   
-    body = re.sub('<[^<]+?>', '', body)                  # strip all html tags
-    body = body.replace("\n", " ").replace("\r", " ")    # strip CR/LF, make it one line, .rstrip fails at this
-    return(body, from_addr)
-## end parse_email
+        text = ""
+        html = None
+        # default in case body somehow isn't set below - happened once
+        body = "* unreadable msg received"
+        for part in msg.get_payload():
+            if part.get_content_charset() is None:
+                # We cannot know the character set,
+                # so return decoded "something"
+                text = part.get_payload(decode=True)
+                continue
 
+            charset = part.get_content_charset()
+
+            if part.get_content_type() == 'text/plain':
+                text = six.text_type(
+                    part.get_payload(decode=True), str(charset),
+                    "ignore").encode('utf8', 'replace')
+
+            if part.get_content_type() == 'text/html':
+                html = six.text_type(
+                    part.get_payload(decode=True),
+                    str(charset),
+                    "ignore").encode('utf8', 'replace')
+
+            if text is not None:
+                # strip removes white space fore and aft of string
+                body = text.strip()
+            else:
+                body = html.strip()
+    else:
+        # email.uscc.net sends no charset, blows up unicode function below
+        if msg.get_content_charset() is None:
+            text = six.text_type(
+                msg.get_payload(decode=True),
+                'US-ASCII',
+                'ignore').encode('utf8', 'replace')
+        else:
+            text = six.text_type(
+                msg.get_payload(decode=True),
+                msg.get_content_charset(),
+                'ignore').encode('utf8', 'replace')
+        body = text.strip()
+
+    # strip all html tags
+    body = body.decode()
+    body = re.sub('<[^<]+?>', '', body)
+    # strip CR/LF, make it one line, .rstrip fails at this
+    body = body.replace("\n", " ").replace("\r", " ")
+    return(body, from_addr)
+# end parse_email
+
+
+def _imap_connect():
+    imap_port = CONFIG['imap'].get('port', 143)
+    use_ssl = CONFIG['imap'].get('use_ssl', False)
+    host = CONFIG['imap']['host']
+    msg = ("{}{}:{}".format(
+        'TLS ' if use_ssl else '',
+        host,
+        imap_port
+    ))
+    LOG.debug("Connect to IMAP host {} with user '{}'".
+              format(msg, CONFIG['imap']['login']))
+
+    try:
+        server = imapclient.IMAPClient(CONFIG['imap']['host'], port=imap_port,
+                                       use_uid=True, ssl=use_ssl)
+    except Exception:
+        LOG.error("Failed to connect IMAP server")
+        return
+
+    LOG.debug("Connected to IMAP host {}".format(msg))
+
+    try:
+        server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
+    except (imaplib.IMAP4.error, Exception) as e:
+        msg = getattr(e, 'message', repr(e))
+        LOG.error("Failed to login {}".format(msg))
+        return
+
+    LOG.debug("Logged in to IMAP, selecting INBOX")
+    server.select_folder('INBOX')
+    return server
+
+
+def _smtp_connect():
+    host = CONFIG['smtp']['host']
+    smtp_port = CONFIG['smtp']['port']
+    use_ssl = CONFIG['smtp'].get('use_ssl', False)
+    msg = ("{}{}:{}".format(
+        'SSL ' if use_ssl else '',
+        host,
+        smtp_port
+    ))
+    LOG.debug("Connect to SMTP host {} with user '{}'".
+              format(msg, CONFIG['imap']['login']))
+
+    try:
+        if use_ssl:
+            server = smtplib.SMTP_SSL(host=host, port=smtp_port)
+        else:
+            server = smtplib.SMTP(host=host, port=smtp_port)
+    except Exception:
+        LOG.error("Couldn't connect to SMTP Server")
+        return
+
+    LOG.debug("Connected to smtp host {}".format(msg))
+
+    try:
+        server.login(CONFIG['smtp']['login'], CONFIG['smtp']['password'])
+    except Exception:
+        LOG.error("Couldn't connect to SMTP Server")
+        return
+
+    LOG.debug("Logged into SMTP server {}".format(msg))
+    return server
+
+
+def validate_email():
+    """function to simply ensure we can connect to email services.
+
+       This helps with failing early during startup.
+    """
+    LOG.info("Checking IMAP configuration")
+    imap_server = _imap_connect()
+    LOG.info("Checking SMTP configuration")
+    smtp_server = _smtp_connect()
+
+    if imap_server and smtp_server:
+        return True
+    else:
+        return False
 
 
 def resend_email(count, fromcall):
@@ -192,12 +296,11 @@ def resend_email(count, fromcall):
     # swap key/value
     shortcuts_inverted = dict([[v, k] for k, v in shortcuts.items()])
 
-    LOG.debug("resend_email: Connect to IMAP host '%s' with user '%s'" %
-              (CONFIG['imap']['host'],
-               CONFIG['imap']['login']))
-    server = IMAPClient(CONFIG['imap']['host'], use_uid=True)
-    server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
-    select_info = server.select_folder('INBOX')
+    try:
+        server = _imap_connect()
+    except Exception as e:
+        LOG.exception("Failed to Connect to IMAP. Cannot resend email ", e)
+        return
 
     messages = server.search(['SINCE', today])
     LOG.debug("%d messages received today" % len(messages))
@@ -211,7 +314,7 @@ def resend_email(count, fromcall):
             # one at a time, otherwise order is random
             (body, from_addr) = parse_email(msgid, data, server)
             # unset seen flag, will stay bold in email client
-            server.remove_flags(msgid, [SEEN])
+            server.remove_flags(msgid, [imapclient.SEEN])
             if from_addr in shortcuts_inverted:
                 # reverse lookup of a shortcut
                 from_addr = shortcuts_inverted[from_addr]
@@ -242,53 +345,49 @@ def check_email_thread(check_email_delay):
 
     while True:
         # threading.Timer(55, check_email_thread).start()
-        
+        LOG.debug("Top of check_email_thread.")
+
         time.sleep(check_email_delay)
-    
+
         shortcuts = CONFIG['shortcuts']
         # swap key/value
         shortcuts_inverted = dict([[v, k] for k, v in shortcuts.items()])
-    
+
         date = datetime.datetime.now()
         month = date.strftime("%B")[:3]       # Nov, Mar, Apr
         day = date.day
         year = date.year
         today = "%s-%s-%s" % (day, month, year)
 
-        LOG.debug("Connect to IMAP host '%s' with user '%s'" %
-                  (CONFIG['imap']['host'],
-                   CONFIG['imap']['login']))
-
+        server = None
         try:
-            server = IMAPClient(CONFIG['imap']['host'], use_uid=True, timeout=5)
-            server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
-        except Exception:
-            LOG.exception("Failed to login with IMAP server")
-            #return
+            server = _imap_connect()
+        except Exception as e:
+            LOG.exception("Failed to get IMAP server Can't check email.", e)
+
+        if not server:
             continue
 
-        server.select_folder('INBOX')
-
         messages = server.search(['SINCE', today])
-        LOG.debug("%d messages received today" % len(messages))
+        LOG.debug("{} messages received today".format(len(messages)))
 
         for msgid, data in server.fetch(messages, ['ENVELOPE']).items():
             envelope = data[b'ENVELOPE']
             LOG.debug('ID:%d  "%s" (%s)' %
                       (msgid, envelope.subject.decode(), envelope.date))
-            f = re.search('([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)',
+            f = re.search(r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)",
                           str(envelope.from_[0]))
             if f is not None:
                 from_addr = f.group(1)
             else:
                 from_addr = "noaddr"
-    
+
             if "APRS" not in server.get_flags(msgid)[msgid]:
                 # if msg not flagged as sent via aprs
                 server.fetch([msgid], ['RFC822'])
                 (body, from_addr) = parse_email(msgid, data, server)
                 # unset seen flag, will stay bold in email client
-                server.remove_flags(msgid, [SEEN])
+                server.remove_flags(msgid, [imapclient.SEEN])
 
                 if from_addr in shortcuts_inverted:
                     # reverse lookup of a shortcut
@@ -301,7 +400,7 @@ def check_email_thread(check_email_delay):
                 # flag message as sent via aprs
                 server.add_flags(msgid, ['APRS'])
                 # unset seen flag, will stay bold in email client
-                server.remove_flags(msgid, [SEEN])
+                server.remove_flags(msgid, [imapclient.SEEN])
 
         server.logout()
 
@@ -310,14 +409,15 @@ def check_email_thread(check_email_delay):
 
 def send_ack_thread(tocall, ack, retry_count):
     tocall = tocall.ljust(9)  # pad to nine chars
-    line = "%s>APRS::%s:ack%s\n" % (CONFIG['aprs']['login'], tocall, ack)
+    line = ("{}>APRS::{}:ack{}\n".format(
+        CONFIG['aprs']['login'], tocall, ack))
     for i in range(retry_count, 0, -1):
-        LOG.info("Sending ack __________________ Tx(%s)" % i)
-        LOG.info("Raw         : %s" % line)
-        LOG.info("To          : %s" % tocall)
-        LOG.info("Ack number  : %s" % ack)
-        #tn.write(line)
-        sock.send(line)
+        LOG.info("Sending ack __________________ Tx({})".format(i))
+        LOG.info("Raw         : {}".format(line))
+        LOG.info("To          : {}".format(tocall))
+        LOG.info("Ack number  : {}".format(ack))
+        # tn.write(line)
+        sock.send(line.encode())
         # aprs duplicate detection is 30 secs?
         # (21 only sends first, 28 skips middle)
         time.sleep(31)
@@ -328,6 +428,7 @@ def send_ack_thread(tocall, ack, retry_count):
 def send_ack(tocall, ack):
     retry_count = 3
     thread = threading.Thread(target=send_ack_thread,
+                              name="send_ack",
                               args=(tocall, ack, retry_count))
     thread.start()
     return()
@@ -336,19 +437,27 @@ def send_ack(tocall, ack):
 
 def send_message_thread(tocall, message, this_message_number, retry_count):
     global ack_dict
-    line = (CONFIG['aprs']['login'] + ">APRS::" + tocall + ":" + message +
-            "{" + str(this_message_number) + "\n")
+    # line = (CONFIG['aprs']['login'] + ">APRS::" + tocall + ":" + message
+    #        + "{" + str(this_message_number) + "\n")
+    line = ("{}>APRS::{}:{}{{{}\n".format(
+        CONFIG['aprs']['login'],
+        tocall, message,
+        str(this_message_number),
+    ))
     for i in range(retry_count, 0, -1):
         LOG.debug("DEBUG: send_message_thread msg:ack combos are: ")
         LOG.debug(pprint.pformat(ack_dict))
         if ack_dict[this_message_number] != 1:
-            LOG.info("Sending message_______________ " +
-                     str(this_message_number) + "(Tx" + str(i) + ")")
-            LOG.info("Raw         : " + line)
-            LOG.info("To          : " + tocall)
-            LOG.info("Message     : " + message)
-            #tn.write(line)
-            sock.send(line)
+            LOG.info("Sending message_______________ {}(Tx{})"
+                     .format(
+                         str(this_message_number),
+                         str(i)
+                     ))
+            LOG.info("Raw         : {}".format(line))
+            LOG.info("To          : {}".format(tocall))
+            LOG.info("Message     : {}".format(message))
+            # tn.write(line)
+            sock.send(line.encode())
             # decaying repeats, 31 to 93 second intervals
             sleeptime = (retry_count - i + 1) * 31
             time.sleep(sleeptime)
@@ -383,6 +492,7 @@ def send_message(tocall, message):
     message = message[:67]
     thread = threading.Thread(
         target=send_message_thread,
+        name="send_message",
         args=(tocall, message, message_number, retry_count))
     thread.start()
     return()
@@ -436,18 +546,17 @@ def send_email(to_addr, content):
     msg['Subject'] = subject
     msg['From'] = CONFIG['smtp']['login']
     msg['To'] = to_addr
-    s = smtplib.SMTP_SSL(CONFIG['smtp']['host'],
-                         CONFIG['smtp']['port'])
-    s.login(CONFIG['smtp']['login'],
-            CONFIG['smtp']['password'])
-    try:
-        s.sendmail(CONFIG['smtp']['login'], [to_addr], msg.as_string())
-    except Exception:
-        LOG.exception("Sendmail Error!!!!!!!!!")
-        s.quit()
-        return(-1)
-    s.quit()
-    return(0)
+    server = _smtp_connect()
+    if server:
+        try:
+            server.sendmail(CONFIG['smtp']['login'], [to_addr], msg.as_string())
+        except Exception as e:
+            msg = getattr(e, 'message', repr(e))
+            LOG.error("Sendmail Error!!!! '{}'", msg)
+            server.quit()
+            return(-1)
+        server.quit()
+        return(0)
     # end send_email
 
 
@@ -465,13 +574,13 @@ def setup_logging(args):
     log_level = levels[args.loglevel]
 
     LOG.setLevel(log_level)
-    log_format = ("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]"
+    log_format = ("%(asctime)s [%(threadName)-12s] [%(levelname)-5.5s]"
                   " %(message)s")
     date_format = '%m/%d/%Y %I:%M:%S %p'
     log_formatter = logging.Formatter(fmt=log_format,
                                       datefmt=date_format)
     fh = RotatingFileHandler(CONFIG['aprs']['logfile'],
-                             maxBytes=(10248576*5),
+                             maxBytes=(10248576 * 5),
                              backupCount=4)
     fh.setFormatter(log_formatter)
     LOG.addHandler(fh)
@@ -488,23 +597,31 @@ def main(args=args):
 
     CONFIG = utils.parse_config(args)
     signal.signal(signal.SIGINT, signal_handler)
-    LOG.info("APRSD Started")
-    LOG.debug(CONFIG)
     setup_logging(args)
+    LOG.info("APRSD Started version: {}".format(aprsd.__version__))
 
     time.sleep(2)
     setup_connection()
+    valid = validate_email()
+    if not valid:
+        LOG.error("Failed to validate email config options")
+        sys.exit(-1)
 
     user = CONFIG['aprs']['login']
     password = CONFIG['aprs']['password']
-    LOG.info("LOGIN to APRSD with user '%s'" % user)
-    #tn.write("user %s pass %s vers aprsd 0.99\n" % (user, password))
-    sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
+
+    LOG.debug("LOGIN to APRSD with user '%s'" % user)
+    msg = ("user {} pass {} vers aprsd {}\n".format(user, password,
+                                                    aprsd.__version__))
+    sock.send(msg.encode())
+
 
     time.sleep(2)
 
-    check_email_delay = 60  # initial email check interval 
-    checkemailthread = threading.Thread(target=check_email_thread, args=(check_email_delay, ))  # args must be tuple
+    check_email_delay = 60  # initial email check interval
+    checkemailthread = threading.Thread(target=check_email_thread,
+                                        name="check_email",
+                                        args=(check_email_delay, ))  # args must be tuple
     checkemailthread.start()
 
     LOG.info("Start main loop")
@@ -512,7 +629,8 @@ def main(args=args):
         line = ""
         try:
             line = sock_file.readline().strip()
-            LOG.info(line)
+            if line:
+                LOG.info(line)
             searchstring = '::%s' % user
             # is aprs message to us, not beacon, status, etc
             if re.search(searchstring, line):
@@ -529,31 +647,40 @@ def main(args=args):
                 continue
 
             # EMAIL (-)
-            elif re.search('^-.*', message):                                 # is email command
+            # is email command
+            elif re.search('^-.*', message):
                 searchstring = '^' + CONFIG['ham']['callsign'] + '.*'
-                if re.search(searchstring, fromcall):                        # only I can do email
-                    r = re.search('^-([0-9])[0-9]*$', message)                # digits only, first one is number of emails to resend
+                # only I can do email
+                if re.search(searchstring, fromcall):
+                    # digits only, first one is number of emails to resend
+                    r = re.search('^-([0-9])[0-9]*$', message)
                     if r is not None:
                         resend_email(r.group(1), fromcall)
-                    elif re.search('^-([A-Za-z0-9_\-\.@]+) (.*)', message):   # -user@address.com body of email
-                        a = re.search('^-([A-Za-z0-9_\-\.@]+) (.*)', message)  # (same search again)
+                    # -user@address.com body of email
+                    elif re.search(r"^-([A-Za-z0-9_\-\.@]+) (.*)", message):
+                        # (same search again)
+                        a = re.search(r"^-([A-Za-z0-9_\-\.@]+) (.*)", message)
                         if a is not None:
                             to_addr = a.group(1)
                             content = a.group(2)
-                            if content == 'mapme':                               # send recipient link to aprs.fi map
-                                content = "Click for my location: http://aprs.fi/" + CONFIG['ham']['callsign']
+                            # send recipient link to aprs.fi map
+                            if content == 'mapme':
+                                content = (
+                                    "Click for my location: http://aprs.fi/{}".
+                                    format(CONFIG['ham']['callsign']))
                             too_soon = 0
                             now = time.time()
-                            if ack in email_sent_dict:   # see if we sent this msg number recently
+                            # see if we sent this msg number recently
+                            if ack in email_sent_dict:
                                 timedelta = now - email_sent_dict[ack]
-                                if ( timedelta < 300 ):  # five minutes
+                                if (timedelta < 300):  # five minutes
                                     too_soon = 1
                             if not too_soon or ack == 0:
                                 send_result = send_email(to_addr, content)
                                 if send_result != 0:
                                     send_message(fromcall, "-" + to_addr + " failed")
                                 else:
-                                    #send_message(fromcall, "-" + to_addr + " sent")
+                                    # send_message(fromcall, "-" + to_addr + " sent")
                                     if len(email_sent_dict) > 98:  # clear email sent dictionary if somehow goes over 100
                                         LOG.debug("DEBUG: email_sent_dict is big (" + str(len(email_sent_dict)) + ") clearing out.")
                                         email_sent_dict.clear()
@@ -570,7 +697,9 @@ def main(args=args):
                 m = stm.tm_min
                 cur_time = fuzzy(h, m, 1)
                 reply = cur_time + " (" + str(h) + ":" + str(m).rjust(2, '0') + "PDT)" + " (" + message.rstrip() + ")"
-                thread = threading.Thread(target = send_message, args = (fromcall, reply))
+                thread = threading.Thread(target=send_message,
+                                          name="send_message",
+                                          args=(fromcall, reply))
                 thread.start()
 
             # FORTUNE (f)
@@ -592,33 +721,33 @@ def main(args=args):
             elif re.search('^[lL]', message):
                 # get last location of a callsign, get descriptive name from weather service
                 try:
-                    a = re.search('^.*\s+(.*)', message)   # optional second argument is a callsign to search
+                    a = re.search(r"'^.*\s+(.*)", message)   # optional second argument is a callsign to search
                     if a is not None:
-                       searchcall = a.group(1)
-                       searchcall = searchcall.upper()
+                        searchcall = a.group(1)
+                        searchcall = searchcall.upper()
                     else:
-                       searchcall = fromcall            # if no second argument, search for calling station
+                        searchcall = fromcall            # if no second argument, search for calling station
                     url = "http://api.aprs.fi/api/get?name=" + searchcall + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
                     response = urllib.urlopen(url)
                     aprs_data = json.loads(response.read())
-                    lat =  aprs_data['entries'][0]['lat']
-                    lon =  aprs_data['entries'][0]['lng']
+                    lat = aprs_data['entries'][0]['lat']
+                    lon = aprs_data['entries'][0]['lng']
                     try:  # altitude not always provided
-                       alt =  aprs_data['entries'][0]['altitude']
-                    except:
-                       alt = 0
-                    altfeet = int(alt *  3.28084)
+                        alt = aprs_data['entries'][0]['altitude']
+                    except Exception:
+                        alt = 0
+                    altfeet = int(alt * 3.28084)
                     aprs_lasttime_seconds = aprs_data['entries'][0]['lasttime']
-                    aprs_lasttime_seconds = aprs_lasttime_seconds.encode('ascii',errors='ignore')  #unicode to ascii
+                    aprs_lasttime_seconds = aprs_lasttime_seconds.encode('ascii', errors='ignore')  # unicode to ascii
                     delta_seconds = time.time() - int(aprs_lasttime_seconds)
                     delta_hours = delta_seconds / 60 / 60
                     url2 = "https://forecast.weather.gov/MapClick.php?lat=" + str(lat) + "&lon=" + str(lon) + "&FcstType=json"
                     response2 = urllib.urlopen(url2)
                     wx_data = json.loads(response2.read())
-                    reply = searchcall + ": " + wx_data['location']['areaDescription'] + " " + str(altfeet) + "' " + str(lat) + "," + str(lon) + " " + str("%.1f" % round(delta_hours,1)) + "h ago"
-                    reply = reply.encode('ascii',errors='ignore')  # unicode to ascii
+                    reply = searchcall + ": " + wx_data['location']['areaDescription'] + " " + str(altfeet) + "' " + str(lat) + "," + str(lon) + " " + str("%.1f" % round(delta_hours, 1)) + "h ago"
+                    reply = reply.encode('ascii', errors='ignore')  # unicode to ascii
                     send_message(fromcall, reply.rstrip())
-                except:
+                except Exception:
                     reply = "Unable to find station " + searchcall + ".  Sending beacons?"
                     send_message(fromcall, reply.rstrip())
 
@@ -666,20 +795,22 @@ def main(args=args):
         except Exception as e:
             LOG.error("Error in mainline loop:")
             LOG.error("%s" % str(e))
-            if str(e) == "timed out" or str(e) == "Temporary failure in name resolution" or  str(e) == "Network is unreachable":
-               LOG.error("Attempting to reconnect.")
-               sock.shutdown(0)
-               sock.close()
-               setup_connection()
-               sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
-               continue
-            #LOG.error("Exiting.")
-            #os._exit(1)
+
+            if (str(e) == "timed out" or str(e) == "Temporary failure in name resolution" or str(e) == "Network is unreachable"):
+                LOG.error("Attempting to reconnect.")
+                sock.shutdown(0)
+                sock.close()
+                setup_connection()
+                sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
+                continue
+            # LOG.error("Exiting.")
+            # os._exit(1)
+
             time.sleep(5)
             continue   # don't know what failed, so wait and then continue main loop again
 
     # end while True
-    #tn.close()
+    # tn.close()
     sock.shutdown(0)
     sock.close()
 

@@ -61,10 +61,10 @@ def fuzzy(hour, minute, degree=1):
     if dmin == 0:
         s1 = f1
         pos = pos - 1
-    elif dmin <= base/2:
+    elif dmin <= base / 2:
         s1 = f2
         if minute < 30:
-            pos = pos-1
+            pos = pos - 1
     else:
         s1 = f0
         if minute > 30:
@@ -118,4 +118,6 @@ def main():
                 print(fuzzy(h, m, deg))
             return
 
-main()
+
+if __name__ == "__main__":
+    main()
