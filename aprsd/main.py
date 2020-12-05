@@ -286,6 +286,7 @@ def validate_email():
 
 
 def resend_email(count, fromcall):
+    global check_email_delay
     date = datetime.datetime.now()
     month = date.strftime("%B")[:3]       # Nov, Mar, Apr
     day = date.day
@@ -337,17 +338,27 @@ def resend_email(count, fromcall):
                                          str(s).zfill(2))
         send_message(fromcall, reply)
 
+    # check email more often since we're resending one now
+    check_email_delay = 60
+
     server.logout()
     # end resend_email()
 
 
-def check_email_thread(check_email_delay):
+def check_email_thread():
+    global check_email_delay
 
+    check_email_delay = 60
     while True:
-        # threading.Timer(55, check_email_thread).start()
         LOG.debug("Top of check_email_thread.")
 
         time.sleep(check_email_delay)
+
+        # slowly increase delay every iteration, max out at 300 seconds
+        # any send/receive/resend activity will reset this to 60 seconds
+        if check_email_delay < 300:  
+            check_email_delay += 1
+        LOG.debug("check_email_delay is " + str(check_email_delay) + " seconds")
 
         shortcuts = CONFIG['shortcuts']
         # swap key/value
@@ -394,13 +405,13 @@ def check_email_thread(check_email_delay):
                     from_addr = shortcuts_inverted[from_addr]
 
                 reply = "-" + from_addr + " " + body
-                # print "Sending message via aprs: " + reply
-                # radio
                 send_message(CONFIG['ham']['callsign'], reply)
                 # flag message as sent via aprs
                 server.add_flags(msgid, ['APRS'])
                 # unset seen flag, will stay bold in email client
                 server.remove_flags(msgid, [imapclient.SEEN])
+                # check email more often since we just received an email
+                check_email_delay = 60
 
         server.logout()
 
@@ -413,10 +424,9 @@ def send_ack_thread(tocall, ack, retry_count):
         CONFIG['aprs']['login'], tocall, ack))
     for i in range(retry_count, 0, -1):
         LOG.info("Sending ack __________________ Tx({})".format(i))
-        LOG.info("Raw         : {}".format(line))
+        LOG.info("Raw         : {}".format(line.rstrip('\n')))
         LOG.info("To          : {}".format(tocall))
         LOG.info("Ack number  : {}".format(ack))
-        # tn.write(line)
         sock.send(line.encode())
         # aprs duplicate detection is 30 secs?
         # (21 only sends first, 28 skips middle)
@@ -453,7 +463,7 @@ def send_message_thread(tocall, message, this_message_number, retry_count):
                          str(this_message_number),
                          str(i)
                      ))
-            LOG.info("Raw         : {}".format(line))
+            LOG.info("Raw         : {}".format(line.rstrip('\n')))
             LOG.info("To          : {}".format(tocall))
             LOG.info("Message     : {}".format(message))
             # tn.write(line)
@@ -531,6 +541,8 @@ def process_message(line):
 
 
 def send_email(to_addr, content):
+    global check_email_delay
+
     LOG.info("Sending Email_________________")
     shortcuts = CONFIG['shortcuts']
     if to_addr in shortcuts:
@@ -541,6 +553,9 @@ def send_email(to_addr, content):
     # content = content + "\n\n(NOTE: reply with one line)"
     LOG.info("Subject     : " + subject)
     LOG.info("Body        : " + content)
+
+    # check email more often since there's activity right now
+    check_email_delay = 60
 
     msg = MIMEText(content)
     msg['Subject'] = subject
@@ -618,10 +633,9 @@ def main(args=args):
 
     time.sleep(2)
 
-    check_email_delay = 60  # initial email check interval
     checkemailthread = threading.Thread(target=check_email_thread,
                                         name="check_email",
-                                        args=(check_email_delay, ))  # args must be tuple
+                                        args=() )  # args must be tuple
     checkemailthread.start()
 
     LOG.info("Start main loop")
@@ -721,7 +735,8 @@ def main(args=args):
             elif re.search('^[lL]', message):
                 # get last location of a callsign, get descriptive name from weather service
                 try:
-                    a = re.search(r"'^.*\s+(.*)", message)   # optional second argument is a callsign to search
+                    print("XXX message is:" + message)
+                    a = re.search(r"^.*\s+(.*)", message)   # optional second argument is a callsign to search
                     if a is not None:
                         searchcall = a.group(1)
                         searchcall = searchcall.upper()
@@ -784,7 +799,7 @@ def main(args=args):
 
             # USAGE
             else:
-                reply = "usage: time, fortune, loc, weath"
+                reply = "Usage: weath, locate <callsign>, ping, time, fortune"
                 send_message(fromcall, reply)
 
             # let any threads do their thing, then ack
@@ -810,7 +825,6 @@ def main(args=args):
             continue   # don't know what failed, so wait and then continue main loop again
 
     # end while True
-    # tn.close()
     sock.shutdown(0)
     sock.close()
 
