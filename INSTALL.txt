@@ -7,9 +7,11 @@ virtualenv .venv
 cd .venv/
 source ./activate
 
+cd /tmp
 git clone https://github.com/craigerl/aprsd.git
 cd aprsd
 pip install .
+cd ~/.venv
 
 mkdir -p ~/.aprsd
 
