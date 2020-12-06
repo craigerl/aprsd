@@ -658,20 +658,20 @@ def main(args=args):
                 LOG.debug("reset empty line counter")
                 empty_line_rx = 0
             else:
-                LOG.debug("continue: noise: " + line)
+                LOG.debug("Noise: " + line)
                 # detect closed socket, getting lots of empty lines
                 if len(line.strip()) == 0:       
                     LOG.debug("Zero line length received. Consecutive empty line count: " + str(empty_line_rx))
                     empty_line_rx += 1
                 if empty_line_rx >= 30:
-                    LOG.debug("Excessive empty lines received, socket likely closed.  Reconnecting.")
+                    LOG.debug("Excessive empty lines received, socket likely CLOSED_WAIT.  Reconnecting.")
                     sock_file.close()
                     sock.shutdown(0)
                     sock.close()
                     time.sleep(30)
                     setup_connection()
                     sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
-                    LOG.debug("reset empty line counter")
+                    #LOG.debug("reset empty line counter")
                     empty_line_rx = 0
                 continue
 
