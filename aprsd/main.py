@@ -116,19 +116,18 @@ def setup_connection():
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((CONFIG['aprs']['host'], 14580))
-
-            sock.settimeout(300)
+#            sock.settimeout(300)
             connected = True
+            LOG.debug("Connected to server: " + CONFIG['aprs']['host'])
+            sock_file = sock.makefile(mode='r')
+            #sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # disable nagle algorithm
+            #sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)  # buffer size
         except Exception as e:
-            print("Unable to connect to APRS-IS server.\n")
+            LOG.error("Unable to connect to APRS-IS server.\n")
             print(str(e))
             time.sleep(5)
             continue
             # os._exit(1)
-        sock_file = sock.makefile(mode='r')
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # disable nagle algorithm
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)  # buffer size
-
 
 
 def signal_handler(signal, frame):
@@ -640,23 +639,40 @@ def main(args=args):
                                         args=() )  # args must be tuple
     checkemailthread.start()
 
-    LOG.info("Start main loop")
+    LOG.debug("reset empty line counter")
+    empty_line_rx = 0
+
     while True:
         LOG.debug("Main loop start")
-        time.sleep(1) # prevent tight loop with 100% cpu
+        time.sleep(1) # prevent tight loop if something goes awry
         line = ""
         try:
             line = sock_file.readline().strip()
             if line:
                 LOG.info(line)
+            # is aprs message to us? not beacon, status, empty line, etc
             searchstring = '::%s' % user
-            # is aprs message to us, not beacon, status, etc
             if re.search(searchstring, line):
-                LOG.debug("main: about to process_message")
+                LOG.debug("main: found message addressed to us begin process_message")
                 (fromcall, message, ack) = process_message(line)
+                LOG.debug("reset empty line counter")
+                empty_line_rx = 0
             else:
-                message = "noise"
                 LOG.debug("continue: noise: " + line)
+                # detect closed socket, getting lots of empty lines
+                if len(line.strip()) == 0:       
+                    LOG.debug("Zero line length received. Consecutive empty line count: " + str(empty_line_rx))
+                    empty_line_rx += 1
+                if empty_line_rx >= 30:
+                    LOG.debug("Excessive empty lines received, socket likely closed.  Reconnecting.")
+                    sock_file.close()
+                    sock.shutdown(0)
+                    sock.close()
+                    time.sleep(30)
+                    setup_connection()
+                    sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
+                    LOG.debug("reset empty line counter")
+                    empty_line_rx = 0
                 continue
 
             # ACK (ack##)
@@ -842,9 +858,6 @@ def main(args=args):
 
         LOG.debug("Main loop end") 
         # end while True
-
-    sock.shutdown(0)
-    sock.close()
 
     exit()
 
