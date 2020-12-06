@@ -13,6 +13,10 @@ pip install .
 
 mkdir -p ~/.aprsd
 
+./bin/aprsd  # generates a config.yml template on first run
+
+vi ~/.aprsd/config.yml   
+
 ./bin/aprsd
 
-vi ~/.aprsd/config.yml
+# profit! #
