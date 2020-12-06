@@ -652,10 +652,11 @@ def main(args=args):
             searchstring = '::%s' % user
             # is aprs message to us, not beacon, status, etc
             if re.search(searchstring, line):
+                LOG.debug("main: about to process_message")
                 (fromcall, message, ack) = process_message(line)
             else:
                 message = "noise"
-                LOG.debug("continue: noise")
+                LOG.debug("continue: noise: " + line)
                 continue
 
             # ACK (ack##)
