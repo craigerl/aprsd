@@ -212,8 +212,8 @@ def _imap_connect():
         host,
         imap_port
     ))
-    LOG.debug("Connect to IMAP host {} with user '{}'".
-              format(msg, CONFIG['imap']['login']))
+#    LOG.debug("Connect to IMAP host {} with user '{}'".
+#              format(msg, CONFIG['imap']['login']))
 
     try:
         server = imapclient.IMAPClient(CONFIG['imap']['host'], port=imap_port,
@@ -222,7 +222,7 @@ def _imap_connect():
         LOG.error("Failed to connect IMAP server")
         return
 
-    LOG.debug("Connected to IMAP host {}".format(msg))
+#    LOG.debug("Connected to IMAP host {}".format(msg))
 
     try:
         server.login(CONFIG['imap']['login'], CONFIG['imap']['password'])
@@ -231,7 +231,7 @@ def _imap_connect():
         LOG.error("Failed to login {}".format(msg))
         return
 
-    LOG.debug("Logged in to IMAP, selecting INBOX")
+#    LOG.debug("Logged in to IMAP, selecting INBOX")
     server.select_folder('INBOX')
     return server
 
@@ -350,7 +350,7 @@ def check_email_thread():
 
     check_email_delay = 60
     while True:
-        LOG.debug("Top of check_email_thread.")
+#        LOG.debug("Top of check_email_thread.")
 
         time.sleep(check_email_delay)
 
@@ -380,12 +380,12 @@ def check_email_thread():
             continue
 
         messages = server.search(['SINCE', today])
-        LOG.debug("{} messages received today".format(len(messages)))
+        #LOG.debug("{} messages received today".format(len(messages)))
 
         for msgid, data in server.fetch(messages, ['ENVELOPE']).items():
             envelope = data[b'ENVELOPE']
-            LOG.debug('ID:%d  "%s" (%s)' %
-                      (msgid, envelope.subject.decode(), envelope.date))
+        #    LOG.debug('ID:%d  "%s" (%s)' %
+        #              (msgid, envelope.subject.decode(), envelope.date))
             f = re.search(r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)",
                           str(envelope.from_[0]))
             if f is not None:
@@ -661,6 +661,7 @@ def main(args=args):
 
             # ACK (ack##)
             if re.search('^ack[0-9]+', message):
+                LOG.debug("ACK")
                 # put message_number:1 in dict to record the ack
                 a = re.search('^ack([0-9]+)', message)
                 ack_dict.update({int(a.group(1)): 1})
@@ -668,6 +669,7 @@ def main(args=args):
             # EMAIL (-)
             # is email command
             elif re.search('^-.*', message):
+                LOG.debug("EMAIL")
                 searchstring = '^' + CONFIG['ham']['callsign'] + '.*'
                 # only I can do email
                 if re.search(searchstring, fromcall):
@@ -711,6 +713,7 @@ def main(args=args):
 
             # TIME (t)
             elif re.search('^[tT]', message):
+                LOG.debug("TIME")
                 stm = time.localtime()
                 h = stm.tm_hour
                 m = stm.tm_min
@@ -723,12 +726,14 @@ def main(args=args):
 
             # FORTUNE (f)
             elif re.search('^[fF]', message):
+                LOG.debug("FORTUNE")
                 process = subprocess.Popen(['/usr/games/fortune', '-s', '-n 60'], stdout=subprocess.PIPE)
                 reply = process.communicate()[0]
                 send_message(fromcall, reply.rstrip())
 
             # PING (p)
             elif re.search('^[pP]', message):
+                LOG.debug("PING")
                 stm = time.localtime()
                 h = stm.tm_hour
                 m = stm.tm_min
@@ -738,6 +743,7 @@ def main(args=args):
 
             # LOCATION (l)  "8 Miles E Auburn CA 1771' 38.91547,-120.99500 0.1h ago"
             elif re.search('^[lL]', message):
+                LOG.debug("LOCATION")
                 # get last location of a callsign, get descriptive name from weather service
                 try:
                     print("XXX message is:" + message)
@@ -773,6 +779,7 @@ def main(args=args):
 
             # WEATHER (w)  "42F(68F/48F) Haze. Tonight, Haze then Chance Rain."
             elif re.search('^[wW]', message):
+                LOG.debug("WEATHER")
                 # get my last location from aprsis then get weather from
                 # weather service
                 try:
@@ -804,12 +811,14 @@ def main(args=args):
 
             # USAGE
             else:
+                LOG.debug("USAGE")
                 reply = "Usage: weath, locate <callsign>, ping, time, fortune"
                 send_message(fromcall, reply)
 
             # let any threads do their thing, then ack
             time.sleep(1)
             # send an ack last
+            LOG.debug("SEND ACK")
             send_ack(fromcall, ack)
 
         except Exception as e:
@@ -822,13 +831,13 @@ def main(args=args):
                 sock.close()
                 setup_connection()
                 sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
-                LOG.debug("continue: connection fail")
+                LOG.debug("continue: connection failed, just reconnected")
                 continue
             # LOG.error("Exiting.")
             # os._exit(1)
 
             time.sleep(5)
-            LOG.debug("contnue: don't know what failed: " + str(e))
+            LOG.debug("contnue: Unexpected error: " + str(e))
             continue   # don't know what failed, so wait and then continue main loop again
 
         LOG.debug("Main loop end") 
