@@ -82,7 +82,11 @@ ack_dict = {}
 message_number = 0
 
 # global telnet connection object -- not needed anymore
-tn = None
+#tn = None
+
+# set default encoding for python, so body.decode doesn't blow up in email thread
+reload(sys)  
+sys.setdefaultencoding('utf8')
 
 # command line args
 parser = argparse.ArgumentParser()
@@ -116,7 +120,7 @@ def setup_connection():
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((CONFIG['aprs']['host'], 14580))
-#            sock.settimeout(300)
+            sock.settimeout(300)
             connected = True
             LOG.debug("Connected to server: " + CONFIG['aprs']['host'])
             sock_file = sock.makefile(mode='r')
@@ -681,6 +685,7 @@ def main(args=args):
                 # put message_number:1 in dict to record the ack
                 a = re.search('^ack([0-9]+)', message)
                 ack_dict.update({int(a.group(1)): 1})
+                continue # break out of this so we don't ack an ack at the end
 
             # EMAIL (-)
             # is email command
