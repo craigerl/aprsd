@@ -362,8 +362,8 @@ def resend_email(count, fromcall):
 def check_email_thread():
     global check_email_delay
 
-    LOG.debug("FIXME initial email delay is 10 seconds")
-    check_email_delay = 10
+    #LOG.debug("FIXME initial email delay is 10 seconds")
+    check_email_delay = 60
     while True:
 #        LOG.debug("Top of check_email_thread.")
 
