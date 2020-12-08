@@ -84,9 +84,15 @@ message_number = 0
 # global telnet connection object -- not needed anymore
 #tn = None
 
-# set default encoding for python, so body.decode doesn't blow up in email thread
-reload(sys)  
-sys.setdefaultencoding('utf8')
+### set default encoding for python, so body.decode doesn't blow up in email thread
+#reload(sys)  
+#sys.setdefaultencoding('utf8')
+
+#import locale
+#def getpreferredencoding(do_setlocale = True):
+#   return "utf-8"
+#locale.getpreferredencoding = getpreferredencoding
+### default encoding failed attempts....
 
 # command line args
 parser = argparse.ArgumentParser()
@@ -108,11 +114,12 @@ def setup_connection():
     while not connected:
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((CONFIG['aprs']['host'], 14580))
             sock.settimeout(300)
+            sock.connect((CONFIG['aprs']['host'], 14580))
             connected = True
             LOG.debug("Connected to server: " + CONFIG['aprs']['host'])
             sock_file = sock.makefile(mode='r')
+            #sock_file = sock.makefile(mode='r',  encoding=None, errors=None, newline=None)
             #sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)  # disable nagle algorithm
             #sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 512)  # buffer size
         except Exception as e:
@@ -191,11 +198,21 @@ def parse_email(msgid, data, server):
                 'ignore').encode('utf8', 'replace')
         body = text.strip()
 
+    # message is not multipart
+    # FIXED:  UnicodeDecodeError: 'ascii' codec can't decode byte 0xf0 in position 6: ordinal not in range(128)
+    #  decode with errors='ignore'.   be sure to encode it before we return it below, also with errors='ignore'
+    try:
+        body = body.decode(errors='ignore')
+    except Exception as e:
+        LOG.error("Unicode decode failure:  " + str(e))
+        LOG.error("Unidoce decode failed: " + str(body))
+        body = "Unreadable unicode msg"
     # strip all html tags
-    body = body.decode()
     body = re.sub('<[^<]+?>', '', body)
     # strip CR/LF, make it one line, .rstrip fails at this
     body = body.replace("\n", " ").replace("\r", " ")
+    #ascii might be out of range, so encode it, removing any error characters
+    body = body.encode(errors='ignore')
     return(body, from_addr)
 # end parse_email
 
@@ -345,7 +362,8 @@ def resend_email(count, fromcall):
 def check_email_thread():
     global check_email_delay
 
-    check_email_delay = 60
+    LOG.debug("FIXME initial email delay is 10 seconds")
+    check_email_delay = 10
     while True:
 #        LOG.debug("Top of check_email_thread.")
 
@@ -446,11 +464,8 @@ def send_message_thread(tocall, message, this_message_number, retry_count):
     global ack_dict
     # line = (CONFIG['aprs']['login'] + ">APRS::" + tocall + ":" + message
     #        + "{" + str(this_message_number) + "\n")
-    line = ("{}>APRS::{}:{}{{{}\n".format(
-        CONFIG['aprs']['login'],
-        tocall, message,
-        str(this_message_number),
-    ))
+    #line = ("{}>APRS::{}:{}{{{}\n".format( CONFIG['aprs']['login'], tocall, message.encode(errors='ignore'), str(this_message_number),))
+    line = ("{}>APRS::{}:{}{{{}\n".format( CONFIG['aprs']['login'], tocall, message, str(this_message_number),))
     for i in range(retry_count, 0, -1):
         LOG.debug("DEBUG: send_message_thread msg:ack combos are: ")
         LOG.debug(pprint.pformat(ack_dict))
@@ -462,6 +477,7 @@ def send_message_thread(tocall, message, this_message_number, retry_count):
                      ))
             LOG.info("Raw         : {}".format(line.rstrip('\n')))
             LOG.info("To          : {}".format(tocall))
+            #LOG.info("Message     : {}".format(message.encode(errors='ignore')))
             LOG.info("Message     : {}".format(message))
             # tn.write(line)
             sock.send(line.encode())
