@@ -159,8 +159,8 @@ def parse_email(msgid, data, server):
         html = None
         # default in case body somehow isn't set below - happened once
         body = "* unreadable msg received"
-        for part in msg.get_payload():
-            if part.get_content_charset() is None:
+        for part in msg.get_payload():       # FIXME this uses the last text or html part in the email, want the first, reverse order somehow?
+            if part.get_content_charset() is None:    # or BREAK when we hit a text or html?
                 # We cannot know the character set,
                 # so return decoded "something"
                 text = part.get_payload(decode=True)
@@ -184,7 +184,7 @@ def parse_email(msgid, data, server):
                 body = text.strip()
             else:
                 body = html.strip()
-    else:
+    else:  # message is not multipart
         # email.uscc.net sends no charset, blows up unicode function below
         if msg.get_content_charset() is None:
             text = six.text_type(
@@ -198,7 +198,6 @@ def parse_email(msgid, data, server):
                 'ignore').encode('utf8', 'replace')
         body = text.strip()
 
-    # message is not multipart
     # FIXED:  UnicodeDecodeError: 'ascii' codec can't decode byte 0xf0 in position 6: ordinal not in range(128)
     #  decode with errors='ignore'.   be sure to encode it before we return it below, also with errors='ignore'
     try:
