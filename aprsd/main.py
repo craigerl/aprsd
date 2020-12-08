@@ -101,17 +101,6 @@ parser.add_argument("--quiet",
 args = parser.parse_args()
 
 
-# def setup_connection():
-#    global tn
-#    host = CONFIG['aprs']['host']
-#    port = CONFIG['aprs']['port']
-#    LOG.debug("Setting up telnet connection to '%s:%s'" % (host, port))
-#    try:
-#        tn = telnetlib.Telnet(host, port)
-#    except Exception:
-#        LOG.exception("Telnet session failed.")
-#        sys.exit(-1)
-
 def setup_connection():
     global sock
     global sock_file
@@ -132,15 +121,20 @@ def setup_connection():
             time.sleep(5)
             continue
             # os._exit(1)
+    user = CONFIG['aprs']['login']
+    password = CONFIG['aprs']['password']
+    LOG.debug("Logging in to APRS-IS with user '%s'" % user)
+    msg = ("user {} pass {} vers aprsd {}\n".format(user, password, aprsd.__version__))
+    sock.send(msg.encode())
 
 
 def signal_handler(signal, frame):
     LOG.info("Ctrl+C, exiting.")
     # sys.exit(0)  # thread ignores this
     os._exit(0)
-
-
 # end signal_handler
+
+
 def parse_email(msgid, data, server):
     envelope = data[b'ENVELOPE']
     # email address match
@@ -630,10 +624,9 @@ def main(args=args):
     user = CONFIG['aprs']['login']
     password = CONFIG['aprs']['password']
 
-    LOG.debug("LOGIN to APRSD with user '%s'" % user)
-    msg = ("user {} pass {} vers aprsd {}\n".format(user, password,
-                                                    aprsd.__version__))
-    sock.send(msg.encode())
+    #LOG.debug("LOGIN to APRSD with user '%s'" % user)
+    #msg = ("user {} pass {} vers aprsd {}\n".format(user, password, aprsd.__version__))
+    #sock.send(msg.encode())
 
 
     time.sleep(2)
@@ -652,8 +645,7 @@ def main(args=args):
         line = ""
         try:
             line = sock_file.readline().strip()
-            if line:
-                LOG.info(line)
+            LOG.info("APRS-IS: " + line)
             # is aprs message to us? not beacon, status, empty line, etc
             searchstring = '::%s' % user
             if re.search(searchstring, line):
@@ -662,22 +654,16 @@ def main(args=args):
                 LOG.debug("reset empty line counter")
                 empty_line_rx = 0
             else:
-                LOG.debug("Noise: " + line)
+                # LOG.debug("Noise: " + line)
                 # detect closed socket, getting lots of empty lines
                 if len(line.strip()) == 0:       
                     LOG.debug("Zero line length received. Consecutive empty line count: " + str(empty_line_rx))
                     empty_line_rx += 1
                 if empty_line_rx >= 30:
                     LOG.debug("Excessive empty lines received, socket likely CLOSED_WAIT.  Reconnecting.")
-                    sock_file.close()
-                    sock.shutdown(0)
-                    sock.close()
-                    time.sleep(30)
-                    setup_connection()
-                    sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
-                    #LOG.debug("reset empty line counter")
                     empty_line_rx = 0
-                continue
+                    raise Exception("closed_socket")
+                continue  # line is something we don't care about
 
             # ACK (ack##)
             if re.search('^ack[0-9]+', message):
@@ -767,7 +753,6 @@ def main(args=args):
                 LOG.debug("LOCATION")
                 # get last location of a callsign, get descriptive name from weather service
                 try:
-                    print("XXX message is:" + message)
                     a = re.search(r"^.*\s+(.*)", message)   # optional second argument is a callsign to search
                     if a is not None:
                         searchcall = a.group(1)
@@ -833,38 +818,33 @@ def main(args=args):
             # USAGE
             else:
                 LOG.debug("USAGE")
-                reply = "Usage: weath, locate <callsign>, ping, time, fortune"
+                reply = "Usage: weather, locate <callsign>, ping, time, fortune"
                 send_message(fromcall, reply)
 
             # let any threads do their thing, then ack
             time.sleep(1)
             # send an ack last
-            LOG.debug("SEND ACK")
+            LOG.debug("Send ACK to radio.")
             send_ack(fromcall, ack)
 
         except Exception as e:
             LOG.error("Error in mainline loop:")
             LOG.error("%s" % str(e))
-
-            if (str(e) == "timed out" or str(e) == "Temporary failure in name resolution" or str(e) == "Network is unreachable"):
+            if ( str(e) == "closed_socket" or str(e) == "timed out" or str(e) == "Temporary failure in name resolution" or str(e) == "Network is unreachable"):
                 LOG.error("Attempting to reconnect.")
+                sock_file.close()
                 sock.shutdown(0)
                 sock.close()
                 setup_connection()
-                sock.send("user %s pass %s vers https://github.com/craigerl/aprsd 2.00\n" % (user, password))
-                LOG.debug("continue: connection failed, just reconnected")
                 continue
-            # LOG.error("Exiting.")
-            # os._exit(1)
-
+            LOG.error("Unexpected error: " + str(e))
+            LOG.error("Continuing anyway.")
             time.sleep(5)
-            LOG.debug("contnue: Unexpected error: " + str(e))
             continue   # don't know what failed, so wait and then continue main loop again
 
         LOG.debug("Main loop end") 
-        # end while True
+    # end while True
 
-    exit()
 
 
 if __name__ == "__main__":
