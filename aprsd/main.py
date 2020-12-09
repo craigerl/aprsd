@@ -153,7 +153,7 @@ def parse_email(msgid, data, server):
         from_addr = "noaddr"
     LOG.debug("Got a message from '{}'".format(from_addr))
     m = server.fetch([msgid], ['RFC822'])
-    msg = email.message_from_string(m[msgid][b'RFC822'].decode())
+    msg = email.message_from_string(m[msgid][b'RFC822'].decode(errors='ignore'))
     if msg.is_multipart():
         text = ""
         html = None
