@@ -12,7 +12,7 @@ mkdir ~/aprsd2
 cd ~/aprsd2
 git clone https://github.com/craigerl/aprsd.git
 cd aprsd
-pip install .
+pip install -e .
 cd ~/.venv_aprsd
 
 ./bin/aprsd  # generates a config.yml template on first run
