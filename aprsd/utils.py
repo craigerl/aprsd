@@ -66,7 +66,7 @@ def get_config():
 # and consume the settings.
 # If the required params don't exist,
 # it will look in the environment
-def parse_config(args):
+def parse_config():
     # for now we still use globals....ugh
     global CONFIG, LOG
 

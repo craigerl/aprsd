@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+# -*- coding: utf-8 -*-
 #
 # Listen on amateur radio aprs-is network for messages and respond to them.
 # You must have an amateur radio callsign to use this software.  You must
@@ -21,7 +21,6 @@
 #
 
 # python included libs
-import argparse
 import datetime
 import email
 import json
@@ -40,6 +39,8 @@ import threading
 import time
 import urllib
 
+import click
+import click_completion
 from email.mime.text import MIMEText
 import imapclient
 import imaplib
@@ -94,17 +95,52 @@ message_number = 0
 #locale.getpreferredencoding = getpreferredencoding
 ### default encoding failed attempts....
 
-# command line args
-parser = argparse.ArgumentParser()
-parser.add_argument("--loglevel",
-                    default='DEBUG',
-                    choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'],
-                    help="The log level to use for aprsd.log")
-parser.add_argument("--quiet",
-                    action='store_true',
-                    help="Don't log to stdout")
 
-args = parser.parse_args()
+def custom_startswith(string, incomplete):
+    """A custom completion match that supports case insensitive matching."""
+    if os.environ.get('_CLICK_COMPLETION_COMMAND_CASE_INSENSITIVE_COMPLETE'):
+        string = string.lower()
+        incomplete = incomplete.lower()
+    return string.startswith(incomplete)
+
+
+click_completion.core.startswith = custom_startswith
+click_completion.init()
+
+
+cmd_help = """Shell completion for click-completion-command
+Available shell types:
+\b
+  %s
+Default type: auto
+""" % "\n  ".join('{:<12} {}'.format(k, click_completion.core.shells[k]) for k in sorted(
+    click_completion.core.shells.keys()))
+
+@click.group(help=cmd_help)
+@click.version_option()
+def main():
+    pass
+
+
+@main.command()
+@click.option('-i', '--case-insensitive/--no-case-insensitive', help="Case insensitive completion")
+@click.argument('shell', required=False, type=click_completion.DocumentedChoice(click_completion.core.shells))
+def show(shell, case_insensitive):
+    """Show the click-completion-command completion code"""
+    extra_env = {'_CLICK_COMPLETION_COMMAND_CASE_INSENSITIVE_COMPLETE': 'ON'} if case_insensitive else {}
+    click.echo(click_completion.core.get_code(shell, extra_env=extra_env))
+
+
+@main.command()
+@click.option('--append/--overwrite', help="Append the completion code to the file", default=None)
+@click.option('-i', '--case-insensitive/--no-case-insensitive', help="Case insensitive completion")
+@click.argument('shell', required=False, type=click_completion.DocumentedChoice(click_completion.core.shells))
+@click.argument('path', required=False)
+def install(append, case_insensitive, shell, path):
+    """Install the click-completion-command completion"""
+    extra_env = {'_CLICK_COMPLETION_COMMAND_CASE_INSENSITIVE_COMPLETE': 'ON'} if case_insensitive else {}
+    shell, path = click_completion.core.install(shell=shell, path=path, append=append, extra_env=extra_env)
+    click.echo('%s completion installed in %s' % (shell, path))
 
 
 def setup_connection():
@@ -592,7 +628,7 @@ def send_email(to_addr, content):
 # Setup the logging faciility
 # to disable logging to stdout, but still log to file
 # use the --quiet option on the cmdln
-def setup_logging(args):
+def setup_logging(loglevel, quiet):
     global LOG
     levels = {
         'CRITICAL': logging.CRITICAL,
@@ -600,7 +636,7 @@ def setup_logging(args):
         'WARNING': logging.WARNING,
         'INFO': logging.INFO,
         'DEBUG': logging.DEBUG}
-    log_level = levels[args.loglevel]
+    log_level = levels[loglevel]
 
     LOG.setLevel(log_level)
     log_format = ("%(asctime)s [%(threadName)-12s] [%(levelname)-5.5s]"
@@ -614,19 +650,40 @@ def setup_logging(args):
     fh.setFormatter(log_formatter)
     LOG.addHandler(fh)
 
-    if not args.quiet:
+    if not quiet:
         sh = logging.StreamHandler(sys.stdout)
         sh.setFormatter(log_formatter)
         LOG.addHandler(sh)
 
 
+
+
+@main.command()
+def sample_config():
+    """This dumps the config to stdout."""
+    print(utils.example_config)
+
+
 # main() ###
-def main(args=args):
+@main.command()
+@click.option("--loglevel",
+              default='DEBUG',
+              show_default=True,
+              type=click.Choice(['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'],
+                                case_sensitive=False),
+              show_choices=True,
+              help="The log level to use for aprsd.log")
+@click.option("--quiet",
+              is_flag=True,
+              default=False,
+              help="Don't log to stdout")
+def server(loglevel, quiet):
+    """Start the aprsd server process."""
     global CONFIG
 
-    CONFIG = utils.parse_config(args)
+    CONFIG = utils.parse_config()
     signal.signal(signal.SIGINT, signal_handler)
-    setup_logging(args)
+    setup_logging(loglevel, quiet)
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
 
     time.sleep(2)
@@ -861,6 +918,5 @@ def main(args=args):
     # end while True
 
 
-
 if __name__ == "__main__":
-    main(args)
+    main()

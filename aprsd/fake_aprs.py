@@ -30,7 +30,6 @@ CONFIG = None
 LOG = logging.getLogger('ARPSSERVER')
 
 
-
 # Setup the logging faciility
 # to disable logging to stdout, but still log to file
 # use the --quiet option on the cmdln
