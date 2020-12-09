@@ -1,4 +1,6 @@
-pbr
+click
+click-completion
 imapclient
+pbr
 pyyaml
 six
