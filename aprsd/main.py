@@ -813,6 +813,8 @@ def server(loglevel, quiet):
                 LOG.debug("FORTUNE")
                 process = subprocess.Popen(['/usr/games/fortune', '-s', '-n 60'], stdout=subprocess.PIPE)
                 reply = process.communicate()[0]
+                #send_message(fromcall, reply.rstrip())
+                reply = reply.decode(errors='ignore')
                 send_message(fromcall, reply.rstrip())
 
             # PING (p)
