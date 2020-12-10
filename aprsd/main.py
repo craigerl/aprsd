@@ -37,7 +37,7 @@ import sys
 # import telnetlib
 import threading
 import time
-import urllib
+#import urllib
 import requests
 
 
@@ -355,7 +355,7 @@ def resend_email(count, fromcall):
         return
 
     messages = server.search(['SINCE', today])
-    LOG.debug("%d messages received today" % len(messages))
+    #LOG.debug("%d messages received today" % len(messages))
 
     msgexists = False
 
@@ -432,12 +432,11 @@ def check_email_thread():
             continue
 
         messages = server.search(['SINCE', today])
-        LOG.debug("{} messages received today".format(len(messages)))
+        #LOG.debug("{} messages received today".format(len(messages)))
 
         for msgid, data in server.fetch(messages, ['ENVELOPE']).items():
             envelope = data[b'ENVELOPE']
-            LOG.debug('ID:%d  "%s" (%s)' %
-                      (msgid, envelope.subject.decode(), envelope.date))
+            #LOG.debug('ID:%d  "%s" (%s)' % (msgid, envelope.subject.decode(), envelope.date))
             f = re.search(r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)",
                           str(envelope.from_[0]))
             if f is not None:
@@ -445,7 +444,7 @@ def check_email_thread():
             else:
                 from_addr = "noaddr"
 
-            LOG.debug("Message flags/tags:  " + str(server.get_flags(msgid)[msgid]))
+            #LOG.debug("Message flags/tags:  " + str(server.get_flags(msgid)[msgid]))
             #if "APRS" not in server.get_flags(msgid)[msgid]:
             #in python3, imap tags are unicode.  in py2 they're strings. so .decode them to handle both
             taglist=[x.decode(errors='ignore') for x in server.get_flags(msgid)[msgid]]
@@ -838,8 +837,10 @@ def server(loglevel, quiet):
                     else:
                         searchcall = fromcall            # if no second argument, search for calling station
                     url = "http://api.aprs.fi/api/get?name=" + searchcall + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
-                    response = urllib.urlopen(url)
-                    aprs_data = json.loads(response.read())
+                    #response = urllib.urlopen(url)
+                    response = requests.get(url)
+                    #aprs_data = json.loads(response.read())
+                    aprs_data = json.loads(response.text)
                     lat = aprs_data['entries'][0]['lat']
                     lon = aprs_data['entries'][0]['lng']
                     try:  # altitude not always provided
@@ -852,12 +853,16 @@ def server(loglevel, quiet):
                     delta_seconds = time.time() - int(aprs_lasttime_seconds)
                     delta_hours = delta_seconds / 60 / 60
                     url2 = "https://forecast.weather.gov/MapClick.php?lat=" + str(lat) + "&lon=" + str(lon) + "&FcstType=json"
-                    response2 = urllib.urlopen(url2)
-                    wx_data = json.loads(response2.read())
+                    #response2 = urllib.urlopen(url2)
+                    response2 = requests.get(url2)
+                    #wx_data = json.loads(response2.read())
+                    wx_data = json.loads(response2.text)
+
                     reply = searchcall + ": " + wx_data['location']['areaDescription'] + " " + str(altfeet) + "' " + str(lat) + "," + str(lon) + " " + str("%.1f" % round(delta_hours, 1)) + "h ago"
-                    reply = reply.encode('ascii', errors='ignore')  # unicode to ascii
+                    #reply = reply.encode('ascii', errors='ignore')  # unicode to ascii
                     send_message(fromcall, reply.rstrip())
-                except Exception:
+                except Exception as e:
+                    LOG.debug("Locate failed with:  " + "%s" % str(e))
                     reply = "Unable to find station " + searchcall + ".  Sending beacons?"
                     send_message(fromcall, reply.rstrip())
 
