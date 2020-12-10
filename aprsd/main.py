@@ -884,7 +884,6 @@ def server(loglevel, quiet):
                     response2 = requests.get(url2)
                     #wx_data = json.loads(response2.read())
                     wx_data = json.loads(response2.text)
-                    print(wx_data)
                     reply = "%sF(%sF/%sF) %s. %s, %s." % (
                         wx_data['currentobservation']['Temp'],
                         wx_data['data']['temperature'][0],
