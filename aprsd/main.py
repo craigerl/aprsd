@@ -867,25 +867,19 @@ def server(loglevel, quiet):
                 # get my last location from aprsis then get weather from
                 # weather service
                 try:
-                    LOG.debug("A")
                     url = ("http://api.aprs.fi/api/get?" "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json" "&name=%s" % fromcall)
                     #response = urllib.urlopen(url)
-                    LOG.debug("B")
                     response = requests.get(url)
                     #aprs_data = json.loads(response.read())
-                    LOG.debug("C")
                     aprs_data = json.loads(response.text)
                     lat = aprs_data['entries'][0]['lat']
                     lon = aprs_data['entries'][0]['lng']
                     url2 = ("https://forecast.weather.gov/MapClick.php?lat=%s" "&lon=%s&FcstType=json" % (lat, lon)) 
-                    LOG.debug("D")
                     #response2 = urllib.urlopen(url2)
                     response2 = requests.get(url2)
-                    LOG.debug("E")
                     #wx_data = json.loads(response2.read())
                     wx_data = json.loads(response2.text)
                     print(wx_data)
-                    LOG.debug("F")
                     reply = "%sF(%sF/%sF) %s. %s, %s." % (
                         wx_data['currentobservation']['Temp'],
                         wx_data['data']['temperature'][0],
@@ -893,14 +887,8 @@ def server(loglevel, quiet):
                         wx_data['data']['weather'][0],
                         wx_data['time']['startPeriodName'][1],
                         wx_data['data']['weather'][1])
-
-                    # unicode to ascii
-                    LOG.debug("F")
-                    reply = reply.rstrip()
-                    LOG.debug("G")
-                    LOG.debug("reply:  " + reply)
-                    send_message(fromcall, reply)
-                    LOG.debug("H")
+                    LOG.debug("reply:  " + reply.rstrip())
+                    send_message(fromcall, reply.rstrip())
                 except Exception as e:
                     LOG.debug("Weather failed with:  " + "%s" % str(e))
                     reply = "Unable to find you (send beacon?)"
