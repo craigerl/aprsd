@@ -397,8 +397,8 @@ def resend_email(count, fromcall):
 def check_email_thread():
     global check_email_delay
 
-    #LOG.debug("FIXME initial email delay is 10 seconds")
-    check_email_delay = 60
+    LOG.debug("FIXME initial email delay is 10 seconds")
+    check_email_delay = 10
     while True:
 #        LOG.debug("Top of check_email_thread.")
 
@@ -430,12 +430,12 @@ def check_email_thread():
             continue
 
         messages = server.search(['SINCE', today])
-        #LOG.debug("{} messages received today".format(len(messages)))
+        LOG.debug("{} messages received today".format(len(messages)))
 
         for msgid, data in server.fetch(messages, ['ENVELOPE']).items():
             envelope = data[b'ENVELOPE']
-        #    LOG.debug('ID:%d  "%s" (%s)' %
-        #              (msgid, envelope.subject.decode(), envelope.date))
+            LOG.debug('ID:%d  "%s" (%s)' %
+                      (msgid, envelope.subject.decode(), envelope.date))
             f = re.search(r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)",
                           str(envelope.from_[0]))
             if f is not None:
@@ -443,7 +443,11 @@ def check_email_thread():
             else:
                 from_addr = "noaddr"
 
-            if "APRS" not in server.get_flags(msgid)[msgid]:
+            LOG.debug("Message flags/tags:  " + str(server.get_flags(msgid)[msgid]))
+            #if "APRS" not in server.get_flags(msgid)[msgid]:
+            #in python3, imap tags are unicode.  in py2 they're strings. so .decode them to handle both
+            taglist=[x.decode(errors='ignore') for x in server.get_flags(msgid)[msgid]]
+            if "APRS" not in taglist:
                 # if msg not flagged as sent via aprs
                 server.fetch([msgid], ['RFC822'])
                 (body, from_addr) = parse_email(msgid, data, server)
@@ -454,7 +458,7 @@ def check_email_thread():
                     # reverse lookup of a shortcut
                     from_addr = shortcuts_inverted[from_addr]
 
-                reply = "-" + from_addr + " " + body
+                reply = "-" + from_addr + " " + body.decode(errors='ignore')
                 send_message(CONFIG['ham']['callsign'], reply)
                 # flag message as sent via aprs
                 server.add_flags(msgid, ['APRS'])
