@@ -224,11 +224,8 @@ def parse_email(msgid, data, server):
         html = None
         # default in case body somehow isn't set below - happened once
         body = "* unreadable msg received"
-        for (
-            part
-        ) in (
-            msg.get_payload()
-        ):  # FIXME this uses the last text or html part in the email, want the first, reverse order somehow?
+        # this uses the last text or html part in the email, phone companies often put content in an attachment
+        for ( part) in ( msg.get_payload()):  
             if (
                 part.get_content_charset() is None
             ):  # or BREAK when we hit a text or html?
@@ -427,8 +424,8 @@ def resend_email(count, fromcall):
 def check_email_thread():
     global check_email_delay
 
-    LOG.debug("FIXME initial email delay is 10 seconds")
-    check_email_delay = 10
+    #LOG.debug("FIXME initial email delay is 10 seconds")
+    check_email_delay = 60
     while True:
         #        LOG.debug("Top of check_email_thread.")
 
