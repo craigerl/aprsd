@@ -4,3 +4,4 @@ imapclient
 pbr
 pyyaml
 six
+requests
