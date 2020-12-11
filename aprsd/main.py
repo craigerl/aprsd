@@ -798,22 +798,17 @@ def server(loglevel, quiet, config_file):
             elif re.search("^-.*", message):
                 LOG.debug("EMAIL")
                 searchstring = "^" + CONFIG["ham"]["callsign"] + ".*"
-                LOG.debug("A")
                 # only I can do email
                 if re.search(searchstring, fromcall):
-                    LOG.debug("B")
                     # digits only, first one is number of emails to resend
                     r = re.search("^-([0-9])[0-9]*$", message)
                     if r is not None:
-                        LOG.debug("C")
                         resend_email(r.group(1), fromcall)
                     # -user@address.com body of email
                     elif re.search(r"^-([A-Za-z0-9_\-\.@]+) (.*)", message):
-                        LOG.debug("D")
                         # (same search again)
                         a = re.search(r"^-([A-Za-z0-9_\-\.@]+) (.*)", message)
                         if a is not None:
-                            LOG.debug("E")
                             to_addr = a.group(1)
                             content = a.group(2)
                             # send recipient link to aprs.fi map
