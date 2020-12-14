@@ -7,6 +7,8 @@ import sys
 import click
 import yaml
 
+from aprsd import plugin
+
 # an example of what should be in the ~/.aprsd/config.yml
 DEFAULT_CONFIG_DICT = {
     "ham": {"callsign": "KFART"},
@@ -35,6 +37,10 @@ DEFAULT_CONFIG_DICT = {
         "host": "imap.gmail.com",
         "port": 993,
         "use_ssl": True,
+    },
+    "aprsd": {
+        "plugin_dir": "~/.config/aprsd/plugins",
+        "enabled_plugins": plugin.CORE_PLUGINS,
     },
 }
 

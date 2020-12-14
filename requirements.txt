@@ -1,6 +1,7 @@
 click
 click-completion
 imapclient
+pluggy
 pbr
 pyyaml
 six

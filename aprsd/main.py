@@ -24,7 +24,6 @@
 import datetime
 import email
 import imaplib
-import json
 import logging
 import os
 import pprint
@@ -33,7 +32,6 @@ import select
 import signal
 import smtplib
 import socket
-import subprocess
 import sys
 import threading
 import time
@@ -43,14 +41,12 @@ from logging.handlers import RotatingFileHandler
 import click
 import click_completion
 import imapclient
-import requests
 import six
 import yaml
 
 # local imports here
 import aprsd
-from aprsd import utils
-from aprsd.fuzzyclock import fuzzy
+from aprsd import plugin, utils
 
 # setup the global logger
 LOG = logging.getLogger("APRSD")
@@ -703,11 +699,6 @@ def sample_config():
 
 COMMAND_ENVELOPE = {
     "email": {"command": "^-.*", "function": "command_email"},
-    "fortune": {"command": "^[fF]", "function": "command_fortune"},
-    "location": {"command": "^[lL]", "function": "command_location"},
-    "weather": {"command": "^[wW]", "function": "command_weather"},
-    "ping": {"command": "^[pP]", "function": "command_ping"},
-    "time": {"command": "^[tT]", "function": "command_time"},
 }
 
 
@@ -768,149 +759,6 @@ def command_email(fromcall, message, ack):
     return (fromcall, message, ack)
 
 
-def command_fortune(fromcall, message, ack):
-    try:
-        process = subprocess.Popen(
-            ["/usr/games/fortune", "-s", "-n 60"], stdout=subprocess.PIPE
-        )
-        reply = process.communicate()[0]
-        # send_message(fromcall, reply.rstrip())
-        reply = reply.decode(errors="ignore").rstrip()
-
-    except Exception as ex:
-        reply = "Fortune command failed '{}'".format(ex)
-        LOG.error(reply)
-
-    send_message(fromcall, reply)
-    return (fromcall, message, ack)
-
-
-def command_location(fromcall, message, ack):
-    LOG.info("Location COMMAND")
-    # get last location of a callsign, get descriptive name from weather service
-    try:
-        a = re.search(
-            r"^.*\s+(.*)", message
-        )  # optional second argument is a callsign to search
-        if a is not None:
-            searchcall = a.group(1)
-            searchcall = searchcall.upper()
-        else:
-            searchcall = fromcall  # if no second argument, search for calling station
-        url = (
-            "http://api.aprs.fi/api/get?name="
-            + searchcall
-            + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
-        )
-        response = requests.get(url)
-        # aprs_data = json.loads(response.read())
-        aprs_data = json.loads(response.text)
-        lat = aprs_data["entries"][0]["lat"]
-        lon = aprs_data["entries"][0]["lng"]
-        try:  # altitude not always provided
-            alt = aprs_data["entries"][0]["altitude"]
-        except Exception:
-            alt = 0
-        altfeet = int(alt * 3.28084)
-        aprs_lasttime_seconds = aprs_data["entries"][0]["lasttime"]
-        aprs_lasttime_seconds = aprs_lasttime_seconds.encode(
-            "ascii", errors="ignore"
-        )  # unicode to ascii
-        delta_seconds = time.time() - int(aprs_lasttime_seconds)
-        delta_hours = delta_seconds / 60 / 60
-        url2 = (
-            "https://forecast.weather.gov/MapClick.php?lat="
-            + str(lat)
-            + "&lon="
-            + str(lon)
-            + "&FcstType=json"
-        )
-        response2 = requests.get(url2)
-        wx_data = json.loads(response2.text)
-
-        reply = "{}: {} {}' {},{} {}h ago".format(
-            searchcall,
-            wx_data["location"]["areaDescription"],
-            str(altfeet),
-            str(alt),
-            str(lon),
-            str("%.1f" % round(delta_hours, 1)),
-        )
-        # reply = reply.encode('ascii', errors='ignore')  # unicode to ascii
-        send_message(fromcall, reply.rstrip())
-    except Exception as e:
-        LOG.debug("Locate failed with:  " + "%s" % str(e))
-        reply = "Unable to find station " + searchcall + ".  Sending beacons?"
-        send_message(fromcall, reply.rstrip())
-
-    return (fromcall, message, ack)
-
-
-def command_weather(fromcall, message, ack):
-    """Do weather command and send response."""
-    LOG.info("WEATHER COMMAND")
-    try:
-        url = (
-            "http://api.aprs.fi/api/get?"
-            "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
-            "&name=%s" % fromcall
-        )
-        response = requests.get(url)
-        # aprs_data = json.loads(response.read())
-        aprs_data = json.loads(response.text)
-        lat = aprs_data["entries"][0]["lat"]
-        lon = aprs_data["entries"][0]["lng"]
-        url2 = (
-            "https://forecast.weather.gov/MapClick.php?lat=%s"
-            "&lon=%s&FcstType=json" % (lat, lon)
-        )
-        response2 = requests.get(url2)
-        # wx_data = json.loads(response2.read())
-        wx_data = json.loads(response2.text)
-        reply = "%sF(%sF/%sF) %s. %s, %s." % (
-            wx_data["currentobservation"]["Temp"],
-            wx_data["data"]["temperature"][0],
-            wx_data["data"]["temperature"][1],
-            wx_data["data"]["weather"][0],
-            wx_data["time"]["startPeriodName"][1],
-            wx_data["data"]["weather"][1],
-        )
-        LOG.debug("reply:  " + reply.rstrip())
-        send_message(fromcall, reply.rstrip())
-    except Exception as e:
-        LOG.debug("Weather failed with:  " + "%s" % str(e))
-        reply = "Unable to find you (send beacon?)"
-
-    return (fromcall, message, ack)
-
-
-def command_ping(fromcall, message, ack):
-    LOG.info("PING COMMAND")
-    stm = time.localtime()
-    h = stm.tm_hour
-    m = stm.tm_min
-    s = stm.tm_sec
-    reply = "Pong! " + str(h).zfill(2) + ":" + str(m).zfill(2) + ":" + str(s).zfill(2)
-    send_message(fromcall, reply.rstrip())
-    return (fromcall, message, ack)
-
-
-def command_time(fromcall, message, ack):
-    LOG.info("TIME COMMAND")
-    stm = time.localtime()
-    h = stm.tm_hour
-    m = stm.tm_min
-    cur_time = fuzzy(h, m, 1)
-    reply = "{} ({}:{} PDT) ({})".format(
-        cur_time, str(h), str(m).rjust(2, "0"), message.rstrip()
-    )
-    thread = threading.Thread(
-        target=send_message, name="send_message", args=(fromcall, reply)
-    )
-    thread.start()
-    return (fromcall, message, ack)
-
-
 # main() ###
 @main.command()
 @click.option(
@@ -963,6 +811,9 @@ def server(loglevel, quiet, config_file):
     checkemailthread.start()
 
     read_sockets = [client_sock]
+
+    # Register plugins
+    pm = plugin.setup_plugins(CONFIG)
 
     fromcall = message = ack = None
     while True:
@@ -1037,6 +888,12 @@ def server(loglevel, quiet, config_file):
             a = re.search("^ack([0-9]+)", message)
             ack_dict.update({int(a.group(1)): 1})
             continue  # break out of this so we don't ack an ack at the end
+
+        # call our `myhook` hook
+        results = pm.hook.run(fromcall=fromcall, message=message, ack=ack)
+        LOG.info("PLUGINS returned {}".format(results))
+        for reply in results:
+            send_message(fromcall, reply)
 
         # it's not an ack, so try and process user input
         found_command = False
