@@ -151,6 +151,44 @@ LOCATION
     Message     : ack7
     Msg number  : 0
 
-
-
 AND... ping, fortune, time.....
+
+
+Development
+-----------
+
+While working aprsd, The workflow is as follows
+
+* Edit code, save file
+* run tox -epep8
+* run tox -efmt
+* run tox -p
+* git commit
+
+
+Release
+-------
+
+To do release to pypi:
+
+* Tag release with 
+
+   git tag -v1.XX -m "New release"
+
+* push release tag up
+
+  git push origin master --tags
+
+* Build dist and wheel
+
+  python setup.py sdist bdist_wheel
+
+* Verify build is valid for pypi (need twine installed )
+
+  pip install twine
+  twine check dist/*
+
+* Once twine is happy, upload release to pypi
+
+  twine upload dist/*
+
