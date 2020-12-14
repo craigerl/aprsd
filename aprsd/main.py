@@ -890,13 +890,13 @@ def server(loglevel, quiet, config_file):
             continue  # break out of this so we don't ack an ack at the end
 
         # call our `myhook` hook
+        found_command = False
         results = pm.hook.run(fromcall=fromcall, message=message, ack=ack)
-        LOG.info("PLUGINS returned {}".format(results))
         for reply in results:
+            found_command = True
             send_message(fromcall, reply)
 
         # it's not an ack, so try and process user input
-        found_command = False
         for key in COMMAND_ENVELOPE:
             if re.search(COMMAND_ENVELOPE[key]["command"], message):
                 # now call the registered function
@@ -905,7 +905,13 @@ def server(loglevel, quiet, config_file):
                 found_command = True
 
         if not found_command:
-            reply = "Usage: {}".format(", ".join(COMMAND_ENVELOPE.keys()))
+            plugins = pm.get_plugins()
+            names = [x.command_name for x in plugins]
+            for k in COMMAND_ENVELOPE.keys():
+                names.append(k)
+            names.sort()
+
+            reply = "Usage: {}".format(", ".join(names))
             send_message(fromcall, reply)
 
         # let any threads do their thing, then ack
