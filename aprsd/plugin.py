@@ -340,8 +340,8 @@ class WeatherPlugin(APRSDPluginBase):
                     wx_data["data"]["weather"][0],
                     wx_data["time"]["startPeriodName"][1],
                     wx_data["data"]["weather"][1],
-                ).rstrip()
-            )
+                )
+            ).rstrip()
             LOG.debug("reply: '{}' ".format(reply))
         except Exception as e:
             LOG.debug("Weather failed with:  " + "%s" % str(e))
