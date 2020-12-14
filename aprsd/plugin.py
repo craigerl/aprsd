@@ -42,11 +42,11 @@ def setup_plugins(config):
         plugin_obj = None
         if enabled_plugins:
             if p_name in enabled_plugins:
-                plugin_obj = globals()[p_name]()
+                plugin_obj = globals()[p_name](config)
         else:
             # Enabled plugins isn't set, so we default to loading all of
             # the core plugins.
-            plugin_obj = globals()[p_name]()
+            plugin_obj = globals()[p_name](config)
 
         if plugin_obj:
             LOG.info(
@@ -59,7 +59,7 @@ def setup_plugins(config):
     plugin_dir = config["aprsd"].get("plugin_dir", None)
     if plugin_dir:
         LOG.info("Trying to load custom plugins from '{}'".format(plugin_dir))
-        cpm = PluginManager()
+        cpm = PluginManager(config)
         plugins_list = cpm.load_plugins(plugin_dir)
         LOG.info("Discovered {} modules to load".format(len(plugins_list)))
         for o in plugins_list:
@@ -93,8 +93,9 @@ def setup_plugins(config):
 
 
 class PluginManager(object):
-    def __init__(self):
+    def __init__(self, config):
         self.obj_list = []
+        self.config = config
 
     def load_plugins(self, module_path):
         dir_path = os.path.dirname(os.path.realpath(module_path))
@@ -115,7 +116,9 @@ class PluginManager(object):
                             and inspect.getmodule(obj) is module
                             and self.is_plugin(obj)
                         ):
-                            self.obj_list.append({"name": mem_name, "obj": obj()})
+                            self.obj_list.append(
+                                {"name": mem_name, "obj": obj(self.config)}
+                            )
 
         return self.obj_list
 
@@ -138,12 +141,23 @@ class APRSDCommandSpec:
 
 @six.add_metaclass(abc.ABCMeta)
 class APRSDPluginBase(object):
+    def __init__(self, config):
+        """The aprsd config object is stored."""
+        self.config = config
+
+    @property
+    def command_name(self):
+        """The usage string help."""
+        raise NotImplementedError
+
     @property
     def command_regex(self):
+        """The regex to match from the caller"""
         raise NotImplementedError
 
     @property
     def version(self):
+        """Version"""
         raise NotImplementedError
 
     @hookimpl
@@ -166,6 +180,7 @@ class FortunePlugin(APRSDPluginBase):
 
     version = "1.0"
     command_regex = "^[fF]"
+    command_name = "fortune"
 
     def command(self, fromcall, message, ack):
         LOG.info("FortunePlugin")
@@ -189,6 +204,7 @@ class LocationPlugin(APRSDPluginBase):
 
     version = "1.0"
     command_regex = "^[lL]"
+    command_name = "location"
 
     def command(self, fromcall, message, ack):
         LOG.info("Location Plugin")
@@ -255,6 +271,7 @@ class PingPlugin(APRSDPluginBase):
 
     version = "1.0"
     command_regex = "^[pP]"
+    command_name = "ping"
 
     def command(self, fromcall, message, ack):
         LOG.info("PINGPlugin")
@@ -273,6 +290,7 @@ class TimePlugin(APRSDPluginBase):
 
     version = "1.0"
     command_regex = "^[tT]"
+    command_name = "time"
 
     def command(self, fromcall, message, ack):
         LOG.info("TIME COMMAND")
@@ -291,6 +309,7 @@ class WeatherPlugin(APRSDPluginBase):
 
     version = "1.0"
     command_regex = "^[wW]"
+    command_name = "weather"
 
     def command(self, fromcall, message, ack):
         LOG.info("Weather Plugin")
