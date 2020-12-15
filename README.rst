@@ -11,6 +11,8 @@ APRSD
 .. image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
     :target: https://timothycrosley.github.io/isort/
 
+.. contents:: :local:
+
 Listen on amateur radio aprs-is network for messages and respond to them.
 You must have an amateur radio callsign to use this software.  Put  your
 callsign in the "USER" variable and update your aprs-is password in "PASS".
@@ -50,7 +52,7 @@ Installation:
   pip install aprsd
 
 Example usage:
---------------
+==============
 
   aprsd -h
 
@@ -58,7 +60,7 @@ Example output:
 ---------------
 
 SEND EMAIL (radio to smtp server)
----------------------------------
+=================================
 
 ::
 
@@ -80,7 +82,7 @@ SEND EMAIL (radio to smtp server)
 
 
 RECEIVE EMAIL (imap server to radio)
-------------------------------------
+====================================
 
 ::
 
@@ -97,7 +99,7 @@ RECEIVE EMAIL (imap server to radio)
 
 
 WEATHER
--------
+=======
 
 ::
 
@@ -125,7 +127,7 @@ WEATHER
 
 
 LOCATION
---------
+========
 
 ::
 
@@ -157,6 +159,9 @@ AND... ping, fortune, time.....
 Development
 -----------
 
+Workflow
+========
+
 While working aprsd, The workflow is as follows
 
 * Edit code, save file
@@ -167,7 +172,7 @@ While working aprsd, The workflow is as follows
 
 
 Release
--------
+=======
 
 To do release to pypi:
 
@@ -191,4 +196,42 @@ To do release to pypi:
 * Once twine is happy, upload release to pypi
 
   twine upload dist/*
+
+
+Docker Container
+----------------
+
+Building
+========
+
+There are 2 versions of the container Dockerfile that can be used.
+The main Dockerfile, which is for building the official release container
+based off of the pip install version of aprsd and the Dockerfile-dev,
+which is used for building a container based off of a git branch of
+the repo.
+
+Official Build
+==============
+
+ docker build -t hemna6969/aprsd:latest .
+
+Development Build
+=================
+
+ docker build -t hemna6969/aprsd:latest -f Dockerfile-dev .
+
+
+Running the container
+=====================
+
+There is a docker-compose.yml file that can be used to run your container.
+There are 2 volumes defined that can be used to store your configuration
+and the plugins directory:  /config and /plugins
+
+If you want to install plugins at container start time, then use the
+environment var in docker-compose.yml specified as APRS_PLUGINS
+Provide a csv list of pypi installable plugins.  Then make sure the plugin
+python file is in your /plugins volume and the plugin will be installed at
+container startup.  The plugin may have dependencies that are required.
+The plugin file should be copied to /plugins for loading by aprsd
 
