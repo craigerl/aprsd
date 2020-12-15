@@ -98,7 +98,7 @@ class PluginManager(object):
         self.config = config
 
     def load_plugins(self, module_path):
-        dir_path = os.path.dirname(os.path.realpath(module_path))
+        dir_path = os.path.realpath(module_path)
         pattern = "*.py"
 
         self.obj_list = []
