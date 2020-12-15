@@ -220,25 +220,27 @@ def parse_email(msgid, data, server):
         text = ""
         html = None
         # default in case body somehow isn't set below - happened once
-        body = "* unreadable msg received"
+        body = b"* unreadable msg received"
         # this uses the last text or html part in the email, phone companies often put content in an attachment
         for part in msg.get_payload():
-            if (
-                part.get_content_charset() is None
-            ):  # or BREAK when we hit a text or html?
+            if part.get_content_charset() is None:
+                # or BREAK when we hit a text or html?
                 # We cannot know the character set,
                 # so return decoded "something"
+                LOG.debug("Email got unknown content type")
                 text = part.get_payload(decode=True)
                 continue
 
             charset = part.get_content_charset()
 
             if part.get_content_type() == "text/plain":
+                LOG.debug("Email got text/plain")
                 text = six.text_type(
                     part.get_payload(decode=True), str(charset), "ignore"
                 ).encode("utf8", "replace")
 
             if part.get_content_type() == "text/html":
+                LOG.debug("Email got text/html")
                 html = six.text_type(
                     part.get_payload(decode=True), str(charset), "ignore"
                 ).encode("utf8", "replace")
@@ -250,6 +252,7 @@ def parse_email(msgid, data, server):
                 body = html.strip()
     else:  # message is not multipart
         # email.uscc.net sends no charset, blows up unicode function below
+        LOG.debug("Email is not multipart")
         if msg.get_content_charset() is None:
             text = six.text_type(
                 msg.get_payload(decode=True), "US-ASCII", "ignore"
