@@ -1,7 +1,6 @@
 # The base plugin class
 import abc
 import fnmatch
-import imp
 import inspect
 import json
 import logging
@@ -13,6 +12,7 @@ import time
 import pluggy
 import requests
 import six
+from thesmuggler import smuggle
 
 from aprsd.fuzzyclock import fuzzy
 
@@ -106,16 +106,10 @@ class PluginManager(object):
         for path, subdirs, files in os.walk(dir_path):
             for name in files:
                 if fnmatch.fnmatch(name, pattern):
-                    found_module = imp.find_module(name[:-3], [path])
-                    module = imp.load_module(
-                        name, found_module[0], found_module[1], found_module[2]
-                    )
+                    LOG.debug("MODULE? '{}' '{}'".format(name, path))
+                    module = smuggle("{}/{}".format(path, name))
                     for mem_name, obj in inspect.getmembers(module):
-                        if (
-                            inspect.isclass(obj)
-                            and inspect.getmodule(obj) is module
-                            and self.is_plugin(obj)
-                        ):
+                        if inspect.isclass(obj) and self.is_plugin(obj):
                             self.obj_list.append(
                                 {"name": mem_name, "obj": obj(self.config)}
                             )
