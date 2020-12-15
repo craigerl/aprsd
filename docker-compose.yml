@@ -5,6 +5,8 @@ services:
     container_name: aprsd
     volumes:
         - /opt/docker/aprsd/config:/config
+        - /opt/docker/aprsd/plugins:/plugins
     restart: unless-stopped
     environment:
         - TZ=America/New_York
+        - APRS_PLUGINS=aprsd-slack-plugin
