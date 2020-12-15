@@ -676,7 +676,7 @@ def setup_logging(loglevel, quiet):
     log_level = levels[loglevel]
 
     LOG.setLevel(log_level)
-    log_format = "%(asctime)s [%(threadName)-12s] [%(levelname)-5.5s]" " %(message)s"
+    log_format = "[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s]" " %(message)s"
     date_format = "%m/%d/%Y %I:%M:%S %p"
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
     fh = RotatingFileHandler(
