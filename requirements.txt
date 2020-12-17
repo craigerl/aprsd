@@ -4,8 +4,9 @@
 #
 #    pip-compile
 #
+aprslib==0.6.47           # via -r requirements.in
 certifi==2020.12.5        # via requests
-chardet==3.0.4            # via requests
+chardet==4.0.0            # via requests
 click-completion==0.5.2   # via -r requirements.in
 click==7.1.2              # via -r requirements.in, click-completion
 idna==2.10                # via requests
@@ -15,7 +16,7 @@ markupsafe==1.1.1         # via jinja2
 pbr==5.5.1                # via -r requirements.in
 pluggy==0.13.1            # via -r requirements.in
 pyyaml==5.3.1             # via -r requirements.in
-requests==2.25.0          # via -r requirements.in
+requests>=2.25.0          # via -r requirements.in
 shellingham==1.3.2        # via click-completion
 six==1.15.0               # via -r requirements.in, click-completion, imapclient
 thesmuggler==1.0.1        # via -r requirements.in
