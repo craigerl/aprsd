@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 as aprsd
+FROM alpine:latest as aprsd
 
 ENV VERSION=1.0.0
 ENV APRS_USER=aprs
@@ -6,11 +6,7 @@ ENV HOME=/home/aprs
 ENV VIRTUAL_ENV=$HOME/.venv3
 
 ENV INSTALL=$HOME/install
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get -y update
-RUN apt-get install -y wget gnupg git-core
-RUN apt-get install -y apt-utils pkg-config sudo vim
-RUN apt-get install -y python3 python3-pip python3-virtualenv python3-venv
+RUN apk add --update git wget py3-pip py3-virtualenv bash
 
 # Setup Timezone
 ENV TZ=US/Eastern
@@ -20,7 +16,7 @@ RUN dpkg-reconfigure --frontend noninteractive tzdata
 
 
 RUN addgroup --gid 1000 $APRS_USER
-RUN useradd -m -u 1000 -g 1000 -p $APRS_USER $APRS_USER
+RUN adduser -h $HOME -D -u 1001 -G $APRS_USER $APRS_USER
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
