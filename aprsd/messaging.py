@@ -27,10 +27,14 @@ def send_ack_thread(tocall, ack, retry_count):
     tocall = tocall.ljust(9)  # pad to nine chars
     line = "{}>APRS::{}:ack{}\n".format(CONFIG["aprs"]["login"], tocall, ack)
     for i in range(retry_count, 0, -1):
-        LOG.info("Sending ack __________________ Tx({})".format(i))
-        LOG.info("Raw         : {}".format(line.rstrip("\n")))
-        LOG.info("To          : {}".format(tocall))
-        LOG.info("Ack number  : {}".format(ack))
+        log_message(
+            "Sending ack",
+            line.rstrip("\n"),
+            None,
+            ack=ack,
+            tocall=tocall,
+            retry_number=i,
+        )
         cl.sendall(line)
         # aprs duplicate detection is 30 secs?
         # (21 only sends first, 28 skips middle)
@@ -60,15 +64,13 @@ def send_message_thread(tocall, message, this_message_number, retry_count):
         LOG.debug("DEBUG: send_message_thread msg:ack combos are: ")
         LOG.debug(pprint.pformat(ack_dict))
         if ack_dict[this_message_number] != 1:
-            LOG.info(
-                "Sending message_______________ {}(Tx{})".format(
-                    str(this_message_number), str(i)
-                )
+            log_message(
+                "Sending Message",
+                line.rstrip("\n"),
+                message,
+                tocall=tocall,
+                retry_number=i,
             )
-            LOG.info("Raw         : {}".format(line.rstrip("\n")))
-            LOG.info("To          : {}".format(tocall))
-            # LOG.info("Message     : {}".format(message.encode(errors='ignore')))
-            LOG.info("Message     : {}".format(message))
             # tn.write(line)
             cl.sendall(line)
             # decaying repeats, 31 to 93 second intervals
@@ -118,6 +120,104 @@ def send_message(tocall, message):
     # end send_message()
 
 
+def log_packet(packet):
+    fromcall = packet.get("from", None)
+    tocall = packet.get("to", None)
+
+    response_type = packet.get("response", None)
+    msg = packet.get("message_text", None)
+    msg_num = packet.get("msgNo", None)
+    ack = packet.get("ack", None)
+
+    log_message(
+        "Packet",
+        packet["raw"],
+        msg,
+        fromcall=fromcall,
+        tocall=tocall,
+        ack=ack,
+        packet_type=response_type,
+        msg_num=msg_num,
+    )
+
+
+def log_message(
+    header,
+    raw,
+    message,
+    tocall=None,
+    fromcall=None,
+    msg_num=None,
+    retry_number=None,
+    ack=None,
+    packet_type=None,
+):
+    """
+
+    Log a message entry.
+
+    This builds a long string with newlines for the log entry, so that
+    it's thread safe.   If we log each item as a separate log.debug() call
+    Then the message information could get multiplexed with other log
+    messages.  Each python log call is automatically synchronized.
+
+
+    """
+
+    log_list = [""]
+    if retry_number:
+        # LOG.info("    {} _______________(TX:{})".format(header, retry_number))
+        log_list.append("    {} _______________(TX:{})".format(header, retry_number))
+    else:
+        # LOG.info("    {} _______________".format(header))
+        log_list.append("    {} _______________".format(header))
+
+    # LOG.info("    Raw         : {}".format(raw))
+    log_list.append("    Raw         : {}".format(raw))
+
+    if packet_type:
+        # LOG.info("    Packet      : {}".format(packet_type))
+        log_list.append("    Packet      : {}".format(packet_type))
+    if tocall:
+        # LOG.info("    To          : {}".format(tocall))
+        log_list.append("    To          : {}".format(tocall))
+    if fromcall:
+        # LOG.info("    From        : {}".format(fromcall))
+        log_list.append("    From        : {}".format(fromcall))
+
+    if ack:
+        # LOG.info("    Ack         : {}".format(ack))
+        log_list.append("    Ack         : {}".format(ack))
+    else:
+        # LOG.info("    Message     : {}".format(message))
+        log_list.append("    Message     : {}".format(message))
+    if msg_num:
+        # LOG.info("    Msg number  : {}".format(msg_num))
+        log_list.append("    Msg number  : {}".format(msg_num))
+    # LOG.info("    {} _______________ Complete".format(header))
+    log_list.append("    {} _______________ Complete".format(header))
+
+    LOG.info("\n".join(log_list))
+
+
+def send_message_direct(tocall, message):
+    """Send a message without a separate thread."""
+    cl = client.get_client()
+    this_message_number = 1
+    fromcall = CONFIG["aprs"]["login"]
+    line = "{}>APRS::{}:{}{{{}\n".format(
+        fromcall,
+        tocall,
+        message,
+        str(this_message_number),
+    )
+    LOG.debug("DEBUG: send_message_thread msg:ack combos are: ")
+    log_message(
+        "Sending Message", line.rstrip("\n"), message, tocall=tocall, fromcall=fromcall
+    )
+    cl.sendall(line)
+
+
 def process_message(line):
     f = re.search("^(.*)>", line)
     fromcall = f.group(1)
@@ -139,11 +239,9 @@ def process_message(line):
         # ack not requested, but lets send one as 0
         ack_num = "0"
 
-    LOG.info("Received message______________")
-    LOG.info("Raw         : " + line)
-    LOG.info("From        : " + fromcall)
-    LOG.info("Message     : " + message)
-    LOG.info("Msg number  : " + str(ack_num))
+    log_message(
+        "Received message", line, message, fromcall=fromcall, msg_num=str(ack_num)
+    )
 
     return (fromcall, message, ack_num)
     # end process_message()

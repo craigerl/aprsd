@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 
 import imapclient
 import six
+from validate_email import validate_email
 
 from aprsd import messaging
 
@@ -83,7 +84,43 @@ def _smtp_connect():
     return server
 
 
-def validate_email():
+def validate_shortcuts(config):
+    shortcuts = config.get("shortcuts", None)
+    if not shortcuts:
+        return
+
+    LOG.info(
+        "Validating {} Email shortcuts. This can take up to 10 seconds"
+        " per shortcut".format(len(shortcuts))
+    )
+    delete_keys = []
+    for key in shortcuts:
+        is_valid = validate_email(
+            email_address=shortcuts[key],
+            check_regex=True,
+            check_mx=True,
+            from_address=config["smtp"]["login"],
+            helo_host=config["smtp"]["host"],
+            smtp_timeout=10,
+            dns_timeout=10,
+            use_blacklist=False,
+            debug=False,
+        )
+        if not is_valid:
+            LOG.error(
+                "'{}' is an invalid email address. Removing shortcut".format(
+                    shortcuts[key]
+                )
+            )
+            delete_keys.append(key)
+
+    for key in delete_keys:
+        del config["shortcuts"][key]
+
+    LOG.info("Available shortcuts: {}".format(config["shortcuts"]))
+
+
+def validate_email_config(config, disable_validation=False):
     """function to simply ensure we can connect to email services.
 
     This helps with failing early during startup.
@@ -92,6 +129,12 @@ def validate_email():
     imap_server = _imap_connect()
     LOG.info("Checking SMTP configuration")
     smtp_server = _smtp_connect()
+
+    # Now validate and flag any shortcuts as invalid
+    if not disable_validation:
+        validate_shortcuts(config)
+    else:
+        LOG.info("Shortcuts email validation is Disabled!!, you were warned.")
 
     if imap_server and smtp_server:
         return True

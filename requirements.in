@@ -8,3 +8,4 @@ six
 requests
 thesmuggler
 aprslib
+py3-validate-email

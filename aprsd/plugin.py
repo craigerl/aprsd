@@ -286,6 +286,7 @@ class LocationPlugin(APRSDPluginBase):
             response = requests.get(url)
             # aprs_data = json.loads(response.read())
             aprs_data = json.loads(response.text)
+            LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
             lat = aprs_data["entries"][0]["lat"]
             lon = aprs_data["entries"][0]["lng"]
             try:  # altitude not always provided
@@ -294,9 +295,9 @@ class LocationPlugin(APRSDPluginBase):
                 alt = 0
             altfeet = int(alt * 3.28084)
             aprs_lasttime_seconds = aprs_data["entries"][0]["lasttime"]
-            aprs_lasttime_seconds = aprs_lasttime_seconds.encode(
-                "ascii", errors="ignore"
-            )  # unicode to ascii
+            # aprs_lasttime_seconds = aprs_lasttime_seconds.encode(
+            #    "ascii", errors="ignore"
+            # )  # unicode to ascii
             delta_seconds = time.time() - int(aprs_lasttime_seconds)
             delta_hours = delta_seconds / 60 / 60
             url2 = (

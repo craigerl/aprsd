@@ -159,6 +159,7 @@ def setup_logging(config, loglevel, quiet):
         fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
     else:
         fh = NullHandler()
+
     fh.setFormatter(log_formatter)
     LOG.addHandler(fh)
 
@@ -190,11 +191,9 @@ def process_packet(packet):
         else:
             ack = "0"
 
-        LOG.debug("    Received message______________")
-        LOG.debug("    Raw         : {}".format(packet["raw"]))
-        LOG.debug("    From        : {}".format(fromcall))
-        LOG.debug("    Message     : {}".format(message))
-        LOG.debug("    Msg number  : {}".format(str(ack)))
+        messaging.log_message(
+            "Received Message", packet["raw"], message, fromcall=fromcall, ack=ack
+        )
 
         found_command = False
         # Get singleton of the PM
@@ -239,7 +238,6 @@ def sample_config():
     click.echo(yaml.dump(utils.DEFAULT_CONFIG_DICT))
 
 
-# main() ###
 @main.command()
 @click.option(
     "--loglevel",
@@ -260,7 +258,96 @@ def sample_config():
     default=utils.DEFAULT_CONFIG_FILE,
     help="The aprsd config file to use for options.",
 )
-def server(loglevel, quiet, config_file):
+@click.option(
+    "--aprs-login",
+    envvar="APRS_LOGIN",
+    show_envvar=True,
+    help="What callsign to send the message from.",
+)
+@click.option(
+    "--aprs-password",
+    envvar="APRS_PASSWORD",
+    show_envvar=True,
+    help="the APRS-IS password for APRS_LOGIN",
+)
+@click.argument("tocallsign")
+@click.argument("command", default="location")
+def send_message(
+    loglevel, quiet, config_file, aprs_login, aprs_password, tocallsign, command
+):
+    """Send a message to a callsign via APRS_IS."""
+    click.echo("{} {} {} {}".format(aprs_login, aprs_password, tocallsign, command))
+
+    click.echo("Load config")
+    config = utils.parse_config(config_file)
+    if not aprs_login:
+        click.echo("Must set --aprs_login or APRS_LOGIN")
+        return
+
+    if not aprs_password:
+        click.echo("Must set --aprs-password or APRS_PASSWORD")
+        return
+
+    config["aprs"]["login"] = aprs_login
+    config["aprs"]["password"] = aprs_password
+    messaging.CONFIG = config
+
+    setup_logging(config, loglevel, quiet)
+    LOG.info("APRSD Started version: {}".format(aprsd.__version__))
+
+    def rx_packet(packet):
+        LOG.debug("Got packet back {}".format(packet))
+        messaging.log_packet(packet)
+        resp = packet.get("response", None)
+        if resp == "ack":
+            sys.exit(0)
+
+    cl = client.Client(config)
+    messaging.send_message_direct(tocallsign, command)
+
+    try:
+        # This will register a packet consumer with aprslib
+        # When new packets come in the consumer will process
+        # the packet
+        aprs_client = client.get_client()
+        aprs_client.consumer(rx_packet, raw=False)
+    except aprslib.exceptions.ConnectionDrop:
+        LOG.error("Connection dropped, reconnecting")
+        time.sleep(5)
+        # Force the deletion of the client object connected to aprs
+        # This will cause a reconnect, next time client.get_client()
+        # is called
+        cl.reset()
+
+
+# main() ###
+@main.command()
+@click.option(
+    "--loglevel",
+    default="DEBUG",
+    show_default=True,
+    type=click.Choice(
+        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"], case_sensitive=False
+    ),
+    show_choices=True,
+    help="The log level to use for aprsd.log",
+)
+@click.option("--quiet", is_flag=True, default=False, help="Don't log to stdout")
+@click.option(
+    "--disable-validation",
+    is_flag=True,
+    default=False,
+    help="Disable email shortcut validation.  Bad email addresses can result in broken email responses!!",
+)
+@click.option(
+    "-c",
+    "--config",
+    "config_file",
+    show_default=True,
+    default=utils.DEFAULT_CONFIG_FILE,
+    help="The aprsd config file to use for options.",
+)
+def server(loglevel, quiet, disable_validation, config_file):
     """Start the aprsd server process."""
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -280,7 +367,7 @@ def server(loglevel, quiet, config_file):
 
     # TODO(walt): Make email processing/checking optional?
     # Maybe someone only wants this to process messages with plugins only.
-    valid = email.validate_email()
+    valid = email.validate_email_config(config, disable_validation)
     if not valid:
         LOG.error("Failed to validate email config options")
         sys.exit(-1)

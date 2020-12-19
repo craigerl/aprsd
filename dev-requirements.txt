@@ -37,10 +37,10 @@ pyflakes==2.2.0           # via flake8
 pygments==2.7.3           # via sphinx
 pyparsing==2.4.7          # via packaging
 pytest-cov==2.10.1        # via -r dev-requirements.in
-pytest==6.2.0             # via -r dev-requirements.in, pytest-cov
+pytest==6.2.1             # via -r dev-requirements.in, pytest-cov
 pytz==2020.4              # via babel
 regex==2020.11.13         # via black
-requests>=2.25.0          # via sphinx
+requests==2.25.1          # via sphinx
 six==1.15.0               # via tox, virtualenv
 snowballstemmer==2.0.0    # via sphinx
 sphinx==3.3.1             # via -r dev-requirements.in
@@ -50,7 +50,6 @@ sphinxcontrib-htmlhelp==1.0.3  # via sphinx
 sphinxcontrib-jsmath==1.0.1  # via sphinx
 sphinxcontrib-qthelp==1.0.3  # via sphinx
 sphinxcontrib-serializinghtml==1.1.4  # via sphinx
-thesmuggler==1.0.1        # via -r dev-requirements.in
 toml==0.10.2              # via black, pytest, tox
 tox==3.20.1               # via -r dev-requirements.in
 typed-ast==1.4.1          # via black, mypy
