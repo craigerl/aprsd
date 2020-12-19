@@ -1,6 +1,7 @@
 # The base plugin class
 import abc
 import fnmatch
+import importlib
 import inspect
 import json
 import logging
@@ -14,6 +15,7 @@ import requests
 import six
 from thesmuggler import smuggle
 
+from aprsd import email, messaging
 from aprsd.fuzzyclock import fuzzy
 
 # setup the global logger
@@ -23,81 +25,42 @@ hookspec = pluggy.HookspecMarker("aprsd")
 hookimpl = pluggy.HookimplMarker("aprsd")
 
 CORE_PLUGINS = [
-    "FortunePlugin",
-    "LocationPlugin",
-    "PingPlugin",
-    "TimePlugin",
-    "WeatherPlugin",
+    "aprsd.plugin.EmailPlugin",
+    "aprsd.plugin.FortunePlugin",
+    "aprsd.plugin.LocationPlugin",
+    "aprsd.plugin.PingPlugin",
+    "aprsd.plugin.TimePlugin",
+    "aprsd.plugin.WeatherPlugin",
 ]
 
 
-def setup_plugins(config):
-    """Create the plugin manager and register plugins."""
-
-    LOG.info("Loading Core APRSD Command Plugins")
-    enabled_plugins = config["aprsd"].get("enabled_plugins", None)
-    pm = pluggy.PluginManager("aprsd")
-    pm.add_hookspecs(APRSDCommandSpec)
-    for p_name in CORE_PLUGINS:
-        plugin_obj = None
-        if enabled_plugins:
-            if p_name in enabled_plugins:
-                plugin_obj = globals()[p_name](config)
-        else:
-            # Enabled plugins isn't set, so we default to loading all of
-            # the core plugins.
-            plugin_obj = globals()[p_name](config)
-
-        if plugin_obj:
-            LOG.info(
-                "Registering Command plugin '{}'({})  '{}'".format(
-                    p_name, plugin_obj.version, plugin_obj.command_regex
-                )
-            )
-            pm.register(plugin_obj)
-
-    plugin_dir = config["aprsd"].get("plugin_dir", None)
-    if plugin_dir:
-        LOG.info("Trying to load custom plugins from '{}'".format(plugin_dir))
-        cpm = PluginManager(config)
-        plugins_list = cpm.load_plugins(plugin_dir)
-        LOG.info("Discovered {} modules to load".format(len(plugins_list)))
-        for o in plugins_list:
-            plugin_obj = None
-            if enabled_plugins:
-                if o["name"] in enabled_plugins:
-                    plugin_obj = o["obj"]
-                else:
-                    LOG.info(
-                        "'{}' plugin not listed in config aprsd:enabled_plugins".format(
-                            o["name"]
-                        )
-                    )
-            else:
-                # not setting enabled plugins means load all?
-                plugin_obj = o["obj"]
-
-            if plugin_obj:
-                LOG.info(
-                    "Registering Command plugin '{}'({}) '{}'".format(
-                        o["name"], o["obj"].version, o["obj"].command_regex
-                    )
-                )
-                pm.register(o["obj"])
-
-    else:
-        LOG.info("Skipping Custom Plugins.")
-
-    LOG.info("Completed Plugin Loading.")
-    return pm
-
-
 class PluginManager(object):
-    def __init__(self, config):
-        self.obj_list = []
-        self.config = config
+    # The singleton instance object for this class
+    _instance = None
 
-    def load_plugins(self, module_path):
+    # the pluggy PluginManager
+    _pluggy_pm = None
+
+    # aprsd config dict
+    config = None
+
+    def __new__(cls, *args, **kwargs):
+        """This magic turns this into a singleton."""
+        if cls._instance is None:
+            cls._instance = super(PluginManager, cls).__new__(cls)
+            # Put any initialization here.
+        return cls._instance
+
+    def __init__(self, config=None):
+        self.obj_list = []
+        if config:
+            self.config = config
+
+    def load_plugins_from_path(self, module_path):
+        if not os.path.exists(module_path):
+            LOG.error("plugin path '{}' doesn't exist.".format(module_path))
+            return None
+
         dir_path = os.path.realpath(module_path)
         pattern = "*.py"
 
@@ -122,6 +85,108 @@ class PluginManager(object):
                 return True
 
         return False
+
+    def _create_class(self, module_class_string, super_cls: type = None, **kwargs):
+        """
+        Method to create a class from a fqn python string.
+
+        :param module_class_string: full name of the class to create an object of
+        :param super_cls: expected super class for validity, None if bypass
+        :param kwargs: parameters to pass
+        :return:
+        """
+        module_name, class_name = module_class_string.rsplit(".", 1)
+        try:
+            module = importlib.import_module(module_name)
+        except Exception as ex:
+            LOG.error("Failed to load Plugin '{}' : '{}'".format(module_name, ex))
+            return
+
+        assert hasattr(module, class_name), "class {} is not in {}".format(
+            class_name, module_name
+        )
+        # click.echo('reading class {} from module {}'.format(
+        #     class_name, module_name))
+        cls = getattr(module, class_name)
+        if super_cls is not None:
+            assert issubclass(cls, super_cls), "class {} should inherit from {}".format(
+                class_name, super_cls.__name__
+            )
+        # click.echo('initialising {} with params {}'.format(class_name, kwargs))
+        obj = cls(**kwargs)
+        return obj
+
+    def _load_plugin(self, plugin_name):
+        """
+
+        Given a python fully qualified class path.name,
+        Try importing the path, then creating the object,
+        then registering it as a aprsd Command Plugin
+        """
+        plugin_obj = None
+        try:
+            plugin_obj = self._create_class(
+                plugin_name, APRSDPluginBase, config=self.config
+            )
+            if plugin_obj:
+                LOG.info(
+                    "Registering Command plugin '{}'({})  '{}'".format(
+                        plugin_name, plugin_obj.version, plugin_obj.command_regex
+                    )
+                )
+                self._pluggy_pm.register(plugin_obj)
+        except Exception as ex:
+            LOG.exception("Couldn't load plugin '{}'".format(plugin_name), ex)
+
+    def setup_plugins(self):
+        """Create the plugin manager and register plugins."""
+
+        LOG.info("Loading Core APRSD Command Plugins")
+        enabled_plugins = self.config["aprsd"].get("enabled_plugins", None)
+        self._pluggy_pm = pluggy.PluginManager("aprsd")
+        self._pluggy_pm.add_hookspecs(APRSDCommandSpec)
+        if enabled_plugins:
+            for p_name in enabled_plugins:
+                self._load_plugin(p_name)
+        else:
+            # Enabled plugins isn't set, so we default to loading all of
+            # the core plugins.
+            for p_name in CORE_PLUGINS:
+                self._load_plugin(p_name)
+
+        plugin_dir = self.config["aprsd"].get("plugin_dir", None)
+        if plugin_dir:
+            LOG.info("Trying to load custom plugins from '{}'".format(plugin_dir))
+            plugins_list = self.load_plugins_from_path(plugin_dir)
+            if plugins_list:
+                LOG.info("Discovered {} modules to load".format(len(plugins_list)))
+                for o in plugins_list:
+                    plugin_obj = None
+                    # not setting enabled plugins means load all?
+                    plugin_obj = o["obj"]
+
+                    if plugin_obj:
+                        LOG.info(
+                            "Registering Command plugin '{}'({}) '{}'".format(
+                                o["name"], o["obj"].version, o["obj"].command_regex
+                            )
+                        )
+                        self._pluggy_pm.register(o["obj"])
+
+        else:
+            LOG.info("Skipping Custom Plugins directory.")
+        LOG.info("Completed Plugin Loading.")
+
+    def run(self, *args, **kwargs):
+        """Execute all the pluguns run method."""
+        return self._pluggy_pm.hook.run(*args, **kwargs)
+
+    def register(self, obj):
+        """Register the plugin."""
+        self._pluggy_pm.register(obj)
+
+    def get_plugins(self):
+        return self._pluggy_pm.get_plugins()
 
 
 class APRSDCommandSpec:
@@ -184,7 +249,6 @@ class FortunePlugin(APRSDPluginBase):
                 ["/usr/games/fortune", "-s", "-n 60"], stdout=subprocess.PIPE
             )
             reply = process.communicate()[0]
-            # send_message(fromcall, reply.rstrip())
             reply = reply.decode(errors="ignore").rstrip()
         except Exception as ex:
             reply = "Fortune command failed '{}'".format(ex)
@@ -200,20 +264,20 @@ class LocationPlugin(APRSDPluginBase):
     command_regex = "^[lL]"
     command_name = "location"
 
+    config_items = {"apikey": "aprs.fi api key here"}
+
     def command(self, fromcall, message, ack):
         LOG.info("Location Plugin")
         # get last location of a callsign, get descriptive name from weather service
         try:
-            a = re.search(
-                r"^.*\s+(.*)", message
-            )  # optional second argument is a callsign to search
+            # optional second argument is a callsign to search
+            a = re.search(r"^.*\s+(.*)", message)
             if a is not None:
                 searchcall = a.group(1)
                 searchcall = searchcall.upper()
             else:
-                searchcall = (
-                    fromcall  # if no second argument, search for calling station
-                )
+                # if no second argument, search for calling station
+                searchcall = fromcall
             url = (
                 "http://api.aprs.fi/api/get?name="
                 + searchcall
@@ -222,6 +286,7 @@ class LocationPlugin(APRSDPluginBase):
             response = requests.get(url)
             # aprs_data = json.loads(response.read())
             aprs_data = json.loads(response.text)
+            LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
             lat = aprs_data["entries"][0]["lat"]
             lon = aprs_data["entries"][0]["lng"]
             try:  # altitude not always provided
@@ -230,9 +295,9 @@ class LocationPlugin(APRSDPluginBase):
                 alt = 0
             altfeet = int(alt * 3.28084)
             aprs_lasttime_seconds = aprs_data["entries"][0]["lasttime"]
-            aprs_lasttime_seconds = aprs_lasttime_seconds.encode(
-                "ascii", errors="ignore"
-            )  # unicode to ascii
+            # aprs_lasttime_seconds = aprs_lasttime_seconds.encode(
+            #    "ascii", errors="ignore"
+            # )  # unicode to ascii
             delta_seconds = time.time() - int(aprs_lasttime_seconds)
             delta_hours = delta_seconds / 60 / 60
             url2 = (
@@ -340,5 +405,78 @@ class WeatherPlugin(APRSDPluginBase):
         except Exception as e:
             LOG.debug("Weather failed with:  " + "%s" % str(e))
             reply = "Unable to find you (send beacon?)"
+
+        return reply
+
+
+class EmailPlugin(APRSDPluginBase):
+    """Email Plugin."""
+
+    version = "1.0"
+    command_regex = "^-.*"
+    command_name = "email"
+
+    # message_number:time combos so we don't resend the same email in
+    # five mins {int:int}
+    email_sent_dict = {}
+
+    def command(self, fromcall, message, ack):
+        LOG.info("Email COMMAND")
+        reply = None
+
+        searchstring = "^" + self.config["ham"]["callsign"] + ".*"
+        # only I can do email
+        if re.search(searchstring, fromcall):
+            # digits only, first one is number of emails to resend
+            r = re.search("^-([0-9])[0-9]*$", message)
+            if r is not None:
+                LOG.debug("RESEND EMAIL")
+                email.resend_email(r.group(1), fromcall)
+                reply = messaging.NULL_MESSAGE
+            # -user@address.com body of email
+            elif re.search(r"^-([A-Za-z0-9_\-\.@]+) (.*)", message):
+                # (same search again)
+                a = re.search(r"^-([A-Za-z0-9_\-\.@]+) (.*)", message)
+                if a is not None:
+                    to_addr = a.group(1)
+                    content = a.group(2)
+                    # send recipient link to aprs.fi map
+                    if content == "mapme":
+                        content = "Click for my location: http://aprs.fi/{}".format(
+                            self.config["ham"]["callsign"]
+                        )
+                    too_soon = 0
+                    now = time.time()
+                    # see if we sent this msg number recently
+                    if ack in self.email_sent_dict:
+                        timedelta = now - self.email_sent_dict[ack]
+                        if timedelta < 300:  # five minutes
+                            too_soon = 1
+                    if not too_soon or ack == 0:
+                        LOG.info("Send email '{}'".format(content))
+                        send_result = email.send_email(to_addr, content)
+                        if send_result != 0:
+                            reply = "-{} failed".format(to_addr)
+                            # messaging.send_message(fromcall, "-" + to_addr + " failed")
+                        else:
+                            # clear email sent dictionary if somehow goes over 100
+                            if len(self.email_sent_dict) > 98:
+                                LOG.debug(
+                                    "DEBUG: email_sent_dict is big ("
+                                    + str(len(self.email_sent_dict))
+                                    + ") clearing out."
+                                )
+                                self.email_sent_dict.clear()
+                            self.email_sent_dict[ack] = now
+                            reply = "mapme email sent"
+                    else:
+                        LOG.info(
+                            "Email for message number "
+                            + ack
+                            + " recently sent, not sending again."
+                        )
+            else:
+                reply = "Bad email address"
+                # messaging.send_message(fromcall, "Bad email address")
 
         return reply

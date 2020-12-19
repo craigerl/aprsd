@@ -1,8 +1,10 @@
 """Utilities and helper functions."""
 
 import errno
+import functools
 import os
 import sys
+import threading
 
 import click
 import yaml
@@ -15,7 +17,7 @@ DEFAULT_CONFIG_DICT = {
     "aprs": {
         "login": "someusername",
         "password": "somepassword",
-        "host": "noam.aprs2.net",
+        "host": "rotate.aprs.net",
         "port": 14580,
         "logfile": "/tmp/arsd.log",
     },
@@ -45,6 +47,17 @@ DEFAULT_CONFIG_DICT = {
 }
 
 DEFAULT_CONFIG_FILE = "~/.config/aprsd/aprsd.yml"
+
+
+def synchronized(wrapped):
+    lock = threading.Lock()
+
+    @functools.wraps(wrapped)
+    def _wrap(*args, **kwargs):
+        with lock:
+            return wrapped(*args, **kwargs)
+
+    return _wrap
 
 
 def env(*vars, **kwargs):
@@ -152,8 +165,8 @@ def parse_config(config_file):
     )
     check_option(config, "aprs", "login")
     check_option(config, "aprs", "password")
-    check_option(config, "aprs", "host")
-    check_option(config, "aprs", "port")
+    # check_option(config, "aprs", "host")
+    # check_option(config, "aprs", "port")
     check_option(config, "aprs", "logfile", "./aprsd.log")
     check_option(config, "imap", "host")
     check_option(config, "imap", "login")
