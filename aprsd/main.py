@@ -184,9 +184,14 @@ def process_packet(packet):
         if not message:
             LOG.debug("Didn't get a message, could be an ack?")
             if packet.get("response", None) == "ack":
-                # looks like an ACK
+                # looks like an ACKa
                 ack_num = packet.get("msgNo")
-                messaging.ack_dict.update({ack_num: 1})
+                LOG.info("Got ack for message {}".format(ack_num))
+                messaging.log_message(
+                    "ACK", packet["raw"], None, ack=ack_num, fromcall=packet["from"]
+                )
+                messaging.ack_dict.update({int(ack_num): 1})
+                return
 
         msg_number = packet.get("msgNo", None)
         if msg_number:
@@ -279,6 +284,8 @@ def send_message(
     loglevel, quiet, config_file, aprs_login, aprs_password, tocallsign, command
 ):
     """Send a message to a callsign via APRS_IS."""
+    global got_ack, got_response
+
     click.echo("{} {} {} {}".format(aprs_login, aprs_password, tocallsign, command))
 
     click.echo("Load config")
@@ -302,14 +309,44 @@ def send_message(
         command = " ".join(command)
     LOG.info("Sending Command '{}'".format(command))
 
+    got_ack = False
+    got_response = False
+
     def rx_packet(packet):
+        global got_ack, got_response
         # LOG.debug("Got packet back {}".format(packet))
-        messaging.log_packet(packet)
         resp = packet.get("response", None)
         if resp == "ack":
+            ack_num = packet.get("msgNo")
+            LOG.info("We got ack for our sent message {}".format(ack_num))
+            messaging.log_packet(packet)
+            got_ack = True
+        else:
+            message = packet.get("message_text", None)
+            LOG.info("We got a new message")
+            fromcall = packet["from"]
+            msg_number = packet.get("msgNo", None)
+            if msg_number:
+                ack = msg_number
+            else:
+                ack = "0"
+            messaging.log_message(
+                "Received Message", packet["raw"], message, fromcall=fromcall, ack=ack
+            )
+            got_response = True
+            # Send the ack back?
+            messaging.send_ack_direct(fromcall, ack)
+
+        if got_ack and got_response:
             sys.exit(0)
 
     cl = client.Client(config)
+
+    # Send a message
+    # then we setup a consumer to rx messages
+    # We should get an ack back as well as a new message
+    # we should bail after we get the ack and send an ack back for the
+    # message
     messaging.send_message_direct(tocallsign, command, message_number)
 
     try:

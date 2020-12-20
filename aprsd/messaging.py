@@ -52,6 +52,23 @@ def send_ack(tocall, ack):
     # end send_ack()
 
 
+def send_ack_direct(tocall, ack):
+    """Send an ack message without a separate thread."""
+    LOG.debug("Send ACK({}:{}) to radio.".format(tocall, ack))
+    cl = client.get_client()
+    fromcall = CONFIG["aprs"]["login"]
+    line = "{}>APRS::{}:ack{}\n".format(fromcall, tocall, ack)
+    log_message(
+        "Sending ack",
+        line.rstrip("\n"),
+        None,
+        ack=ack,
+        tocall=tocall,
+        fromcall=fromcall,
+    )
+    cl.sendall(line)
+
+
 def send_message_thread(tocall, message, this_message_number, retry_count):
     cl = client.get_client()
     line = "{}>APRS::{}:{}{{{}\n".format(
@@ -118,6 +135,27 @@ def send_message(tocall, message):
     thread.start()
     return ()
     # end send_message()
+
+
+def send_message_direct(tocall, message, message_number=None):
+    """Send a message without a separate thread."""
+    cl = client.get_client()
+    if not message_number:
+        this_message_number = 1
+    else:
+        this_message_number = message_number
+    fromcall = CONFIG["aprs"]["login"]
+    line = "{}>APRS::{}:{}{{{}\n".format(
+        fromcall,
+        tocall,
+        message,
+        str(this_message_number),
+    )
+    LOG.debug("DEBUG: send_message_thread msg:ack combos are: ")
+    log_message(
+        "Sending Message", line.rstrip("\n"), message, tocall=tocall, fromcall=fromcall
+    )
+    cl.sendall(line)
 
 
 def log_packet(packet):
@@ -198,27 +236,6 @@ def log_message(
     log_list.append("    {} _______________ Complete".format(header))
 
     LOG.info("\n".join(log_list))
-
-
-def send_message_direct(tocall, message, message_number=None):
-    """Send a message without a separate thread."""
-    cl = client.get_client()
-    if not message_number:
-        this_message_number = 1
-    else:
-        this_message_number = message_number
-    fromcall = CONFIG["aprs"]["login"]
-    line = "{}>APRS::{}:{}{{{}\n".format(
-        fromcall,
-        tocall,
-        message,
-        str(this_message_number),
-    )
-    LOG.debug("DEBUG: send_message_thread msg:ack combos are: ")
-    log_message(
-        "Sending Message", line.rstrip("\n"), message, tocall=tocall, fromcall=fromcall
-    )
-    cl.sendall(line)
 
 
 def process_message(line):
