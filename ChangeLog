@@ -4,6 +4,7 @@ CHANGES
 v1.1.0
 ------
 
+* Added Changelog
 * Fixed issue when RX ack
 * Updated the aprsd-slack-plugin required version
 * Updated README.rst

@@ -4,8 +4,7 @@ services:
     image: hemna6969/aprsd:latest
     container_name: aprsd
     volumes:
-        - /opt/docker/aprsd/config:/config
-        - /opt/docker/aprsd/plugins:/plugins
+        - $HOME/.config/aprsd:/config
     restart: unless-stopped
     environment:
         - TZ=America/New_York
