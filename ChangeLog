@@ -1,0 +1,145 @@
+CHANGES
+=======
+
+v1.1.0
+------
+
+* Fixed issue when RX ack
+* Updated the aprsd-slack-plugin required version
+* Updated README.rst
+* Fixed send-message with email command and others
+* Big patch
+* Major refactor
+* Updated the Dockerfile to use alpine
+
+v1.0.1
+------
+
+* Fix unknown characterset emails
+* Updated loggin timestamp to include []
+* Updated README with a TOC
+* Updates for building containers
+* Don't use the dirname for the plugin path search
+* Reworked Plugin loading
+* Updated README with development information
+* Fixed an issue with weather plugin
+
+v1.0.0
+------
+
+* Rewrote the README.md to README.rst
+* Fixed the usage string after plugins introduced
+* Created plugin.py for Command Plugins
+* Refactor networking and commands
+* get rid of some debug statements
+* yet another unicode problem, in resend\_email fixed
+* reset default email check delay to 60, fix a few comments
+* Update tox environment to fix formatting python errors
+* fixed fortune. yet another unicode issue, tested in py3 and py2
+* lose some logging statements
+* completely off urllib now, tested locate/weather in py2 and py3
+* add urllib import back until i replace all calls with requests
+* cleaned up weather code after switch to requests ... from urllib. works on py2 and py3
+* switch from urlib to requests for weather, tested in py3 and py2.  still need to update locate, and all other http calls
+* imap tags are unicode in py3.  .decode tags
+* Update INSTALL.txt
+* Initial conversion to click
+* Reconnect on socket timeout
+* clean up code around closed\_socket and reconnect
+* Update INSTALL.txt
+* Fixed all pep8 errors and some py3 errors
+* fix check\_email\_thread to do proper threading, take delay as arg
+* found another .decode that didn't include errors='ignore'
+* some failed attempts at getting the first txt or html from a multipart message, currently sends the last
+* fix parse\_email unicode probs by using body.decode(errors='ignore').. again
+* fix parse\_email unicode probs by using body.decode(errors='ignore')
+* clean up code around closed\_socket and reconnect
+* socket timeout 5 minutes
+* Detect closed socket, reconnect, with a bit more grace
+* can detect closed socket and reconnect now
+* Update INSTALL.txt
+* more debugging messages trying to find rare tight loop in main
+* Update INSTALL.txt
+* main loop went into tight loop, more debug prints
+* main loop went into tight loop, added debug print before every continue
+* Update INSTALL.txt
+* Update INSTALL.txt
+* George Carlin profanity filter
+* added decaying email check timer which resets with activity
+* Fixed all pep8 errors and some py3 errors
+* Fixed all pep8 errors and some py3 errors
+* Reconnect on socket timeout
+* socket reconnect on timeout testing
+* socket timeout of 300 instead of 60
+* Reconnect on socket timeout
+* socket reconnect on timeout testing
+* Fixed all pep8 errors and some py3 errors
+* fix check\_email\_thread to do proper threading, take delay as arg
+* INSTALL.txt for the average person
+* fix bugs after beautification and yaml config additions. Convert to sockets.  case insensitive commands
+* fix INBOX
+* Update README.md
+* Added tox support
+* Fixed SMTP settings
+* Created fake\_aprs.py
+* select inbox if gmail server
+* removed ASS
+* Added a try block around imap login
+* Added port and fixed telnet user
+* Require ~/.aprsd/config.yml
+* updated README for install and usage instructions
+* added test to ensure shortcuts in config.yml
+* added exit if missing config file
+* Added reading of a config file
+* update readme
+* update readme
+* sanitize readme
+* readme again again
+* readme again again
+* readme again
+* readme
+* readme update
+* First stab at migrating this to a pytpi repo
+* First stab at migrating this to a pytpi repo
+* Added password, callsign and host
+* Added argparse for cli options
+* comments
+* Cleaned up trailing whitespace
+* add tweaked fuzzyclock
+* make tn a global
+* Added standard python main()
+* tweaks to readme
+* drop virtenv on first line
+* sanitize readme a bit more
+* sanitize readme a bit more
+* sanitize readme
+* added weather and location 3
+* added weather and location 2
+* added weather and location
+* mapme
+* de-localize
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* de-localize
+* Update README.md
+* Update README.md
+* Update aprsd.py
+* Add files via upload
+* Update README.md
+* Update aprsd.py
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* Update README.md
+* Add files via upload
+* Initial commit
