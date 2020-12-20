@@ -10,7 +10,7 @@ ENV APRSD_BRANCH="master"
 ENV VIRTUAL_ENV=$HOME/.venv3
 
 ENV INSTALL=$HOME/install
-RUN apk add --update git vim wget py3-pip py3-virtualenv bash
+RUN apk add --update git vim wget py3-pip py3-virtualenv bash fortune
 
 # Setup Timezone
 ENV TZ=US/Eastern
@@ -19,7 +19,6 @@ ENV TZ=US/Eastern
 #RUN dpkg-reconfigure --frontend noninteractive tzdata
 
 RUN addgroup --gid 1001 $APRS_USER
-RUN adduser --help
 RUN adduser -h $HOME -D -u 1001 -G $APRS_USER $APRS_USER
 
 ENV LC_ALL=C.UTF-8

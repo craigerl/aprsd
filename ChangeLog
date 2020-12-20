@@ -4,6 +4,8 @@ CHANGES
 v1.1.0
 ------
 
+* Ensure fortune is installed
+* Updated docker-compose
 * Added Changelog
 * Fixed issue when RX ack
 * Updated the aprsd-slack-plugin required version

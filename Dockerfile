@@ -6,7 +6,7 @@ ENV HOME=/home/aprs
 ENV VIRTUAL_ENV=$HOME/.venv3
 
 ENV INSTALL=$HOME/install
-RUN apk add --update git wget py3-pip py3-virtualenv bash
+RUN apk add --update git wget py3-pip py3-virtualenv bash fortune
 
 # Setup Timezone
 ENV TZ=US/Eastern
