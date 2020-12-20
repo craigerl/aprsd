@@ -56,8 +56,149 @@ Example usage:
 
   aprsd -h
 
+Help
+====
+::
+
+    └─[$] > aprsd -h
+    Usage: aprsd [OPTIONS] COMMAND [ARGS]...
+
+      Shell completion for click-completion-command Available shell types:
+      bash         Bourne again shell   fish         Friendly interactive shell
+      powershell   Windows PowerShell   zsh          Z shell Default type: auto
+
+    Options:
+      --version   Show the version and exit.
+      -h, --help  Show this message and exit.
+
+    Commands:
+      install        Install the click-completion-command completion
+      sample-config  This dumps the config to stdout.
+      send-message   Send a message to a callsign via APRS_IS.
+      server         Start the aprsd server process.
+      show           Show the click-completion-command completion code
+
+
+Commands
+--------
+
+sample-config
+=============
+This command outputs a sample config yml formatted block that you can edit
+and use to pass in to aprsd with -c.
+
+  aprsd sample-config
+
+Output
+======
+::
+
+    └─[$] > aprsd sample-config
+
+    aprs:
+      host: rotate.aprs.net
+      logfile: /tmp/arsd.log
+      login: someusername
+      password: somepassword
+      port: 14580
+    aprsd:
+      enabled_plugins:
+      - aprsd.plugin.EmailPlugin
+      - aprsd.plugin.FortunePlugin
+      - aprsd.plugin.LocationPlugin
+      - aprsd.plugin.PingPlugin
+      - aprsd.plugin.TimePlugin
+      - aprsd.plugin.WeatherPlugin
+      - aprsd.plugin.VersionPlugin
+      plugin_dir: ~/.config/aprsd/plugins
+    ham:
+      callsign: KFART
+    imap:
+      host: imap.gmail.com
+      login: imapuser
+      password: something here too
+      port: 993
+      use_ssl: true
+    shortcuts:
+      aa: 5551239999@vtext.com
+      cl: craiglamparter@somedomain.org
+      wb: 555309@vtext.com
+    smtp:
+      host: imap.gmail.com
+      login: something
+      password: some lame password
+      port: 465
+      use_ssl: false
+
+
+server
+======
+
+This is the main server command that will listen to APRS-IS servers and 
+look for incomming commands to the callsign configured in the config file
+
+::
+
+    └─[$] > aprsd server --help
+    Usage: aprsd server [OPTIONS]
+
+      Start the aprsd server process.
+
+    Options:
+      --loglevel [CRITICAL|ERROR|WARNING|INFO|DEBUG]
+                                      The log level to use for aprsd.log
+                                      [default: DEBUG]
+
+      --quiet                         Don't log to stdout
+      --disable-validation            Disable email shortcut validation.  Bad
+                                      email addresses can result in broken email
+                                      responses!!
+
+      -c, --config TEXT               The aprsd config file to use for options.
+                                      [default: ~/.config/aprsd/aprsd.yml]
+
+      -h, --help                      Show this message and exit.
+    (.venv3) ┌─[waboring@dl360-1] - [~/devel/aprsd] - [Sun Dec 20, 12:32] -
+    └─[$] <git:(master*)> aprsd server
+    Load config
+    [12/20/2020 12:33:03 PM] [MainThread  ] [INFO ] APRSD Started version: 1.0.2
+    [12/20/2020 12:33:03 PM] [MainThread  ] [INFO ] Checking IMAP configuration
+    [12/20/2020 12:33:04 PM] [MainThread  ] [INFO ] Checking SMTP configuration
+
+
+send-message
+============
+
+This command is typically used for development to send another aprsd instance
+test messages
+
+::
+
+    └─[$] > aprsd send-message -h
+    Usage: aprsd send-message [OPTIONS] TOCALLSIGN [COMMAND]...
+
+      Send a message to a callsign via APRS_IS.
+
+    Options:
+      --loglevel [CRITICAL|ERROR|WARNING|INFO|DEBUG]
+                                      The log level to use for aprsd.log
+                                      [default: DEBUG]
+
+      --quiet                         Don't log to stdout
+      -c, --config TEXT               The aprsd config file to use for options.
+                                      [default: ~/.config/aprsd/aprsd.yml]
+
+      --aprs-login TEXT               What callsign to send the message from.
+                                      [env var: APRS_LOGIN]
+
+      --aprs-password TEXT            the APRS-IS password for APRS_LOGIN  [env
+                                      var: APRS_PASSWORD]
+
+      -h, --help                      Show this message and exit.
+
 Example output:
 ---------------
+
 
 SEND EMAIL (radio to smtp server)
 =================================
