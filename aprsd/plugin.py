@@ -15,6 +15,7 @@ import requests
 import six
 from thesmuggler import smuggle
 
+import aprsd
 from aprsd import email, messaging
 from aprsd.fuzzyclock import fuzzy
 
@@ -31,6 +32,7 @@ CORE_PLUGINS = [
     "aprsd.plugin.PingPlugin",
     "aprsd.plugin.TimePlugin",
     "aprsd.plugin.WeatherPlugin",
+    "aprsd.plugin.VersionPlugin",
 ]
 
 
@@ -480,3 +482,19 @@ class EmailPlugin(APRSDPluginBase):
                 # messaging.send_message(fromcall, "Bad email address")
 
         return reply
+
+
+class VersionPlugin(APRSDPluginBase):
+    """Version of APRSD Plugin."""
+
+    version = "1.0"
+    command_regex = "^[vV]"
+    command_name = "version"
+
+    # message_number:time combos so we don't resend the same email in
+    # five mins {int:int}
+    email_sent_dict = {}
+
+    def command(self, fromcall, message, ack):
+        LOG.info("Version COMMAND")
+        return "APRSD version '{}'".format(aprsd.__version__)

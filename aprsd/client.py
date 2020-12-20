@@ -41,6 +41,7 @@ class Client(object):
         host = self.config["aprs"].get("host", "rotate.aprs.net")
         port = self.config["aprs"].get("port", 14580)
         connected = False
+        backoff = 1
         while not connected:
             try:
                 LOG.info("Creating aprslib client")
@@ -49,10 +50,11 @@ class Client(object):
                 aprs_client.logger = LOG
                 aprs_client.connect()
                 connected = True
+                backoff = 1
             except Exception as e:
-                LOG.error("Unable to connect to APRS-IS server.\n")
-                print(str(e))
-                time.sleep(5)
+                LOG.error("Unable to connect to APRS-IS server. '{}' ".format(e))
+                time.sleep(backoff)
+                backoff = backoff * 2
                 continue
         LOG.debug("Logging in to APRS-IS with user '%s'" % user)
         return aprs_client

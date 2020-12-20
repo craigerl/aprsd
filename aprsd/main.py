@@ -23,6 +23,7 @@
 # python included libs
 import logging
 import os
+import random
 import signal
 import sys
 import time
@@ -49,6 +50,8 @@ LOG_LEVELS = {
     "INFO": logging.INFO,
     "DEBUG": logging.DEBUG,
 }
+
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 # localization, please edit:
 # HOST = "noam.aprs2.net"     # north america tier2 servers round robin
@@ -85,7 +88,7 @@ Default type: auto
 )
 
 
-@click.group(help=cmd_help)
+@click.group(help=cmd_help, context_settings=CONTEXT_SETTINGS)
 @click.version_option()
 def main():
     pass
@@ -271,7 +274,7 @@ def sample_config():
     help="the APRS-IS password for APRS_LOGIN",
 )
 @click.argument("tocallsign")
-@click.argument("command", default="location")
+@click.argument("command", nargs=-1)
 def send_message(
     loglevel, quiet, config_file, aprs_login, aprs_password, tocallsign, command
 ):
@@ -294,16 +297,20 @@ def send_message(
 
     setup_logging(config, loglevel, quiet)
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
+    message_number = random.randint(1, 90)
+    if type(command) is tuple:
+        command = " ".join(command)
+    LOG.info("Sending Command '{}'".format(command))
 
     def rx_packet(packet):
-        LOG.debug("Got packet back {}".format(packet))
+        # LOG.debug("Got packet back {}".format(packet))
         messaging.log_packet(packet)
         resp = packet.get("response", None)
         if resp == "ack":
             sys.exit(0)
 
     cl = client.Client(config)
-    messaging.send_message_direct(tocallsign, command)
+    messaging.send_message_direct(tocallsign, command, message_number)
 
     try:
         # This will register a packet consumer with aprslib

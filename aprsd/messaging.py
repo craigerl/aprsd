@@ -200,10 +200,13 @@ def log_message(
     LOG.info("\n".join(log_list))
 
 
-def send_message_direct(tocall, message):
+def send_message_direct(tocall, message, message_number=None):
     """Send a message without a separate thread."""
     cl = client.get_client()
-    this_message_number = 1
+    if not message_number:
+        this_message_number = 1
+    else:
+        this_message_number = message_number
     fromcall = CONFIG["aprs"]["login"]
     line = "{}>APRS::{}:{}{{{}\n".format(
         fromcall,
