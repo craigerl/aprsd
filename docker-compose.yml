@@ -9,4 +9,4 @@ services:
     restart: unless-stopped
     environment:
         - TZ=America/New_York
-        - APRS_PLUGINS=aprsd-slack-plugin
+        - APRS_PLUGINS=aprsd-slack-plugin>=1.0.2
