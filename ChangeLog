@@ -4,6 +4,7 @@ CHANGES
 v1.1.0
 ------
 
+* Update README with version 1.1.0 related info
 * Added fix for an unknown packet type
 * Ensure fortune is installed
 * Updated docker-compose

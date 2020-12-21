@@ -14,12 +14,51 @@ APRSD
 .. contents:: :local:
 
 Listen on amateur radio aprs-is network for messages and respond to them.
-You must have an amateur radio callsign to use this software.  Put  your
-callsign in the "USER" variable and update your aprs-is password in "PASS".
-You must also have an imap email account available for polling.
+You must have an amateur radio callsign to use this software.  APRSD gets
+messages for the configured HAM callsign, and sends those messages to a
+list of plugins for processing.   There are a set of core plugins that
+provide responding to messages to check email, get location, ping, 
+time of day, get weather, and fortune telling as well as version information
+of aprsd itself.
+
+Typical use case
+================
+
+Ham radio operator using an APRS enabled HAM radio sends a message to check
+the weather.  an APRS message is sent, and then picked up by APRSD.  The 
+APRS packet is decoded, and the message is sent through the list of plugins
+for processing.   The WeatherPlugin picks up the message, fetches the weather
+for the area around the user who sent the request, and then responds with
+the weather conditions in that area.
+
+
+
+APRSD Capabilities
+------------------
+
+* server - The main aprsd server processor.  Send/Rx APRS messages to HAM callsign
+* send-message - use aprsd to send a command/message to aprsd server.  Used for development testing
+* sample-config - generate a sample aprsd.yml config file for use/editing  
+* bash completion generation.  Uses python click bash completion to generate completion code for your .bashrc/.zshrc
+
+
+List of core server plugins
+===========================
+
+Plugins function by specifying a regex that is searched for in the APRS message.
+If it matches, the plugin runs.  IF the regex doesn't match, the plugin is skipped.
+
+* EmailPlugin - Check email and reply with contents.  Have to configure IMAP and SMTP settings in aprs.yml
+* FortunePlugin - Replies with old unix fortune random fortune!
+* LocationPlugin - Checks location of ham operator
+* PingPlugin - Sends pong with timestamp
+* TimePlugin - Current time of day
+* WeatherPlugin - Get weather conditions for current location of HAM callsign
+* VersionPlugin - Reports the version information for aprsd
+
 
 Current messages this will respond to:
---------------------------------------
+======================================
 
 ::
 
