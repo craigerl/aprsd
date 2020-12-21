@@ -4,6 +4,7 @@ CHANGES
 v1.1.0
 ------
 
+* Added fix for an unknown packet type
 * Ensure fortune is installed
 * Updated docker-compose
 * Added Changelog
@@ -11,6 +12,7 @@ v1.1.0
 * Updated the aprsd-slack-plugin required version
 * Updated README.rst
 * Fixed send-message with email command and others
+* Update .gitignore
 * Big patch
 * Major refactor
 * Updated the Dockerfile to use alpine

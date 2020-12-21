@@ -192,6 +192,10 @@ def process_packet(packet):
                 )
                 messaging.ack_dict.update({int(ack_num): 1})
                 return
+            else:
+                LOG.info("Don't know what to do with this message.  Ignoring")
+                messaging.log_packet(packet)
+                return
 
         msg_number = packet.get("msgNo", None)
         if msg_number:
