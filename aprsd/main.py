@@ -21,11 +21,15 @@
 #
 
 # python included libs
+import concurrent.futures
+import functools
 import logging
 import os
+import queue
 import random
 import signal
 import sys
+import threading
 import time
 from logging import NullHandler
 from logging.handlers import RotatingFileHandler
@@ -52,6 +56,10 @@ LOG_LEVELS = {
 }
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+# Global threading event to trigger stopping all threads
+# When user quits app via CTRL-C
+event = None
 
 # localization, please edit:
 # HOST = "noam.aprs2.net"     # north america tier2 servers round robin
@@ -140,11 +148,10 @@ def install(append, case_insensitive, shell, path):
 
 
 def signal_handler(signal, frame):
-    LOG.info("Ctrl+C, exiting.")
-    # sys.exit(0)  # thread ignores this
-    os._exit(0)
+    global event
 
-
+    LOG.info("Ctrl+C, Sending all threads exit!")
+    sys.exit(0)  # thread ignores this
 # end signal_handler
 
 
@@ -172,7 +179,7 @@ def setup_logging(config, loglevel, quiet):
         LOG.addHandler(sh)
 
 
-def process_ack_packet(packet):
+def process_ack_packet(packet, config):
     ack_num = packet.get("msgNo")
     LOG.info("Got ack for message {}".format(ack_num))
     messaging.log_message(
@@ -182,32 +189,30 @@ def process_ack_packet(packet):
     return
 
 
-def process_mic_e_packet(packet):
+def process_mic_e_packet(packet, config):
     LOG.info("Mic-E Packet detected.  Currenlty unsupported.")
     messaging.log_packet(packet)
     return
 
 
-def process_message_packet(packet):
+def process_message_packet(packet, config, tx_msg_queue):
     LOG.info("Got a message packet")
     fromcall = packet["from"]
     message = packet.get("message_text", None)
 
-    msg_number = packet.get("msgNo", None)
-    if msg_number:
-        ack = msg_number
-    else:
-        ack = "0"
+    msg_id = packet.get("msgNo", None)
+    if not msg_id:
+        msg_id = "0"
 
     messaging.log_message(
-        "Received Message", packet["raw"], message, fromcall=fromcall, ack=ack
+        "Received Message", packet["raw"], message, fromcall=fromcall, ack=msg_id
     )
 
     found_command = False
     # Get singleton of the PM
     pm = plugin.PluginManager()
     try:
-        results = pm.run(fromcall=fromcall, message=message, ack=ack)
+        results = pm.run(fromcall=fromcall, message=message, ack=msg_id)
         for reply in results:
             found_command = True
             # A plugin can return a null message flag which signals
@@ -215,7 +220,11 @@ def process_message_packet(packet):
             # nothing to reply with, so we avoid replying with a usage string
             if reply is not messaging.NULL_MESSAGE:
                 LOG.debug("Sending '{}'".format(reply))
-                messaging.send_message(fromcall, reply)
+
+               # msg = {"fromcall": fromcall, "msg": reply}
+                msg = messaging.TextMessage(config["aprs"]["login"],
+                                            fromcall, reply)
+                tx_msg_queue.put(msg)
             else:
                 LOG.debug("Got NULL MESSAGE from plugin")
 
@@ -225,22 +234,29 @@ def process_message_packet(packet):
             names.sort()
 
             reply = "Usage: {}".format(", ".join(names))
-            messaging.send_message(fromcall, reply)
+            # messaging.send_message(fromcall, reply)
+            msg = messaging.TextMessage(config["aprs"]["login"],
+                                        fromcall, reply)
+            tx_msg_queue.put(msg)
     except Exception as ex:
         LOG.exception("Plugin failed!!!", ex)
         reply = "A Plugin failed! try again?"
-        messaging.send_message(fromcall, reply)
+        # messaging.send_message(fromcall, reply)
+        msg = messaging.TextMessage(config["aprs"]["login"],
+                                    fromcall, reply)
+        tx_msg_queue.put(msg)
 
     # let any threads do their thing, then ack
     # send an ack last
-    messaging.send_ack(fromcall, ack)
+    ack = messaging.AckMessage(config["aprs"]["login"], fromcall, msg_id=msg_id)
+    ack.send()
     LOG.debug("Packet processing complete")
 
 
-def process_packet(packet):
+def process_packet(packet, config=None, msg_queues=None, event=None):
     """Process a packet recieved from aprs-is server."""
 
-    LOG.debug("Process packet!")
+    LOG.debug("Process packet! {}".format(msg_queues))
     try:
         LOG.debug("Got message: {}".format(packet))
 
@@ -250,15 +266,15 @@ def process_packet(packet):
         if msg_format == "message" and msg:
             # we want to send the message through the
             # plugins
-            process_message_packet(packet)
+            process_message_packet(packet, config,  msg_queues["tx"])
             return
         elif msg_response == "ack":
-            process_ack_packet(packet)
+            process_ack_packet(packet, config)
             return
 
         if msg_format == "mic-e":
             # process a mic-e packet
-            process_mic_e_packet(packet)
+            process_mic_e_packet(packet, config)
             return
 
     except (aprslib.ParseError, aprslib.UnknownFormat) as exp:
@@ -350,17 +366,15 @@ def send_message(
             message = packet.get("message_text", None)
             LOG.info("We got a new message")
             fromcall = packet["from"]
-            msg_number = packet.get("msgNo", None)
-            if msg_number:
-                ack = msg_number
-            else:
-                ack = "0"
+            msg_number = packet.get("msgNo", "0")
             messaging.log_message(
-                "Received Message", packet["raw"], message, fromcall=fromcall, ack=ack
+                "Received Message", packet["raw"], message, fromcall=fromcall, ack=msg_number
             )
             got_response = True
             # Send the ack back?
-            messaging.send_ack_direct(fromcall, ack)
+            ack = messaging.AckMessage(config["aprs"]["login"],
+                                       fromcall, msg_id=msg_number)
+            ack.send_direct()
 
         if got_ack and got_response:
             sys.exit(0)
@@ -372,7 +386,9 @@ def send_message(
     # We should get an ack back as well as a new message
     # we should bail after we get the ack and send an ack back for the
     # message
-    messaging.send_message_direct(tocallsign, command, message_number)
+    msg = messaging.TextMessage(aprs_login, tocallsign, command)
+    msg.send_direct()
+    #messaging.send_message_direct(tocallsign, command, message_number)
 
     try:
         # This will register a packet consumer with aprslib
@@ -387,6 +403,16 @@ def send_message(
         # This will cause a reconnect, next time client.get_client()
         # is called
         cl.reset()
+
+
+def tx_msg_thread(msg_queues=None, event=None):
+    """Thread to handle sending any messages outbound."""
+    LOG.info("TX_MSG_THREAD")
+    while not event.is_set() or not msg_queues["tx"].empty():
+        msg = msg_queues["tx"].get()
+        LOG.info("TXQ: got message '{}'".format(msg))
+        msg.send()
+        #messaging.send_message(msg["fromcall"], msg["msg"])
 
 
 # main() ###
@@ -418,7 +444,9 @@ def send_message(
 )
 def server(loglevel, quiet, disable_validation, config_file):
     """Start the aprsd server process."""
+    global event
 
+    event = threading.Event()
     signal.signal(signal.SIGINT, signal_handler)
 
     click.echo("Load config")
@@ -429,7 +457,6 @@ def server(loglevel, quiet, disable_validation, config_file):
     # Accept the config as a constructor param, instead of this
     # hacky global setting
     email.CONFIG = config
-    messaging.CONFIG = config
 
     setup_logging(config, loglevel, quiet)
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
@@ -449,7 +476,22 @@ def server(loglevel, quiet, disable_validation, config_file):
     plugin_manager.setup_plugins()
     cl = client.Client(config)
 
-    # setup and run the main blocking loop
+    rx_msg_queue = queue.Queue(maxsize=20)
+    tx_msg_queue = queue.Queue(maxsize=20)
+    msg_queues = {"rx": rx_msg_queue,
+                  "tx": tx_msg_queue,}
+
+    rx_msg = threading.Thread(
+        target=rx_msg_thread, name="RX_msg", kwargs={'msg_queues':msg_queues,
+                                                     'event': event}
+    )
+    tx_msg = threading.Thread(
+        target=tx_msg_thread, name="TX_msg", kwargs={'msg_queues':msg_queues,
+                                                     'event': event}
+    )
+    rx_msg.start()
+    tx_msg.start()
+
     while True:
         # Now use the helper which uses the singleton
         aprs_client = client.get_client()
@@ -459,14 +501,30 @@ def server(loglevel, quiet, disable_validation, config_file):
             # This will register a packet consumer with aprslib
             # When new packets come in the consumer will process
             # the packet
-            aprs_client.consumer(process_packet, raw=False)
+
+            # Do a partial here because the consumer signature doesn't allow
+            # For kwargs to be passed in to the consumer func we declare
+            # and the aprslib developer didn't want to allow a PR to add
+            # kwargs.  :(
+            # https://github.com/rossengeorgiev/aprs-python/pull/56
+            process_partial = functools.partial(process_packet,
+                                                msg_queues=msg_queues,
+                                                event=event, config=config)
+            aprs_client.consumer(process_partial, raw=False)
         except aprslib.exceptions.ConnectionDrop:
             LOG.error("Connection dropped, reconnecting")
             time.sleep(5)
             # Force the deletion of the client object connected to aprs
             # This will cause a reconnect, next time client.get_client()
             # is called
-            cl.reset()
+            client.Client().reset()
+
+
+    LOG.info("APRSD Exiting.")
+    tx_msg.join()
+
+    sys.exit(0)
+    # setup and run the main blocking loop
 
 
 if __name__ == "__main__":

@@ -1,161 +1,239 @@
+import abc
 import logging
+from multiprocessing import RawValue
 import pprint
 import re
 import threading
 import time
+import uuid
 
 from aprsd import client
 
 LOG = logging.getLogger("APRSD")
-CONFIG = None
-
-# current aprs radio message number, increments for each message we
-# send over rf {int}
-message_number = 0
 
 # message_nubmer:ack  combos so we stop sending a message after an
 # ack from radio {int:int}
+# FIXME
 ack_dict = {}
 
 # What to return from a plugin if we have processed the message
 # and it's ok, but don't send a usage string back
 NULL_MESSAGE = -1
 
+class MessageCounter(object):
+    """
+    Global message id counter class.
 
-def send_ack_thread(tocall, ack, retry_count):
-    cl = client.get_client()
-    tocall = tocall.ljust(9)  # pad to nine chars
-    line = "{}>APRS::{}:ack{}\n".format(CONFIG["aprs"]["login"], tocall, ack)
-    for i in range(retry_count, 0, -1):
-        log_message(
-            "Sending ack",
-            line.rstrip("\n"),
-            None,
-            ack=ack,
-            tocall=tocall,
-            retry_number=i,
-        )
-        cl.sendall(line)
-        # aprs duplicate detection is 30 secs?
-        # (21 only sends first, 28 skips middle)
-        time.sleep(31)
-    # end_send_ack_thread
+    This is a singleton based class that keeps
+    an incrementing counter for all messages to
+    be sent.  All new Message objects gets a new
+    message id, which is the next number available
+    from the MessageCounter.
+
+    """
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        """Make this a singleton class."""
+        if cls._instance is None:
+            cls._instance = super(MessageCounter, cls).__new__(cls)
+            cls._instance.val = RawValue('i', 1)
+            cls._instance.lock = threading.Lock()
+        return cls._instance
+
+    def increment(self):
+        with self.lock:
+            self.val.value += 1
+
+    @property
+    def value(self):
+        with self.lock:
+            return self.val.value
+
+    def __repr__(self):
+        with self.lock:
+            return str(self.val.value)
+
+    def __str__(self):
+        with self.lock:
+            return str(self.val.value)
 
 
-def send_ack(tocall, ack):
-    LOG.debug("Send ACK({}:{}) to radio.".format(tocall, ack))
+class Message(object, metaclass=abc.ABCMeta):
+    """Base Message Class."""
+    # The message id to send over the air
+    id = 0
+
+    # Unique identifier for this message
+    uuid = None
+
+    sent = False
+    sent_time = None
+    acked = False
+    acked_time = None
+
     retry_count = 3
-    thread = threading.Thread(
-        target=send_ack_thread, name="send_ack", args=(tocall, ack, retry_count)
-    )
-    thread.start()
-    # end send_ack()
+
+    def __init__(self, fromcall, tocall, msg_id=None):
+        self.fromcall = fromcall
+        self.tocall = tocall
+        self.uuid = uuid.uuid4()
+        if not msg_id:
+            c = MessageCounter()
+            c.increment()
+            msg_id = c.value
+        self.id = msg_id
+
+    @abc.abstractmethod
+    def send(self):
+        """Child class must declare."""
+        pass
 
 
-def send_ack_direct(tocall, ack):
-    """Send an ack message without a separate thread."""
-    LOG.debug("Send ACK({}:{}) to radio.".format(tocall, ack))
-    cl = client.get_client()
-    fromcall = CONFIG["aprs"]["login"]
-    line = "{}>APRS::{}:ack{}\n".format(fromcall, tocall, ack)
-    log_message(
-        "Sending ack",
-        line.rstrip("\n"),
-        None,
-        ack=ack,
-        tocall=tocall,
-        fromcall=fromcall,
-    )
-    cl.sendall(line)
+class TextMessage(Message):
+    """Send regular ARPS text/command messages/replies."""
+
+    message = None
+
+    def __init__(self, fromcall, tocall, message):
+        super(TextMessage, self).__init__(fromcall, tocall)
+        self.message = message
+
+    def __repr__(self):
+        """Build raw string to send over the air."""
+        return "{}>APRS::{}:{}{{{}\n".format(
+            self.fromcall, self.tocall.ljust(9),
+            self._filter_for_send(), str(self.id),)
+
+    def __str__(self):
+        return "From({}) TO({}) - Message({}): '{}'".format(
+                self.fromcall, self.tocall,
+                self.id, self.message
+            )
+
+    def ack(self):
+        """Build an Ack Message object from this object."""
+        return AckMessage(self.fromcall, self.tocall, msg_id=self.id)
+
+    def _filter_for_send(self):
+        """Filter and format message string for FCC."""
+        # max?  ftm400 displays 64, raw msg shows 74
+        # and ftm400-send is max 64.  setting this to
+        # 67 displays 64 on the ftm400. (+3 {01 suffix)
+        # feature req: break long ones into two msgs
+        message = self.message[:67]
+        # We all miss George Carlin
+        return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
+
+    def send_thread(self):
+        cl = client.get_client()
+        for i in range(self.retry_count, 0, -1):
+            LOG.debug("DEBUG: send_message_thread msg:ack combos are: ")
+            LOG.debug(pprint.pformat(ack_dict))
+            if ack_dict[self.id] != 1:
+                log_message(
+                    "Sending Message",
+                    repr(self).rstrip("\n"),
+                    self.message,
+                    tocall=self.tocall,
+                    retry_number=i,
+                )
+                # tn.write(line)
+                cl.sendall(repr(self))
+                # decaying repeats, 31 to 93 second intervals
+                sleeptime = (self.retry_count - i + 1) * 31
+                time.sleep(sleeptime)
+            else:
+                break
+        return
+        # end send_message_thread
+
+    def send(self):
+        global ack_dict
+
+        # TODO(Hemna) - Need a better metchanism for this.
+        # This can nuke an ack_dict while it's still being used.
+        # FIXME FIXME
+        if len(ack_dict) > 90:
+            # empty ack dict if it's really big, could result in key error later
+            LOG.debug(
+                "DEBUG: Length of ack dictionary is big at %s clearing." % len(ack_dict)
+            )
+            ack_dict.clear()
+            LOG.debug(pprint.pformat(ack_dict))
+            LOG.debug(
+                "DEBUG: Cleared ack dictionary, ack_dict length is now %s." % len(ack_dict)
+            )
+        ack_dict[self.id] = 0  # clear ack for this message number
+
+        thread = threading.Thread(target=self.send_thread, name="send_message")
+        thread.start()
+
+    def send_direct(self):
+        """Send a message without a separate thread."""
+        cl = client.get_client()
+        log_message(
+            "Sending Message Direct", repr(self).rstrip("\n"), self.message, tocall=self.tocall,
+            fromcall=self.fromcall
+        )
+        cl.sendall(repr(self))
 
 
-def send_message_thread(tocall, message, this_message_number, retry_count):
-    cl = client.get_client()
-    line = "{}>APRS::{}:{}{{{}\n".format(
-        CONFIG["aprs"]["login"],
-        tocall,
-        message,
-        str(this_message_number),
-    )
-    for i in range(retry_count, 0, -1):
-        LOG.debug("DEBUG: send_message_thread msg:ack combos are: ")
-        LOG.debug(pprint.pformat(ack_dict))
-        if ack_dict[this_message_number] != 1:
+class AckMessage(Message):
+    """Class for building Acks and sending them."""
+
+
+    def __init__(self, fromcall, tocall, msg_id):
+        super(AckMessage, self).__init__(fromcall, tocall, msg_id=msg_id)
+
+    def __repr__(self):
+        return "{}>APRS::{}:ack{}\n".format(
+            self.fromcall, self.tocall.ljust(9), self.id)
+
+    def __str__(self):
+        return "From({}) TO({}) Ack ({})".format(
+            self.fromcall, self.tocall,
+            self.id
+        )
+
+    def send_thread(self):
+        """Separate thread to send acks with retries."""
+        cl = client.get_client()
+        for i in range(self.retry_count, 0, -1):
             log_message(
-                "Sending Message",
-                line.rstrip("\n"),
-                message,
-                tocall=tocall,
+                "Sending ack",
+                repr(self).rstrip("\n"),
+                None,
+                ack=self.id,
+                tocall=self.tocall,
                 retry_number=i,
             )
-            # tn.write(line)
-            cl.sendall(line)
-            # decaying repeats, 31 to 93 second intervals
-            sleeptime = (retry_count - i + 1) * 31
-            time.sleep(sleeptime)
-        else:
-            break
-    return
-    # end send_message_thread
+            cl.sendall(repr(self))
+            # aprs duplicate detection is 30 secs?
+            # (21 only sends first, 28 skips middle)
+            time.sleep(31)
+        # end_send_ack_thread
 
-
-def send_message(tocall, message):
-    global message_number
-    global ack_dict
-
-    retry_count = 3
-    if message_number > 98:  # global
-        message_number = 0
-    message_number += 1
-    if len(ack_dict) > 90:
-        # empty ack dict if it's really big, could result in key error later
-        LOG.debug(
-            "DEBUG: Length of ack dictionary is big at %s clearing." % len(ack_dict)
+    def send(self):
+        LOG.debug("Send ACK({}:{}) to radio.".format(self.tocall, self.id))
+        thread = threading.Thread(
+            target=self.send_thread, name="send_ack"
         )
-        ack_dict.clear()
-        LOG.debug(pprint.pformat(ack_dict))
-        LOG.debug(
-            "DEBUG: Cleared ack dictionary, ack_dict length is now %s." % len(ack_dict)
+        thread.start()
+    # end send_ack()
+
+    def send_direct(self):
+        """Send an ack message without a separate thread."""
+        cl = client.get_client()
+        log_message(
+            "Sending ack",
+            repr(self).rstrip("\n"),
+            None,
+            ack=self.id,
+            tocall=self.tocall,
+            fromcall=self.fromcall,
         )
-    ack_dict[message_number] = 0  # clear ack for this message number
-    tocall = tocall.ljust(9)  # pad to nine chars
-
-    # max?  ftm400 displays 64, raw msg shows 74
-    # and ftm400-send is max 64.  setting this to
-    # 67 displays 64 on the ftm400. (+3 {01 suffix)
-    # feature req: break long ones into two msgs
-    message = message[:67]
-    # We all miss George Carlin
-    message = re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
-    thread = threading.Thread(
-        target=send_message_thread,
-        name="send_message",
-        args=(tocall, message, message_number, retry_count),
-    )
-    thread.start()
-    return ()
-    # end send_message()
-
-
-def send_message_direct(tocall, message, message_number=None):
-    """Send a message without a separate thread."""
-    cl = client.get_client()
-    if not message_number:
-        this_message_number = 1
-    else:
-        this_message_number = message_number
-    fromcall = CONFIG["aprs"]["login"]
-    line = "{}>APRS::{}:{}{{{}\n".format(
-        fromcall,
-        tocall,
-        message,
-        str(this_message_number),
-    )
-    LOG.debug("DEBUG: send_message_thread msg:ack combos are: ")
-    log_message(
-        "Sending Message", line.rstrip("\n"), message, tocall=tocall, fromcall=fromcall
-    )
-    cl.sendall(line)
+        cl.sendall(repr(self))
 
 
 def log_packet(packet):
@@ -236,32 +314,3 @@ def log_message(
     log_list.append("    {} _______________ Complete".format(header))
 
     LOG.info("\n".join(log_list))
-
-
-def process_message(line):
-    f = re.search("^(.*)>", line)
-    fromcall = f.group(1)
-    searchstring = "::%s[ ]*:(.*)" % CONFIG["aprs"]["login"]
-    # verify this, callsign is padded out with spaces to colon
-    m = re.search(searchstring, line)
-    fullmessage = m.group(1)
-
-    ack_attached = re.search("(.*){([0-9A-Z]+)", fullmessage)
-    # ack formats include: {1, {AB}, {12
-    if ack_attached:
-        # "{##" suffix means radio wants an ack back
-        # message content
-        message = ack_attached.group(1)
-        # suffix number to use in ack
-        ack_num = ack_attached.group(2)
-    else:
-        message = fullmessage
-        # ack not requested, but lets send one as 0
-        ack_num = "0"
-
-    log_message(
-        "Received message", line, message, fromcall=fromcall, msg_num=str(ack_num)
-    )
-
-    return (fromcall, message, ack_num)
-    # end process_message()
