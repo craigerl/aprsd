@@ -1,11 +1,11 @@
 import abc
 import logging
-from multiprocessing import RawValue
 import pprint
 import re
 import threading
 import time
 import uuid
+from multiprocessing import RawValue
 
 from aprsd import client
 
@@ -20,6 +20,7 @@ ack_dict = {}
 # and it's ok, but don't send a usage string back
 NULL_MESSAGE = -1
 
+
 class MessageCounter(object):
     """
     Global message id counter class.
@@ -31,13 +32,14 @@ class MessageCounter(object):
     from the MessageCounter.
 
     """
+
     _instance = None
 
     def __new__(cls, *args, **kwargs):
         """Make this a singleton class."""
         if cls._instance is None:
             cls._instance = super(MessageCounter, cls).__new__(cls)
-            cls._instance.val = RawValue('i', 1)
+            cls._instance.val = RawValue("i", 1)
             cls._instance.lock = threading.Lock()
         return cls._instance
 
@@ -61,6 +63,7 @@ class MessageCounter(object):
 
 class Message(object, metaclass=abc.ABCMeta):
     """Base Message Class."""
+
     # The message id to send over the air
     id = 0
 
@@ -102,14 +105,16 @@ class TextMessage(Message):
     def __repr__(self):
         """Build raw string to send over the air."""
         return "{}>APRS::{}:{}{{{}\n".format(
-            self.fromcall, self.tocall.ljust(9),
-            self._filter_for_send(), str(self.id),)
+            self.fromcall,
+            self.tocall.ljust(9),
+            self._filter_for_send(),
+            str(self.id),
+        )
 
     def __str__(self):
         return "From({}) TO({}) - Message({}): '{}'".format(
-                self.fromcall, self.tocall,
-                self.id, self.message
-            )
+            self.fromcall, self.tocall, self.id, self.message
+        )
 
     def ack(self):
         """Build an Ack Message object from this object."""
@@ -162,7 +167,8 @@ class TextMessage(Message):
             ack_dict.clear()
             LOG.debug(pprint.pformat(ack_dict))
             LOG.debug(
-                "DEBUG: Cleared ack dictionary, ack_dict length is now %s." % len(ack_dict)
+                "DEBUG: Cleared ack dictionary, ack_dict length is now %s."
+                % len(ack_dict)
             )
         ack_dict[self.id] = 0  # clear ack for this message number
 
@@ -173,8 +179,11 @@ class TextMessage(Message):
         """Send a message without a separate thread."""
         cl = client.get_client()
         log_message(
-            "Sending Message Direct", repr(self).rstrip("\n"), self.message, tocall=self.tocall,
-            fromcall=self.fromcall
+            "Sending Message Direct",
+            repr(self).rstrip("\n"),
+            self.message,
+            tocall=self.tocall,
+            fromcall=self.fromcall,
         )
         cl.sendall(repr(self))
 
@@ -182,19 +191,16 @@ class TextMessage(Message):
 class AckMessage(Message):
     """Class for building Acks and sending them."""
 
-
     def __init__(self, fromcall, tocall, msg_id):
         super(AckMessage, self).__init__(fromcall, tocall, msg_id=msg_id)
 
     def __repr__(self):
         return "{}>APRS::{}:ack{}\n".format(
-            self.fromcall, self.tocall.ljust(9), self.id)
+            self.fromcall, self.tocall.ljust(9), self.id
+        )
 
     def __str__(self):
-        return "From({}) TO({}) Ack ({})".format(
-            self.fromcall, self.tocall,
-            self.id
-        )
+        return "From({}) TO({}) Ack ({})".format(self.fromcall, self.tocall, self.id)
 
     def send_thread(self):
         """Separate thread to send acks with retries."""
@@ -216,10 +222,9 @@ class AckMessage(Message):
 
     def send(self):
         LOG.debug("Send ACK({}:{}) to radio.".format(self.tocall, self.id))
-        thread = threading.Thread(
-            target=self.send_thread, name="send_ack"
-        )
+        thread = threading.Thread(target=self.send_thread, name="send_ack")
         thread.start()
+
     # end send_ack()
 
     def send_direct(self):
