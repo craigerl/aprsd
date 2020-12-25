@@ -12,7 +12,33 @@ from aprsd.fuzzyclock import fuzzy
 
 class testPlugin(unittest.TestCase):
     def setUp(self):
+        self.fromcall = "KFART"
+        self.ack = 1
         self.config = mock.MagicMock()
+
+    @mock.patch("shutil.which")
+    def test_fortune_fail(self, mock_which):
+        fortune_plugin = plugin.FortunePlugin(self.config)
+        mock_which.return_value = None
+        message = "fortune"
+        expected = "Fortune command not installed"
+        actual = fortune_plugin.run(self.fromcall, message, self.ack)
+        self.assertEqual(expected, actual)
+
+    @mock.patch("subprocess.Popen")
+    @mock.patch("shutil.which")
+    def test_fortune_success(self, mock_which, mock_popen):
+        fortune_plugin = plugin.FortunePlugin(self.config)
+        mock_which.return_value = "/usr/bin/games"
+
+        mock_process = mock.MagicMock()
+        mock_process.communicate.return_value = [b"Funny fortune"]
+        mock_popen.return_value = mock_process
+
+        message = "fortune"
+        expected = "Funny fortune"
+        actual = fortune_plugin.run(self.fromcall, message, self.ack)
+        self.assertEqual(expected, actual)
 
     @mock.patch("time.localtime")
     def test_Time(self, mock_time):
