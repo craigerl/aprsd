@@ -95,7 +95,8 @@ def create_default_config():
 
 
 def get_config(config_file):
-    """This tries to read the yaml config from <config_file>."""
+    """This tries to read the yaml config from <config_file>.  If no file is found and
+    no file can be created, it returns an error"""
     config_file_expanded = os.path.expanduser(config_file)
     if os.path.exists(config_file_expanded):
         with open(config_file_expanded, "r") as stream:
@@ -118,7 +119,7 @@ def get_config(config_file):
             msg = "Custom config file '{}' is missing.".format(config_file)
             click.echo(msg)
 
-        sys.exit(-1)
+        return msg
 
 
 # This method tries to parse the config yaml file
