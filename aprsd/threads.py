@@ -1,3 +1,4 @@
+import abc
 import logging
 import queue
 import threading
@@ -9,30 +10,69 @@ from aprsd import client, messaging, plugin
 
 LOG = logging.getLogger("APRSD")
 
+RX_THREAD = "RX"
+TX_THREAD = "TX"
+EMAIL_THREAD = "Email"
 
-class APRSDThread(threading.Thread):
-    def __init__(self, name, msg_queues, config):
+
+class APRSDThreadList(object):
+    """Singleton class that keeps track of application wide threads."""
+
+    _instance = None
+
+    threads_list = []
+    lock = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(APRSDThreadList, cls).__new__(cls)
+            cls.lock = threading.Lock()
+            cls.threads_list = []
+        return cls._instance
+
+    def add(self, thread_obj):
+        with self.lock:
+            self.threads_list.append(thread_obj)
+
+    def remove(self, thread_obj):
+        with self.lock:
+            self.threads_list.remove(thread_obj)
+
+    def stop_all(self):
+        """Iterate over all threads and call stop on them."""
+        with self.lock:
+            for th in self.threads_list:
+                th.stop()
+
+
+class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
+    def __init__(self, name):
         super(APRSDThread, self).__init__(name=name)
-        self.msg_queues = msg_queues
-        self.config = config
         self.thread_stop = False
+        APRSDThreadList().add(self)
 
     def stop(self):
         self.thread_stop = True
 
     def run(self):
+        LOG.info("Starting")
         while not self.thread_stop:
-            self._run()
+            can_loop = self.loop()
+            if not can_loop:
+                self.stop()
+        APRSDThreadList().remove(self)
+        LOG.info("Exiting")
 
 
 class APRSDRXThread(APRSDThread):
     def __init__(self, msg_queues, config):
-        super(APRSDRXThread, self).__init__("RX_MSG", msg_queues, config)
-        self.thread_stop = False
+        super(APRSDRXThread, self).__init__("RX_MSG")
+        self.msg_queues = msg_queues
+        self.config = config
 
     def stop(self):
         self.thread_stop = True
-        self.aprs.stop()
+        client.get_client().stop()
 
     def callback(self, packet):
         try:
@@ -41,32 +81,31 @@ class APRSDRXThread(APRSDThread):
         except (aprslib.ParseError, aprslib.UnknownFormat):
             pass
 
-    def run(self):
-        LOG.info("Starting")
-        while not self.thread_stop:
-            aprs_client = client.get_client()
+    def loop(self):
+        aprs_client = client.get_client()
 
-            # setup the consumer of messages and block until a messages
-            try:
-                # This will register a packet consumer with aprslib
-                # When new packets come in the consumer will process
-                # the packet
+        # setup the consumer of messages and block until a messages
+        try:
+            # This will register a packet consumer with aprslib
+            # When new packets come in the consumer will process
+            # the packet
 
-                # Do a partial here because the consumer signature doesn't allow
-                # For kwargs to be passed in to the consumer func we declare
-                # and the aprslib developer didn't want to allow a PR to add
-                # kwargs.  :(
-                # https://github.com/rossengeorgiev/aprs-python/pull/56
-                aprs_client.consumer(self.process_packet, raw=False, blocking=False)
+            # Do a partial here because the consumer signature doesn't allow
+            # For kwargs to be passed in to the consumer func we declare
+            # and the aprslib developer didn't want to allow a PR to add
+            # kwargs.  :(
+            # https://github.com/rossengeorgiev/aprs-python/pull/56
+            aprs_client.consumer(self.process_packet, raw=False, blocking=False)
 
-            except aprslib.exceptions.ConnectionDrop:
-                LOG.error("Connection dropped, reconnecting")
-                time.sleep(5)
-                # Force the deletion of the client object connected to aprs
-                # This will cause a reconnect, next time client.get_client()
-                # is called
-                client.Client().reset()
-        LOG.info("Exiting ")
+        except aprslib.exceptions.ConnectionDrop:
+            LOG.error("Connection dropped, reconnecting")
+            time.sleep(5)
+            # Force the deletion of the client object connected to aprs
+            # This will cause a reconnect, next time client.get_client()
+            # is called
+            client.Client().reset()
+        # Continue to loop
+        return True
 
     def process_ack_packet(self, packet):
         ack_num = packet.get("msgNo")
@@ -74,7 +113,10 @@ class APRSDRXThread(APRSDThread):
         messaging.log_message(
             "ACK", packet["raw"], None, ack=ack_num, fromcall=packet["from"]
         )
-        messaging.ack_dict.update({int(ack_num): 1})
+        tracker = messaging.MsgTrack()
+        tracker.remove(ack_num)
+        LOG.debug("Length of MsgTrack is {}".format(len(tracker)))
+        # messaging.ack_dict.update({int(ack_num): 1})
         return
 
     def process_mic_e_packet(self, packet):
@@ -87,12 +129,14 @@ class APRSDRXThread(APRSDThread):
         fromcall = packet["from"]
         message = packet.get("message_text", None)
 
-        msg_id = packet.get("msgNo", None)
-        if not msg_id:
-            msg_id = "0"
+        msg_id = packet.get("msgNo", "0")
 
         messaging.log_message(
-            "Received Message", packet["raw"], message, fromcall=fromcall, ack=msg_id
+            "Received Message",
+            packet["raw"],
+            message,
+            fromcall=fromcall,
+            msg_num=msg_id,
         )
 
         found_command = False
@@ -108,7 +152,6 @@ class APRSDRXThread(APRSDThread):
                 if reply is not messaging.NULL_MESSAGE:
                     LOG.debug("Sending '{}'".format(reply))
 
-                    # msg = {"fromcall": fromcall, "msg": reply}
                     msg = messaging.TextMessage(
                         self.config["aprs"]["login"], fromcall, reply
                     )
@@ -122,7 +165,6 @@ class APRSDRXThread(APRSDThread):
                 names.sort()
 
                 reply = "Usage: {}".format(", ".join(names))
-                # messaging.send_message(fromcall, reply)
                 msg = messaging.TextMessage(
                     self.config["aprs"]["login"], fromcall, reply
                 )
@@ -130,7 +172,6 @@ class APRSDRXThread(APRSDThread):
         except Exception as ex:
             LOG.exception("Plugin failed!!!", ex)
             reply = "A Plugin failed! try again?"
-            # messaging.send_message(fromcall, reply)
             msg = messaging.TextMessage(self.config["aprs"]["login"], fromcall, reply)
             self.msg_queues["tx"].put(msg)
 
@@ -139,7 +180,7 @@ class APRSDRXThread(APRSDThread):
         ack = messaging.AckMessage(
             self.config["aprs"]["login"], fromcall, msg_id=msg_id
         )
-        ack.send()
+        self.msg_queues["tx"].put(ack)
         LOG.debug("Packet processing complete")
 
     def process_packet(self, packet):
@@ -172,15 +213,16 @@ class APRSDRXThread(APRSDThread):
 
 class APRSDTXThread(APRSDThread):
     def __init__(self, msg_queues, config):
-        super(APRSDTXThread, self).__init__("TX_MSG", msg_queues, config)
+        super(APRSDTXThread, self).__init__("TX_MSG")
+        self.msg_queues = msg_queues
+        self.config = config
 
-    def run(self):
-        LOG.info("Starting")
-        while not self.thread_stop:
-            try:
-                msg = self.msg_queues["tx"].get(timeout=0.1)
-                LOG.info("TXQ: got message '{}'".format(msg))
-                msg.send()
-            except queue.Empty:
-                pass
-        LOG.info("Exiting ")
+    def loop(self):
+        try:
+            msg = self.msg_queues["tx"].get(timeout=0.1)
+            LOG.info("TXQ: got message '{}'".format(msg))
+            msg.send()
+        except queue.Empty:
+            pass
+        # Continue to loop
+        return True

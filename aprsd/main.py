@@ -54,7 +54,7 @@ LOG_LEVELS = {
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
-server_threads = []
+server_event = threading.Event()
 
 # localization, please edit:
 # HOST = "noam.aprs2.net"     # north america tier2 servers round robin
@@ -143,11 +143,13 @@ def install(append, case_insensitive, shell, path):
 
 
 def signal_handler(signal, frame):
-    global event
+    global server_vent
 
-    LOG.info("Ctrl+C, Sending all threads exit!")
-    for th in server_threads:
-        th.stop()
+    LOG.info(
+        "Ctrl+C, Sending all threads exit! Can take up to 10 seconds to exit all threads"
+    )
+    threads.APRSDThreadList().stop_all()
+    server_event.set()
     sys.exit(0)  # thread ignores this
 
 
@@ -260,7 +262,6 @@ def send_message(
             got_ack = True
         else:
             message = packet.get("message_text", None)
-            LOG.info("We got a new message")
             fromcall = packet["from"]
             msg_number = packet.get("msgNo", "0")
             messaging.log_message(
@@ -289,7 +290,6 @@ def send_message(
     # message
     msg = messaging.TextMessage(aprs_login, tocallsign, command)
     msg.send_direct()
-    # messaging.send_message_direct(tocallsign, command, message_number)
 
     try:
         # This will register a packet consumer with aprslib
@@ -359,9 +359,6 @@ def server(loglevel, quiet, disable_validation, config_file):
         LOG.error("Failed to validate email config options")
         sys.exit(-1)
 
-    # start the email thread
-    email.start_thread()
-
     # Create the initial PM singleton and Register plugins
     plugin_manager = plugin.PluginManager(config)
     plugin_manager.setup_plugins()
@@ -376,11 +373,19 @@ def server(loglevel, quiet, disable_validation, config_file):
 
     rx_thread = threads.APRSDRXThread(msg_queues=msg_queues, config=config)
     tx_thread = threads.APRSDTXThread(msg_queues=msg_queues, config=config)
-    # TODO(hemna): add EmailThread
-    server_threads.append(rx_thread)
-    server_threads.append(tx_thread)
+    email_thread = email.APRSDEmailThread(msg_queues=msg_queues, config=config)
+    email_thread.start()
     rx_thread.start()
     tx_thread.start()
+
+    cntr = 0
+    while not server_event.is_set():
+        # to keep the log noise down
+        if cntr % 6 == 0:
+            tracker = messaging.MsgTrack()
+            LOG.debug("KeepAlive  Tracker({}): {}".format(len(tracker), str(tracker)))
+        cntr += 1
+        time.sleep(10)
 
     LOG.info("APRSD Exiting.")
     sys.exit(0)

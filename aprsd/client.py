@@ -73,6 +73,7 @@ class Aprsdis(aprslib.IS):
 
     def stop(self):
         self.thread_stop = True
+        LOG.info("Shutdown Aprsdis client.")
 
     def _socket_readlines(self, blocking=False):
         """
@@ -94,7 +95,6 @@ class Aprsdis(aprslib.IS):
                 [self.sock], [], [], self.select_timeout
             )
             if not readable:
-                self.logger.info("nothing to read")
                 continue
 
             try:

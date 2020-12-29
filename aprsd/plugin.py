@@ -449,8 +449,16 @@ class EmailPlugin(APRSDPluginBase):
                 if a is not None:
                     to_addr = a.group(1)
                     content = a.group(2)
+
+                    email_address = email.get_email_from_shortcut(to_addr)
+                    if not email_address:
+                        reply = "Bad email address"
+                        return reply
+
                     # send recipient link to aprs.fi map
+                    mapme = False
                     if content == "mapme":
+                        mapme = True
                         content = "Click for my location: http://aprs.fi/{}".format(
                             self.config["ham"]["callsign"]
                         )
@@ -458,6 +466,8 @@ class EmailPlugin(APRSDPluginBase):
                     now = time.time()
                     # see if we sent this msg number recently
                     if ack in self.email_sent_dict:
+                        # BUG(hemna) - when we get a 2 different email command
+                        # with the same ack #, we don't send it.
                         timedelta = now - self.email_sent_dict[ack]
                         if timedelta < 300:  # five minutes
                             too_soon = 1
@@ -477,7 +487,10 @@ class EmailPlugin(APRSDPluginBase):
                                 )
                                 self.email_sent_dict.clear()
                             self.email_sent_dict[ack] = now
-                            reply = "mapme email sent"
+                            if mapme:
+                                reply = "mapme email sent"
+                            else:
+                                reply = "Email sent."
                     else:
                         LOG.info(
                             "Email for message number "
