@@ -31,6 +31,7 @@ CORE_PLUGINS = [
     "aprsd.plugin.FortunePlugin",
     "aprsd.plugin.LocationPlugin",
     "aprsd.plugin.PingPlugin",
+    "aprsd.plugin.QueryPlugin",
     "aprsd.plugin.TimePlugin",
     "aprsd.plugin.WeatherPlugin",
     "aprsd.plugin.VersionPlugin",
@@ -351,6 +352,22 @@ class PingPlugin(APRSDPluginBase):
             "Pong! " + str(h).zfill(2) + ":" + str(m).zfill(2) + ":" + str(s).zfill(2)
         )
         return reply.rstrip()
+
+
+class QueryPlugin(APRSDPluginBase):
+    """Query command."""
+
+    version = "1.0"
+    command_regex = r"^\?.*"
+    command_name = "query"
+
+    def command(self, fromcall, message, ack):
+        LOG.info("Query COMMAND")
+
+        tracker = messaging.MsgTrack()
+        reply = "Pending Messages ({})".format(len(tracker))
+
+        return reply
 
 
 class TimePlugin(APRSDPluginBase):
