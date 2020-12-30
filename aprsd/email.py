@@ -4,7 +4,6 @@ import imaplib
 import logging
 import re
 import smtplib
-import threading
 import time
 from email.mime.text import MIMEText
 
@@ -12,19 +11,12 @@ import imapclient
 import six
 from validate_email import validate_email
 
-from aprsd import messaging
+from aprsd import messaging, threads
 
 LOG = logging.getLogger("APRSD")
 
 # This gets forced set from main.py prior to being used internally
 CONFIG = None
-
-
-def start_thread():
-    checkemailthread = threading.Thread(
-        target=check_email_thread, name="check_email", args=()
-    )  # args must be tuple
-    checkemailthread.start()
 
 
 def _imap_connect():
@@ -118,6 +110,11 @@ def validate_shortcuts(config):
         del config["shortcuts"][key]
 
     LOG.info("Available shortcuts: {}".format(config["shortcuts"]))
+
+
+def get_email_from_shortcut(shortcut):
+    if shortcut in CONFIG.get("shortcuts", None):
+        return CONFIG["shortcuts"].get(shortcut, None)
 
 
 def validate_email_config(config, disable_validation=False):
@@ -221,6 +218,45 @@ def parse_email(msgid, data, server):
 # end parse_email
 
 
+def send_email(to_addr, content):
+    global check_email_delay
+
+    shortcuts = CONFIG["shortcuts"]
+    email_address = get_email_from_shortcut(to_addr)
+    LOG.info("Sending Email_________________")
+
+    if to_addr in shortcuts:
+        LOG.info("To          : " + to_addr)
+        to_addr = email_address
+        LOG.info(" (" + to_addr + ")")
+    subject = CONFIG["ham"]["callsign"]
+    # content = content + "\n\n(NOTE: reply with one line)"
+    LOG.info("Subject     : " + subject)
+    LOG.info("Body        : " + content)
+
+    # check email more often since there's activity right now
+    check_email_delay = 60
+
+    msg = MIMEText(content)
+    msg["Subject"] = subject
+    msg["From"] = CONFIG["smtp"]["login"]
+    msg["To"] = to_addr
+    server = _smtp_connect()
+    if server:
+        try:
+            server.sendmail(CONFIG["smtp"]["login"], [to_addr], msg.as_string())
+        except Exception as e:
+            msg = getattr(e, "message", repr(e))
+            LOG.error("Sendmail Error!!!! '{}'", msg)
+            server.quit()
+            return -1
+        server.quit()
+        return 0
+
+
+# end send_email
+
+
 def resend_email(count, fromcall):
     global check_email_delay
     date = datetime.datetime.now()
@@ -257,7 +293,9 @@ def resend_email(count, fromcall):
                 from_addr = shortcuts_inverted[from_addr]
             # asterisk indicates a resend
             reply = "-" + from_addr + " * " + body.decode(errors="ignore")
-            messaging.send_message(fromcall, reply)
+            # messaging.send_message(fromcall, reply)
+            msg = messaging.TextMessage(CONFIG["aprs"]["login"], fromcall, reply)
+            msg.send()
             msgexists = True
 
     if msgexists is not True:
@@ -274,7 +312,9 @@ def resend_email(count, fromcall):
             str(m).zfill(2),
             str(s).zfill(2),
         )
-        messaging.send_message(fromcall, reply)
+        # messaging.send_message(fromcall, reply)
+        msg = messaging.TextMessage(CONFIG["aprs"]["login"], fromcall, reply)
+        msg.send()
 
     # check email more often since we're resending one now
     check_email_delay = 60
@@ -283,117 +323,108 @@ def resend_email(count, fromcall):
     # end resend_email()
 
 
-def check_email_thread():
-    global check_email_delay
+class APRSDEmailThread(threads.APRSDThread):
+    def __init__(self, msg_queues, config):
+        super(APRSDEmailThread, self).__init__("EmailThread")
+        self.msg_queues = msg_queues
+        self.config = config
 
-    # LOG.debug("FIXME initial email delay is 10 seconds")
-    check_email_delay = 60
-    while True:
-        #        LOG.debug("Top of check_email_thread.")
+    def run(self):
+        global check_email_delay
 
-        time.sleep(check_email_delay)
+        check_email_delay = 60
+        past = datetime.datetime.now()
+        while not self.thread_stop:
+            time.sleep(5)
+            # always sleep for 5 seconds and see if we need to check email
+            # This allows CTRL-C to stop the execution of this loop sooner
+            # than check_email_delay time
+            now = datetime.datetime.now()
+            if now - past > datetime.timedelta(seconds=check_email_delay):
+                # It's time to check email
 
-        # slowly increase delay every iteration, max out at 300 seconds
-        # any send/receive/resend activity will reset this to 60 seconds
-        if check_email_delay < 300:
-            check_email_delay += 1
-        LOG.debug("check_email_delay is " + str(check_email_delay) + " seconds")
+                # slowly increase delay every iteration, max out at 300 seconds
+                # any send/receive/resend activity will reset this to 60 seconds
+                if check_email_delay < 300:
+                    check_email_delay += 1
+                LOG.debug("check_email_delay is " + str(check_email_delay) + " seconds")
 
-        shortcuts = CONFIG["shortcuts"]
-        # swap key/value
-        shortcuts_inverted = dict([[v, k] for k, v in shortcuts.items()])
+                shortcuts = CONFIG["shortcuts"]
+                # swap key/value
+                shortcuts_inverted = dict([[v, k] for k, v in shortcuts.items()])
 
-        date = datetime.datetime.now()
-        month = date.strftime("%B")[:3]  # Nov, Mar, Apr
-        day = date.day
-        year = date.year
-        today = "%s-%s-%s" % (day, month, year)
+                date = datetime.datetime.now()
+                month = date.strftime("%B")[:3]  # Nov, Mar, Apr
+                day = date.day
+                year = date.year
+                today = "%s-%s-%s" % (day, month, year)
 
-        server = None
-        try:
-            server = _imap_connect()
-        except Exception as e:
-            LOG.exception("Failed to get IMAP server Can't check email.", e)
+                server = None
+                try:
+                    server = _imap_connect()
+                except Exception as e:
+                    LOG.exception("Failed to get IMAP server Can't check email.", e)
 
-        if not server:
-            continue
+                if not server:
+                    continue
 
-        messages = server.search(["SINCE", today])
-        # LOG.debug("{} messages received today".format(len(messages)))
+                messages = server.search(["SINCE", today])
+                # LOG.debug("{} messages received today".format(len(messages)))
 
-        for msgid, data in server.fetch(messages, ["ENVELOPE"]).items():
-            envelope = data[b"ENVELOPE"]
-            # LOG.debug('ID:%d  "%s" (%s)' % (msgid, envelope.subject.decode(), envelope.date))
-            f = re.search(
-                r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)", str(envelope.from_[0])
-            )
-            if f is not None:
-                from_addr = f.group(1)
+                for msgid, data in server.fetch(messages, ["ENVELOPE"]).items():
+                    envelope = data[b"ENVELOPE"]
+                    # LOG.debug('ID:%d  "%s" (%s)' % (msgid, envelope.subject.decode(), envelope.date))
+                    f = re.search(
+                        r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)", str(envelope.from_[0])
+                    )
+                    if f is not None:
+                        from_addr = f.group(1)
+                    else:
+                        from_addr = "noaddr"
+
+                    # LOG.debug("Message flags/tags:  " + str(server.get_flags(msgid)[msgid]))
+                    # if "APRS" not in server.get_flags(msgid)[msgid]:
+                    # in python3, imap tags are unicode.  in py2 they're strings. so .decode them to handle both
+                    taglist = [
+                        x.decode(errors="ignore")
+                        for x in server.get_flags(msgid)[msgid]
+                    ]
+                    if "APRS" not in taglist:
+                        # if msg not flagged as sent via aprs
+                        server.fetch([msgid], ["RFC822"])
+                        (body, from_addr) = parse_email(msgid, data, server)
+                        # unset seen flag, will stay bold in email client
+                        server.remove_flags(msgid, [imapclient.SEEN])
+
+                        if from_addr in shortcuts_inverted:
+                            # reverse lookup of a shortcut
+                            from_addr = shortcuts_inverted[from_addr]
+
+                        reply = "-" + from_addr + " " + body.decode(errors="ignore")
+                        # messaging.send_message(CONFIG["ham"]["callsign"], reply)
+                        msg = messaging.TextMessage(
+                            self.config["aprs"]["login"],
+                            self.config["ham"]["callsign"],
+                            reply,
+                        )
+                        self.msg_queues["tx"].put(msg)
+                        # flag message as sent via aprs
+                        server.add_flags(msgid, ["APRS"])
+                        # unset seen flag, will stay bold in email client
+                        server.remove_flags(msgid, [imapclient.SEEN])
+                        # check email more often since we just received an email
+                        check_email_delay = 60
+                # reset clock
+                past = datetime.datetime.now()
+                server.logout()
             else:
-                from_addr = "noaddr"
+                # We haven't hit the email delay yet.
+                # LOG.debug("Delta({}) < {}".format(now - past, check_email_delay))
+                pass
 
-            # LOG.debug("Message flags/tags:  " + str(server.get_flags(msgid)[msgid]))
-            # if "APRS" not in server.get_flags(msgid)[msgid]:
-            # in python3, imap tags are unicode.  in py2 they're strings. so .decode them to handle both
-            taglist = [
-                x.decode(errors="ignore") for x in server.get_flags(msgid)[msgid]
-            ]
-            if "APRS" not in taglist:
-                # if msg not flagged as sent via aprs
-                server.fetch([msgid], ["RFC822"])
-                (body, from_addr) = parse_email(msgid, data, server)
-                # unset seen flag, will stay bold in email client
-                server.remove_flags(msgid, [imapclient.SEEN])
-
-                if from_addr in shortcuts_inverted:
-                    # reverse lookup of a shortcut
-                    from_addr = shortcuts_inverted[from_addr]
-
-                reply = "-" + from_addr + " " + body.decode(errors="ignore")
-                messaging.send_message(CONFIG["ham"]["callsign"], reply)
-                # flag message as sent via aprs
-                server.add_flags(msgid, ["APRS"])
-                # unset seen flag, will stay bold in email client
-                server.remove_flags(msgid, [imapclient.SEEN])
-                # check email more often since we just received an email
-                check_email_delay = 60
-
-        server.logout()
+        # Remove ourselves from the global threads list
+        threads.APRSDThreadList().remove(self)
+        LOG.info("Exiting")
 
 
 # end check_email()
-
-
-def send_email(to_addr, content):
-    global check_email_delay
-
-    LOG.info("Sending Email_________________")
-    shortcuts = CONFIG["shortcuts"]
-    if to_addr in shortcuts:
-        LOG.info("To          : " + to_addr)
-        to_addr = shortcuts[to_addr]
-        LOG.info(" (" + to_addr + ")")
-    subject = CONFIG["ham"]["callsign"]
-    # content = content + "\n\n(NOTE: reply with one line)"
-    LOG.info("Subject     : " + subject)
-    LOG.info("Body        : " + content)
-
-    # check email more often since there's activity right now
-    check_email_delay = 60
-
-    msg = MIMEText(content)
-    msg["Subject"] = subject
-    msg["From"] = CONFIG["smtp"]["login"]
-    msg["To"] = to_addr
-    server = _smtp_connect()
-    if server:
-        try:
-            server.sendmail(CONFIG["smtp"]["login"], [to_addr], msg.as_string())
-        except Exception as e:
-            msg = getattr(e, "message", repr(e))
-            LOG.error("Sendmail Error!!!! '{}'", msg)
-            server.quit()
-            return -1
-        server.quit()
-        return 0
-    # end send_email

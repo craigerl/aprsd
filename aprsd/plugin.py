@@ -31,6 +31,7 @@ CORE_PLUGINS = [
     "aprsd.plugin.FortunePlugin",
     "aprsd.plugin.LocationPlugin",
     "aprsd.plugin.PingPlugin",
+    "aprsd.plugin.QueryPlugin",
     "aprsd.plugin.TimePlugin",
     "aprsd.plugin.WeatherPlugin",
     "aprsd.plugin.VersionPlugin",
@@ -353,6 +354,43 @@ class PingPlugin(APRSDPluginBase):
         return reply.rstrip()
 
 
+class QueryPlugin(APRSDPluginBase):
+    """Query command."""
+
+    version = "1.0"
+    command_regex = r"^\?.*"
+    command_name = "query"
+
+    def command(self, fromcall, message, ack):
+        LOG.info("Query COMMAND")
+
+        tracker = messaging.MsgTrack()
+        reply = "Pending Messages ({})".format(len(tracker))
+
+        searchstring = "^" + self.config["ham"]["callsign"] + ".*"
+        # only I can do admin commands
+        if re.search(searchstring, fromcall):
+            r = re.search(r"^\?-\*", message)
+            if r is not None:
+                if len(tracker) > 0:
+                    reply = "Resend ALL Delayed msgs"
+                    LOG.debug(reply)
+                    tracker.restart_delayed()
+                else:
+                    reply = "No Delayed Msgs"
+                    LOG.debug(reply)
+                return reply
+
+            r = re.search(r"^\?-[fF]!", message)
+            if r is not None:
+                reply = "Deleting ALL Delayed msgs."
+                LOG.debug(reply)
+                tracker.flush()
+                return reply
+
+        return reply
+
+
 class TimePlugin(APRSDPluginBase):
     """Time command."""
 
@@ -449,8 +487,16 @@ class EmailPlugin(APRSDPluginBase):
                 if a is not None:
                     to_addr = a.group(1)
                     content = a.group(2)
+
+                    email_address = email.get_email_from_shortcut(to_addr)
+                    if not email_address:
+                        reply = "Bad email address"
+                        return reply
+
                     # send recipient link to aprs.fi map
+                    mapme = False
                     if content == "mapme":
+                        mapme = True
                         content = "Click for my location: http://aprs.fi/{}".format(
                             self.config["ham"]["callsign"]
                         )
@@ -458,6 +504,8 @@ class EmailPlugin(APRSDPluginBase):
                     now = time.time()
                     # see if we sent this msg number recently
                     if ack in self.email_sent_dict:
+                        # BUG(hemna) - when we get a 2 different email command
+                        # with the same ack #, we don't send it.
                         timedelta = now - self.email_sent_dict[ack]
                         if timedelta < 300:  # five minutes
                             too_soon = 1
@@ -477,7 +525,10 @@ class EmailPlugin(APRSDPluginBase):
                                 )
                                 self.email_sent_dict.clear()
                             self.email_sent_dict[ack] = now
-                            reply = "mapme email sent"
+                            if mapme:
+                                reply = "mapme email sent"
+                            else:
+                                reply = "Email sent."
                     else:
                         LOG.info(
                             "Email for message number "

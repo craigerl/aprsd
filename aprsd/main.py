@@ -23,9 +23,10 @@
 # python included libs
 import logging
 import os
-import random
+import queue
 import signal
 import sys
+import threading
 import time
 from logging import NullHandler
 from logging.handlers import RotatingFileHandler
@@ -37,7 +38,7 @@ import yaml
 
 # local imports here
 import aprsd
-from aprsd import client, email, messaging, plugin, utils
+from aprsd import client, email, messaging, plugin, threads, utils
 
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
@@ -52,6 +53,8 @@ LOG_LEVELS = {
 }
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+server_event = threading.Event()
 
 # localization, please edit:
 # HOST = "noam.aprs2.net"     # north america tier2 servers round robin
@@ -140,9 +143,13 @@ def install(append, case_insensitive, shell, path):
 
 
 def signal_handler(signal, frame):
-    LOG.info("Ctrl+C, exiting.")
-    # sys.exit(0)  # thread ignores this
-    os._exit(0)
+    global server_vent
+
+    LOG.info(
+        "Ctrl+C, Sending all threads exit! Can take up to 10 seconds to exit all threads"
+    )
+    threads.APRSDThreadList().stop_all()
+    server_event.set()
 
 
 # end signal_handler
@@ -170,99 +177,6 @@ def setup_logging(config, loglevel, quiet):
         sh = logging.StreamHandler(sys.stdout)
         sh.setFormatter(log_formatter)
         LOG.addHandler(sh)
-
-
-def process_ack_packet(packet):
-    ack_num = packet.get("msgNo")
-    LOG.info("Got ack for message {}".format(ack_num))
-    messaging.log_message(
-        "ACK", packet["raw"], None, ack=ack_num, fromcall=packet["from"]
-    )
-    messaging.ack_dict.update({int(ack_num): 1})
-    return
-
-
-def process_mic_e_packet(packet):
-    LOG.info("Mic-E Packet detected.  Currenlty unsupported.")
-    messaging.log_packet(packet)
-    return
-
-
-def process_message_packet(packet):
-    LOG.info("Got a message packet")
-    fromcall = packet["from"]
-    message = packet.get("message_text", None)
-
-    msg_number = packet.get("msgNo", None)
-    if msg_number:
-        ack = msg_number
-    else:
-        ack = "0"
-
-    messaging.log_message(
-        "Received Message", packet["raw"], message, fromcall=fromcall, ack=ack
-    )
-
-    found_command = False
-    # Get singleton of the PM
-    pm = plugin.PluginManager()
-    try:
-        results = pm.run(fromcall=fromcall, message=message, ack=ack)
-        for reply in results:
-            found_command = True
-            # A plugin can return a null message flag which signals
-            # us that they processed the message correctly, but have
-            # nothing to reply with, so we avoid replying with a usage string
-            if reply is not messaging.NULL_MESSAGE:
-                LOG.debug("Sending '{}'".format(reply))
-                messaging.send_message(fromcall, reply)
-            else:
-                LOG.debug("Got NULL MESSAGE from plugin")
-
-        if not found_command:
-            plugins = pm.get_plugins()
-            names = [x.command_name for x in plugins]
-            names.sort()
-
-            reply = "Usage: {}".format(", ".join(names))
-            messaging.send_message(fromcall, reply)
-    except Exception as ex:
-        LOG.exception("Plugin failed!!!", ex)
-        reply = "A Plugin failed! try again?"
-        messaging.send_message(fromcall, reply)
-
-    # let any threads do their thing, then ack
-    # send an ack last
-    messaging.send_ack(fromcall, ack)
-    LOG.debug("Packet processing complete")
-
-
-def process_packet(packet):
-    """Process a packet recieved from aprs-is server."""
-
-    LOG.debug("Process packet!")
-    try:
-        LOG.debug("Got message: {}".format(packet))
-
-        msg = packet.get("message_text", None)
-        msg_format = packet.get("format", None)
-        msg_response = packet.get("response", None)
-        if msg_format == "message" and msg:
-            # we want to send the message through the
-            # plugins
-            process_message_packet(packet)
-            return
-        elif msg_response == "ack":
-            process_ack_packet(packet)
-            return
-
-        if msg_format == "mic-e":
-            # process a mic-e packet
-            process_mic_e_packet(packet)
-            return
-
-    except (aprslib.ParseError, aprslib.UnknownFormat) as exp:
-        LOG.exception("Failed to parse packet from aprs-is", exp)
 
 
 @main.command()
@@ -329,7 +243,6 @@ def send_message(
 
     setup_logging(config, loglevel, quiet)
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
-    message_number = random.randint(1, 90)
     if type(command) is tuple:
         command = " ".join(command)
     LOG.info("Sending Command '{}'".format(command))
@@ -348,19 +261,21 @@ def send_message(
             got_ack = True
         else:
             message = packet.get("message_text", None)
-            LOG.info("We got a new message")
             fromcall = packet["from"]
-            msg_number = packet.get("msgNo", None)
-            if msg_number:
-                ack = msg_number
-            else:
-                ack = "0"
+            msg_number = packet.get("msgNo", "0")
             messaging.log_message(
-                "Received Message", packet["raw"], message, fromcall=fromcall, ack=ack
+                "Received Message",
+                packet["raw"],
+                message,
+                fromcall=fromcall,
+                ack=msg_number,
             )
             got_response = True
             # Send the ack back?
-            messaging.send_ack_direct(fromcall, ack)
+            ack = messaging.AckMessage(
+                config["aprs"]["login"], fromcall, msg_id=msg_number
+            )
+            ack.send_direct()
 
         if got_ack and got_response:
             sys.exit(0)
@@ -372,7 +287,8 @@ def send_message(
     # We should get an ack back as well as a new message
     # we should bail after we get the ack and send an ack back for the
     # message
-    messaging.send_message_direct(tocallsign, command, message_number)
+    msg = messaging.TextMessage(aprs_login, tocallsign, command)
+    msg.send_direct()
 
     try:
         # This will register a packet consumer with aprslib
@@ -416,9 +332,20 @@ def send_message(
     default=utils.DEFAULT_CONFIG_FILE,
     help="The aprsd config file to use for options.",
 )
-def server(loglevel, quiet, disable_validation, config_file):
+@click.option(
+    "-f",
+    "--flush",
+    "flush",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Flush out all old aged messages on disk.",
+)
+def server(loglevel, quiet, disable_validation, config_file, flush):
     """Start the aprsd server process."""
+    global event
 
+    event = threading.Event()
     signal.signal(signal.SIGINT, signal_handler)
 
     click.echo("Load config")
@@ -429,7 +356,6 @@ def server(loglevel, quiet, disable_validation, config_file):
     # Accept the config as a constructor param, instead of this
     # hacky global setting
     email.CONFIG = config
-    messaging.CONFIG = config
 
     setup_logging(config, loglevel, quiet)
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
@@ -441,32 +367,49 @@ def server(loglevel, quiet, disable_validation, config_file):
         LOG.error("Failed to validate email config options")
         sys.exit(-1)
 
-    # start the email thread
-    email.start_thread()
-
     # Create the initial PM singleton and Register plugins
     plugin_manager = plugin.PluginManager(config)
     plugin_manager.setup_plugins()
-    cl = client.Client(config)
+    client.Client(config)
 
-    # setup and run the main blocking loop
-    while True:
-        # Now use the helper which uses the singleton
-        aprs_client = client.get_client()
+    # Now load the msgTrack from disk if any
+    if flush:
+        LOG.debug("Deleting saved MsgTrack.")
+        messaging.MsgTrack().flush()
+    else:
+        # Try and load saved MsgTrack list
+        LOG.debug("Loading saved MsgTrack object.")
+        messaging.MsgTrack().load()
 
-        # setup the consumer of messages and block until a messages
-        try:
-            # This will register a packet consumer with aprslib
-            # When new packets come in the consumer will process
-            # the packet
-            aprs_client.consumer(process_packet, raw=False)
-        except aprslib.exceptions.ConnectionDrop:
-            LOG.error("Connection dropped, reconnecting")
-            time.sleep(5)
-            # Force the deletion of the client object connected to aprs
-            # This will cause a reconnect, next time client.get_client()
-            # is called
-            cl.reset()
+    rx_msg_queue = queue.Queue(maxsize=20)
+    tx_msg_queue = queue.Queue(maxsize=20)
+    msg_queues = {
+        "rx": rx_msg_queue,
+        "tx": tx_msg_queue,
+    }
+
+    rx_thread = threads.APRSDRXThread(msg_queues=msg_queues, config=config)
+    tx_thread = threads.APRSDTXThread(msg_queues=msg_queues, config=config)
+    email_thread = email.APRSDEmailThread(msg_queues=msg_queues, config=config)
+    email_thread.start()
+    rx_thread.start()
+    tx_thread.start()
+
+    messaging.MsgTrack().restart()
+
+    cntr = 0
+    while not server_event.is_set():
+        # to keep the log noise down
+        if cntr % 6 == 0:
+            tracker = messaging.MsgTrack()
+            LOG.debug("KeepAlive  Tracker({}): {}".format(len(tracker), str(tracker)))
+        cntr += 1
+        time.sleep(10)
+
+    # If there are items in the msgTracker, then save them
+    tracker = messaging.MsgTrack()
+    tracker.save()
+    LOG.info("APRSD Exiting.")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import functools
 import os
 import sys
 import threading
+from pathlib import Path
 
 import click
 import yaml
@@ -46,7 +47,10 @@ DEFAULT_CONFIG_DICT = {
     },
 }
 
-DEFAULT_CONFIG_FILE = "~/.config/aprsd/aprsd.yml"
+home = str(Path.home())
+DEFAULT_CONFIG_DIR = "{}/.config/aprsd/".format(home)
+DEFAULT_SAVE_FILE = "{}/.config/aprsd/aprsd.p".format(home)
+DEFAULT_CONFIG_FILE = "{}/.config/aprsd/aprsd.yml".format(home)
 
 
 def synchronized(wrapped):
