@@ -88,8 +88,10 @@ class MsgTrack(object):
     def save(self):
         """Save this shit to disk?"""
         if len(self) > 0:
-            LOG.info("Need to save tracking to disk")
+            LOG.info("Saving {} tracking messages to disk".format(len(self)))
             pickle.dump(self.dump(), open(utils.DEFAULT_SAVE_FILE, "wb+"))
+        else:
+            self.flush()
 
     def dump(self):
         dump = {}
@@ -109,13 +111,26 @@ class MsgTrack(object):
 
     def restart(self):
         """Walk the list of messages and restart them if any."""
+
         for key in self.track.keys():
             msg = self.track[key]
-            msg.send()
+            if msg.last_send_attempt < msg.retry_count:
+                msg.send()
+
+    def restart_delayed(self):
+        """Walk the list of delayed messages and restart them if any."""
+        for key in self.track.keys():
+            msg = self.track[key]
+            if msg.last_send_attempt == msg.retry_count:
+                msg.last_send_attempt = 0
+                msg.send()
 
     def flush(self):
         """Nuke the old pickle file that stored the old results from last aprsd run."""
-        pathlib.Path(utils.DEFAULT_SAVE_FILE).unlink()
+        if os.path.exists(utils.DEFAULT_SAVE_FILE):
+            pathlib.Path(utils.DEFAULT_SAVE_FILE).unlink()
+        with self.lock:
+            self.track = {}
 
 
 class MessageCounter(object):
