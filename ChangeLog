@@ -1,6 +1,18 @@
 CHANGES
 =======
 
+v1.5.0
+------
+
+* Added QueryPlugin resend all delayed msgs or Flush
+* Added QueryPlugin
+* Added support to save/load MsgTrack on exit/start
+* Creation of MsgTrack object and other stuff
+* Added FortunePlugin unit test
+* Added some plugin unit tests
+* reworked threading
+* Reworked messaging lib
+
 v1.1.0
 ------
 
