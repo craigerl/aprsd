@@ -1,12 +1,15 @@
 import abc
 import datetime
 import logging
+import os
+import pathlib
+import pickle
 import re
 import threading
 import time
 from multiprocessing import RawValue
 
-from aprsd import client, threads
+from aprsd import client, threads, utils
 
 LOG = logging.getLogger("APRSD")
 
@@ -44,6 +47,7 @@ class MsgTrack(object):
     lock = None
 
     track = {}
+    total_messages_tracked = 0
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -56,6 +60,7 @@ class MsgTrack(object):
         with self.lock:
             key = int(msg.id)
             self.track[key] = msg
+            self.total_messages_tracked += 1
 
     def get(self, id):
         with self.lock:
@@ -82,11 +87,35 @@ class MsgTrack(object):
 
     def save(self):
         """Save this shit to disk?"""
-        pass
+        if len(self) > 0:
+            LOG.info("Need to save tracking to disk")
+            pickle.dump(self.dump(), open(utils.DEFAULT_SAVE_FILE, "wb+"))
 
-    def restore(self):
-        """Restore this shit?"""
-        pass
+    def dump(self):
+        dump = {}
+        with self.lock:
+            for key in self.track.keys():
+                dump[key] = self.track[key]
+
+        return dump
+
+    def load(self):
+        if os.path.exists(utils.DEFAULT_SAVE_FILE):
+            raw = pickle.load(open(utils.DEFAULT_SAVE_FILE, "rb"))
+            if raw:
+                self.track = raw
+                LOG.debug("Loaded MsgTrack dict from disk.")
+                LOG.debug(self)
+
+    def restart(self):
+        """Walk the list of messages and restart them if any."""
+        for key in self.track.keys():
+            msg = self.track[key]
+            msg.send()
+
+    def flush(self):
+        """Nuke the old pickle file that stored the old results from last aprsd run."""
+        pathlib.Path(utils.DEFAULT_SAVE_FILE).unlink()
 
 
 class MessageCounter(object):

@@ -150,7 +150,6 @@ def signal_handler(signal, frame):
     )
     threads.APRSDThreadList().stop_all()
     server_event.set()
-    sys.exit(0)  # thread ignores this
 
 
 # end signal_handler
@@ -333,7 +332,16 @@ def send_message(
     default=utils.DEFAULT_CONFIG_FILE,
     help="The aprsd config file to use for options.",
 )
-def server(loglevel, quiet, disable_validation, config_file):
+@click.option(
+    "-f",
+    "--flush",
+    "flush",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Flush out all old aged messages on disk.",
+)
+def server(loglevel, quiet, disable_validation, config_file, flush):
     """Start the aprsd server process."""
     global event
 
@@ -364,6 +372,15 @@ def server(loglevel, quiet, disable_validation, config_file):
     plugin_manager.setup_plugins()
     client.Client(config)
 
+    # Now load the msgTrack from disk if any
+    if flush:
+        LOG.debug("Deleting saved MsgTrack.")
+        messaging.MsgTrack().flush()
+    else:
+        # Try and load saved MsgTrack list
+        LOG.debug("Loading saved MsgTrack object.")
+        messaging.MsgTrack().load()
+
     rx_msg_queue = queue.Queue(maxsize=20)
     tx_msg_queue = queue.Queue(maxsize=20)
     msg_queues = {
@@ -378,6 +395,8 @@ def server(loglevel, quiet, disable_validation, config_file):
     rx_thread.start()
     tx_thread.start()
 
+    messaging.MsgTrack().restart()
+
     cntr = 0
     while not server_event.is_set():
         # to keep the log noise down
@@ -387,9 +406,10 @@ def server(loglevel, quiet, disable_validation, config_file):
         cntr += 1
         time.sleep(10)
 
+    # If there are items in the msgTracker, then save them
+    tracker = messaging.MsgTrack()
+    tracker.save()
     LOG.info("APRSD Exiting.")
-    sys.exit(0)
-    # setup and run the main blocking loop
 
 
 if __name__ == "__main__":
