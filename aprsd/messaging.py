@@ -217,10 +217,7 @@ class TextMessage(Message):
     def __repr__(self):
         """Build raw string to send over the air."""
         return "{}>APRS::{}:{}{{{}\n".format(
-            self.fromcall,
-            self.tocall.ljust(9),
-            self._filter_for_send(),
-            str(self.id),
+            self.fromcall, self.tocall.ljust(9), self._filter_for_send(), str(self.id)
         )
 
     def __str__(self):

@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
-import sys
 import unittest
 from unittest import mock
-
-import pytest
 
 import aprsd
 from aprsd import plugin
 from aprsd.fuzzyclock import fuzzy
 
 
-class testPlugin(unittest.TestCase):
+class TestPlugin(unittest.TestCase):
     def setUp(self):
         self.fromcall = "KFART"
         self.ack = 1
@@ -41,11 +38,11 @@ class testPlugin(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     @mock.patch("time.localtime")
-    def test_Time(self, mock_time):
+    def test_time(self, mock_time):
         fake_time = mock.MagicMock()
         h = fake_time.tm_hour = 16
         m = fake_time.tm_min = 12
-        s = fake_time.tm_sec = 55
+        fake_time.tm_sec = 55
         mock_time.return_value = fake_time
         time_plugin = plugin.TimePlugin(self.config)
 
@@ -66,7 +63,7 @@ class testPlugin(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     @mock.patch("time.localtime")
-    def test_Ping(self, mock_time):
+    def test_ping(self, mock_time):
         fake_time = mock.MagicMock()
         h = fake_time.tm_hour = 16
         m = fake_time.tm_min = 12

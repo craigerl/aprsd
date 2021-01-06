@@ -17,7 +17,7 @@ cd ~/.venv_aprsd
 
 ./bin/aprsd  # generates a config.yml template on first run
 
-vi ~/.aprsd/config.yml   
+vi ~/.aprsd/config.yml
 
 ./bin/aprsd
 

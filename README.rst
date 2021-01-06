@@ -17,7 +17,7 @@ Listen on amateur radio aprs-is network for messages and respond to them.
 You must have an amateur radio callsign to use this software.  APRSD gets
 messages for the configured HAM callsign, and sends those messages to a
 list of plugins for processing.   There are a set of core plugins that
-provide responding to messages to check email, get location, ping, 
+provide responding to messages to check email, get location, ping,
 time of day, get weather, and fortune telling as well as version information
 of aprsd itself.
 
@@ -25,7 +25,7 @@ Typical use case
 ================
 
 Ham radio operator using an APRS enabled HAM radio sends a message to check
-the weather.  an APRS message is sent, and then picked up by APRSD.  The 
+the weather.  an APRS message is sent, and then picked up by APRSD.  The
 APRS packet is decoded, and the message is sent through the list of plugins
 for processing.   The WeatherPlugin picks up the message, fetches the weather
 for the area around the user who sent the request, and then responds with
@@ -38,7 +38,7 @@ APRSD Capabilities
 
 * server - The main aprsd server processor.  Send/Rx APRS messages to HAM callsign
 * send-message - use aprsd to send a command/message to aprsd server.  Used for development testing
-* sample-config - generate a sample aprsd.yml config file for use/editing  
+* sample-config - generate a sample aprsd.yml config file for use/editing
 * bash completion generation.  Uses python click bash completion to generate completion code for your .bashrc/.zshrc
 
 
@@ -173,7 +173,7 @@ Output
 server
 ======
 
-This is the main server command that will listen to APRS-IS servers and 
+This is the main server command that will listen to APRS-IS servers and
 look for incomming commands to the callsign configured in the config file
 
 ::
@@ -319,12 +319,12 @@ LOCATION
 
     Sending message_______________ 7(Tx3)
     Raw         : KM6XXX-9>APRS::KM6XXX   :8 Miles NE Auburn CA 1673' 39.91150,-120.93450 0.1h ago{7
-    To          : KM6XXX   
+    To          : KM6XXX
     Message     : 8 Miles E Auburn CA 1673' 38.91150,-120.93450 0.1h ago
 
     Sending ack __________________ Tx(3)
     Raw         : KM6XXX-9>APRS::KM6XXX   :ack28
-    To          : KM6XXX   
+    To          : KM6XXX
     Ack number  : 28
 
     Received message______________
@@ -356,7 +356,7 @@ Release
 
 To do release to pypi:
 
-* Tag release with 
+* Tag release with
 
    git tag -v1.XX -m "New release"
 
@@ -414,4 +414,3 @@ Provide a csv list of pypi installable plugins.  Then make sure the plugin
 python file is in your /plugins volume and the plugin will be installed at
 container startup.  The plugin may have dependencies that are required.
 The plugin file should be copied to /plugins for loading by aprsd
-

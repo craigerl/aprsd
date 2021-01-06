@@ -70,7 +70,7 @@ class PluginManager(object):
 
         self.obj_list = []
 
-        for path, subdirs, files in os.walk(dir_path):
+        for path, _subdirs, files in os.walk(dir_path):
             for name in files:
                 if fnmatch.fnmatch(name, pattern):
                     LOG.debug("MODULE? '{}' '{}'".format(name, path))

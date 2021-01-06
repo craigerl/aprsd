@@ -383,10 +383,7 @@ def server(loglevel, quiet, disable_validation, config_file, flush):
 
     rx_msg_queue = queue.Queue(maxsize=20)
     tx_msg_queue = queue.Queue(maxsize=20)
-    msg_queues = {
-        "rx": rx_msg_queue,
-        "tx": tx_msg_queue,
-    }
+    msg_queues = {"rx": rx_msg_queue, "tx": tx_msg_queue}
 
     rx_thread = threads.APRSDRXThread(msg_queues=msg_queues, config=config)
     tx_thread = threads.APRSDTXThread(msg_queues=msg_queues, config=config)

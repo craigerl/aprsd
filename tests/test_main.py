@@ -2,8 +2,6 @@
 import sys
 import unittest
 
-import pytest
-
 from aprsd import email
 
 if sys.version_info >= (3, 2):
@@ -12,7 +10,7 @@ else:
     import mock
 
 
-class testMain(unittest.TestCase):
+class TestMain(unittest.TestCase):
     @mock.patch("aprsd.email._imap_connect")
     @mock.patch("aprsd.email._smtp_connect")
     def test_validate_email(self, imap_mock, smtp_mock):
