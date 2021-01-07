@@ -337,10 +337,17 @@ AND... ping, fortune, time.....
 
 
 Development
------------
+===========
+
+* git clone git@github.com:craigerl/aprsd.git
+* cd aprsd
+* virtualenv .venv
+* source .venv/bin/activate
+* pip install -e .
+* pre-commit install
 
 Workflow
-========
+--------
 
 While working aprsd, The workflow is as follows
 
@@ -348,11 +355,11 @@ While working aprsd, The workflow is as follows
 * run tox -epep8
 * run tox -efmt
 * run tox -p
-* git commit
+* git commit  ( This will run the pre-commit hooks which does checks too )
 
 
 Release
-=======
+-------
 
 To do release to pypi:
 
@@ -382,7 +389,7 @@ Docker Container
 ----------------
 
 Building
-========
+--------
 
 There are 2 versions of the container Dockerfile that can be used.
 The main Dockerfile, which is for building the official release container
@@ -391,18 +398,18 @@ which is used for building a container based off of a git branch of
 the repo.
 
 Official Build
-==============
+--------------
 
  docker build -t hemna6969/aprsd:latest .
 
 Development Build
-=================
+-----------------
 
  docker build -t hemna6969/aprsd:latest -f Dockerfile-dev .
 
 
 Running the container
-=====================
+---------------------
 
 There is a docker-compose.yml file that can be used to run your container.
 There are 2 volumes defined that can be used to store your configuration

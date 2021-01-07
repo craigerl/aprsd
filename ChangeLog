@@ -4,6 +4,7 @@ CHANGES
 v1.5.0
 ------
 
+* Updated README to include development env
 * Added pre-commit hooks
 * Update Changelog for v1.5.0
 * Added QueryPlugin resend all delayed msgs or Flush
