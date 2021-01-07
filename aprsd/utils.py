@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Utilities and helper functions."""
 
 import errno

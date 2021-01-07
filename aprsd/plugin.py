@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # The base plugin class
 import abc
 import fnmatch

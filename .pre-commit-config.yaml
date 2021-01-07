@@ -6,10 +6,21 @@ repos:
     -   id: end-of-file-fixer
     -   id: check-yaml
     -   id: check-added-large-files
+    -   id: fix-encoding-pragma
+    -   id: detect-private-key
+    -   id: check-merge-conflict
+    -   id: check-case-conflict
+    -   id: check-docstring-first
+    -   id: check-builtin-literals
 -   repo: https://github.com/psf/black
     rev: 19.3b0
     hooks:
     -   id: black
+
+-   repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.7.0
+    hooks:
+    -   id: isort
 
 -   repo: https://gitlab.com/pycqa/flake8
     rev: 3.8.1

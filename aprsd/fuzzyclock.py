@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #
 # @author Sinu John
 #         sinuvian at gmail dot com
