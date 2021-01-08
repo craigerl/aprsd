@@ -494,9 +494,7 @@ class EmailPlugin(APRSDPluginBase):
                         return reply
 
                     # send recipient link to aprs.fi map
-                    mapme = False
                     if content == "mapme":
-                        mapme = True
                         content = "Click for my location: http://aprs.fi/{}".format(
                             self.config["ham"]["callsign"]
                         )
@@ -525,11 +523,6 @@ class EmailPlugin(APRSDPluginBase):
                                 )
                                 self.email_sent_dict.clear()
                             self.email_sent_dict[ack] = now
-                            #don't really need a response, ack is enough
-                            #if mapme:
-                            #    reply = "mapme email sent"
-                            #else:
-                            #    reply = "Email sent."
                     else:
                         LOG.info(
                             "Email for message number "
