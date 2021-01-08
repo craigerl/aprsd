@@ -510,6 +510,7 @@ class EmailPlugin(APRSDPluginBase):
                     if not too_soon or ack == 0:
                         LOG.info("Send email '{}'".format(content))
                         send_result = email.send_email(to_addr, content)
+                        reply = messaging.NULL_MESSAGE
                         if send_result != 0:
                             reply = "-{} failed".format(to_addr)
                             # messaging.send_message(fromcall, "-" + to_addr + " failed")
