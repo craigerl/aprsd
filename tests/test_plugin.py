@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import unittest
 from unittest import mock
 
@@ -57,7 +56,10 @@ class TestPlugin(unittest.TestCase):
 
         message = "time"
         expected = "{} ({}:{} PDT) ({})".format(
-            cur_time, str(h), str(m).rjust(2, "0"), message.rstrip()
+            cur_time,
+            str(h),
+            str(m).rjust(2, "0"),
+            message.rstrip(),
         )
         actual = time_plugin.run(fromcall, message, ack)
         self.assertEqual(expected, actual)
