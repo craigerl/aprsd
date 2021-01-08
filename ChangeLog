@@ -4,6 +4,8 @@ CHANGES
 v1.5.0
 ------
 
+* Fixed failures caused by last commit
+* don't tell radio emails were sent, ack is enuf
 * Updated README to include development env
 * Added pre-commit hooks
 * Update Changelog for v1.5.0
