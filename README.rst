@@ -351,11 +351,18 @@ Workflow
 
 While working aprsd, The workflow is as follows
 
-* Edit code, save file
+* checkout a new branch to work on
+* git checkout -b mybranch
+* Edit code
 * run tox -epep8
 * run tox -efmt
 * run tox -p
 * git commit  ( This will run the pre-commit hooks which does checks too )
+* Once you are done with all of your commits, then push up the branch to
+  github
+* git push -u origin mybranch
+* Create a pull request from your branch so github tests can run and we can do
+  a code review.
 
 
 Release
