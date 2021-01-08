@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Listen on amateur radio aprs-is network for messages and respond to them.
 # You must have an amateur radio callsign to use this software.  You must
@@ -22,23 +21,22 @@
 
 # python included libs
 import logging
+from logging import NullHandler
+from logging.handlers import RotatingFileHandler
 import os
 import queue
 import signal
 import sys
 import threading
 import time
-from logging import NullHandler
-from logging.handlers import RotatingFileHandler
-
-import aprslib
-import click
-import click_completion
-import yaml
 
 # local imports here
 import aprsd
 from aprsd import client, email, messaging, plugin, threads, utils
+import aprslib
+import click
+import click_completion
+import yaml
 
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
@@ -99,7 +97,9 @@ def main():
 
 @main.command()
 @click.option(
-    "-i", "--case-insensitive/--no-case-insensitive", help="Case insensitive completion"
+    "-i",
+    "--case-insensitive/--no-case-insensitive",
+    help="Case insensitive completion",
 )
 @click.argument(
     "shell",
@@ -118,10 +118,14 @@ def show(shell, case_insensitive):
 
 @main.command()
 @click.option(
-    "--append/--overwrite", help="Append the completion code to the file", default=None
+    "--append/--overwrite",
+    help="Append the completion code to the file",
+    default=None,
 )
 @click.option(
-    "-i", "--case-insensitive/--no-case-insensitive", help="Case insensitive completion"
+    "-i",
+    "--case-insensitive/--no-case-insensitive",
+    help="Case insensitive completion",
 )
 @click.argument(
     "shell",
@@ -137,16 +141,19 @@ def install(append, case_insensitive, shell, path):
         else {}
     )
     shell, path = click_completion.core.install(
-        shell=shell, path=path, append=append, extra_env=extra_env
+        shell=shell,
+        path=path,
+        append=append,
+        extra_env=extra_env,
     )
-    click.echo("%s completion installed in %s" % (shell, path))
+    click.echo("{} completion installed in {}".format(shell, path))
 
 
 def signal_handler(signal, frame):
     global server_vent
 
     LOG.info(
-        "Ctrl+C, Sending all threads exit! Can take up to 10 seconds to exit all threads"
+        "Ctrl+C, Sending all threads exit! Can take up to 10 seconds to exit all threads",
     )
     threads.APRSDThreadList().stop_all()
     server_event.set()
@@ -191,7 +198,8 @@ def sample_config():
     default="DEBUG",
     show_default=True,
     type=click.Choice(
-        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"], case_sensitive=False
+        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        case_sensitive=False,
     ),
     show_choices=True,
     help="The log level to use for aprsd.log",
@@ -220,7 +228,13 @@ def sample_config():
 @click.argument("tocallsign")
 @click.argument("command", nargs=-1)
 def send_message(
-    loglevel, quiet, config_file, aprs_login, aprs_password, tocallsign, command
+    loglevel,
+    quiet,
+    config_file,
+    aprs_login,
+    aprs_password,
+    tocallsign,
+    command,
 ):
     """Send a message to a callsign via APRS_IS."""
     global got_ack, got_response
@@ -273,7 +287,9 @@ def send_message(
             got_response = True
             # Send the ack back?
             ack = messaging.AckMessage(
-                config["aprs"]["login"], fromcall, msg_id=msg_number
+                config["aprs"]["login"],
+                fromcall,
+                msg_id=msg_number,
             )
             ack.send_direct()
 
@@ -312,7 +328,8 @@ def send_message(
     default="DEBUG",
     show_default=True,
     type=click.Choice(
-        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"], case_sensitive=False
+        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        case_sensitive=False,
     ),
     show_choices=True,
     help="The log level to use for aprsd.log",

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # The base plugin class
 import abc
 import fnmatch
@@ -12,14 +11,12 @@ import shutil
 import subprocess
 import time
 
-import pluggy
-import requests
-import six
-from thesmuggler import smuggle
-
 import aprsd
 from aprsd import email, messaging
 from aprsd.fuzzyclock import fuzzy
+import pluggy
+import requests
+from thesmuggler import smuggle
 
 # setup the global logger
 LOG = logging.getLogger("APRSD")
@@ -39,7 +36,7 @@ CORE_PLUGINS = [
 ]
 
 
-class PluginManager(object):
+class PluginManager:
     # The singleton instance object for this class
     _instance = None
 
@@ -52,7 +49,7 @@ class PluginManager(object):
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
         if cls._instance is None:
-            cls._instance = super(PluginManager, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             # Put any initialization here.
         return cls._instance
 
@@ -79,7 +76,7 @@ class PluginManager(object):
                     for mem_name, obj in inspect.getmembers(module):
                         if inspect.isclass(obj) and self.is_plugin(obj):
                             self.obj_list.append(
-                                {"name": mem_name, "obj": obj(self.config)}
+                                {"name": mem_name, "obj": obj(self.config)},
                             )
 
         return self.obj_list
@@ -108,14 +105,16 @@ class PluginManager(object):
             return
 
         assert hasattr(module, class_name), "class {} is not in {}".format(
-            class_name, module_name
+            class_name,
+            module_name,
         )
         # click.echo('reading class {} from module {}'.format(
         #     class_name, module_name))
         cls = getattr(module, class_name)
         if super_cls is not None:
             assert issubclass(cls, super_cls), "class {} should inherit from {}".format(
-                class_name, super_cls.__name__
+                class_name,
+                super_cls.__name__,
             )
         # click.echo('initialising {} with params {}'.format(class_name, kwargs))
         obj = cls(**kwargs)
@@ -131,13 +130,17 @@ class PluginManager(object):
         plugin_obj = None
         try:
             plugin_obj = self._create_class(
-                plugin_name, APRSDPluginBase, config=self.config
+                plugin_name,
+                APRSDPluginBase,
+                config=self.config,
             )
             if plugin_obj:
                 LOG.info(
                     "Registering Command plugin '{}'({})  '{}'".format(
-                        plugin_name, plugin_obj.version, plugin_obj.command_regex
-                    )
+                        plugin_name,
+                        plugin_obj.version,
+                        plugin_obj.command_regex,
+                    ),
                 )
                 self._pluggy_pm.register(plugin_obj)
         except Exception as ex:
@@ -173,8 +176,10 @@ class PluginManager(object):
                     if plugin_obj:
                         LOG.info(
                             "Registering Command plugin '{}'({}) '{}'".format(
-                                o["name"], o["obj"].version, o["obj"].command_regex
-                            )
+                                o["name"],
+                                o["obj"].version,
+                                o["obj"].command_regex,
+                            ),
                         )
                         self._pluggy_pm.register(o["obj"])
 
@@ -203,8 +208,7 @@ class APRSDCommandSpec:
         pass
 
 
-@six.add_metaclass(abc.ABCMeta)
-class APRSDPluginBase(object):
+class APRSDPluginBase(metaclass=abc.ABCMeta):
     def __init__(self, config):
         """The aprsd config object is stored."""
         self.config = config
@@ -257,7 +261,8 @@ class FortunePlugin(APRSDPluginBase):
 
         try:
             process = subprocess.Popen(
-                [fortune_path, "-s", "-n 60"], stdout=subprocess.PIPE
+                [fortune_path, "-s", "-n 60"],
+                stdout=subprocess.PIPE,
             )
             reply = process.communicate()[0]
             reply = reply.decode(errors="ignore").rstrip()
@@ -406,7 +411,10 @@ class TimePlugin(APRSDPluginBase):
         m = stm.tm_min
         cur_time = fuzzy(h, m, 1)
         reply = "{} ({}:{} PDT) ({})".format(
-            cur_time, str(h), str(m).rjust(2, "0"), message.rstrip()
+            cur_time,
+            str(h),
+            str(m).rjust(2, "0"),
+            message.rstrip(),
         )
         return reply
 
@@ -497,7 +505,7 @@ class EmailPlugin(APRSDPluginBase):
                     # send recipient link to aprs.fi map
                     if content == "mapme":
                         content = "Click for my location: http://aprs.fi/{}".format(
-                            self.config["ham"]["callsign"]
+                            self.config["ham"]["callsign"],
                         )
                     too_soon = 0
                     now = time.time()
@@ -521,7 +529,7 @@ class EmailPlugin(APRSDPluginBase):
                                 LOG.debug(
                                     "DEBUG: email_sent_dict is big ("
                                     + str(len(self.email_sent_dict))
-                                    + ") clearing out."
+                                    + ") clearing out.",
                                 )
                                 self.email_sent_dict.clear()
                             self.email_sent_dict[ack] = now
@@ -529,7 +537,7 @@ class EmailPlugin(APRSDPluginBase):
                         LOG.info(
                             "Email for message number "
                             + ack
-                            + " recently sent, not sending again."
+                            + " recently sent, not sending again.",
                         )
             else:
                 reply = "Bad email address"

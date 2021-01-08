@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 import unittest
 
@@ -7,7 +6,7 @@ from aprsd import email
 if sys.version_info >= (3, 2):
     from unittest import mock
 else:
-    import mock
+    from unittest import mock
 
 
 class TestMain(unittest.TestCase):
