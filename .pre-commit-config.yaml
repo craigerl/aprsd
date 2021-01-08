@@ -11,7 +11,6 @@ repos:
     - id: check-case-conflict
     - id: check-docstring-first
     - id: check-builtin-literals
-    - id: double-quote-string-fixer
 
 - repo: https://github.com/asottile/setup-cfg-fmt
   rev: v1.16.0
