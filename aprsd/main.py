@@ -407,6 +407,7 @@ def server(loglevel, quiet, disable_validation, config_file, flush):
     tracker = messaging.MsgTrack()
     tracker.save()
     LOG.info("APRSD Exiting.")
+    LOG.debug("really exiting.")
 
 
 if __name__ == "__main__":
