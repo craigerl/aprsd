@@ -116,7 +116,6 @@ class APRSDRXThread(APRSDThread):
         tracker = messaging.MsgTrack()
         tracker.remove(ack_num)
         LOG.debug("Length of MsgTrack is {}".format(len(tracker)))
-        # messaging.ack_dict.update({int(ack_num): 1})
         return
 
     def process_mic_e_packet(self, packet):

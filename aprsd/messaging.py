@@ -13,11 +13,6 @@ from aprsd import client, threads, utils
 
 LOG = logging.getLogger("APRSD")
 
-# message_nubmer:ack  combos so we stop sending a message after an
-# ack from radio {int:int}
-# FIXME
-ack_dict = {}
-
 # What to return from a plugin if we have processed the message
 # and it's ok, but don't send a usage string back
 NULL_MESSAGE = -1
@@ -240,8 +235,6 @@ class TextMessage(Message):
         return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
 
     def send(self):
-        global ack_dict
-
         tracker = MsgTrack()
         tracker.add(self)
         LOG.debug("Length of MsgTrack is {}".format(len(tracker)))
