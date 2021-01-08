@@ -525,10 +525,11 @@ class EmailPlugin(APRSDPluginBase):
                                 )
                                 self.email_sent_dict.clear()
                             self.email_sent_dict[ack] = now
-                            if mapme:
-                                reply = "mapme email sent"
-                            else:
-                                reply = "Email sent."
+                            #don't really need a response, ack is enough
+                            #if mapme:
+                            #    reply = "mapme email sent"
+                            #else:
+                            #    reply = "Email sent."
                     else:
                         LOG.info(
                             "Email for message number "
