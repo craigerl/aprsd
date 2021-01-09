@@ -2,8 +2,11 @@ import unittest
 from unittest import mock
 
 import aprsd
-from aprsd import plugin
 from aprsd.fuzzyclock import fuzzy
+from aprsd.plugins import fortune as fortune_plugin
+from aprsd.plugins import ping as ping_plugin
+from aprsd.plugins import time as time_plugin
+from aprsd.plugins import version as version_plugin
 
 
 class TestPlugin(unittest.TestCase):
@@ -14,17 +17,17 @@ class TestPlugin(unittest.TestCase):
 
     @mock.patch("shutil.which")
     def test_fortune_fail(self, mock_which):
-        fortune_plugin = plugin.FortunePlugin(self.config)
+        fortune = fortune_plugin.FortunePlugin(self.config)
         mock_which.return_value = None
         message = "fortune"
         expected = "Fortune command not installed"
-        actual = fortune_plugin.run(self.fromcall, message, self.ack)
+        actual = fortune.run(self.fromcall, message, self.ack)
         self.assertEqual(expected, actual)
 
     @mock.patch("subprocess.Popen")
     @mock.patch("shutil.which")
     def test_fortune_success(self, mock_which, mock_popen):
-        fortune_plugin = plugin.FortunePlugin(self.config)
+        fortune = fortune_plugin.FortunePlugin(self.config)
         mock_which.return_value = "/usr/bin/games"
 
         mock_process = mock.MagicMock()
@@ -33,7 +36,7 @@ class TestPlugin(unittest.TestCase):
 
         message = "fortune"
         expected = "Funny fortune"
-        actual = fortune_plugin.run(self.fromcall, message, self.ack)
+        actual = fortune.run(self.fromcall, message, self.ack)
         self.assertEqual(expected, actual)
 
     @mock.patch("time.localtime")
@@ -43,13 +46,13 @@ class TestPlugin(unittest.TestCase):
         m = fake_time.tm_min = 12
         fake_time.tm_sec = 55
         mock_time.return_value = fake_time
-        time_plugin = plugin.TimePlugin(self.config)
+        time = time_plugin.TimePlugin(self.config)
 
         fromcall = "KFART"
         message = "location"
         ack = 1
 
-        actual = time_plugin.run(fromcall, message, ack)
+        actual = time.run(fromcall, message, ack)
         self.assertEqual(None, actual)
 
         cur_time = fuzzy(h, m, 1)
@@ -61,7 +64,7 @@ class TestPlugin(unittest.TestCase):
             str(m).rjust(2, "0"),
             message.rstrip(),
         )
-        actual = time_plugin.run(fromcall, message, ack)
+        actual = time.run(fromcall, message, ack)
         self.assertEqual(expected, actual)
 
     @mock.patch("time.localtime")
@@ -72,7 +75,7 @@ class TestPlugin(unittest.TestCase):
         s = fake_time.tm_sec = 55
         mock_time.return_value = fake_time
 
-        ping = plugin.PingPlugin(self.config)
+        ping = ping_plugin.PingPlugin(self.config)
 
         fromcall = "KFART"
         message = "location"
@@ -102,19 +105,19 @@ class TestPlugin(unittest.TestCase):
 
     def test_version(self):
         expected = "APRSD version '{}'".format(aprsd.__version__)
-        version_plugin = plugin.VersionPlugin(self.config)
+        version = version_plugin.VersionPlugin(self.config)
 
         fromcall = "KFART"
         message = "No"
         ack = 1
 
-        actual = version_plugin.run(fromcall, message, ack)
+        actual = version.run(fromcall, message, ack)
         self.assertEqual(None, actual)
 
         message = "version"
-        actual = version_plugin.run(fromcall, message, ack)
+        actual = version.run(fromcall, message, ack)
         self.assertEqual(expected, actual)
 
         message = "Version"
-        actual = version_plugin.run(fromcall, message, ack)
+        actual = version.run(fromcall, message, ack)
         self.assertEqual(expected, actual)
