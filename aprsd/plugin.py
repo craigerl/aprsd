@@ -370,20 +370,19 @@ class QueryPlugin(APRSDPluginBase):
         searchstring = "^" + self.config["ham"]["callsign"] + ".*"
         # only I can do admin commands
         if re.search(searchstring, fromcall):
-            r = re.search(r"^\?-\*", message)
+            r = re.search(r"^\?[rR].*", message)
             if r is not None:
                 if len(tracker) > 0:
-                    reply = "Resend ALL Delayed msgs"
-                    LOG.debug(reply)
+                    reply = messaging.NULL_MESSAGE
                     tracker.restart_delayed()
                 else:
                     reply = "No Delayed Msgs"
                     LOG.debug(reply)
                 return reply
 
-            r = re.search(r"^\?-[fF]!", message)
+            r = re.search(r"^\?[dD].*", message)
             if r is not None:
-                reply = "Deleting ALL Delayed msgs."
+                reply = "Deleted ALL unacked msgs"
                 LOG.debug(reply)
                 tracker.flush()
                 return reply
