@@ -230,4 +230,3 @@ class PluginManager:
 
     def get_plugins(self):
         return self._pluggy_pm.get_plugins()
-
