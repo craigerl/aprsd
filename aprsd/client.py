@@ -1,6 +1,5 @@
 import logging
 import select
-import socket
 import time
 
 import aprslib
@@ -8,7 +7,7 @@ import aprslib
 LOG = logging.getLogger("APRSD")
 
 
-class Client(object):
+class Client:
     """Singleton client class that constructs the aprslib connection."""
 
     _instance = None
@@ -18,7 +17,7 @@ class Client(object):
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
         if cls._instance is None:
-            cls._instance = super(Client, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             # Put any initialization here.
         return cls._instance
 
@@ -81,7 +80,7 @@ class Aprsdis(aprslib.IS):
         """
         try:
             self.sock.setblocking(0)
-        except socket.error as e:
+        except OSError as e:
             self.logger.error("socket error when setblocking(0): %s" % str(e))
             raise aprslib.ConnectionDrop("connection dropped")
 
@@ -92,7 +91,10 @@ class Aprsdis(aprslib.IS):
             # set a select timeout, so we get a chance to exit
             # when user hits CTRL-C
             readable, writable, exceptional = select.select(
-                [self.sock], [], [], self.select_timeout
+                [self.sock],
+                [],
+                [],
+                self.select_timeout,
             )
             if not readable:
                 continue
@@ -104,7 +106,7 @@ class Aprsdis(aprslib.IS):
                 if not short_buf:
                     self.logger.error("socket.recv(): returned empty")
                     raise aprslib.ConnectionDrop("connection dropped")
-            except socket.error as e:
+            except OSError as e:
                 # self.logger.error("socket error on recv(): %s" % str(e))
                 if "Resource temporarily unavailable" in str(e):
                     if not blocking:

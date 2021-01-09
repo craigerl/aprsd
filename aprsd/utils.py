@@ -3,14 +3,13 @@
 import errno
 import functools
 import os
+from pathlib import Path
 import sys
 import threading
-from pathlib import Path
-
-import click
-import yaml
 
 from aprsd import plugin
+import click
+import yaml
 
 # an example of what should be in the ~/.aprsd/config.yml
 DEFAULT_CONFIG_DICT = {
@@ -102,13 +101,13 @@ def get_config(config_file):
     """This tries to read the yaml config from <config_file>."""
     config_file_expanded = os.path.expanduser(config_file)
     if os.path.exists(config_file_expanded):
-        with open(config_file_expanded, "r") as stream:
+        with open(config_file_expanded) as stream:
             config = yaml.load(stream, Loader=yaml.FullLoader)
             return config
     else:
         if config_file == DEFAULT_CONFIG_FILE:
             click.echo(
-                "{} is missing, creating config file".format(config_file_expanded)
+                "{} is missing, creating config file".format(config_file_expanded),
             )
             create_default_config()
             msg = (
@@ -143,7 +142,10 @@ def parse_config(config_file):
             if name and name not in config[section]:
                 if not default:
                     fail(
-                        "'%s' was not in '%s' section of config file" % (name, section)
+                        "'{}' was not in '{}' section of config file".format(
+                            name,
+                            section,
+                        ),
                     )
                 else:
                     config[section][name] = default
@@ -165,7 +167,10 @@ def parse_config(config_file):
     # special check here to make sure user has edited the config file
     # and changed the ham callsign
     check_option(
-        config, "ham", "callsign", default_fail=DEFAULT_CONFIG_DICT["ham"]["callsign"]
+        config,
+        "ham",
+        "callsign",
+        default_fail=DEFAULT_CONFIG_DICT["ham"]["callsign"],
     )
     check_option(config, "aprs", "login")
     check_option(config, "aprs", "password")

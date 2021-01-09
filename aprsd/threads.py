@@ -4,9 +4,8 @@ import queue
 import threading
 import time
 
-import aprslib
-
 from aprsd import client, messaging, plugin
+import aprslib
 
 LOG = logging.getLogger("APRSD")
 
@@ -15,7 +14,7 @@ TX_THREAD = "TX"
 EMAIL_THREAD = "Email"
 
 
-class APRSDThreadList(object):
+class APRSDThreadList:
     """Singleton class that keeps track of application wide threads."""
 
     _instance = None
@@ -25,7 +24,7 @@ class APRSDThreadList(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
-            cls._instance = super(APRSDThreadList, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls.lock = threading.Lock()
             cls.threads_list = []
         return cls._instance
@@ -47,7 +46,7 @@ class APRSDThreadList(object):
 
 class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
     def __init__(self, name):
-        super(APRSDThread, self).__init__(name=name)
+        super().__init__(name=name)
         self.thread_stop = False
         APRSDThreadList().add(self)
 
@@ -66,7 +65,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
 
 class APRSDRXThread(APRSDThread):
     def __init__(self, msg_queues, config):
-        super(APRSDRXThread, self).__init__("RX_MSG")
+        super().__init__("RX_MSG")
         self.msg_queues = msg_queues
         self.config = config
 
@@ -111,7 +110,11 @@ class APRSDRXThread(APRSDThread):
         ack_num = packet.get("msgNo")
         LOG.info("Got ack for message {}".format(ack_num))
         messaging.log_message(
-            "ACK", packet["raw"], None, ack=ack_num, fromcall=packet["from"]
+            "ACK",
+            packet["raw"],
+            None,
+            ack=ack_num,
+            fromcall=packet["from"],
         )
         tracker = messaging.MsgTrack()
         tracker.remove(ack_num)
@@ -152,7 +155,9 @@ class APRSDRXThread(APRSDThread):
                     LOG.debug("Sending '{}'".format(reply))
 
                     msg = messaging.TextMessage(
-                        self.config["aprs"]["login"], fromcall, reply
+                        self.config["aprs"]["login"],
+                        fromcall,
+                        reply,
                     )
                     self.msg_queues["tx"].put(msg)
                 else:
@@ -165,7 +170,9 @@ class APRSDRXThread(APRSDThread):
 
                 reply = "Usage: {}".format(", ".join(names))
                 msg = messaging.TextMessage(
-                    self.config["aprs"]["login"], fromcall, reply
+                    self.config["aprs"]["login"],
+                    fromcall,
+                    reply,
                 )
                 self.msg_queues["tx"].put(msg)
         except Exception as ex:
@@ -177,7 +184,9 @@ class APRSDRXThread(APRSDThread):
         # let any threads do their thing, then ack
         # send an ack last
         ack = messaging.AckMessage(
-            self.config["aprs"]["login"], fromcall, msg_id=msg_id
+            self.config["aprs"]["login"],
+            fromcall,
+            msg_id=msg_id,
         )
         self.msg_queues["tx"].put(ack)
         LOG.debug("Packet processing complete")
@@ -212,7 +221,7 @@ class APRSDRXThread(APRSDThread):
 
 class APRSDTXThread(APRSDThread):
     def __init__(self, msg_queues, config):
-        super(APRSDTXThread, self).__init__("TX_MSG")
+        super().__init__("TX_MSG")
         self.msg_queues = msg_queues
         self.config = config
 
