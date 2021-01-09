@@ -7,3 +7,4 @@ pytest-cov
 pep8-naming
 Sphinx
 tox
+twine
