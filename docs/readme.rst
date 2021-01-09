@@ -1,6 +1,5 @@
-=====
 APRSD
-=====
+-----
 
 .. image:: https://badge.fury.io/py/aprsd.svg
     :target: https://badge.fury.io/py/aprsd
@@ -17,7 +16,9 @@ APRSD
 .. image:: https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads
      :target: https://pepy.tech/project/aprsd
 
-.. contents:: :local:
+
+Summary
+=======
 
 `APRSD <http://github.com/craigerl/aprsd>`_ is a Ham radio `APRS <http://aprs.org>`_ message command gateway built on python.
 
@@ -97,11 +98,6 @@ email server, and associated logins, passwords.  search for "yourdomain",
 "password".  Search for "shortcuts" to setup email aliases as well.
 
 
-Installation:
-=============
-
-  pip install aprsd
-
 Example usage:
 ==============
 
@@ -131,11 +127,9 @@ Help
 
 
 
-Commands
-========
 
 Configuration
-=============
+-------------
 This command outputs a sample config yml formatted block that you can edit
 and use to pass in to aprsd with -c.  By default aprsd looks in ~/.config/aprsd/aprsd.yml
 
@@ -184,7 +178,7 @@ Output
 
 
 server
-======
+------
 
 This is the main server command that will listen to APRS-IS servers and
 look for incomming commands to the callsign configured in the config file
@@ -219,7 +213,7 @@ look for incomming commands to the callsign configured in the config file
 
 
 send-message
-============
+------------
 
 This command is typically used for development to send another aprsd instance
 test messages
@@ -249,8 +243,8 @@ test messages
       -h, --help                      Show this message and exit.
 
 
-Example output:
-===============
+Example Message output:
+-----------------------
 
 
 SEND EMAIL (radio to smtp server)
@@ -321,7 +315,7 @@ AND... ping, fortune, time.....
 
 
 Development
-===========
+-----------
 
 * git clone git@github.com:craigerl/aprsd.git
 * cd aprsd
@@ -361,7 +355,7 @@ To do release to pypi:
 
 
 Docker Container
-================
+----------------
 
 Building
 ========
