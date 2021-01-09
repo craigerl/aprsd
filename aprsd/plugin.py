@@ -65,6 +65,7 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def command(self, fromcall, message, ack):
         """This is the command that runs when the regex matches.
+
         To reply with a message over the air, return a string
         to send.
         """
