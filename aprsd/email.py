@@ -112,9 +112,11 @@ def validate_shortcuts(config):
     LOG.info("Available shortcuts: {}".format(config["shortcuts"]))
 
 
-def get_email_from_shortcut(shortcut):
-    if shortcut in CONFIG.get("shortcuts", None):
-        return CONFIG["shortcuts"].get(shortcut, None)
+def get_email_from_shortcut(addr):
+    if CONFIG.get("shortcuts", False):
+        return CONFIG["shortcuts"].get(addr, addr)
+    else:
+        return addr
 
 
 def validate_email_config(config, disable_validation=False):
