@@ -25,7 +25,7 @@ class QueryPlugin(plugin.APRSDPluginBase):
             r = re.search(r"^\?[rR].*", message)
             if r is not None:
                 if len(tracker) > 0:
-                    reply = "Resend ALL Delayed msgs"
+                    reply = messaging.NULL_MESSAGE
                     LOG.debug(reply)
                     tracker.restart_delayed()
                 else:
@@ -33,9 +33,9 @@ class QueryPlugin(plugin.APRSDPluginBase):
                     LOG.debug(reply)
                 return reply
 
-            r = re.search(r"^\?[fF].*", message)
+            r = re.search(r"^\?[dD].*", message)
             if r is not None:
-                reply = "Deleting ALL Delayed msgs."
+                reply = "Deleted ALL delayed msgs."
                 LOG.debug(reply)
                 tracker.flush()
                 return reply
