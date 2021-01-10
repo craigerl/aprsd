@@ -14,6 +14,10 @@ APRSD
 .. image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
     :target: https://timothycrosley.github.io/isort/
 
+.. image:: https://img.shields.io/github/issues/craigerl/aprsd
+
+.. image:: https://img.shields.io/github/last-commit/craigerl/aprsd
+
 .. image:: https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads
      :target: https://pepy.tech/project/aprsd
 
