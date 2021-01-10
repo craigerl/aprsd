@@ -36,6 +36,13 @@ provide responding to messages to check email, get location, ping,
 time of day, get weather, and fortune telling as well as version information
 of aprsd itself.
 
+
+APRSD Overview Diagram
+----------------------
+
+.. image:: https://raw.githubusercontent.com/craigerl/aprsd/crager-stable/docs/_static/aprsd_overview.svg?sanitize=true
+
+
 Typical use case
 ================
 
