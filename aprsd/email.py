@@ -88,15 +88,16 @@ def validate_shortcuts(config):
     )
     delete_keys = []
     for key in shortcuts:
+        LOG.info("Validating {}:{}".format(key, shortcuts[key]))
         is_valid = validate_email(
             email_address=shortcuts[key],
             check_regex=True,
-            check_mx=True,
+            check_mx=False,
             from_address=config["smtp"]["login"],
             helo_host=config["smtp"]["host"],
             smtp_timeout=10,
             dns_timeout=10,
-            use_blacklist=False,
+            use_blacklist=True,
             debug=False,
         )
         if not is_valid:
