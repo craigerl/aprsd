@@ -7,6 +7,12 @@ APRSD
 .. image:: https://github.com/craigerl/aprsd/workflows/python/badge.svg
     :target: https://github.com/craigerl/aprsd/actions
 
+.. image:: https://img.shields.io/pypi/pyversions/aprsd.svg
+   :target: https://pypi.python.org/pypi/aprsd
+
+.. image:: https://img.shields.io/:license-apache-blue.svg
+   :target: http://www.apache.org/licenses/LICENSE-2.0
+
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://black.readthedocs.io/en/stable/
 
