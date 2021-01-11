@@ -127,7 +127,7 @@ class Aprsdis(aprslib.IS):
         """
         Sends login string to server
         """
-        login_str = "user {0} pass {1} vers aprsd {3}{2}\r\n"
+        login_str = "user {0} pass {1} vers github.com/craigerl/aprsd {3}{2}\r\n"
         login_str = login_str.format(
             self.callsign,
             self.passwd,
