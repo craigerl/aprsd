@@ -2,9 +2,11 @@ import unittest
 from unittest import mock
 
 import aprsd
+from aprsd import messaging
 from aprsd.fuzzyclock import fuzzy
 from aprsd.plugins import fortune as fortune_plugin
 from aprsd.plugins import ping as ping_plugin
+from aprsd.plugins import query as query_plugin
 from aprsd.plugins import time as time_plugin
 from aprsd.plugins import version as version_plugin
 
@@ -13,7 +15,7 @@ class TestPlugin(unittest.TestCase):
     def setUp(self):
         self.fromcall = "KFART"
         self.ack = 1
-        self.config = mock.MagicMock()
+        self.config = {"ham": {"callsign": self.fromcall}}
 
     @mock.patch("shutil.which")
     def test_fortune_fail(self, mock_which):
@@ -38,6 +40,35 @@ class TestPlugin(unittest.TestCase):
         expected = "Funny fortune"
         actual = fortune.run(self.fromcall, message, self.ack)
         self.assertEqual(expected, actual)
+
+    @mock.patch("aprsd.messaging.MsgTrack.flush")
+    def test_query_flush(self, mock_flush):
+        message = "?delete"
+        query = query_plugin.QueryPlugin(self.config)
+
+        expected = "Deleted ALL delayed msgs."
+        actual = query.run(self.fromcall, message, self.ack)
+        mock_flush.assert_called_once()
+        self.assertEqual(expected, actual)
+
+    @mock.patch("aprsd.messaging.MsgTrack.restart_delayed")
+    def test_query_restart_delayed(self, mock_restart):
+        track = messaging.MsgTrack()
+        track.track = {}
+        message = "?r4"
+        query = query_plugin.QueryPlugin(self.config)
+
+        expected = "No Delayed Msgs"
+        actual = query.run(self.fromcall, message, self.ack)
+        mock_restart.assert_not_called()
+        self.assertEqual(expected, actual)
+        mock_restart.reset_mock()
+
+        # add a message
+        msg = messaging.TextMessage(self.fromcall, "testing", self.ack)
+        track.add(msg)
+        actual = query.run(self.fromcall, message, self.ack)
+        mock_restart.assert_called_once()
 
     @mock.patch("time.localtime")
     def test_time(self, mock_time):
