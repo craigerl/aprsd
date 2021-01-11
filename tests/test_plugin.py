@@ -58,7 +58,7 @@ class TestPlugin(unittest.TestCase):
         message = "?r4"
         query = query_plugin.QueryPlugin(self.config)
 
-        expected = "No Delayed Msgs"
+        expected = "No delayed msgs to resend"
         actual = query.run(self.fromcall, message, self.ack)
         mock_restart.assert_not_called()
         self.assertEqual(expected, actual)
