@@ -112,13 +112,28 @@ class MsgTrack:
             if msg.last_send_attempt < msg.retry_count:
                 msg.send()
 
-    def restart_delayed(self):
+    def _resend(self, msg):
+        msg.last_send_attempt = 0
+        msg.send()
+
+    def restart_delayed(self, count=None, most_recent=True):
         """Walk the list of delayed messages and restart them if any."""
-        for key in self.track.keys():
-            msg = self.track[key]
-            if msg.last_send_attempt == msg.retry_count:
-                msg.last_send_attempt = 0
-                msg.send()
+        if not count:
+            # Send all the delayed messages
+            for key in self.track.keys():
+                msg = self.track[key]
+                if msg.last_send_attempt == msg.retry_count:
+                    self._resend(msg)
+        else:
+            # They want to resend <count> delayed messages
+            tmp = sorted(
+                self.track.items(),
+                reverse=most_recent,
+                key=lambda x: x[1].last_send_time,
+            )
+            msg_list = tmp[:count]
+            for (_key, msg) in msg_list:
+                self._resend(msg)
 
     def flush(self):
         """Nuke the old pickle file that stored the old results from last aprsd run."""
