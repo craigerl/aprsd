@@ -22,6 +22,21 @@ class QueryPlugin(plugin.APRSDPluginBase):
         searchstring = "^" + self.config["ham"]["callsign"] + ".*"
         # only I can do admin commands
         if re.search(searchstring, fromcall):
+
+            # resend last N most recent
+            r = re.search(r"^\?[rR]([0-9]).*", message)
+            if r is not None:
+                if len(tracker) > 0:
+                    last_n = r.group(1)
+                    reply = messaging.NULL_MESSAGE
+                    LOG.debug(reply)
+                    tracker.restart_delayed(count=int(last_n))
+                else:
+                    reply = "No delayed msgs to resend"
+                    LOG.debug(reply)
+                return reply
+
+            # resend all
             r = re.search(r"^\?[rR].*", message)
             if r is not None:
                 if len(tracker) > 0:
@@ -29,7 +44,7 @@ class QueryPlugin(plugin.APRSDPluginBase):
                     LOG.debug(reply)
                     tracker.restart_delayed()
                 else:
-                    reply = "No Delayed Msgs"
+                    reply = "No delayed msgs"
                     LOG.debug(reply)
                 return reply
 
