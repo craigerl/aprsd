@@ -26,15 +26,13 @@ class TestPlugin(unittest.TestCase):
         actual = fortune.run(self.fromcall, message, self.ack)
         self.assertEqual(expected, actual)
 
-    @mock.patch("subprocess.Popen")
+    @mock.patch("subprocess.check_output")
     @mock.patch("shutil.which")
-    def test_fortune_success(self, mock_which, mock_popen):
+    def test_fortune_success(self, mock_which, mock_output):
         fortune = fortune_plugin.FortunePlugin(self.config)
         mock_which.return_value = "/usr/bin/games"
 
-        mock_process = mock.MagicMock()
-        mock_process.communicate.return_value = [b"Funny fortune"]
-        mock_popen.return_value = mock_process
+        mock_output.return_value = "Funny fortune"
 
         message = "fortune"
         expected = "Funny fortune"
