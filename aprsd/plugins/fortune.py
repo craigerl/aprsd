@@ -24,14 +24,17 @@ class FortunePlugin(plugin.APRSDPluginBase):
             return reply
 
         try:
-            process = subprocess.Popen(
-                [fortune_path, "-s", "-n 60"],
-                stdout=subprocess.PIPE,
+            cmnd = [fortune_path, "-s", "-n 60"]
+            command = " ".join(cmnd)
+            output = subprocess.check_output(
+                command,
+                shell=True,
+                timeout=3,
+                universal_newlines=True,
             )
-            reply = process.communicate()[0]
-            reply = reply.decode(errors="ignore").rstrip()
-        except Exception as ex:
-            reply = "Fortune command failed '{}'".format(ex)
-            LOG.error(reply)
+        except subprocess.CalledProcessError as ex:
+            reply = "Fortune command failed '{}'".format(ex.output)
+        else:
+            reply = output
 
         return reply
