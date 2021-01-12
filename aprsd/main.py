@@ -249,9 +249,9 @@ def send_message(
     """Send a message to a callsign via APRS_IS."""
     global got_ack, got_response
 
-    click.echo("{} {} {} {}".format(aprs_login, aprs_password, tocallsign, command))
-
-    click.echo("Load config")
+    if not quiet:
+        click.echo("{} {} {} {}".format(aprs_login, aprs_password, tocallsign, command))
+        click.echo("Load config")
     config = utils.parse_config(config_file)
     if not aprs_login:
         click.echo("Must set --aprs_login or APRS_LOGIN")
@@ -382,7 +382,8 @@ def server(loglevel, quiet, disable_validation, config_file, flush):
     event = threading.Event()
     signal.signal(signal.SIGINT, signal_handler)
 
-    click.echo("Load config")
+    if not quiet:
+        click.echo("Load config")
     config = utils.parse_config(config_file)
 
     # Force setting the config to the modules that need it
