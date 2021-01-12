@@ -226,6 +226,14 @@ def sample_config():
     show_envvar=True,
     help="the APRS-IS password for APRS_LOGIN",
 )
+@click.option(
+    "--no-ack",
+    "-n",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Don't wait for an ack, just sent it to APRS-IS and bail.",
+)
 @click.argument("tocallsign")
 @click.argument("command", nargs=-1)
 def send_message(
@@ -234,6 +242,7 @@ def send_message(
     config_file,
     aprs_login,
     aprs_password,
+    no_ack,
     tocallsign,
     command,
 ):
@@ -297,7 +306,11 @@ def send_message(
         if got_ack and got_response:
             sys.exit(0)
 
-    cl = client.Client(config)
+    try:
+        cl = client.Client(config)
+        cl.setup_connection()
+    except LoginError:
+        sys.exit(-1)
 
     # Send a message
     # then we setup a consumer to rx messages
@@ -306,6 +319,9 @@ def send_message(
     # message
     msg = messaging.TextMessage(aprs_login, tocallsign, command)
     msg.send_direct()
+
+    if no_ack:
+        sys.exit(0)
 
     try:
         # This will register a packet consumer with aprslib
