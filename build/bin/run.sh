@@ -5,11 +5,11 @@ export PATH=$PATH:$HOME/.local/bin
 export VIRTUAL_ENV=$HOME/.venv3
 source $VIRTUAL_ENV/bin/activate
 
-if [ ! -z "${APRS_PLUGINS}" ]; then
+if [ ! -z "${APRSD_PLUGINS}" ]; then
     OLDIFS=$IFS
     IFS=','
-    echo "Installing pypi plugins '$APRS_PLUGINS'";
-    for plugin in ${APRS_PLUGINS}; do
+    echo "Installing pypi plugins '$APRSD_PLUGINS'";
+    for plugin in ${APRSD_PLUGINS}; do
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$plugin'"
