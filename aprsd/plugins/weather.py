@@ -16,11 +16,12 @@ class WeatherPlugin(plugin.APRSDPluginBase):
 
     def command(self, fromcall, message, ack):
         LOG.info("Weather Plugin")
+        api_key = self.config["aprs.fi"]["apiKey"]
         try:
             url = (
                 "http://api.aprs.fi/api/get?"
-                "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
-                "&name=%s" % fromcall
+                "&what=loc&apikey={}&format=json"
+                "&name={}".format(api_key, fromcall)
             )
             response = requests.get(url)
             # aprs_data = json.loads(response.read())

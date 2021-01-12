@@ -21,6 +21,7 @@ class LocationPlugin(plugin.APRSDPluginBase):
     def command(self, fromcall, message, ack):
         LOG.info("Location Plugin")
         # get last location of a callsign, get descriptive name from weather service
+        api_key = self.config["aprs.fi"]["apiKey"]
         try:
             # optional second argument is a callsign to search
             a = re.search(r"^.*\s+(.*)", message)
@@ -33,7 +34,7 @@ class LocationPlugin(plugin.APRSDPluginBase):
             url = (
                 "http://api.aprs.fi/api/get?name="
                 + searchcall
-                + "&what=loc&apikey=104070.f9lE8qg34L8MZF&format=json"
+                + "&what=loc&apikey={}&format=json".format(api_key)
             )
             response = requests.get(url)
             # aprs_data = json.loads(response.read())

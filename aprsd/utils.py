@@ -21,6 +21,7 @@ DEFAULT_CONFIG_DICT = {
         "port": 14580,
         "logfile": "/tmp/arsd.log",
     },
+    "aprs.fi": {"apiKey": "set me"},
     "shortcuts": {
         "aa": "5551239999@vtext.com",
         "cl": "craiglamparter@somedomain.org",
@@ -171,6 +172,12 @@ def parse_config(config_file):
         "ham",
         "callsign",
         default_fail=DEFAULT_CONFIG_DICT["ham"]["callsign"],
+    )
+    check_option(
+        config,
+        "aprs.fi",
+        "apiKey",
+        default_fail=DEFAULT_CONFIG_DICT["aprs.fi"]["apiKey"],
     )
     check_option(config, "aprs", "login")
     check_option(config, "aprs", "password")
