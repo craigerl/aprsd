@@ -17,6 +17,8 @@ class Client:
     aprs_client = None
     config = None
 
+    connected = False
+
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
         if cls._instance is None:
@@ -55,6 +57,10 @@ class Client:
                 aprs_client.connect()
                 connected = True
                 backoff = 1
+            except LoginError as e:
+                LOG.error("Failed to login to APRS-IS Server '{}'".format(e))
+                connected = False
+                raise e
             except Exception as e:
                 LOG.error("Unable to connect to APRS-IS server. '{}' ".format(e))
                 time.sleep(backoff)

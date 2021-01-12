@@ -34,6 +34,7 @@ import time
 import aprsd
 from aprsd import client, email, messaging, plugin, threads, utils
 import aprslib
+from aprslib.exceptions import LoginError
 import click
 import click_completion
 import yaml
@@ -387,7 +388,11 @@ def server(loglevel, quiet, disable_validation, config_file, flush):
     # Create the initial PM singleton and Register plugins
     plugin_manager = plugin.PluginManager(config)
     plugin_manager.setup_plugins()
-    client.Client(config)
+    try:
+        cl = client.Client(config)
+        cl.setup_connection()
+    except LoginError:
+        sys.exit(-1)
 
     # Now load the msgTrack from disk if any
     if flush:
