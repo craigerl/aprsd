@@ -212,6 +212,46 @@ class Message(metaclass=abc.ABCMeta):
         pass
 
 
+class RawMessage(Message):
+    """Send a raw message.
+
+    This class is used for custom messages that contain the entire
+    contents of an APRS message in the message field.
+
+    """
+
+    message = None
+
+    def __init__(self, message):
+        super().__init__(None, None, msg_id=None)
+        self.message = message
+
+    def __repr__(self):
+        return self.message
+
+    def __str__(self):
+        return self.message
+
+    def send(self):
+        tracker = MsgTrack()
+        tracker.add(self)
+        LOG.debug("Length of MsgTrack is {}".format(len(tracker)))
+        thread = SendMessageThread(message=self)
+        thread.start()
+
+    def send_direct(self):
+        """Send a message without a separate thread."""
+        cl = client.get_client()
+        log_message(
+            "Sending Message Direct",
+            repr(self).rstrip("\n"),
+            self.message,
+            tocall=self.tocall,
+            fromcall=self.fromcall,
+        )
+        cl.sendall(repr(self))
+
+
 class TextMessage(Message):
     """Send regular ARPS text/command messages/replies."""
 

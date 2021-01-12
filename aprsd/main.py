@@ -234,8 +234,9 @@ def sample_config():
     default=False,
     help="Don't wait for an ack, just sent it to APRS-IS and bail.",
 )
-@click.argument("tocallsign")
-@click.argument("command", nargs=-1)
+@click.option("--raw", default=None, help="Send a raw message.  Implies --no-ack")
+@click.argument("tocallsign", required=False)
+@click.argument("command", nargs=-1, required=False)
 def send_message(
     loglevel,
     quiet,
@@ -243,15 +244,13 @@ def send_message(
     aprs_login,
     aprs_password,
     no_ack,
+    raw,
     tocallsign,
     command,
 ):
     """Send a message to a callsign via APRS_IS."""
     global got_ack, got_response
 
-    if not quiet:
-        click.echo("{} {} {} {}".format(aprs_login, aprs_password, tocallsign, command))
-        click.echo("Load config")
     config = utils.parse_config(config_file)
     if not aprs_login:
         click.echo("Must set --aprs_login or APRS_LOGIN")
@@ -269,7 +268,11 @@ def send_message(
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
     if type(command) is tuple:
         command = " ".join(command)
-    LOG.info("Sending Command '{}'".format(command))
+    if not quiet:
+        if raw:
+            LOG.info("L'{}' R'{}'".format(aprs_login, raw))
+        else:
+            LOG.info("L'{}' To'{}' C'{}'".format(aprs_login, tocallsign, command))
 
     got_ack = False
     got_response = False
@@ -317,7 +320,12 @@ def send_message(
     # We should get an ack back as well as a new message
     # we should bail after we get the ack and send an ack back for the
     # message
-    msg = messaging.TextMessage(aprs_login, tocallsign, command)
+    if raw:
+        msg = messaging.RawMessage(raw)
+        msg.send_direct()
+        sys.exit(0)
+    else:
+        msg = messaging.TextMessage(aprs_login, tocallsign, command)
     msg.send_direct()
 
     if no_ack:
