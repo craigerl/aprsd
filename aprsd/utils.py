@@ -13,13 +13,13 @@ import yaml
 
 # an example of what should be in the ~/.aprsd/config.yml
 DEFAULT_CONFIG_DICT = {
-    "ham": {"callsign": "KFART"},
+    "ham": {"callsign": "CALLSIGN"},
     "aprs": {
-        "login": "someusername",
-        "password": "somepassword",
+        "login": "CALLSIGN",
+        "password": "00000",
         "host": "rotate.aprs.net",
         "port": 14580,
-        "logfile": "/tmp/arsd.log",
+        "logfile": "/tmp/aprsd.log",
     },
     "aprs.fi": {"apiKey": "set me"},
     "shortcuts": {
@@ -28,15 +28,15 @@ DEFAULT_CONFIG_DICT = {
         "wb": "555309@vtext.com",
     },
     "smtp": {
-        "login": "something",
-        "password": "some lame password",
-        "host": "imap.gmail.com",
+        "login": "SMTP_USERNAME",
+        "password": "SMTP_PASSWORD",
+        "host": "smtp.gmail.com",
         "port": 465,
         "use_ssl": False,
     },
     "imap": {
-        "login": "imapuser",
-        "password": "something here too",
+        "login": "IMAP_USERNAME",
+        "password": "IMAP_PASSWORD",
         "host": "imap.gmail.com",
         "port": 993,
         "use_ssl": True,
