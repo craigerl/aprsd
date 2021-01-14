@@ -44,7 +44,7 @@ class TestPlugin(unittest.TestCase):
         message = "?delete"
         query = query_plugin.QueryPlugin(self.config)
 
-        expected = "Deleted ALL delayed msgs."
+        expected = "Deleted ALL pending msgs."
         actual = query.run(self.fromcall, message, self.ack)
         mock_flush.assert_called_once()
         self.assertEqual(expected, actual)
@@ -53,10 +53,10 @@ class TestPlugin(unittest.TestCase):
     def test_query_restart_delayed(self, mock_restart):
         track = messaging.MsgTrack()
         track.track = {}
-        message = "?r4"
+        message = "?4"
         query = query_plugin.QueryPlugin(self.config)
 
-        expected = "No delayed msgs to resend"
+        expected = "Pending messages (0)"
         actual = query.run(self.fromcall, message, self.ack)
         mock_restart.assert_not_called()
         self.assertEqual(expected, actual)
