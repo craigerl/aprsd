@@ -110,7 +110,6 @@ def add_config_comments(raw_yaml):
             "\n  # Get the apiKey from your aprs.fi account here:  http://aprs.fi/account",
             end_idx,
         )
-        print(raw_yaml)
 
     return raw_yaml
 
