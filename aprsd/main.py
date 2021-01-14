@@ -32,7 +32,7 @@ import time
 
 # local imports here
 import aprsd
-from aprsd import client, email, messaging, plugin, threads, utils
+from aprsd import client, email, flask, messaging, plugin, threads, utils
 import aprslib
 from aprslib.exceptions import LoginError
 import click
@@ -150,7 +150,7 @@ def install(append, case_insensitive, shell, path):
     click.echo("{} completion installed in {}".format(shell, path))
 
 
-def signal_handler(signal, frame):
+def signal_handler(sig, frame):
     global server_vent
 
     LOG.info(
@@ -158,6 +158,8 @@ def signal_handler(signal, frame):
     )
     threads.APRSDThreadList().stop_all()
     server_event.set()
+    time.sleep(1)
+    signal.signal(signal.SIGTERM, sys.exit(0))
 
 
 # end signal_handler
@@ -350,7 +352,7 @@ def send_message(
 @main.command()
 @click.option(
     "--loglevel",
-    default="DEBUG",
+    default="INFO",
     show_default=True,
     type=click.Choice(
         ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
@@ -383,7 +385,20 @@ def send_message(
     default=False,
     help="Flush out all old aged messages on disk.",
 )
-def server(loglevel, quiet, disable_validation, config_file, flush):
+@click.option(
+    "--stats-server",
+    is_flag=True,
+    default=False,
+    help="Run a stats web server on port 5001?",
+)
+def server(
+    loglevel,
+    quiet,
+    disable_validation,
+    config_file,
+    flush,
+    stats_server,
+):
     """Start the aprsd server process."""
     global event
 
@@ -441,12 +456,16 @@ def server(loglevel, quiet, disable_validation, config_file, flush):
 
     messaging.MsgTrack().restart()
 
+    if stats_server:
+        app = flask.init_flask(config)
+        app.run(host="0.0.0.0", port=5001)
+
     cntr = 0
     while not server_event.is_set():
         # to keep the log noise down
-        if cntr % 6 == 0:
+        if cntr % 12 == 0:
             tracker = messaging.MsgTrack()
-            # LOG.debug("KeepAlive  Tracker({}): {}".format(len(tracker), str(tracker)))
+            LOG.debug("KeepAlive  Tracker({}): {}".format(len(tracker), str(tracker)))
         cntr += 1
         time.sleep(10)
 

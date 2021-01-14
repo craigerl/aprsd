@@ -54,13 +54,13 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         self.thread_stop = True
 
     def run(self):
-        LOG.info("Starting")
+        LOG.debug("Starting")
         while not self.thread_stop:
             can_loop = self.loop()
             if not can_loop:
                 self.stop()
         APRSDThreadList().remove(self)
-        LOG.info("Exiting")
+        LOG.debug("Exiting")
 
 
 class APRSDRXThread(APRSDThread):
@@ -118,7 +118,6 @@ class APRSDRXThread(APRSDThread):
         )
         tracker = messaging.MsgTrack()
         tracker.remove(ack_num)
-        LOG.debug("Length of MsgTrack is {}".format(len(tracker)))
         return
 
     def process_mic_e_packet(self, packet):
@@ -127,7 +126,6 @@ class APRSDRXThread(APRSDThread):
         return
 
     def process_message_packet(self, packet):
-        LOG.info("Got a message packet")
         fromcall = packet["from"]
         message = packet.get("message_text", None)
 
@@ -194,9 +192,8 @@ class APRSDRXThread(APRSDThread):
     def process_packet(self, packet):
         """Process a packet recieved from aprs-is server."""
 
-        LOG.debug("Process packet! {}".format(self.msg_queues))
         try:
-            LOG.debug("Got message: {}".format(packet))
+            LOG.info("Got message: {}".format(packet))
 
             msg = packet.get("message_text", None)
             msg_format = packet.get("format", None)
@@ -228,7 +225,6 @@ class APRSDTXThread(APRSDThread):
     def loop(self):
         try:
             msg = self.msg_queues["tx"].get(timeout=0.1)
-            LOG.info("TXQ: got message '{}'".format(msg))
             msg.send()
         except queue.Empty:
             pass

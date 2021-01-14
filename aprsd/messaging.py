@@ -39,6 +39,7 @@ class MsgTrack:
     """
 
     _instance = None
+    _start_time = None
     lock = None
 
     track = {}
@@ -48,6 +49,7 @@ class MsgTrack:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.track = {}
+            cls._start_time = datetime.datetime.now()
             cls._instance.lock = threading.Lock()
         return cls._instance
 
@@ -235,7 +237,6 @@ class RawMessage(Message):
     def send(self):
         tracker = MsgTrack()
         tracker.add(self)
-        LOG.debug("Length of MsgTrack is {}".format(len(tracker)))
         thread = SendMessageThread(message=self)
         thread.start()
 
