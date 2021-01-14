@@ -17,14 +17,14 @@ class QueryPlugin(plugin.APRSDPluginBase):
         LOG.info("Query COMMAND")
 
         tracker = messaging.MsgTrack()
-        reply = "Pending Messages ({})".format(len(tracker))
+        reply = "Pending messages ({})".format(len(tracker))
 
         searchstring = "^" + self.config["ham"]["callsign"] + ".*"
         # only I can do admin commands
         if re.search(searchstring, fromcall):
 
-            # resend last N most recent
-            r = re.search(r"^\?[rR]([0-9]).*", message)
+            # resend last N most recent:  "?3"
+            r = re.search(r"^\?([0-9]).*", message)
             if r is not None:
                 if len(tracker) > 0:
                     last_n = r.group(1)
@@ -32,25 +32,26 @@ class QueryPlugin(plugin.APRSDPluginBase):
                     LOG.debug(reply)
                     tracker.restart_delayed(count=int(last_n))
                 else:
-                    reply = "No delayed msgs to resend"
+                    reply = "No pending msgs to resend"
                     LOG.debug(reply)
                 return reply
 
-            # resend all
-            r = re.search(r"^\?[rR].*", message)
+            # resend all:   "?a"
+            r = re.search(r"^\?[aA].*", message)
             if r is not None:
                 if len(tracker) > 0:
                     reply = messaging.NULL_MESSAGE
                     LOG.debug(reply)
                     tracker.restart_delayed()
                 else:
-                    reply = "No delayed msgs"
+                    reply = "No pending msgs"
                     LOG.debug(reply)
                 return reply
 
+            # delete all:   "?d"
             r = re.search(r"^\?[dD].*", message)
             if r is not None:
-                reply = "Deleted ALL delayed msgs."
+                reply = "Deleted ALL pending msgs."
                 LOG.debug(reply)
                 tracker.flush()
                 return reply
