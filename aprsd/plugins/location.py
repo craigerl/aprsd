@@ -67,7 +67,7 @@ class LocationPlugin(plugin.APRSDPluginBase):
                 searchcall,
                 wx_data["location"]["areaDescription"],
                 str(altfeet),
-                str(alt),
+                str(lat),
                 str(lon),
                 str("%.1f" % round(delta_hours, 1)),
             ).rstrip()
