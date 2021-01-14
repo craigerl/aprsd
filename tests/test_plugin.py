@@ -56,7 +56,7 @@ class TestPlugin(unittest.TestCase):
         message = "?4"
         query = query_plugin.QueryPlugin(self.config)
 
-        expected = "Pending messages (0)"
+        expected = "No pending msgs to resend"
         actual = query.run(self.fromcall, message, self.ack)
         mock_restart.assert_not_called()
         self.assertEqual(expected, actual)
