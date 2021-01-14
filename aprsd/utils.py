@@ -86,6 +86,37 @@ def mkdir_p(path):
             raise
 
 
+def insert_str(string, str_to_insert, index):
+    return string[:index] + str_to_insert + string[index:]
+
+
+def end_substr(original, substr):
+    """Get the index of the end of the <substr>.
+
+    So you can insert a string after <substr>
+    """
+    idx = original.find(substr)
+    if idx != -1:
+        idx += len(substr)
+    return idx
+
+
+def add_config_comments(raw_yaml):
+    end_idx = end_substr(raw_yaml, "aprs.fi:")
+    print("PENIS!!!!")
+    if end_idx != -1:
+        # lets insert a comment
+        print("Didn't find shit!")
+        raw_yaml = insert_str(
+            raw_yaml,
+            "\n  # Get the apiKey from your aprs.fi account here:  http://aprs.fi/account",
+            end_idx,
+        )
+        print(raw_yaml)
+
+    return raw_yaml
+
+
 def create_default_config():
     """Create a default config file."""
     # make sure the directory location exists
@@ -95,7 +126,8 @@ def create_default_config():
         click.echo("Config dir '{}' doesn't exist, creating.".format(config_dir))
         mkdir_p(config_dir)
     with open(config_file_expanded, "w+") as cf:
-        yaml.dump(DEFAULT_CONFIG_DICT, cf)
+        raw_yaml = yaml.dump(DEFAULT_CONFIG_DICT)
+        cf.write(add_config_comments(raw_yaml))
 
 
 def get_config(config_file):

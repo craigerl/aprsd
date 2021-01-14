@@ -190,7 +190,7 @@ def setup_logging(config, loglevel, quiet):
 @main.command()
 def sample_config():
     """This dumps the config to stdout."""
-    click.echo(yaml.dump(utils.DEFAULT_CONFIG_DICT))
+    click.echo(utils.add_config_comments(yaml.dump(utils.DEFAULT_CONFIG_DICT)))
 
 
 @main.command()
