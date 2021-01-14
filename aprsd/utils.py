@@ -103,10 +103,8 @@ def end_substr(original, substr):
 
 def add_config_comments(raw_yaml):
     end_idx = end_substr(raw_yaml, "aprs.fi:")
-    print("PENIS!!!!")
     if end_idx != -1:
         # lets insert a comment
-        print("Didn't find shit!")
         raw_yaml = insert_str(
             raw_yaml,
             "\n  # Get the apiKey from your aprs.fi account here:  http://aprs.fi/account",
