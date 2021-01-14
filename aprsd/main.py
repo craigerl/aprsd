@@ -430,7 +430,7 @@ def server(
     plugin_manager.setup_plugins()
     try:
         cl = client.Client(config)
-        cl.setup_connection()
+        cl.client
     except LoginError:
         sys.exit(-1)
 
