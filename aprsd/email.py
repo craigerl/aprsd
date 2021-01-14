@@ -358,7 +358,7 @@ class APRSDEmailThread(threads.APRSDThread):
                 # any send/receive/resend activity will reset this to 60 seconds
                 if check_email_delay < 300:
                     check_email_delay += 1
-                LOG.debug("check_email_delay is " + str(check_email_delay) + " seconds")
+                # LOG.debug("check_email_delay is " + str(check_email_delay) + " seconds")
 
                 shortcuts = CONFIG["shortcuts"]
                 # swap key/value

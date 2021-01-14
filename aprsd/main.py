@@ -446,7 +446,7 @@ def server(loglevel, quiet, disable_validation, config_file, flush):
         # to keep the log noise down
         if cntr % 6 == 0:
             tracker = messaging.MsgTrack()
-            LOG.debug("KeepAlive  Tracker({}): {}".format(len(tracker), str(tracker)))
+            # LOG.debug("KeepAlive  Tracker({}): {}".format(len(tracker), str(tracker)))
         cntr += 1
         time.sleep(10)
 
