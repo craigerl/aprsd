@@ -32,7 +32,7 @@ import time
 
 # local imports here
 import aprsd
-from aprsd import client, email, flask, messaging, plugin, threads, utils
+from aprsd import client, email, messaging, plugin, threads, utils
 import aprslib
 from aprslib.exceptions import LoginError
 import click
@@ -455,10 +455,6 @@ def server(
     tx_thread.start()
 
     messaging.MsgTrack().restart()
-
-    if stats_server:
-        app = flask.init_flask(config)
-        app.run(host="0.0.0.0", port=5001)
 
     cntr = 0
     while not server_event.is_set():
