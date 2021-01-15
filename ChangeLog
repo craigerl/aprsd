@@ -4,6 +4,61 @@ CHANGES
 v1.5.0
 ------
 
+* Fix tox tests
+* fix usage statement
+* Enabled some emailthread messages and added timestamp
+* Fixed main server client initialization
+* test plugin expect responses update to match query output
+* Fixed the queryPlugin unit test
+* Removed flask code
+* Changed default log level to INFO
+* fix plugin tests to expect new strings
+* fix query command syntax  ?,  ?3,  ?d(elete),  ?a(ll)
+* Fixed latitude reporting in locationPlugin
+* get rid of some debug noise from tracker and email delay
+* fixed sample-config double print
+* make sample config easier to interpret
+* Fixed comments
+* Added the ability to add comments to the config file
+* Updated docker run.sh script
+* Added --raw format for sending messages
+* Fixed --quiet option
+* Added send-message login checking and --no-ack
+* Added new config for aprs.fi API Key
+* Added a fix for failed logins to APRS-IS
+* Fixed unit test for fortune plugin
+* Fixed fortune plugin failures
+* getting out of git hell with client.py problems
+* Extend APRS.IS object to change login string
+* Extend APRS.IS object to change login string
+* expect different reply from query plugin
+* update query plugin to resend last N messages. syntax:  ?rN
+* Added unit test for QueryPlugin
+* Updated MsgTrack restart\_delayed
+* refactor Plugin objects to plugins directory
+* Updated README with more workflow details
+* change query character syntax, don't reply that we're resending stuff
+* Added APRSD system diagram to docs
+* Disable MX record validation
+* Added some more badges to readme files
+* Updated build for docs  tox -edocs
+* switch command characters for query plugin
+* Fix broken test
+* undo git disaster
+* swap Query command characters a bit
+* Added Sphinx based documentation
+* refactor Plugin objects to plugins directory
+* Updated Makefile
+* removed double-quote-string-fixer
+* Lots of fixes
+* Added more pre-commit hook tests
+* Fixed email shortcut lookup
+* Added Makefile for easy dev setup
+* Added Makefile for easy dev setup
+* Cleaned out old ack\_dict
+* add null reply for send\_email
+* Updated README with more workflow details
+* backout my patch that broke tox, trying to push to craiger-test branch
 * Fixed failures caused by last commit
 * don't tell radio emails were sent, ack is enuf
 * Updated README to include development env
