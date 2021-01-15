@@ -166,7 +166,9 @@ class APRSDRXThread(APRSDThread):
                 names = [x.command_name for x in plugins]
                 names.sort()
 
-                reply = "Usage: {}".format(", ".join(names))
+                # reply = "Usage: {}".format(", ".join(names))
+                reply = "Usage: weather, locate [call], time, fortune, ping"
+       
                 msg = messaging.TextMessage(
                     self.config["aprs"]["login"],
                     fromcall,
