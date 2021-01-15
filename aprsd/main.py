@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Listen on amateur radio aprs-is network for messages and respond to them.
 # You must have an amateur radio callsign to use this software.  You must
@@ -22,23 +21,23 @@
 
 # python included libs
 import logging
+from logging import NullHandler
+from logging.handlers import RotatingFileHandler
 import os
 import queue
 import signal
 import sys
 import threading
 import time
-from logging import NullHandler
-from logging.handlers import RotatingFileHandler
-
-import aprslib
-import click
-import click_completion
-import yaml
 
 # local imports here
 import aprsd
 from aprsd import client, email, messaging, plugin, threads, utils
+import aprslib
+from aprslib.exceptions import LoginError
+import click
+import click_completion
+import yaml
 
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
@@ -99,7 +98,9 @@ def main():
 
 @main.command()
 @click.option(
-    "-i", "--case-insensitive/--no-case-insensitive", help="Case insensitive completion"
+    "-i",
+    "--case-insensitive/--no-case-insensitive",
+    help="Case insensitive completion",
 )
 @click.argument(
     "shell",
@@ -118,10 +119,14 @@ def show(shell, case_insensitive):
 
 @main.command()
 @click.option(
-    "--append/--overwrite", help="Append the completion code to the file", default=None
+    "--append/--overwrite",
+    help="Append the completion code to the file",
+    default=None,
 )
 @click.option(
-    "-i", "--case-insensitive/--no-case-insensitive", help="Case insensitive completion"
+    "-i",
+    "--case-insensitive/--no-case-insensitive",
+    help="Case insensitive completion",
 )
 @click.argument(
     "shell",
@@ -137,19 +142,24 @@ def install(append, case_insensitive, shell, path):
         else {}
     )
     shell, path = click_completion.core.install(
-        shell=shell, path=path, append=append, extra_env=extra_env
+        shell=shell,
+        path=path,
+        append=append,
+        extra_env=extra_env,
     )
-    click.echo("%s completion installed in %s" % (shell, path))
+    click.echo("{} completion installed in {}".format(shell, path))
 
 
-def signal_handler(signal, frame):
+def signal_handler(sig, frame):
     global server_vent
 
     LOG.info(
-        "Ctrl+C, Sending all threads exit! Can take up to 10 seconds to exit all threads"
+        "Ctrl+C, Sending all threads exit! Can take up to 10 seconds to exit all threads",
     )
     threads.APRSDThreadList().stop_all()
     server_event.set()
+    time.sleep(1)
+    signal.signal(signal.SIGTERM, sys.exit(0))
 
 
 # end signal_handler
@@ -182,7 +192,7 @@ def setup_logging(config, loglevel, quiet):
 @main.command()
 def sample_config():
     """This dumps the config to stdout."""
-    click.echo(yaml.dump(utils.DEFAULT_CONFIG_DICT))
+    click.echo(utils.add_config_comments(yaml.dump(utils.DEFAULT_CONFIG_DICT)))
 
 
 @main.command()
@@ -191,7 +201,8 @@ def sample_config():
     default="DEBUG",
     show_default=True,
     type=click.Choice(
-        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"], case_sensitive=False
+        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        case_sensitive=False,
     ),
     show_choices=True,
     help="The log level to use for aprsd.log",
@@ -217,17 +228,31 @@ def sample_config():
     show_envvar=True,
     help="the APRS-IS password for APRS_LOGIN",
 )
-@click.argument("tocallsign")
-@click.argument("command", nargs=-1)
+@click.option(
+    "--no-ack",
+    "-n",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Don't wait for an ack, just sent it to APRS-IS and bail.",
+)
+@click.option("--raw", default=None, help="Send a raw message.  Implies --no-ack")
+@click.argument("tocallsign", required=False)
+@click.argument("command", nargs=-1, required=False)
 def send_message(
-    loglevel, quiet, config_file, aprs_login, aprs_password, tocallsign, command
+    loglevel,
+    quiet,
+    config_file,
+    aprs_login,
+    aprs_password,
+    no_ack,
+    raw,
+    tocallsign,
+    command,
 ):
     """Send a message to a callsign via APRS_IS."""
     global got_ack, got_response
 
-    click.echo("{} {} {} {}".format(aprs_login, aprs_password, tocallsign, command))
-
-    click.echo("Load config")
     config = utils.parse_config(config_file)
     if not aprs_login:
         click.echo("Must set --aprs_login or APRS_LOGIN")
@@ -245,7 +270,11 @@ def send_message(
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
     if type(command) is tuple:
         command = " ".join(command)
-    LOG.info("Sending Command '{}'".format(command))
+    if not quiet:
+        if raw:
+            LOG.info("L'{}' R'{}'".format(aprs_login, raw))
+        else:
+            LOG.info("L'{}' To'{}' C'{}'".format(aprs_login, tocallsign, command))
 
     got_ack = False
     got_response = False
@@ -273,22 +302,36 @@ def send_message(
             got_response = True
             # Send the ack back?
             ack = messaging.AckMessage(
-                config["aprs"]["login"], fromcall, msg_id=msg_number
+                config["aprs"]["login"],
+                fromcall,
+                msg_id=msg_number,
             )
             ack.send_direct()
 
         if got_ack and got_response:
             sys.exit(0)
 
-    cl = client.Client(config)
+    try:
+        cl = client.Client(config)
+        cl.setup_connection()
+    except LoginError:
+        sys.exit(-1)
 
     # Send a message
     # then we setup a consumer to rx messages
     # We should get an ack back as well as a new message
     # we should bail after we get the ack and send an ack back for the
     # message
-    msg = messaging.TextMessage(aprs_login, tocallsign, command)
+    if raw:
+        msg = messaging.RawMessage(raw)
+        msg.send_direct()
+        sys.exit(0)
+    else:
+        msg = messaging.TextMessage(aprs_login, tocallsign, command)
     msg.send_direct()
+
+    if no_ack:
+        sys.exit(0)
 
     try:
         # This will register a packet consumer with aprslib
@@ -309,10 +352,11 @@ def send_message(
 @main.command()
 @click.option(
     "--loglevel",
-    default="DEBUG",
+    default="INFO",
     show_default=True,
     type=click.Choice(
-        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"], case_sensitive=False
+        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        case_sensitive=False,
     ),
     show_choices=True,
     help="The log level to use for aprsd.log",
@@ -341,14 +385,28 @@ def send_message(
     default=False,
     help="Flush out all old aged messages on disk.",
 )
-def server(loglevel, quiet, disable_validation, config_file, flush):
+@click.option(
+    "--stats-server",
+    is_flag=True,
+    default=False,
+    help="Run a stats web server on port 5001?",
+)
+def server(
+    loglevel,
+    quiet,
+    disable_validation,
+    config_file,
+    flush,
+    stats_server,
+):
     """Start the aprsd server process."""
     global event
 
     event = threading.Event()
     signal.signal(signal.SIGINT, signal_handler)
 
-    click.echo("Load config")
+    if not quiet:
+        click.echo("Load config")
     config = utils.parse_config(config_file)
 
     # Force setting the config to the modules that need it
@@ -370,7 +428,11 @@ def server(loglevel, quiet, disable_validation, config_file, flush):
     # Create the initial PM singleton and Register plugins
     plugin_manager = plugin.PluginManager(config)
     plugin_manager.setup_plugins()
-    client.Client(config)
+    try:
+        cl = client.Client(config)
+        cl.client
+    except LoginError:
+        sys.exit(-1)
 
     # Now load the msgTrack from disk if any
     if flush:
@@ -397,7 +459,7 @@ def server(loglevel, quiet, disable_validation, config_file, flush):
     cntr = 0
     while not server_event.is_set():
         # to keep the log noise down
-        if cntr % 6 == 0:
+        if cntr % 12 == 0:
             tracker = messaging.MsgTrack()
             LOG.debug("KeepAlive  Tracker({}): {}".format(len(tracker), str(tracker)))
         cntr += 1

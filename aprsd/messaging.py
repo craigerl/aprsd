@@ -1,29 +1,24 @@
 import abc
 import datetime
 import logging
+from multiprocessing import RawValue
 import os
 import pathlib
 import pickle
 import re
 import threading
 import time
-from multiprocessing import RawValue
 
 from aprsd import client, threads, utils
 
 LOG = logging.getLogger("APRSD")
-
-# message_nubmer:ack  combos so we stop sending a message after an
-# ack from radio {int:int}
-# FIXME
-ack_dict = {}
 
 # What to return from a plugin if we have processed the message
 # and it's ok, but don't send a usage string back
 NULL_MESSAGE = -1
 
 
-class MsgTrack(object):
+class MsgTrack:
     """Class to keep track of outstanding text messages.
 
     This is a thread safe class that keeps track of active
@@ -44,6 +39,7 @@ class MsgTrack(object):
     """
 
     _instance = None
+    _start_time = None
     lock = None
 
     track = {}
@@ -51,8 +47,9 @@ class MsgTrack(object):
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
-            cls._instance = super(MsgTrack, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls._instance.track = {}
+            cls._start_time = datetime.datetime.now()
             cls._instance.lock = threading.Lock()
         return cls._instance
 
@@ -117,13 +114,28 @@ class MsgTrack(object):
             if msg.last_send_attempt < msg.retry_count:
                 msg.send()
 
-    def restart_delayed(self):
+    def _resend(self, msg):
+        msg.last_send_attempt = 0
+        msg.send()
+
+    def restart_delayed(self, count=None, most_recent=True):
         """Walk the list of delayed messages and restart them if any."""
-        for key in self.track.keys():
-            msg = self.track[key]
-            if msg.last_send_attempt == msg.retry_count:
-                msg.last_send_attempt = 0
-                msg.send()
+        if not count:
+            # Send all the delayed messages
+            for key in self.track.keys():
+                msg = self.track[key]
+                if msg.last_send_attempt == msg.retry_count:
+                    self._resend(msg)
+        else:
+            # They want to resend <count> delayed messages
+            tmp = sorted(
+                self.track.items(),
+                reverse=most_recent,
+                key=lambda x: x[1].last_send_time,
+            )
+            msg_list = tmp[:count]
+            for (_key, msg) in msg_list:
+                self._resend(msg)
 
     def flush(self):
         """Nuke the old pickle file that stored the old results from last aprsd run."""
@@ -133,7 +145,7 @@ class MsgTrack(object):
             self.track = {}
 
 
-class MessageCounter(object):
+class MessageCounter:
     """
     Global message id counter class.
 
@@ -151,7 +163,7 @@ class MessageCounter(object):
     def __new__(cls, *args, **kwargs):
         """Make this a singleton class."""
         if cls._instance is None:
-            cls._instance = super(MessageCounter, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             cls._instance.val = RawValue("i", 1)
             cls._instance.lock = threading.Lock()
         return cls._instance
@@ -177,7 +189,7 @@ class MessageCounter(object):
             return str(self.val.value)
 
 
-class Message(object, metaclass=abc.ABCMeta):
+class Message(metaclass=abc.ABCMeta):
     """Base Message Class."""
 
     # The message id to send over the air
@@ -202,13 +214,52 @@ class Message(object, metaclass=abc.ABCMeta):
         pass
 
 
+class RawMessage(Message):
+    """Send a raw message.
+
+    This class is used for custom messages that contain the entire
+    contents of an APRS message in the message field.
+
+    """
+
+    message = None
+
+    def __init__(self, message):
+        super().__init__(None, None, msg_id=None)
+        self.message = message
+
+    def __repr__(self):
+        return self.message
+
+    def __str__(self):
+        return self.message
+
+    def send(self):
+        tracker = MsgTrack()
+        tracker.add(self)
+        thread = SendMessageThread(message=self)
+        thread.start()
+
+    def send_direct(self):
+        """Send a message without a separate thread."""
+        cl = client.get_client()
+        log_message(
+            "Sending Message Direct",
+            repr(self).rstrip("\n"),
+            self.message,
+            tocall=self.tocall,
+            fromcall=self.fromcall,
+        )
+        cl.sendall(repr(self))
+
+
 class TextMessage(Message):
     """Send regular ARPS text/command messages/replies."""
 
     message = None
 
     def __init__(self, fromcall, tocall, message, msg_id=None, allow_delay=True):
-        super(TextMessage, self).__init__(fromcall, tocall, msg_id)
+        super().__init__(fromcall, tocall, msg_id)
         self.message = message
         # do we try and save this message for later if we don't get
         # an ack?  Some messages we don't want to do this ever.
@@ -217,7 +268,10 @@ class TextMessage(Message):
     def __repr__(self):
         """Build raw string to send over the air."""
         return "{}>APRS::{}:{}{{{}\n".format(
-            self.fromcall, self.tocall.ljust(9), self._filter_for_send(), str(self.id)
+            self.fromcall,
+            self.tocall.ljust(9),
+            self._filter_for_send(),
+            str(self.id),
         )
 
     def __str__(self):
@@ -226,7 +280,11 @@ class TextMessage(Message):
             now = datetime.datetime.now()
             delta = now - self.last_send_time
         return "{}>{} Msg({})({}): '{}'".format(
-            self.fromcall, self.tocall, self.id, delta, self.message
+            self.fromcall,
+            self.tocall,
+            self.id,
+            delta,
+            self.message,
         )
 
     def _filter_for_send(self):
@@ -240,8 +298,6 @@ class TextMessage(Message):
         return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
 
     def send(self):
-        global ack_dict
-
         tracker = MsgTrack()
         tracker.add(self)
         LOG.debug("Length of MsgTrack is {}".format(len(tracker)))
@@ -265,9 +321,7 @@ class SendMessageThread(threads.APRSDThread):
     def __init__(self, message):
         self.msg = message
         name = self.msg.message[:5]
-        super(SendMessageThread, self).__init__(
-            "SendMessage-{}-{}".format(self.msg.id, name)
-        )
+        super().__init__("SendMessage-{}-{}".format(self.msg.id, name))
 
     def loop(self):
         """Loop until a message is acked or it gets delayed.
@@ -332,11 +386,13 @@ class AckMessage(Message):
     """Class for building Acks and sending them."""
 
     def __init__(self, fromcall, tocall, msg_id):
-        super(AckMessage, self).__init__(fromcall, tocall, msg_id=msg_id)
+        super().__init__(fromcall, tocall, msg_id=msg_id)
 
     def __repr__(self):
         return "{}>APRS::{}:ack{}\n".format(
-            self.fromcall, self.tocall.ljust(9), self.id
+            self.fromcall,
+            self.tocall.ljust(9),
+            self.id,
         )
 
     def __str__(self):
@@ -384,7 +440,7 @@ class AckMessage(Message):
 class SendAckThread(threads.APRSDThread):
     def __init__(self, ack):
         self.ack = ack
-        super(SendAckThread, self).__init__("SendAck-{}".format(self.ack.id))
+        super().__init__("SendAck-{}".format(self.ack.id))
 
     def loop(self):
         """Separate thread to send acks with retries."""

@@ -1,17 +1,15 @@
 import datetime
 import email
+from email.mime.text import MIMEText
 import imaplib
 import logging
 import re
 import smtplib
 import time
-from email.mime.text import MIMEText
-
-import imapclient
-import six
-from validate_email import validate_email
 
 from aprsd import messaging, threads
+import imapclient
+from validate_email import validate_email
 
 LOG = logging.getLogger("APRSD")
 
@@ -29,7 +27,10 @@ def _imap_connect():
 
     try:
         server = imapclient.IMAPClient(
-            CONFIG["imap"]["host"], port=imap_port, use_uid=True, ssl=use_ssl
+            CONFIG["imap"]["host"],
+            port=imap_port,
+            use_uid=True,
+            ssl=use_ssl,
         )
     except Exception:
         LOG.error("Failed to connect IMAP server")
@@ -52,7 +53,7 @@ def _smtp_connect():
     use_ssl = CONFIG["smtp"].get("use_ssl", False)
     msg = "{}{}:{}".format("SSL " if use_ssl else "", host, smtp_port)
     LOG.debug(
-        "Connect to SMTP host {} with user '{}'".format(msg, CONFIG["imap"]["login"])
+        "Connect to SMTP host {} with user '{}'".format(msg, CONFIG["imap"]["login"]),
     )
 
     try:
@@ -83,26 +84,27 @@ def validate_shortcuts(config):
 
     LOG.info(
         "Validating {} Email shortcuts. This can take up to 10 seconds"
-        " per shortcut".format(len(shortcuts))
+        " per shortcut".format(len(shortcuts)),
     )
     delete_keys = []
     for key in shortcuts:
+        LOG.info("Validating {}:{}".format(key, shortcuts[key]))
         is_valid = validate_email(
             email_address=shortcuts[key],
             check_regex=True,
-            check_mx=True,
+            check_mx=False,
             from_address=config["smtp"]["login"],
             helo_host=config["smtp"]["host"],
             smtp_timeout=10,
             dns_timeout=10,
-            use_blacklist=False,
+            use_blacklist=True,
             debug=False,
         )
         if not is_valid:
             LOG.error(
                 "'{}' is an invalid email address. Removing shortcut".format(
-                    shortcuts[key]
-                )
+                    shortcuts[key],
+                ),
             )
             delete_keys.append(key)
 
@@ -112,9 +114,11 @@ def validate_shortcuts(config):
     LOG.info("Available shortcuts: {}".format(config["shortcuts"]))
 
 
-def get_email_from_shortcut(shortcut):
-    if shortcut in CONFIG.get("shortcuts", None):
-        return CONFIG["shortcuts"].get(shortcut, None)
+def get_email_from_shortcut(addr):
+    if CONFIG.get("shortcuts", False):
+        return CONFIG["shortcuts"].get(addr, addr)
+    else:
+        return addr
 
 
 def validate_email_config(config, disable_validation=False):
@@ -170,14 +174,18 @@ def parse_email(msgid, data, server):
 
             if part.get_content_type() == "text/plain":
                 LOG.debug("Email got text/plain")
-                text = six.text_type(
-                    part.get_payload(decode=True), str(charset), "ignore"
+                text = str(
+                    part.get_payload(decode=True),
+                    str(charset),
+                    "ignore",
                 ).encode("utf8", "replace")
 
             if part.get_content_type() == "text/html":
                 LOG.debug("Email got text/html")
-                html = six.text_type(
-                    part.get_payload(decode=True), str(charset), "ignore"
+                html = str(
+                    part.get_payload(decode=True),
+                    str(charset),
+                    "ignore",
                 ).encode("utf8", "replace")
 
             if text is not None:
@@ -189,12 +197,15 @@ def parse_email(msgid, data, server):
         # email.uscc.net sends no charset, blows up unicode function below
         LOG.debug("Email is not multipart")
         if msg.get_content_charset() is None:
-            text = six.text_type(
-                msg.get_payload(decode=True), "US-ASCII", "ignore"
-            ).encode("utf8", "replace")
+            text = str(msg.get_payload(decode=True), "US-ASCII", "ignore").encode(
+                "utf8",
+                "replace",
+            )
         else:
-            text = six.text_type(
-                msg.get_payload(decode=True), msg.get_content_charset(), "ignore"
+            text = str(
+                msg.get_payload(decode=True),
+                msg.get_content_charset(),
+                "ignore",
             ).encode("utf8", "replace")
         body = text.strip()
 
@@ -263,11 +274,11 @@ def resend_email(count, fromcall):
     month = date.strftime("%B")[:3]  # Nov, Mar, Apr
     day = date.day
     year = date.year
-    today = "%s-%s-%s" % (day, month, year)
+    today = "{}-{}-{}".format(day, month, year)
 
     shortcuts = CONFIG["shortcuts"]
     # swap key/value
-    shortcuts_inverted = dict([[v, k] for k, v in shortcuts.items()])
+    shortcuts_inverted = {v: k for k, v in shortcuts.items()}
 
     try:
         server = _imap_connect()
@@ -307,7 +318,7 @@ def resend_email(count, fromcall):
         # thinking this is a duplicate message.
         # The FT1XDR pretty much ignores the aprs message number in this
         # regard.  The FTM400 gets it right.
-        reply = "No new msg %s:%s:%s" % (
+        reply = "No new msg {}:{}:{}".format(
             str(h).zfill(2),
             str(m).zfill(2),
             str(s).zfill(2),
@@ -325,12 +336,14 @@ def resend_email(count, fromcall):
 
 class APRSDEmailThread(threads.APRSDThread):
     def __init__(self, msg_queues, config):
-        super(APRSDEmailThread, self).__init__("EmailThread")
+        super().__init__("EmailThread")
         self.msg_queues = msg_queues
         self.config = config
 
     def run(self):
         global check_email_delay
+
+        LOG.debug("Starting")
 
         check_email_delay = 60
         past = datetime.datetime.now()
@@ -351,13 +364,13 @@ class APRSDEmailThread(threads.APRSDThread):
 
                 shortcuts = CONFIG["shortcuts"]
                 # swap key/value
-                shortcuts_inverted = dict([[v, k] for k, v in shortcuts.items()])
+                shortcuts_inverted = {v: k for k, v in shortcuts.items()}
 
                 date = datetime.datetime.now()
                 month = date.strftime("%B")[:3]  # Nov, Mar, Apr
                 day = date.day
                 year = date.year
-                today = "%s-%s-%s" % (day, month, year)
+                today = "{}-{}-{}".format(day, month, year)
 
                 server = None
                 try:
@@ -369,13 +382,14 @@ class APRSDEmailThread(threads.APRSDThread):
                     continue
 
                 messages = server.search(["SINCE", today])
-                # LOG.debug("{} messages received today".format(len(messages)))
+                LOG.debug("{} messages received today".format(len(messages)))
 
                 for msgid, data in server.fetch(messages, ["ENVELOPE"]).items():
                     envelope = data[b"ENVELOPE"]
                     # LOG.debug('ID:%d  "%s" (%s)' % (msgid, envelope.subject.decode(), envelope.date))
                     f = re.search(
-                        r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)", str(envelope.from_[0])
+                        r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)",
+                        str(envelope.from_[0]),
                     )
                     if f is not None:
                         from_addr = f.group(1)
@@ -401,7 +415,6 @@ class APRSDEmailThread(threads.APRSDThread):
                             from_addr = shortcuts_inverted[from_addr]
 
                         reply = "-" + from_addr + " " + body.decode(errors="ignore")
-                        # messaging.send_message(CONFIG["ham"]["callsign"], reply)
                         msg = messaging.TextMessage(
                             self.config["aprs"]["login"],
                             self.config["ham"]["callsign"],

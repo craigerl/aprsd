@@ -1,41 +1,72 @@
-# -*- coding: utf-8 -*-
 import unittest
 from unittest import mock
 
 import aprsd
-from aprsd import plugin
+from aprsd import messaging
 from aprsd.fuzzyclock import fuzzy
+from aprsd.plugins import fortune as fortune_plugin
+from aprsd.plugins import ping as ping_plugin
+from aprsd.plugins import query as query_plugin
+from aprsd.plugins import time as time_plugin
+from aprsd.plugins import version as version_plugin
 
 
 class TestPlugin(unittest.TestCase):
     def setUp(self):
         self.fromcall = "KFART"
         self.ack = 1
-        self.config = mock.MagicMock()
+        self.config = {"ham": {"callsign": self.fromcall}}
 
     @mock.patch("shutil.which")
     def test_fortune_fail(self, mock_which):
-        fortune_plugin = plugin.FortunePlugin(self.config)
+        fortune = fortune_plugin.FortunePlugin(self.config)
         mock_which.return_value = None
         message = "fortune"
         expected = "Fortune command not installed"
-        actual = fortune_plugin.run(self.fromcall, message, self.ack)
+        actual = fortune.run(self.fromcall, message, self.ack)
         self.assertEqual(expected, actual)
 
-    @mock.patch("subprocess.Popen")
+    @mock.patch("subprocess.check_output")
     @mock.patch("shutil.which")
-    def test_fortune_success(self, mock_which, mock_popen):
-        fortune_plugin = plugin.FortunePlugin(self.config)
+    def test_fortune_success(self, mock_which, mock_output):
+        fortune = fortune_plugin.FortunePlugin(self.config)
         mock_which.return_value = "/usr/bin/games"
 
-        mock_process = mock.MagicMock()
-        mock_process.communicate.return_value = [b"Funny fortune"]
-        mock_popen.return_value = mock_process
+        mock_output.return_value = "Funny fortune"
 
         message = "fortune"
         expected = "Funny fortune"
-        actual = fortune_plugin.run(self.fromcall, message, self.ack)
+        actual = fortune.run(self.fromcall, message, self.ack)
         self.assertEqual(expected, actual)
+
+    @mock.patch("aprsd.messaging.MsgTrack.flush")
+    def test_query_flush(self, mock_flush):
+        message = "?delete"
+        query = query_plugin.QueryPlugin(self.config)
+
+        expected = "Deleted ALL pending msgs."
+        actual = query.run(self.fromcall, message, self.ack)
+        mock_flush.assert_called_once()
+        self.assertEqual(expected, actual)
+
+    @mock.patch("aprsd.messaging.MsgTrack.restart_delayed")
+    def test_query_restart_delayed(self, mock_restart):
+        track = messaging.MsgTrack()
+        track.track = {}
+        message = "?4"
+        query = query_plugin.QueryPlugin(self.config)
+
+        expected = "No pending msgs to resend"
+        actual = query.run(self.fromcall, message, self.ack)
+        mock_restart.assert_not_called()
+        self.assertEqual(expected, actual)
+        mock_restart.reset_mock()
+
+        # add a message
+        msg = messaging.TextMessage(self.fromcall, "testing", self.ack)
+        track.add(msg)
+        actual = query.run(self.fromcall, message, self.ack)
+        mock_restart.assert_called_once()
 
     @mock.patch("time.localtime")
     def test_time(self, mock_time):
@@ -44,22 +75,25 @@ class TestPlugin(unittest.TestCase):
         m = fake_time.tm_min = 12
         fake_time.tm_sec = 55
         mock_time.return_value = fake_time
-        time_plugin = plugin.TimePlugin(self.config)
+        time = time_plugin.TimePlugin(self.config)
 
         fromcall = "KFART"
         message = "location"
         ack = 1
 
-        actual = time_plugin.run(fromcall, message, ack)
+        actual = time.run(fromcall, message, ack)
         self.assertEqual(None, actual)
 
         cur_time = fuzzy(h, m, 1)
 
         message = "time"
         expected = "{} ({}:{} PDT) ({})".format(
-            cur_time, str(h), str(m).rjust(2, "0"), message.rstrip()
+            cur_time,
+            str(h),
+            str(m).rjust(2, "0"),
+            message.rstrip(),
         )
-        actual = time_plugin.run(fromcall, message, ack)
+        actual = time.run(fromcall, message, ack)
         self.assertEqual(expected, actual)
 
     @mock.patch("time.localtime")
@@ -70,7 +104,7 @@ class TestPlugin(unittest.TestCase):
         s = fake_time.tm_sec = 55
         mock_time.return_value = fake_time
 
-        ping = plugin.PingPlugin(self.config)
+        ping = ping_plugin.PingPlugin(self.config)
 
         fromcall = "KFART"
         message = "location"
@@ -100,19 +134,19 @@ class TestPlugin(unittest.TestCase):
 
     def test_version(self):
         expected = "APRSD version '{}'".format(aprsd.__version__)
-        version_plugin = plugin.VersionPlugin(self.config)
+        version = version_plugin.VersionPlugin(self.config)
 
         fromcall = "KFART"
         message = "No"
         ack = 1
 
-        actual = version_plugin.run(fromcall, message, ack)
+        actual = version.run(fromcall, message, ack)
         self.assertEqual(None, actual)
 
         message = "version"
-        actual = version_plugin.run(fromcall, message, ack)
+        actual = version.run(fromcall, message, ack)
         self.assertEqual(expected, actual)
 
         message = "Version"
-        actual = version_plugin.run(fromcall, message, ack)
+        actual = version.run(fromcall, message, ack)
         self.assertEqual(expected, actual)

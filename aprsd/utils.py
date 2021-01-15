@@ -3,40 +3,40 @@
 import errno
 import functools
 import os
+from pathlib import Path
 import sys
 import threading
-from pathlib import Path
 
+from aprsd import plugin
 import click
 import yaml
 
-from aprsd import plugin
-
 # an example of what should be in the ~/.aprsd/config.yml
 DEFAULT_CONFIG_DICT = {
-    "ham": {"callsign": "KFART"},
+    "ham": {"callsign": "CALLSIGN"},
     "aprs": {
-        "login": "someusername",
-        "password": "somepassword",
+        "login": "CALLSIGN",
+        "password": "00000",
         "host": "rotate.aprs.net",
         "port": 14580,
-        "logfile": "/tmp/arsd.log",
+        "logfile": "/tmp/aprsd.log",
     },
+    "aprs.fi": {"apiKey": "set me"},
     "shortcuts": {
         "aa": "5551239999@vtext.com",
         "cl": "craiglamparter@somedomain.org",
         "wb": "555309@vtext.com",
     },
     "smtp": {
-        "login": "something",
-        "password": "some lame password",
-        "host": "imap.gmail.com",
+        "login": "SMTP_USERNAME",
+        "password": "SMTP_PASSWORD",
+        "host": "smtp.gmail.com",
         "port": 465,
         "use_ssl": False,
     },
     "imap": {
-        "login": "imapuser",
-        "password": "something here too",
+        "login": "IMAP_USERNAME",
+        "password": "IMAP_PASSWORD",
         "host": "imap.gmail.com",
         "port": 993,
         "use_ssl": True,
@@ -86,6 +86,34 @@ def mkdir_p(path):
             raise
 
 
+def insert_str(string, str_to_insert, index):
+    return string[:index] + str_to_insert + string[index:]
+
+
+def end_substr(original, substr):
+    """Get the index of the end of the <substr>.
+
+    So you can insert a string after <substr>
+    """
+    idx = original.find(substr)
+    if idx != -1:
+        idx += len(substr)
+    return idx
+
+
+def add_config_comments(raw_yaml):
+    end_idx = end_substr(raw_yaml, "aprs.fi:")
+    if end_idx != -1:
+        # lets insert a comment
+        raw_yaml = insert_str(
+            raw_yaml,
+            "\n  # Get the apiKey from your aprs.fi account here:  http://aprs.fi/account",
+            end_idx,
+        )
+
+    return raw_yaml
+
+
 def create_default_config():
     """Create a default config file."""
     # make sure the directory location exists
@@ -95,20 +123,21 @@ def create_default_config():
         click.echo("Config dir '{}' doesn't exist, creating.".format(config_dir))
         mkdir_p(config_dir)
     with open(config_file_expanded, "w+") as cf:
-        yaml.dump(DEFAULT_CONFIG_DICT, cf)
+        raw_yaml = yaml.dump(DEFAULT_CONFIG_DICT)
+        cf.write(add_config_comments(raw_yaml))
 
 
 def get_config(config_file):
     """This tries to read the yaml config from <config_file>."""
     config_file_expanded = os.path.expanduser(config_file)
     if os.path.exists(config_file_expanded):
-        with open(config_file_expanded, "r") as stream:
+        with open(config_file_expanded) as stream:
             config = yaml.load(stream, Loader=yaml.FullLoader)
             return config
     else:
         if config_file == DEFAULT_CONFIG_FILE:
             click.echo(
-                "{} is missing, creating config file".format(config_file_expanded)
+                "{} is missing, creating config file".format(config_file_expanded),
             )
             create_default_config()
             msg = (
@@ -143,7 +172,10 @@ def parse_config(config_file):
             if name and name not in config[section]:
                 if not default:
                     fail(
-                        "'%s' was not in '%s' section of config file" % (name, section)
+                        "'{}' was not in '{}' section of config file".format(
+                            name,
+                            section,
+                        ),
                     )
                 else:
                     config[section][name] = default
@@ -165,7 +197,16 @@ def parse_config(config_file):
     # special check here to make sure user has edited the config file
     # and changed the ham callsign
     check_option(
-        config, "ham", "callsign", default_fail=DEFAULT_CONFIG_DICT["ham"]["callsign"]
+        config,
+        "ham",
+        "callsign",
+        default_fail=DEFAULT_CONFIG_DICT["ham"]["callsign"],
+    )
+    check_option(
+        config,
+        "aprs.fi",
+        "apiKey",
+        default_fail=DEFAULT_CONFIG_DICT["aprs.fi"]["apiKey"],
     )
     check_option(config, "aprs", "login")
     check_option(config, "aprs", "password")

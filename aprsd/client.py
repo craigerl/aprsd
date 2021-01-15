@@ -1,24 +1,28 @@
 import logging
 import select
-import socket
 import time
 
+import aprsd
 import aprslib
+from aprslib import is_py3
+from aprslib.exceptions import LoginError
 
 LOG = logging.getLogger("APRSD")
 
 
-class Client(object):
+class Client:
     """Singleton client class that constructs the aprslib connection."""
 
     _instance = None
     aprs_client = None
     config = None
 
+    connected = False
+
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
         if cls._instance is None:
-            cls._instance = super(Client, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             # Put any initialization here.
         return cls._instance
 
@@ -53,6 +57,10 @@ class Client(object):
                 aprs_client.connect()
                 connected = True
                 backoff = 1
+            except LoginError as e:
+                LOG.error("Failed to login to APRS-IS Server '{}'".format(e))
+                connected = False
+                raise e
             except Exception as e:
                 LOG.error("Unable to connect to APRS-IS server. '{}' ".format(e))
                 time.sleep(backoff)
@@ -81,7 +89,7 @@ class Aprsdis(aprslib.IS):
         """
         try:
             self.sock.setblocking(0)
-        except socket.error as e:
+        except OSError as e:
             self.logger.error("socket error when setblocking(0): %s" % str(e))
             raise aprslib.ConnectionDrop("connection dropped")
 
@@ -92,7 +100,10 @@ class Aprsdis(aprslib.IS):
             # set a select timeout, so we get a chance to exit
             # when user hits CTRL-C
             readable, writable, exceptional = select.select(
-                [self.sock], [], [], self.select_timeout
+                [self.sock],
+                [],
+                [],
+                self.select_timeout,
             )
             if not readable:
                 continue
@@ -104,7 +115,7 @@ class Aprsdis(aprslib.IS):
                 if not short_buf:
                     self.logger.error("socket.recv(): returned empty")
                     raise aprslib.ConnectionDrop("connection dropped")
-            except socket.error as e:
+            except OSError as e:
                 # self.logger.error("socket error on recv(): %s" % str(e))
                 if "Resource temporarily unavailable" in str(e):
                     if not blocking:
@@ -117,6 +128,53 @@ class Aprsdis(aprslib.IS):
                 line, self.buf = self.buf.split(newline, 1)
 
                 yield line
+
+    def _send_login(self):
+        """
+        Sends login string to server
+        """
+        login_str = "user {0} pass {1} vers github.com/craigerl/aprsd {3}{2}\r\n"
+        login_str = login_str.format(
+            self.callsign,
+            self.passwd,
+            (" filter " + self.filter) if self.filter != "" else "",
+            aprsd.__version__,
+        )
+
+        self.logger.info("Sending login information")
+
+        try:
+            self._sendall(login_str)
+            self.sock.settimeout(5)
+            test = self.sock.recv(len(login_str) + 100)
+            if is_py3:
+                test = test.decode("latin-1")
+            test = test.rstrip()
+
+            self.logger.debug("Server: %s", test)
+
+            _, _, callsign, status, _ = test.split(" ", 4)
+
+            if callsign == "":
+                raise LoginError("Server responded with empty callsign???")
+            if callsign != self.callsign:
+                raise LoginError("Server: %s" % test)
+            if status != "verified," and self.passwd != "-1":
+                raise LoginError("Password is incorrect")
+
+            if self.passwd == "-1":
+                self.logger.info("Login successful (receive only)")
+            else:
+                self.logger.info("Login successful")
+
+        except LoginError as e:
+            self.logger.error(str(e))
+            self.close()
+            raise
+        except Exception:
+            self.close()
+            self.logger.error("Failed to login")
+            raise LoginError("Failed to login")
 
 
 def get_client():

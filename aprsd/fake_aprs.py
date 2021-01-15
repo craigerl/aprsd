@@ -1,9 +1,9 @@
 import argparse
 import logging
+from logging.handlers import RotatingFileHandler
 import socketserver
 import sys
 import time
-from logging.handlers import RotatingFileHandler
 
 from aprsd import utils
 
@@ -73,7 +73,7 @@ def main():
 
     ip = CONFIG["aprs"]["host"]
     port = CONFIG["aprs"]["port"]
-    LOG.info("Start server listening on %s:%s" % (args.ip, args.port))
+    LOG.info("Start server listening on {}:{}".format(args.ip, args.port))
 
     with socketserver.TCPServer((ip, port), MyAPRSTCPHandler) as server:
         server.serve_forever()
