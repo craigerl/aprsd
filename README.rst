@@ -40,7 +40,7 @@ of aprsd itself.
 APRSD Overview Diagram
 ----------------------
 
-.. image:: https://raw.githubusercontent.com/craigerl/aprsd/crager-stable/docs/_static/aprsd_overview.svg?sanitize=true
+.. image:: https://raw.githubusercontent.com/craigerl/aprsd/master/docs/_static/aprsd_overview.svg?sanitize=true
 
 
 Typical use case

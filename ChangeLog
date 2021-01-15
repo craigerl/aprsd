@@ -4,6 +4,7 @@ CHANGES
 v1.5.0
 ------
 
+* Updated Changelog for v1.5.0 release
 * Fix tox tests
 * fix usage statement
 * Enabled some emailthread messages and added timestamp

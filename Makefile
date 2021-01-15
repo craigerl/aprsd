@@ -33,7 +33,7 @@ clean:
 
 test: dev
 	.venv/bin/pre-commit run --all-files
-	tox -p
+	tox -p all
 
 build: test
 	rm -rf dist/*
