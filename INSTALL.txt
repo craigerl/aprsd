@@ -13,12 +13,12 @@ cd ~/aprsd2
 git clone https://github.com/craigerl/aprsd.git
 cd aprsd
 pip install -e .
-cd ~/.venv_aprsd
+cd ~/.venv_aprsd/bin
 
-./bin/aprsd  # generates a config.yml template on first run
+./aprsd sample-config    # generates a config.yml template 
 
-vi ~/.aprsd/config.yml
+vi ~/.config/aprsd/config.yml   # copy/edit config here
 
-./bin/aprsd
+./aprsd server
 
 # profit! #
