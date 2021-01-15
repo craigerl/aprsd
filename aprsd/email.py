@@ -343,6 +343,8 @@ class APRSDEmailThread(threads.APRSDThread):
     def run(self):
         global check_email_delay
 
+        LOG.debug("Starting")
+
         check_email_delay = 60
         past = datetime.datetime.now()
         while not self.thread_stop:
@@ -358,7 +360,7 @@ class APRSDEmailThread(threads.APRSDThread):
                 # any send/receive/resend activity will reset this to 60 seconds
                 if check_email_delay < 300:
                     check_email_delay += 1
-                # LOG.debug("check_email_delay is " + str(check_email_delay) + " seconds")
+                LOG.debug("check_email_delay is " + str(check_email_delay) + " seconds")
 
                 shortcuts = CONFIG["shortcuts"]
                 # swap key/value
@@ -380,7 +382,7 @@ class APRSDEmailThread(threads.APRSDThread):
                     continue
 
                 messages = server.search(["SINCE", today])
-                # LOG.debug("{} messages received today".format(len(messages)))
+                LOG.debug("{} messages received today".format(len(messages)))
 
                 for msgid, data in server.fetch(messages, ["ENVELOPE"]).items():
                     envelope = data[b"ENVELOPE"]
@@ -413,7 +415,6 @@ class APRSDEmailThread(threads.APRSDThread):
                             from_addr = shortcuts_inverted[from_addr]
 
                         reply = "-" + from_addr + " " + body.decode(errors="ignore")
-                        # messaging.send_message(CONFIG["ham"]["callsign"], reply)
                         msg = messaging.TextMessage(
                             self.config["aprs"]["login"],
                             self.config["ham"]["callsign"],

@@ -1,3 +1,4 @@
+import datetime
 import logging
 import re
 
@@ -17,7 +18,11 @@ class QueryPlugin(plugin.APRSDPluginBase):
         LOG.info("Query COMMAND")
 
         tracker = messaging.MsgTrack()
-        reply = "Pending messages ({})".format(len(tracker))
+        now = datetime.datetime.now()
+        reply = "Pending messages ({}) {}".format(
+            len(tracker),
+            now.strftime("%H:%M:%S"),
+        )
 
         searchstring = "^" + self.config["ham"]["callsign"] + ".*"
         # only I can do admin commands
