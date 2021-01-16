@@ -24,6 +24,7 @@ CORE_PLUGINS = [
     "aprsd.plugins.query.QueryPlugin",
     "aprsd.plugins.time.TimePlugin",
     "aprsd.plugins.weather.WeatherPlugin",
+    "aprsd.plugins.weather.WxPlugin",
     "aprsd.plugins.version.VersionPlugin",
 ]
 

@@ -15,7 +15,7 @@ cd aprsd
 pip install -e .
 cd ~/.venv_aprsd/bin
 
-./aprsd sample-config    # generates a config.yml template 
+./aprsd sample-config    # generates a config.yml template
 
 vi ~/.config/aprsd/config.yml   # copy/edit config here
 
