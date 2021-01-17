@@ -11,7 +11,7 @@ class QueryPlugin(plugin.APRSDPluginBase):
     """Query command."""
 
     version = "1.0"
-    command_regex = r"^\?.*"
+    command_regex = r"^\!.*"
     command_name = "query"
 
     def command(self, fromcall, message, ack):
@@ -28,8 +28,8 @@ class QueryPlugin(plugin.APRSDPluginBase):
         # only I can do admin commands
         if re.search(searchstring, fromcall):
 
-            # resend last N most recent:  "?3"
-            r = re.search(r"^\?([0-9]).*", message)
+            # resend last N most recent:  "!3"
+            r = re.search(r"^\!([0-9]).*", message)
             if r is not None:
                 if len(tracker) > 0:
                     last_n = r.group(1)
@@ -41,8 +41,8 @@ class QueryPlugin(plugin.APRSDPluginBase):
                     LOG.debug(reply)
                 return reply
 
-            # resend all:   "?a"
-            r = re.search(r"^\?[aA].*", message)
+            # resend all:   "!a"
+            r = re.search(r"^\![aA].*", message)
             if r is not None:
                 if len(tracker) > 0:
                     reply = messaging.NULL_MESSAGE
@@ -53,8 +53,8 @@ class QueryPlugin(plugin.APRSDPluginBase):
                     LOG.debug(reply)
                 return reply
 
-            # delete all:   "?d"
-            r = re.search(r"^\?[dD].*", message)
+            # delete all:   "!d"
+            r = re.search(r"^\![dD].*", message)
             if r is not None:
                 reply = "Deleted ALL pending msgs."
                 LOG.debug(reply)

@@ -41,7 +41,7 @@ class TestPlugin(unittest.TestCase):
 
     @mock.patch("aprsd.messaging.MsgTrack.flush")
     def test_query_flush(self, mock_flush):
-        message = "?delete"
+        message = "!delete"
         query = query_plugin.QueryPlugin(self.config)
 
         expected = "Deleted ALL pending msgs."
@@ -53,7 +53,7 @@ class TestPlugin(unittest.TestCase):
     def test_query_restart_delayed(self, mock_restart):
         track = messaging.MsgTrack()
         track.track = {}
-        message = "?4"
+        message = "!4"
         query = query_plugin.QueryPlugin(self.config)
 
         expected = "No pending msgs to resend"
