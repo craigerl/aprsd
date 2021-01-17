@@ -32,6 +32,12 @@ class FortunePlugin(plugin.APRSDPluginBase):
                 timeout=3,
                 universal_newlines=True,
             )
+            output = (
+                output.replace("\r", "")
+                .replace("\n", "")
+                .replace("  ", "")
+                .replace("\t", " ")
+            )
         except subprocess.CalledProcessError as ex:
             reply = "Fortune command failed '{}'".format(ex.output)
         else:
