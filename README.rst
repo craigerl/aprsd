@@ -36,6 +36,8 @@ provide responding to messages to check email, get location, ping,
 time of day, get weather, and fortune telling as well as version information
 of aprsd itself.
 
+Documentation: https://aprsd.readthedocs.io
+
 
 APRSD Overview Diagram
 ----------------------
