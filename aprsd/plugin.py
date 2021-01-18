@@ -60,7 +60,9 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
 
     @hookimpl
     def run(self, fromcall, message, ack):
+        LOG.debug("F({}) M({})".format(fromcall, message))
         if re.search(self.command_regex, message):
+            LOG.debug("call command F{} M{}".format(fromcall, message))
             return self.command(fromcall, message, ack)
 
     @abc.abstractmethod

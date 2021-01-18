@@ -2,8 +2,7 @@ import json
 import logging
 import re
 
-from aprsd import plugin
-import requests
+from aprsd import plugin, plugin_utils, service
 
 LOG = logging.getLogger("APRSD")
 
@@ -18,101 +17,54 @@ class WeatherPlugin(plugin.APRSDPluginBase):
     def command(self, fromcall, message, ack):
         LOG.info("Weather Plugin")
         api_key = self.config["aprs.fi"]["apiKey"]
+
+        # Fetching weather for someone else?
+        a = re.search(r"^.*\s+(.*)", message)
+        if a is not None:
+            searchcall = a.group(1)
+        else:
+            searchcall = fromcall
+
         try:
-            url = (
-                "http://api.aprs.fi/api/get?"
-                "&what=loc&apikey={}&format=json"
-                "&name={}".format(api_key, fromcall)
-            )
-            response = requests.get(url)
-            # aprs_data = json.loads(response.read())
-            aprs_data = json.loads(response.text)
+            resp = plugin_utils.get_aprs_fi(api_key, searchcall)
+        except Exception as e:
+            LOG.debug("Weather failed with:  {}".format(str(e)))
+            reply = "Unable to find you (send beacon?)"
+        else:
+            aprs_data = json.loads(resp.text)
             lat = aprs_data["entries"][0]["lat"]
             lon = aprs_data["entries"][0]["lng"]
-            url2 = (
-                "https://forecast.weather.gov/MapClick.php?lat=%s"
-                "&lon=%s&FcstType=json" % (lat, lon)
-            )
-            response2 = requests.get(url2)
-            # wx_data = json.loads(response2.read())
-            wx_data = json.loads(response2.text)
-            reply = (
-                "%sF(%sF/%sF) %s. %s, %s."
-                % (
-                    wx_data["currentobservation"]["Temp"],
-                    wx_data["data"]["temperature"][0],
-                    wx_data["data"]["temperature"][1],
-                    wx_data["data"]["weather"][0],
-                    wx_data["time"]["startPeriodName"][1],
-                    wx_data["data"]["weather"][1],
-                )
-            ).rstrip()
-            LOG.debug("reply: '{}' ".format(reply))
-        except Exception as e:
-            LOG.debug("Weather failed with:  " + "%s" % str(e))
-            reply = "Unable to find you (send beacon?)"
 
-        return reply
+            try:
+                wx_service = service.WeatherService(self.config)
+                reply = wx_service.forecast_short(lat, lon)
+                # resp = plugin_utils.get_weather_gov_for_gps(lat, lon)
+            except Exception as e:
+                LOG.debug("Weather failed with:  {}".format(str(e)))
+                return "Unable to Lookup weather"
+            else:
+                # wx_data = json.loads(resp.text)
+
+                LOG.debug("reply: '{}' ".format(reply))
+                return reply
 
 
-class WxPlugin(plugin.APRSDPluginBase):
+class WxPlugin(WeatherPlugin):
     """METAR Command"""
 
     version = "1.0"
-    command_regex = "^[wx]"
+    command_regex = "^[mx]"
     command_name = "wx (Metar)"
-
-    def get_aprs(self, fromcall):
-        LOG.debug("Fetch aprs.fi location for '{}'".format(fromcall))
-        api_key = self.config["aprs.fi"]["apiKey"]
-        try:
-            url = (
-                "http://api.aprs.fi/api/get?"
-                "&what=loc&apikey={}&format=json"
-                "&name={}".format(api_key, fromcall)
-            )
-            response = requests.get(url)
-        except Exception:
-            raise Exception("Failed to get aprs.fi location")
-        else:
-            response.raise_for_status()
-            return response
-
-    def get_station(self, lat, lon):
-        LOG.debug("Fetch station at {}, {}".format(lat, lon))
-        try:
-            url2 = (
-                "https://forecast.weather.gov/MapClick.php?lat=%s"
-                "&lon=%s&FcstType=json" % (lat, lon)
-            )
-            response = requests.get(url2)
-        except Exception:
-            raise Exception("Failed to get metar station")
-        else:
-            response.raise_for_status()
-            return response
-
-    def get_metar(self, station):
-        LOG.debug("Fetch metar for station '{}'".format(station))
-        try:
-            url = "https://api.weather.gov/stations/{}/observations/latest".format(
-                station,
-            )
-            response = requests.get(url)
-        except Exception:
-            raise Exception("Failed to fetch metar")
-        else:
-            response.raise_for_status()
-            return response
 
     def command(self, fromcall, message, ack):
         LOG.info("WX Plugin '{}'".format(message))
+        api_key = self.config["aprs.fi"]["apiKey"]
         a = re.search(r"^.*\s+(.*)", message)
         if a is not None:
             searchcall = a.group(1)
             station = searchcall.upper()
             try:
-                resp = self.get_metar(station)
+                resp = plugin_utils.get_weather_gov_metar(station)
             except Exception as e:
                 LOG.debug("Weather failed with:  {}".format(str(e)))
                 reply = "Unable to find station METAR"
@@ -125,7 +77,7 @@ class WxPlugin(plugin.APRSDPluginBase):
             # if no second argument, search for calling station
             fromcall = fromcall
             try:
-                resp = self.get_aprs(fromcall)
+                resp = plugin_utils.get_aprs_fi(api_key, fromcall)
             except Exception as e:
                 LOG.debug("Weather failed with:  {}".format(str(e)))
                 reply = "Unable to find you (send beacon?)"
@@ -135,7 +87,7 @@ class WxPlugin(plugin.APRSDPluginBase):
                 lon = aprs_data["entries"][0]["lng"]
 
                 try:
-                    resp = self.get_station(lat, lon)
+                    resp = self.get_weather_gov_for_gps(lat, lon)
                 except Exception as e:
                     LOG.debug("Weather failed with:  {}".format(str(e)))
                     reply = "Unable to find you (send beacon?)"

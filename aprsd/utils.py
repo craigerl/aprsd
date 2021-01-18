@@ -2,12 +2,14 @@
 
 import errno
 import functools
+import importlib
+import logging
 import os
 from pathlib import Path
 import sys
 import threading
 
-from aprsd import plugin
+from aprsd import plugin, weather
 import click
 import yaml
 
@@ -44,6 +46,9 @@ DEFAULT_CONFIG_DICT = {
     "aprsd": {
         "plugin_dir": "~/.config/aprsd/plugins",
         "enabled_plugins": plugin.CORE_PLUGINS,
+        "services": {
+            "weather": weather.PROVIDER_MAPPING,
+        },
     },
 }
 
@@ -51,6 +56,8 @@ home = str(Path.home())
 DEFAULT_CONFIG_DIR = "{}/.config/aprsd/".format(home)
 DEFAULT_SAVE_FILE = "{}/.config/aprsd/aprsd.p".format(home)
 DEFAULT_CONFIG_FILE = "{}/.config/aprsd/aprsd.yml".format(home)
+
+LOG = logging.getLogger("APRSD")
 
 
 def synchronized(wrapped):
@@ -222,3 +229,35 @@ def parse_config(config_file):
     check_option(config, "smtp", "password")
 
     return config
+
+
+def create_class(module_class_string, super_cls: type = None, **kwargs):
+    """
+    Method to create a class from a fqn python string.
+    :param module_class_string: full name of the class to create an object of
+    :param super_cls: expected super class for validity, None if bypass
+    :param kwargs: parameters to pass
+    :return:
+    """
+    module_name, class_name = module_class_string.rsplit(".", 1)
+    try:
+        module = importlib.import_module(module_name)
+    except Exception as ex:
+        LOG.error("Failed to load Plugin '{}' : '{}'".format(module_name, ex))
+        return
+
+    assert hasattr(module, class_name), "class {} is not in {}".format(
+        class_name,
+        module_name,
+    )
+    # click.echo('reading class {} from module {}'.format(
+    #     class_name, module_name))
+    cls = getattr(module, class_name)
+    if super_cls is not None:
+        assert issubclass(cls, super_cls), "class {} should inherit from {}".format(
+            class_name,
+            super_cls.__name__,
+        )
+    # click.echo('initialising {} with params {}'.format(class_name, kwargs))
+    obj = cls(**kwargs)
+    return obj

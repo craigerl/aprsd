@@ -11,7 +11,7 @@ import sys
 
 # local imports here
 import aprsd
-from aprsd import client, email, plugin, utils
+from aprsd import client, email, plugin, service, utils
 import click
 import click_completion
 
@@ -185,6 +185,7 @@ def test_plugin(
         message = " ".join(message)
     LOG.info("P'{}'  F'{}'   C'{}'".format(plugin_path, fromcall, message))
     client.Client(config)
+    service.WeatherService(config)
 
     pm = plugin.PluginManager(config)
     obj = pm._create_class(plugin_path, plugin.APRSDPluginBase, config=config)
