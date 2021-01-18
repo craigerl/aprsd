@@ -32,7 +32,7 @@ import time
 
 # local imports here
 import aprsd
-from aprsd import client, email, messaging, plugin, threads, utils
+from aprsd import client, email, messaging, plugin, service, threads, utils
 import aprslib
 from aprslib.exceptions import LoginError
 import click
@@ -442,6 +442,9 @@ def server(
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
         messaging.MsgTrack().load()
+
+    LOG.info("Loading weather service")
+    service.WeatherService(config)
 
     rx_msg_queue = queue.Queue(maxsize=20)
     tx_msg_queue = queue.Queue(maxsize=20)
