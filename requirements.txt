@@ -28,13 +28,13 @@ filelock==3.0.12
     # via
     #   py3-validate-email
     #   virtualenv
-identify==1.5.11
+identify==1.5.13
     # via pre-commit
 idna==2.10
     # via
     #   py3-validate-email
     #   requests
-imapclient==2.1.0
+imapclient==2.2.0
     # via -r requirements.in
 jinja2==2.11.2
     # via click-completion
@@ -49,6 +49,8 @@ pluggy==0.13.1
 pre-commit==2.9.3
     # via -r requirements.in
 py3-validate-email==0.2.12
+    # via -r requirements.in
+pytz==2020.5
     # via -r requirements.in
 pyyaml==5.3.1
     # via
@@ -70,5 +72,5 @@ toml==0.10.2
     # via pre-commit
 urllib3==1.26.2
     # via requests
-virtualenv==20.2.2
+virtualenv==20.4.0
     # via pre-commit

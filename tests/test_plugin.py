@@ -9,6 +9,7 @@ from aprsd.plugins import ping as ping_plugin
 from aprsd.plugins import query as query_plugin
 from aprsd.plugins import time as time_plugin
 from aprsd.plugins import version as version_plugin
+import pytz
 
 
 class TestPlugin(unittest.TestCase):
@@ -68,13 +69,21 @@ class TestPlugin(unittest.TestCase):
         actual = query.run(self.fromcall, message, self.ack)
         mock_restart.assert_called_once()
 
-    @mock.patch("time.localtime")
-    def test_time(self, mock_time):
+    @mock.patch("aprsd.plugins.time.TimePlugin._get_local_tz")
+    @mock.patch("aprsd.plugins.time.TimePlugin._get_utcnow")
+    def test_time(self, mock_utcnow, mock_localtz):
+        utcnow = pytz.datetime.datetime.utcnow()
+        mock_utcnow.return_value = utcnow
+        tz = pytz.timezone("US/Pacific")
+        mock_localtz.return_value = tz
+
+        gmt_t = pytz.utc.localize(utcnow)
+        local_t = gmt_t.astimezone(tz)
+
         fake_time = mock.MagicMock()
-        h = fake_time.tm_hour = 16
-        m = fake_time.tm_min = 12
-        fake_time.tm_sec = 55
-        mock_time.return_value = fake_time
+        h = int(local_t.strftime("%H"))
+        m = int(local_t.strftime("%M"))
+        fake_time.tm_sec = 13
         time = time_plugin.TimePlugin(self.config)
 
         fromcall = "KFART"
@@ -87,10 +96,10 @@ class TestPlugin(unittest.TestCase):
         cur_time = fuzzy(h, m, 1)
 
         message = "time"
-        expected = "{} ({}:{} PDT) ({})".format(
+        local_short_str = local_t.strftime("%H:%M %Z")
+        expected = "{} ({}) ({})".format(
             cur_time,
-            str(h),
-            str(m).rjust(2, "0"),
+            local_short_str,
             message.rstrip(),
         )
         actual = time.run(fromcall, message, ack)
