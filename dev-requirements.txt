@@ -160,7 +160,7 @@ typing-extensions==3.7.4.3
     #   mypy
 urllib3==1.26.2
     # via requests
-virtualenv==20.2.2
+virtualenv==20.4.0
     # via tox
 webencodings==0.5.1
     # via bleach
