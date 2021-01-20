@@ -1,10 +1,8 @@
-import json
 import logging
 import re
 import time
 
-from aprsd import plugin
-import requests
+from aprsd import plugin, plugin_utils, utils
 
 LOG = logging.getLogger("APRSD")
 
@@ -16,11 +14,15 @@ class LocationPlugin(plugin.APRSDPluginBase):
     command_regex = "^[lL]"
     command_name = "location"
 
-    config_items = {"apikey": "aprs.fi api key here"}
-
     def command(self, fromcall, message, ack):
         LOG.info("Location Plugin")
         # get last location of a callsign, get descriptive name from weather service
+        try:
+            utils.check_config_option(self.config, "aprs.fi", "apiKey")
+        except Exception as ex:
+            LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+            return "No aprs.fi apikey found"
+
         api_key = self.config["aprs.fi"]["apiKey"]
         try:
             # optional second argument is a callsign to search
@@ -31,14 +33,13 @@ class LocationPlugin(plugin.APRSDPluginBase):
             else:
                 # if no second argument, search for calling station
                 searchcall = fromcall
-            url = (
-                "http://api.aprs.fi/api/get?name="
-                + searchcall
-                + "&what=loc&apikey={}&format=json".format(api_key)
-            )
-            response = requests.get(url)
-            # aprs_data = json.loads(response.read())
-            aprs_data = json.loads(response.text)
+
+            try:
+                aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
+            except Exception as ex:
+                LOG.error("Failed to fetch aprs.fi '{}'".format(ex))
+                return "Failed to fetch aprs.fi location"
+
             LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
             lat = aprs_data["entries"][0]["lat"]
             lon = aprs_data["entries"][0]["lng"]
@@ -53,15 +54,12 @@ class LocationPlugin(plugin.APRSDPluginBase):
             # )  # unicode to ascii
             delta_seconds = time.time() - int(aprs_lasttime_seconds)
             delta_hours = delta_seconds / 60 / 60
-            url2 = (
-                "https://forecast.weather.gov/MapClick.php?lat="
-                + str(lat)
-                + "&lon="
-                + str(lon)
-                + "&FcstType=json"
-            )
-            response2 = requests.get(url2)
-            wx_data = json.loads(response2.text)
+
+            try:
+                wx_data = plugin_utils.get_weather_gov_for_gps(lat, lon)
+            except Exception as ex:
+                LOG.error("Couldn't fetch forecast.weather.gov '{}'".format(ex))
+                wx_data["location"]["areaDescription"] = "Unkown Location"
 
             reply = "{}: {} {}' {},{} {}h ago".format(
                 searchcall,

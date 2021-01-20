@@ -22,6 +22,8 @@ DEFAULT_CONFIG_DICT = {
         "logfile": "/tmp/aprsd.log",
     },
     "aprs.fi": {"apiKey": "set me"},
+    "openweathermap": {"apiKey": "set me"},
+    "opencagedata": {"apiKey": "set me"},
     "shortcuts": {
         "aa": "5551239999@vtext.com",
         "cl": "craiglamparter@somedomain.org",
@@ -111,6 +113,24 @@ def add_config_comments(raw_yaml):
             end_idx,
         )
 
+    end_idx = end_substr(raw_yaml, "opencagedata:")
+    if end_idx != -1:
+        # lets insert a comment
+        raw_yaml = insert_str(
+            raw_yaml,
+            "\n  # Get the apiKey from your opencagedata account here:  https://opencagedata.com/dashboard#api-keys",
+            end_idx,
+        )
+
+    end_idx = end_substr(raw_yaml, "openweathermap:")
+    if end_idx != -1:
+        # lets insert a comment
+        raw_yaml = insert_str(
+            raw_yaml,
+            "\n  # Get the apiKey from your openweathermap account here:  https://home.openweathermap.org/api_keys",
+            end_idx,
+        )
+
     return raw_yaml
 
 
@@ -154,6 +174,35 @@ def get_config(config_file):
         sys.exit(-1)
 
 
+def check_config_option(config, section, name=None, default=None, default_fail=None):
+    if section in config:
+
+        if name and name not in config[section]:
+            if not default:
+                raise Exception(
+                    "'{}' was not in '{}' section of config file".format(
+                        name,
+                        section,
+                    ),
+                )
+            else:
+                config[section][name] = default
+        else:
+            if (
+                default_fail
+                and name in config[section]
+                and config[section][name] == default_fail
+            ):
+                # We have to fail and bail if the user hasn't edited
+                # this config option.
+                raise Exception(
+                    "Config file needs to be edited from provided defaults.",
+                )
+    else:
+        raise Exception("'%s' section wasn't in config file" % section)
+    return config
+
+
 # This method tries to parse the config yaml file
 # and consume the settings.
 # If the required params don't exist,
@@ -167,30 +216,12 @@ def parse_config(config_file):
         sys.exit(-1)
 
     def check_option(config, section, name=None, default=None, default_fail=None):
-        if section in config:
-
-            if name and name not in config[section]:
-                if not default:
-                    fail(
-                        "'{}' was not in '{}' section of config file".format(
-                            name,
-                            section,
-                        ),
-                    )
-                else:
-                    config[section][name] = default
-            else:
-                if (
-                    default_fail
-                    and name in config[section]
-                    and config[section][name] == default_fail
-                ):
-                    # We have to fail and bail if the user hasn't edited
-                    # this config option.
-                    fail("Config file needs to be edited from provided defaults.")
+        try:
+            config = check_config_option(config, section, name, default, default_fail)
+        except Exception as ex:
+            fail(repr(ex))
         else:
-            fail("'%s' section wasn't in config file" % section)
-        return config
+            return config
 
     config = get_config(config_file)
     check_option(config, "shortcuts")
