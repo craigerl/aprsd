@@ -46,6 +46,7 @@ DEFAULT_CONFIG_DICT = {
     "aprsd": {
         "plugin_dir": "~/.config/aprsd/plugins",
         "enabled_plugins": plugin.CORE_PLUGINS,
+        "units": "imperial",
     },
 }
 

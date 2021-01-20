@@ -54,14 +54,20 @@ def get_weather_gov_metar(station):
         return json.loads(response)
 
 
-def fetch_openweathermap(api_key, lat, lon, exclude=None):
+def fetch_openweathermap(api_key, lat, lon, units="metric", exclude=None):
     LOG.debug("Fetch openweathermap for {}, {}".format(lat, lon))
     if not exclude:
         exclude = "minutely,hourly,daily,alerts"
     try:
         url = (
             "https://api.openweathermap.org/data/2.5/onecall?"
-            "lat={}&lon={}&appid={}&exclude={}".format(lat, lon, api_key, exclude)
+            "lat={}&lon={}&appid={}&units={}&exclude={}".format(
+                lat,
+                lon,
+                api_key,
+                units,
+                exclude,
+            )
         )
         response = requests.get(url)
     except Exception as e:
