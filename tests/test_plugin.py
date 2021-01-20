@@ -97,10 +97,9 @@ class TestPlugin(unittest.TestCase):
 
         message = "time"
         local_short_str = local_t.strftime("%H:%M %Z")
-        expected = "{} ({}) ({})".format(
+        expected = "{} ({})".format(
             cur_time,
             local_short_str,
-            message.rstrip(),
         )
         actual = time.run(fromcall, message, ack)
         self.assertEqual(expected, actual)

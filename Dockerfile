@@ -10,9 +10,9 @@ RUN apk add --update git wget py3-pip py3-virtualenv bash fortune
 
 # Setup Timezone
 ENV TZ=US/Eastern
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-RUN apt-get install -y tzdata
-RUN dpkg-reconfigure --frontend noninteractive tzdata
+#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+#RUN apt-get install -y tzdata
+#RUN dpkg-reconfigure --frontend noninteractive tzdata
 
 
 RUN addgroup --gid 1000 $APRS_USER

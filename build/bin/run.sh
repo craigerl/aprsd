@@ -23,4 +23,4 @@ if [ ! -e "$APRSD_CONFIG" ]; then
     echo "'$APRSD_CONFIG' File does not exist. Creating."
     aprsd sample-config > $APRSD_CONFIG
 fi
-$VIRTUAL_ENV/bin/aprsd server -c $APRSD_CONFIG
+$VIRTUAL_ENV/bin/aprsd server -c $APRSD_CONFIG --loglevel DEBUG
