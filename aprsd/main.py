@@ -417,12 +417,17 @@ def server(
     setup_logging(config, loglevel, quiet)
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
 
-    # TODO(walt): Make email processing/checking optional?
-    # Maybe someone only wants this to process messages with plugins only.
-    valid = email.validate_email_config(config, disable_validation)
-    if not valid:
-        LOG.error("Failed to validate email config options")
-        sys.exit(-1)
+    email_enabled = config["aprsd"]["email"].get("enabled", False)
+
+    if email_enabled:
+        # TODO(walt): Make email processing/checking optional?
+        # Maybe someone only wants this to process messages with plugins only.
+        valid = email.validate_email_config(config, disable_validation)
+        if not valid:
+            LOG.error("Failed to validate email config options")
+            sys.exit(-1)
+    else:
+        LOG.info("Email services not enabled.")
 
     # Create the initial PM singleton and Register plugins
     plugin_manager = plugin.PluginManager(config)
@@ -448,8 +453,11 @@ def server(
 
     rx_thread = threads.APRSDRXThread(msg_queues=msg_queues, config=config)
     tx_thread = threads.APRSDTXThread(msg_queues=msg_queues, config=config)
-    email_thread = email.APRSDEmailThread(msg_queues=msg_queues, config=config)
-    email_thread.start()
+
+    if email_enabled:
+        email_thread = email.APRSDEmailThread(msg_queues=msg_queues, config=config)
+        email_thread.start()
+
     rx_thread.start()
     tx_thread.start()
 

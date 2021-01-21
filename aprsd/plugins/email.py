@@ -21,6 +21,9 @@ class EmailPlugin(plugin.APRSDPluginBase):
     def command(self, fromcall, message, ack):
         LOG.info("Email COMMAND")
         reply = None
+        if not self.config["aprsd"]["email"].get("enabled", False):
+            LOG.debug("Email is not enabled in config file ignoring.")
+            return "Email not enabled."
 
         searchstring = "^" + self.config["ham"]["callsign"] + ".*"
         # only I can do email
