@@ -23,8 +23,7 @@ CORE_PLUGINS = [
     "aprsd.plugins.ping.PingPlugin",
     "aprsd.plugins.query.QueryPlugin",
     "aprsd.plugins.time.TimePlugin",
-    "aprsd.plugins.weather.WeatherPlugin",
-    "aprsd.plugins.weather.WxPlugin",
+    "aprsd.plugins.weather.USWeatherPlugin",
     "aprsd.plugins.version.VersionPlugin",
 ]
 

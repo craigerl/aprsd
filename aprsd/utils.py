@@ -24,6 +24,7 @@ DEFAULT_CONFIG_DICT = {
     "aprs.fi": {"apiKey": "set me"},
     "openweathermap": {"apiKey": "set me"},
     "opencagedata": {"apiKey": "set me"},
+    "avwx": {"base_url": "http://host:port", "apiKey": "set me"},
     "shortcuts": {
         "aa": "5551239999@vtext.com",
         "cl": "craiglamparter@somedomain.org",
@@ -46,6 +47,7 @@ DEFAULT_CONFIG_DICT = {
     "aprsd": {
         "plugin_dir": "~/.config/aprsd/plugins",
         "enabled_plugins": plugin.CORE_PLUGINS,
+        "units": "imperial",
     },
 }
 
@@ -109,7 +111,8 @@ def add_config_comments(raw_yaml):
         # lets insert a comment
         raw_yaml = insert_str(
             raw_yaml,
-            "\n  # Get the apiKey from your aprs.fi account here:  http://aprs.fi/account",
+            "\n  # Get the apiKey from your aprs.fi account here:  "
+            "\n  # http://aprs.fi/account",
             end_idx,
         )
 
@@ -118,7 +121,9 @@ def add_config_comments(raw_yaml):
         # lets insert a comment
         raw_yaml = insert_str(
             raw_yaml,
-            "\n  # Get the apiKey from your opencagedata account here:  https://opencagedata.com/dashboard#api-keys",
+            "\n  # (Optional for TimeOpenCageDataPlugin) "
+            "\n  # Get the apiKey from your opencagedata account here:  "
+            "\n  # https://opencagedata.com/dashboard#api-keys",
             end_idx,
         )
 
@@ -127,7 +132,22 @@ def add_config_comments(raw_yaml):
         # lets insert a comment
         raw_yaml = insert_str(
             raw_yaml,
-            "\n  # Get the apiKey from your openweathermap account here:  https://home.openweathermap.org/api_keys",
+            "\n  # (Optional for OWMWeatherPlugin) "
+            "\n  # Get the apiKey from your "
+            "\n  # openweathermap account here: "
+            "\n  # https://home.openweathermap.org/api_keys",
+            end_idx,
+        )
+
+    end_idx = end_substr(raw_yaml, "avwx:")
+    if end_idx != -1:
+        # lets insert a comment
+        raw_yaml = insert_str(
+            raw_yaml,
+            "\n  # (Optional for AVWXWeatherPlugin) "
+            "\n  # Use hosted avwx-api here: https://avwx.rest "
+            "\n  # or deploy your own from here: "
+            "\n  # https://github.com/avwx-rest/avwx-api",
             end_idx,
         )
 
