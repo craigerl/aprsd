@@ -27,7 +27,13 @@ class USWeatherPlugin(plugin.APRSDPluginBase):
 
     def command(self, fromcall, message, ack):
         LOG.info("Weather Plugin")
-        api_key = self.config["aprs.fi"]["apiKey"]
+        try:
+            utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+        except Exception as ex:
+            LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+            return "No aprs.fi apikey found"
+
+        api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
         except Exception as ex:
@@ -98,7 +104,17 @@ class USMetarPlugin(plugin.APRSDPluginBase):
             # if no second argument, search for calling station
             fromcall = fromcall
 
-            api_key = self.config["aprs.fi"]["apiKey"]
+            try:
+                utils.check_config_option(
+                    self.config,
+                    ["services", "aprs.fi", "apiKey"],
+                )
+            except Exception as ex:
+                LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+                return "No aprs.fi apikey found"
+
+            api_key = self.config["services"]["aprs.fi"]["apiKey"]
+
             try:
                 aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
             except Exception as ex:
@@ -168,7 +184,13 @@ class OWMWeatherPlugin(plugin.APRSDPluginBase):
         else:
             searchcall = fromcall
 
-        api_key = self.config["aprs.fi"]["apiKey"]
+        try:
+            utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+        except Exception as ex:
+            LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+            return "No aprs.fi apikey found"
+
+        api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
@@ -184,20 +206,23 @@ class OWMWeatherPlugin(plugin.APRSDPluginBase):
         lon = aprs_data["entries"][0]["lng"]
 
         try:
-            utils.check_config_option(self.config, "openweathermap", "apiKey")
+            utils.check_config_option(
+                self.config,
+                ["services", "openweathermap", "apiKey"],
+            )
         except Exception as ex:
             LOG.error("Failed to find config openweathermap:apiKey {}".format(ex))
             return "No openweathermap apiKey found"
 
         try:
-            utils.check_config_option(self.config, "aprsd", "units")
+            utils.check_config_option(self.config, ["aprsd", "units"])
         except Exception:
             LOG.debug("Couldn't find untis in aprsd:services:units")
             units = "metric"
         else:
             units = self.config["aprsd"]["units"]
 
-        api_key = self.config["openweathermap"]["apiKey"]
+        api_key = self.config["services"]["openweathermap"]["apiKey"]
         try:
             wx_data = plugin_utils.fetch_openweathermap(
                 api_key,
@@ -279,7 +304,13 @@ class AVWXWeatherPlugin(plugin.APRSDPluginBase):
         else:
             searchcall = fromcall
 
-        api_key = self.config["aprs.fi"]["apiKey"]
+        try:
+            utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+        except Exception as ex:
+            LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+            return "No aprs.fi apikey found"
+
+        api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
@@ -295,20 +326,20 @@ class AVWXWeatherPlugin(plugin.APRSDPluginBase):
         lon = aprs_data["entries"][0]["lng"]
 
         try:
-            utils.check_config_option(self.config, "avwx", "apiKey")
+            utils.check_config_option(self.config, ["services", "avwx", "apiKey"])
         except Exception as ex:
             LOG.error("Failed to find config avwx:apiKey {}".format(ex))
             return "No avwx apiKey found"
 
         try:
-            utils.check_config_option(self.config, "avwx", "base_url")
+            utils.check_config_option(self.config, ["services", "avwx", "base_url"])
         except Exception as ex:
             LOG.debut("Didn't find avwx:base_url {}".format(ex))
             base_url = "https://avwx.rest"
         else:
-            base_url = self.config["avwx"]["base_url"]
+            base_url = self.config["services"]["avwx"]["base_url"]
 
-        api_key = self.config["avwx"]["apiKey"]
+        api_key = self.config["services"]["avwx"]["apiKey"]
         token = "TOKEN {}".format(api_key)
         headers = {"Authorization": token}
         try:

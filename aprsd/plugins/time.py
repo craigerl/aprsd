@@ -53,7 +53,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
     command_name = "Time"
 
     def command(self, fromcall, message, ack):
-        api_key = self.config["aprs.fi"]["apiKey"]
+        api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
         except Exception as ex:
@@ -93,7 +93,7 @@ class TimeOWMPlugin(TimePlugin):
     command_name = "Time"
 
     def command(self, fromcall, message, ack):
-        api_key = self.config["aprs.fi"]["apiKey"]
+        api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
         except Exception as ex:
@@ -105,12 +105,15 @@ class TimeOWMPlugin(TimePlugin):
         lon = aprs_data["entries"][0]["lng"]
 
         try:
-            utils.check_config_option(self.config, "openweathermap", "apiKey")
+            utils.check_config_option(
+                self.config,
+                ["services", "openweathermap", "apiKey"],
+            )
         except Exception as ex:
             LOG.error("Failed to find config openweathermap:apiKey {}".format(ex))
             return "No openweathermap apiKey found"
 
-        api_key = self.config["openweathermap"]["apiKey"]
+        api_key = self.config["services"]["openweathermap"]["apiKey"]
         try:
             results = plugin_utils.fetch_openweathermap(api_key, lat, lon)
         except Exception as ex:

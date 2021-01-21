@@ -17,37 +17,42 @@ DEFAULT_CONFIG_DICT = {
     "aprs": {
         "login": "CALLSIGN",
         "password": "00000",
-        "host": "rotate.aprs.net",
+        "host": "rotate.aprs2.net",
         "port": 14580,
-        "logfile": "/tmp/aprsd.log",
-    },
-    "aprs.fi": {"apiKey": "set me"},
-    "openweathermap": {"apiKey": "set me"},
-    "opencagedata": {"apiKey": "set me"},
-    "avwx": {"base_url": "http://host:port", "apiKey": "set me"},
-    "shortcuts": {
-        "aa": "5551239999@vtext.com",
-        "cl": "craiglamparter@somedomain.org",
-        "wb": "555309@vtext.com",
-    },
-    "smtp": {
-        "login": "SMTP_USERNAME",
-        "password": "SMTP_PASSWORD",
-        "host": "smtp.gmail.com",
-        "port": 465,
-        "use_ssl": False,
-    },
-    "imap": {
-        "login": "IMAP_USERNAME",
-        "password": "IMAP_PASSWORD",
-        "host": "imap.gmail.com",
-        "port": 993,
-        "use_ssl": True,
     },
     "aprsd": {
+        "logfile": "/tmp/aprsd.log",
         "plugin_dir": "~/.config/aprsd/plugins",
         "enabled_plugins": plugin.CORE_PLUGINS,
         "units": "imperial",
+        "email": {
+            "enabled": True,
+            "shortcuts": {
+                "aa": "5551239999@vtext.com",
+                "cl": "craiglamparter@somedomain.org",
+                "wb": "555309@vtext.com",
+            },
+            "smtp": {
+                "login": "SMTP_USERNAME",
+                "password": "SMTP_PASSWORD",
+                "host": "smtp.gmail.com",
+                "port": 465,
+                "use_ssl": False,
+            },
+            "imap": {
+                "login": "IMAP_USERNAME",
+                "password": "IMAP_PASSWORD",
+                "host": "imap.gmail.com",
+                "port": 993,
+                "use_ssl": True,
+            },
+        },
+    },
+    "services": {
+        "aprs.fi": {"apiKey": "APIKEYVALUE"},
+        "openweathermap": {"apiKey": "APIKEYVALUE"},
+        "opencagedata": {"apiKey": "APIKEYVALUE"},
+        "avwx": {"base_url": "http://host:port", "apiKey": "APIKEYVALUE"},
     },
 }
 
@@ -105,14 +110,33 @@ def end_substr(original, substr):
     return idx
 
 
+def dump_default_cfg():
+    return add_config_comments(
+        yaml.dump(
+            DEFAULT_CONFIG_DICT,
+            indent=4,
+        ),
+    )
+
+
 def add_config_comments(raw_yaml):
+    end_idx = end_substr(raw_yaml, "aprs:")
+    if end_idx != -1:
+        # lets insert a comment
+        raw_yaml = insert_str(
+            raw_yaml,
+            "\n    # Get the passcode for your callsign here: "
+            "\n    # https://apps.magicbug.co.uk/passcode",
+            end_idx,
+        )
+
     end_idx = end_substr(raw_yaml, "aprs.fi:")
     if end_idx != -1:
         # lets insert a comment
         raw_yaml = insert_str(
             raw_yaml,
-            "\n  # Get the apiKey from your aprs.fi account here:  "
-            "\n  # http://aprs.fi/account",
+            "\n        # Get the apiKey from your aprs.fi account here:  "
+            "\n        # http://aprs.fi/account",
             end_idx,
         )
 
@@ -121,9 +145,9 @@ def add_config_comments(raw_yaml):
         # lets insert a comment
         raw_yaml = insert_str(
             raw_yaml,
-            "\n  # (Optional for TimeOpenCageDataPlugin) "
-            "\n  # Get the apiKey from your opencagedata account here:  "
-            "\n  # https://opencagedata.com/dashboard#api-keys",
+            "\n        # (Optional for TimeOpenCageDataPlugin) "
+            "\n        # Get the apiKey from your opencagedata account here:  "
+            "\n        # https://opencagedata.com/dashboard#api-keys",
             end_idx,
         )
 
@@ -132,10 +156,10 @@ def add_config_comments(raw_yaml):
         # lets insert a comment
         raw_yaml = insert_str(
             raw_yaml,
-            "\n  # (Optional for OWMWeatherPlugin) "
-            "\n  # Get the apiKey from your "
-            "\n  # openweathermap account here: "
-            "\n  # https://home.openweathermap.org/api_keys",
+            "\n        # (Optional for OWMWeatherPlugin) "
+            "\n        # Get the apiKey from your "
+            "\n        # openweathermap account here: "
+            "\n        # https://home.openweathermap.org/api_keys",
             end_idx,
         )
 
@@ -144,10 +168,10 @@ def add_config_comments(raw_yaml):
         # lets insert a comment
         raw_yaml = insert_str(
             raw_yaml,
-            "\n  # (Optional for AVWXWeatherPlugin) "
-            "\n  # Use hosted avwx-api here: https://avwx.rest "
-            "\n  # or deploy your own from here: "
-            "\n  # https://github.com/avwx-rest/avwx-api",
+            "\n        # (Optional for AVWXWeatherPlugin) "
+            "\n        # Use hosted avwx-api here: https://avwx.rest "
+            "\n        # or deploy your own from here: "
+            "\n        # https://github.com/avwx-rest/avwx-api",
             end_idx,
         )
 
@@ -163,8 +187,7 @@ def create_default_config():
         click.echo("Config dir '{}' doesn't exist, creating.".format(config_dir))
         mkdir_p(config_dir)
     with open(config_file_expanded, "w+") as cf:
-        raw_yaml = yaml.dump(DEFAULT_CONFIG_DICT)
-        cf.write(add_config_comments(raw_yaml))
+        cf.write(dump_default_cfg())
 
 
 def get_config(config_file):
@@ -194,33 +217,32 @@ def get_config(config_file):
         sys.exit(-1)
 
 
-def check_config_option(config, section, name=None, default=None, default_fail=None):
-    if section in config:
+def conf_option_exists(conf, chain):
+    _key = chain.pop(0)
+    if _key in conf:
+        return conf_option_exists(conf[_key], chain) if chain else conf[_key]
 
-        if name and name not in config[section]:
-            if not default:
-                raise Exception(
-                    "'{}' was not in '{}' section of config file".format(
-                        name,
-                        section,
-                    ),
-                )
-            else:
-                config[section][name] = default
-        else:
-            if (
-                default_fail
-                and name in config[section]
-                and config[section][name] == default_fail
-            ):
+
+def check_config_option(config, chain, default_fail=None):
+    result = conf_option_exists(config, chain.copy())
+    if not result:
+        raise Exception(
+            "'{}' was not in config file".format(
+                chain,
+            ),
+        )
+    else:
+        if default_fail:
+            if result == default_fail:
                 # We have to fail and bail if the user hasn't edited
                 # this config option.
                 raise Exception(
-                    "Config file needs to be edited from provided defaults.",
+                    "Config file needs to be edited from provided defaults for {}.".format(
+                        chain,
+                    ),
                 )
-    else:
-        raise Exception("'%s' section wasn't in config file" % section)
-    return config
+        else:
+            return config
 
 
 # This method tries to parse the config yaml file
@@ -235,41 +257,68 @@ def parse_config(config_file):
         click.echo(msg)
         sys.exit(-1)
 
-    def check_option(config, section, name=None, default=None, default_fail=None):
+    def check_option(config, chain, default_fail=None):
         try:
-            config = check_config_option(config, section, name, default, default_fail)
+            config = check_config_option(config, chain, default_fail=default_fail)
         except Exception as ex:
             fail(repr(ex))
         else:
             return config
 
     config = get_config(config_file)
-    check_option(config, "shortcuts")
+
     # special check here to make sure user has edited the config file
     # and changed the ham callsign
     check_option(
         config,
-        "ham",
-        "callsign",
+        [
+            "ham",
+            "callsign",
+        ],
         default_fail=DEFAULT_CONFIG_DICT["ham"]["callsign"],
     )
     check_option(
         config,
-        "aprs.fi",
-        "apiKey",
-        default_fail=DEFAULT_CONFIG_DICT["aprs.fi"]["apiKey"],
+        ["services", "aprs.fi", "apiKey"],
+        default_fail=DEFAULT_CONFIG_DICT["services"]["aprs.fi"]["apiKey"],
     )
-    check_option(config, "aprs", "login")
-    check_option(config, "aprs", "password")
-    # check_option(config, "aprs", "host")
-    # check_option(config, "aprs", "port")
-    check_option(config, "aprs", "logfile", "./aprsd.log")
-    check_option(config, "imap", "host")
-    check_option(config, "imap", "login")
-    check_option(config, "imap", "password")
-    check_option(config, "smtp", "host")
-    check_option(config, "smtp", "port")
-    check_option(config, "smtp", "login")
-    check_option(config, "smtp", "password")
+    check_option(
+        config,
+        ["aprs", "login"],
+        default_fail=DEFAULT_CONFIG_DICT["aprs"]["login"],
+    )
+    check_option(
+        config,
+        ["aprs", "password"],
+        default_fail=DEFAULT_CONFIG_DICT["aprs"]["password"],
+    )
+    if config["aprsd"]["email"]["enabled"] is True:
+        # Check IMAP server settings
+        check_option(config, ["aprsd", "email", "imap", "host"])
+        check_option(config, ["aprsd", "email", "imap", "port"])
+        check_option(
+            config,
+            ["aprsd", "email", "imap", "login"],
+            default_fail=DEFAULT_CONFIG_DICT["aprsd"]["email"]["imap"]["login"],
+        )
+        check_option(
+            config,
+            ["aprsd", "email", "imap", "password"],
+            default_fail=DEFAULT_CONFIG_DICT["aprsd"]["email"]["imap"]["password"],
+        )
+
+        # Check SMTP server settings
+        check_option(config, ["aprsd", "email", "smtp", "host"])
+        check_option(config, ["aprsd", "email", "smtp", "port"])
+        check_option(
+            config,
+            ["aprsd", "email", "smtp", "login"],
+            default_fail=DEFAULT_CONFIG_DICT["aprsd"]["email"]["smtp"]["login"],
+        )
+        check_option(
+            config,
+            ["aprsd", "email", "smtp", "password"],
+            default_fail=DEFAULT_CONFIG_DICT["aprsd"]["email"]["smtp"]["password"],
+        )
 
     return config
