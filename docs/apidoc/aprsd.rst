@@ -20,6 +20,14 @@ aprsd.client module
    :undoc-members:
    :show-inheritance:
 
+aprsd.dev module
+----------------
+
+.. automodule:: aprsd.dev
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.email module
 ------------------
 
@@ -64,6 +72,14 @@ aprsd.plugin module
 -------------------
 
 .. automodule:: aprsd.plugin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.plugin\_utils module
+--------------------------
+
+.. automodule:: aprsd.plugin_utils
    :members:
    :undoc-members:
    :show-inheritance:

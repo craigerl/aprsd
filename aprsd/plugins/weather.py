@@ -8,8 +8,18 @@ import requests
 LOG = logging.getLogger("APRSD")
 
 
-class WeatherPlugin(plugin.APRSDPluginBase):
-    """Weather Command"""
+class USWeatherPlugin(plugin.APRSDPluginBase):
+    """USWeather Command
+
+    Returns a weather report for the calling weather station
+    inside the United States only.  This uses the
+    forecast.weather.gov API to fetch the weather.
+
+    This service does not require an apiKey.
+
+    How to Call: Send a message to aprsd
+    "weather" - returns weather near the calling callsign
+    """
 
     version = "1.0"
     command_regex = "^[wW]"
@@ -50,7 +60,19 @@ class WeatherPlugin(plugin.APRSDPluginBase):
 
 
 class USMetarPlugin(plugin.APRSDPluginBase):
-    """METAR Command"""
+    """METAR Command
+
+    This provides a METAR weather report from a station near the caller
+    or callsign using the forecast.weather.gov api.  This only works
+    for stations inside the United States.
+
+    This service does not require an apiKey.
+
+    How to Call: Send a message to aprsd
+    "metar" - returns metar report near the calling callsign
+    "metar CALLSIGN" - returns metar report near CALLSIGN
+
+    """
 
     version = "1.0"
     command_regex = "^[metar]"
@@ -115,7 +137,23 @@ class USMetarPlugin(plugin.APRSDPluginBase):
 
 
 class OWMWeatherPlugin(plugin.APRSDPluginBase):
-    """OpenWeatherMap Weather Command"""
+    """OpenWeatherMap Weather Command
+
+    This provides weather near the caller or callsign.
+
+    How to Call: Send a message to aprsd
+    "weather" - returns the weather near the calling callsign
+    "weather CALLSIGN" - returns the weather near CALLSIGN
+
+    This plugin uses the openweathermap API to fetch
+    location and weather information.
+
+    To use this plugin you need to get an openweathermap
+    account and apikey.
+
+    https://home.openweathermap.org/api_keys
+
+    """
 
     version = "1.0"
     command_regex = "^[wW]"
@@ -206,10 +244,30 @@ class OWMWeatherPlugin(plugin.APRSDPluginBase):
 
 
 class AVWXWeatherPlugin(plugin.APRSDPluginBase):
-    """AVWXWeatherMap Weather Command"""
+    """AVWXWeatherMap Weather Command
+
+    Fetches a METAR weather report for the nearest
+    weather station from the callsign
+    Can be called with:
+    metar - fetches metar for caller
+    metar <CALLSIGN> - fetches metar for <CALLSIGN>
+
+    This plugin requires the avwx-api service
+    to provide the metar for a station near
+    the callsign.
+
+    avwx-api is an opensource project that has
+    a hosted service here: https://avwx.rest/
+
+    You can launch your own avwx-api in a container
+    by cloning the githug repo here: https://github.com/avwx-rest/AVWX-API
+
+    Then build the docker container with:
+    docker build -f Dockerfile -t avwx-api:master .
+    """
 
     version = "1.0"
-    command_regex = "^[wW]"
+    command_regex = "^[metar]"
     command_name = "Weather"
 
     def command(self, fromcall, message, ack):
@@ -252,19 +310,41 @@ class AVWXWeatherPlugin(plugin.APRSDPluginBase):
 
         api_key = self.config["avwx"]["apiKey"]
         token = "TOKEN {}".format(api_key)
+        headers = {"Authorization": token}
         try:
             coord = "{},{}".format(lat, lon)
             url = (
                 "{}/api/station/near/{}?"
-                "n=1&airport=true&reporting=true&format=json".format(base_url, coord)
+                "n=1&airport=false&reporting=true&format=json".format(base_url, coord)
             )
 
             LOG.debug("Get stations near me '{}'".format(url))
-            response = requests.get(url, headers={"Authorization": token})
+            response = requests.get(url, headers=headers)
         except Exception as ex:
             LOG.error(ex)
             raise Exception("Failed to get the weather '{}'".format(ex))
         else:
             wx_data = json.loads(response.text)
 
-        LOG.debug(wx_data)
+        # LOG.debug(wx_data)
+        station = wx_data[0]["station"]["icao"]
+
+        try:
+            url = (
+                "{}/api/metar/{}?options=info,translate,summary"
+                "&airport=true&reporting=true&format=json&onfail=cache".format(
+                    base_url,
+                    station,
+                )
+            )
+
+            LOG.debug("Get METAR '{}'".format(url))
+            response = requests.get(url, headers=headers)
+        except Exception as ex:
+            LOG.error(ex)
+            raise Exception("Failed to get metar {}".format(ex))
+        else:
+            metar_data = json.loads(response.text)
+
+        # LOG.debug(metar_data)
+        return metar_data["raw"]
