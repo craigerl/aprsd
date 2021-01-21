@@ -3,6 +3,7 @@ import logging
 import re
 
 from aprsd import plugin, plugin_utils, utils
+import requests
 
 LOG = logging.getLogger("APRSD")
 
@@ -83,6 +84,10 @@ class USMetarPlugin(plugin.APRSDPluginBase):
                 return "Failed to fetch location"
 
             # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+            if not len(aprs_data["entries"]):
+                LOG.error("Found no entries from aprs.fi!")
+                return "Failed to fetch location"
+
             lat = aprs_data["entries"][0]["lat"]
             lon = aprs_data["entries"][0]["lng"]
 
@@ -133,6 +138,10 @@ class OWMWeatherPlugin(plugin.APRSDPluginBase):
             return "Failed to fetch location"
 
         # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+        if not len(aprs_data["entries"]):
+            LOG.error("Found no entries from aprs.fi!")
+            return "Failed to fetch location"
+
         lat = aprs_data["entries"][0]["lat"]
         lon = aprs_data["entries"][0]["lng"]
 
@@ -194,3 +203,68 @@ class OWMWeatherPlugin(plugin.APRSDPluginBase):
         )
 
         return reply
+
+
+class AVWXWeatherPlugin(plugin.APRSDPluginBase):
+    """AVWXWeatherMap Weather Command"""
+
+    version = "1.0"
+    command_regex = "^[wW]"
+    command_name = "Weather"
+
+    def command(self, fromcall, message, ack):
+        LOG.info("OWMWeather Plugin '{}'".format(message))
+        a = re.search(r"^.*\s+(.*)", message)
+        if a is not None:
+            searchcall = a.group(1)
+            searchcall = searchcall.upper()
+        else:
+            searchcall = fromcall
+
+        api_key = self.config["aprs.fi"]["apiKey"]
+        try:
+            aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
+        except Exception as ex:
+            LOG.error("Failed to fetch aprs.fi data {}".format(ex))
+            return "Failed to fetch location"
+
+        # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+        if not len(aprs_data["entries"]):
+            LOG.error("Found no entries from aprs.fi!")
+            return "Failed to fetch location"
+
+        lat = aprs_data["entries"][0]["lat"]
+        lon = aprs_data["entries"][0]["lng"]
+
+        try:
+            utils.check_config_option(self.config, "avwx", "apiKey")
+        except Exception as ex:
+            LOG.error("Failed to find config avwx:apiKey {}".format(ex))
+            return "No avwx apiKey found"
+
+        try:
+            utils.check_config_option(self.config, "avwx", "base_url")
+        except Exception as ex:
+            LOG.debut("Didn't find avwx:base_url {}".format(ex))
+            base_url = "https://avwx.rest"
+        else:
+            base_url = self.config["avwx"]["base_url"]
+
+        api_key = self.config["avwx"]["apiKey"]
+        token = "TOKEN {}".format(api_key)
+        try:
+            coord = "{},{}".format(lat, lon)
+            url = (
+                "{}/api/station/near/{}?"
+                "n=1&airport=true&reporting=true&format=json".format(base_url, coord)
+            )
+
+            LOG.debug("Get stations near me '{}'".format(url))
+            response = requests.get(url, headers={"Authorization": token})
+        except Exception as ex:
+            LOG.error(ex)
+            raise Exception("Failed to get the weather '{}'".format(ex))
+        else:
+            wx_data = json.loads(response.text)
+
+        LOG.debug(wx_data)

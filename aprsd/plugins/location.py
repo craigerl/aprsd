@@ -24,53 +24,53 @@ class LocationPlugin(plugin.APRSDPluginBase):
             return "No aprs.fi apikey found"
 
         api_key = self.config["aprs.fi"]["apiKey"]
+        # optional second argument is a callsign to search
+        a = re.search(r"^.*\s+(.*)", message)
+        if a is not None:
+            searchcall = a.group(1)
+            searchcall = searchcall.upper()
+        else:
+            # if no second argument, search for calling station
+            searchcall = fromcall
+
         try:
-            # optional second argument is a callsign to search
-            a = re.search(r"^.*\s+(.*)", message)
-            if a is not None:
-                searchcall = a.group(1)
-                searchcall = searchcall.upper()
-            else:
-                # if no second argument, search for calling station
-                searchcall = fromcall
+            aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
+        except Exception as ex:
+            LOG.error("Failed to fetch aprs.fi '{}'".format(ex))
+            return "Failed to fetch aprs.fi location"
 
-            try:
-                aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
-            except Exception as ex:
-                LOG.error("Failed to fetch aprs.fi '{}'".format(ex))
-                return "Failed to fetch aprs.fi location"
+        LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+        if not len(aprs_data["entries"]):
+            LOG.error("Didn't get any entries from aprs.fi")
+            return "Failed to fetch aprs.fi location"
 
-            LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
-            lat = aprs_data["entries"][0]["lat"]
-            lon = aprs_data["entries"][0]["lng"]
-            try:  # altitude not always provided
-                alt = aprs_data["entries"][0]["altitude"]
-            except Exception:
-                alt = 0
-            altfeet = int(alt * 3.28084)
-            aprs_lasttime_seconds = aprs_data["entries"][0]["lasttime"]
-            # aprs_lasttime_seconds = aprs_lasttime_seconds.encode(
-            #    "ascii", errors="ignore"
-            # )  # unicode to ascii
-            delta_seconds = time.time() - int(aprs_lasttime_seconds)
-            delta_hours = delta_seconds / 60 / 60
+        lat = aprs_data["entries"][0]["lat"]
+        lon = aprs_data["entries"][0]["lng"]
+        try:  # altitude not always provided
+            alt = aprs_data["entries"][0]["altitude"]
+        except Exception:
+            alt = 0
+        altfeet = int(alt * 3.28084)
+        aprs_lasttime_seconds = aprs_data["entries"][0]["lasttime"]
+        # aprs_lasttime_seconds = aprs_lasttime_seconds.encode(
+        #    "ascii", errors="ignore"
+        # )  # unicode to ascii
+        delta_seconds = time.time() - int(aprs_lasttime_seconds)
+        delta_hours = delta_seconds / 60 / 60
 
-            try:
-                wx_data = plugin_utils.get_weather_gov_for_gps(lat, lon)
-            except Exception as ex:
-                LOG.error("Couldn't fetch forecast.weather.gov '{}'".format(ex))
-                wx_data["location"]["areaDescription"] = "Unkown Location"
+        try:
+            wx_data = plugin_utils.get_weather_gov_for_gps(lat, lon)
+        except Exception as ex:
+            LOG.error("Couldn't fetch forecast.weather.gov '{}'".format(ex))
+            wx_data = {"location": {"areaDescription": "Unknown Location"}}
 
-            reply = "{}: {} {}' {},{} {}h ago".format(
-                searchcall,
-                wx_data["location"]["areaDescription"],
-                str(altfeet),
-                str(lat),
-                str(lon),
-                str("%.1f" % round(delta_hours, 1)),
-            ).rstrip()
-        except Exception as e:
-            LOG.debug("Locate failed with:  " + "%s" % str(e))
-            reply = "Unable to find station " + searchcall + ".  Sending beacons?"
+        reply = "{}: {} {}' {},{} {}h ago".format(
+            searchcall,
+            wx_data["location"]["areaDescription"],
+            str(altfeet),
+            str(lat),
+            str(lon),
+            str("%.1f" % round(delta_hours, 1)),
+        ).rstrip()
 
         return reply
