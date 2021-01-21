@@ -37,7 +37,6 @@ import aprslib
 from aprslib.exceptions import LoginError
 import click
 import click_completion
-import yaml
 
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
@@ -174,7 +173,7 @@ def setup_logging(config, loglevel, quiet):
     log_format = "[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s]" " %(message)s"
     date_format = "%m/%d/%Y %I:%M:%S %p"
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
-    log_file = config["aprs"].get("logfile", None)
+    log_file = config["aprsd"].get("logfile", None)
     if log_file:
         fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
     else:
@@ -192,7 +191,7 @@ def setup_logging(config, loglevel, quiet):
 @main.command()
 def sample_config():
     """This dumps the config to stdout."""
-    click.echo(utils.add_config_comments(yaml.dump(utils.DEFAULT_CONFIG_DICT)))
+    click.echo(utils.dump_default_cfg())
 
 
 @main.command()

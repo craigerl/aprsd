@@ -18,12 +18,13 @@ class LocationPlugin(plugin.APRSDPluginBase):
         LOG.info("Location Plugin")
         # get last location of a callsign, get descriptive name from weather service
         try:
-            utils.check_config_option(self.config, "aprs.fi", "apiKey")
+            utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
         except Exception as ex:
             LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
             return "No aprs.fi apikey found"
 
-        api_key = self.config["aprs.fi"]["apiKey"]
+        api_key = self.config["services"]["aprs.fi"]["apiKey"]
+
         # optional second argument is a callsign to search
         a = re.search(r"^.*\s+(.*)", message)
         if a is not None:

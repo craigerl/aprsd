@@ -18,16 +18,16 @@ CONFIG = None
 
 
 def _imap_connect():
-    imap_port = CONFIG["imap"].get("port", 143)
-    use_ssl = CONFIG["imap"].get("use_ssl", False)
-    host = CONFIG["imap"]["host"]
+    imap_port = CONFIG["aprsd"]["email"]["imap"].get("port", 143)
+    use_ssl = CONFIG["aprsd"]["email"]["imap"].get("use_ssl", False)
+    host = CONFIG["aprsd"]["email"]["imap"]["host"]
     msg = "{}{}:{}".format("TLS " if use_ssl else "", host, imap_port)
     #    LOG.debug("Connect to IMAP host {} with user '{}'".
     #              format(msg, CONFIG['imap']['login']))
 
     try:
         server = imapclient.IMAPClient(
-            CONFIG["imap"]["host"],
+            CONFIG["aprsd"]["email"]["imap"]["host"],
             port=imap_port,
             use_uid=True,
             ssl=use_ssl,
@@ -37,7 +37,10 @@ def _imap_connect():
         return
 
     try:
-        server.login(CONFIG["imap"]["login"], CONFIG["imap"]["password"])
+        server.login(
+            CONFIG["aprsd"]["email"]["imap"]["login"],
+            CONFIG["aprsd"]["email"]["imap"]["password"],
+        )
     except (imaplib.IMAP4.error, Exception) as e:
         msg = getattr(e, "message", repr(e))
         LOG.error("Failed to login {}".format(msg))
@@ -48,12 +51,15 @@ def _imap_connect():
 
 
 def _smtp_connect():
-    host = CONFIG["smtp"]["host"]
-    smtp_port = CONFIG["smtp"]["port"]
-    use_ssl = CONFIG["smtp"].get("use_ssl", False)
+    host = CONFIG["aprsd"]["email"]["smtp"]["host"]
+    smtp_port = CONFIG["aprsd"]["email"]["smtp"]["port"]
+    use_ssl = CONFIG["aprsd"]["email"]["smtp"].get("use_ssl", False)
     msg = "{}{}:{}".format("SSL " if use_ssl else "", host, smtp_port)
     LOG.debug(
-        "Connect to SMTP host {} with user '{}'".format(msg, CONFIG["imap"]["login"]),
+        "Connect to SMTP host {} with user '{}'".format(
+            msg,
+            CONFIG["aprsd"]["email"]["imap"]["login"],
+        ),
     )
 
     try:
@@ -68,7 +74,10 @@ def _smtp_connect():
     LOG.debug("Connected to smtp host {}".format(msg))
 
     try:
-        server.login(CONFIG["smtp"]["login"], CONFIG["smtp"]["password"])
+        server.login(
+            CONFIG["aprsd"]["email"]["smtp"]["login"],
+            CONFIG["aprsd"]["email"]["smtp"]["password"],
+        )
     except Exception:
         LOG.error("Couldn't connect to SMTP Server")
         return
@@ -93,8 +102,8 @@ def validate_shortcuts(config):
             email_address=shortcuts[key],
             check_regex=True,
             check_mx=False,
-            from_address=config["smtp"]["login"],
-            helo_host=config["smtp"]["host"],
+            from_address=config["aprsd"]["email"]["smtp"]["login"],
+            helo_host=config["aprsd"]["email"]["smtp"]["host"],
             smtp_timeout=10,
             dns_timeout=10,
             use_blacklist=True,
@@ -109,14 +118,14 @@ def validate_shortcuts(config):
             delete_keys.append(key)
 
     for key in delete_keys:
-        del config["shortcuts"][key]
+        del config["aprsd"]["email"]["shortcuts"][key]
 
     LOG.info("Available shortcuts: {}".format(config["shortcuts"]))
 
 
 def get_email_from_shortcut(addr):
-    if CONFIG.get("shortcuts", False):
-        return CONFIG["shortcuts"].get(addr, addr)
+    if CONFIG["aprsd"]["email"].get("shortcuts", False):
+        return CONFIG["aprsd"]["email"]["shortcuts"].get(addr, addr)
     else:
         return addr
 
@@ -232,7 +241,7 @@ def parse_email(msgid, data, server):
 def send_email(to_addr, content):
     global check_email_delay
 
-    shortcuts = CONFIG["shortcuts"]
+    shortcuts = CONFIG["aprsd"]["email"]["shortcuts"]
     email_address = get_email_from_shortcut(to_addr)
     LOG.info("Sending Email_________________")
 
@@ -250,12 +259,16 @@ def send_email(to_addr, content):
 
     msg = MIMEText(content)
     msg["Subject"] = subject
-    msg["From"] = CONFIG["smtp"]["login"]
+    msg["From"] = CONFIG["aprsd"]["email"]["smtp"]["login"]
     msg["To"] = to_addr
     server = _smtp_connect()
     if server:
         try:
-            server.sendmail(CONFIG["smtp"]["login"], [to_addr], msg.as_string())
+            server.sendmail(
+                CONFIG["aprsd"]["email"]["smtp"]["login"],
+                [to_addr],
+                msg.as_string(),
+            )
         except Exception as e:
             msg = getattr(e, "message", repr(e))
             LOG.error("Sendmail Error!!!! '{}'", msg)
@@ -305,7 +318,11 @@ def resend_email(count, fromcall):
             # asterisk indicates a resend
             reply = "-" + from_addr + " * " + body.decode(errors="ignore")
             # messaging.send_message(fromcall, reply)
-            msg = messaging.TextMessage(CONFIG["aprs"]["login"], fromcall, reply)
+            msg = messaging.TextMessage(
+                CONFIG["aprsd"]["email"]["aprs"]["login"],
+                fromcall,
+                reply,
+            )
             msg.send()
             msgexists = True
 
@@ -362,7 +379,7 @@ class APRSDEmailThread(threads.APRSDThread):
                     check_email_delay += 1
                 LOG.debug("check_email_delay is " + str(check_email_delay) + " seconds")
 
-                shortcuts = CONFIG["shortcuts"]
+                shortcuts = CONFIG["aprsd"]["email"]["shortcuts"]
                 # swap key/value
                 shortcuts_inverted = {v: k for k, v in shortcuts.items()}
 
