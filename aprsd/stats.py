@@ -141,14 +141,14 @@ class APRSDStats:
                 "thread_last_update": str(now - self._email_thread_last_time),
             },
         }
-        LOG.debug("STATS {}".format(stats))
         return stats
 
     def __str__(self):
         return (
-            "Msgs TX:{} RX:{} ACK: TX:{} RX:{}  "
-            "Email TX:{} RX:{} LastLoop:{} "
-            "Uptime: {}".format(
+            "Uptime:{} Msgs TX:{} RX:{} "
+            "ACK: TX:{} RX:{} "
+            "Email TX:{} RX:{} LastLoop:{} ".format(
+                self.uptime,
                 self._msgs_tx,
                 self._msgs_rx,
                 self._ack_tx,
@@ -156,6 +156,5 @@ class APRSDStats:
                 self._email_tx,
                 self._email_rx,
                 self._email_thread_last_time,
-                self.uptime,
             )
         )

@@ -82,12 +82,13 @@ class KeepAliveThread(APRSDThread):
                 email_thread_time = "N/A"
 
             LOG.debug(
-                "Tracker({}) EmailThread: {} "
-                "  Msgs: TX:{}  RX:{}".format(
+                "Uptime ({}) Tracker({}) "
+                "Msgs: TX:{} RX:{} EmailThread: {}".format(
+                    stats_obj.uptime,
                     len(tracker),
-                    email_thread_time,
                     stats_obj.msgs_tx,
                     stats_obj.msgs_rx,
+                    email_thread_time,
                 ),
             )
         self.cntr += 1
@@ -104,13 +105,6 @@ class APRSDRXThread(APRSDThread):
     def stop(self):
         self.thread_stop = True
         client.get_client().stop()
-
-    def callback(self, packet):
-        try:
-            packet = aprslib.parse(packet)
-            print(packet)
-        except (aprslib.ParseError, aprslib.UnknownFormat):
-            pass
 
     def loop(self):
         aprs_client = client.get_client()
