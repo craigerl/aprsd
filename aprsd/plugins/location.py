@@ -65,6 +65,10 @@ class LocationPlugin(plugin.APRSDPluginBase):
             LOG.error("Couldn't fetch forecast.weather.gov '{}'".format(ex))
             wx_data = {"location": {"areaDescription": "Unknown Location"}}
 
+        if "location" not in wx_data:
+            LOG.error("Couldn't fetch forecast.weather.gov '{}'".format(wx_data))
+            wx_data = {"location": {"areaDescription": "Unknown Location"}}
+
         reply = "{}: {} {}' {},{} {}h ago".format(
             searchcall,
             wx_data["location"]["areaDescription"],
