@@ -28,6 +28,14 @@ aprsd.dev module
    :undoc-members:
    :show-inheritance:
 
+aprsd.dev module
+----------------
+
+.. automodule:: aprsd.dev
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.email module
 ------------------
 
@@ -40,6 +48,14 @@ aprsd.fake\_aprs module
 -----------------------
 
 .. automodule:: aprsd.fake_aprs
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.flask module
+------------------
+
+.. automodule:: aprsd.flask
    :members:
    :undoc-members:
    :show-inheritance:
@@ -72,6 +88,14 @@ aprsd.plugin module
 -------------------
 
 .. automodule:: aprsd.plugin
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.plugin\_utils module
+--------------------------
+
+.. automodule:: aprsd.plugin_utils
    :members:
    :undoc-members:
    :show-inheritance:

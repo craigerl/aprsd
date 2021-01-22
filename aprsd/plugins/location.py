@@ -48,7 +48,7 @@ class LocationPlugin(plugin.APRSDPluginBase):
         lat = aprs_data["entries"][0]["lat"]
         lon = aprs_data["entries"][0]["lng"]
         try:  # altitude not always provided
-            alt = aprs_data["entries"][0]["altitude"]
+            alt = float(aprs_data["entries"][0]["altitude"])
         except Exception:
             alt = 0
         altfeet = int(alt * 3.28084)

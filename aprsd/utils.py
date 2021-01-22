@@ -25,6 +25,11 @@ DEFAULT_CONFIG_DICT = {
         "plugin_dir": "~/.config/aprsd/plugins",
         "enabled_plugins": plugin.CORE_PLUGINS,
         "units": "imperial",
+        "web": {
+            "enabled": True,
+            "host": "0.0.0.0",
+            "port": 8001,
+        },
         "email": {
             "enabled": True,
             "shortcuts": {

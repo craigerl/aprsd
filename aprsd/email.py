@@ -7,7 +7,7 @@ import re
 import smtplib
 import time
 
-from aprsd import messaging, threads
+from aprsd import messaging, stats, threads
 import imapclient
 from validate_email import validate_email
 
@@ -269,6 +269,7 @@ def send_email(to_addr, content):
                 [to_addr],
                 msg.as_string(),
             )
+            stats.APRSDStats().email_tx_inc()
         except Exception as e:
             msg = getattr(e, "message", repr(e))
             LOG.error("Sendmail Error!!!! '{}'", msg)
@@ -366,6 +367,7 @@ class APRSDEmailThread(threads.APRSDThread):
         past = datetime.datetime.now()
         while not self.thread_stop:
             time.sleep(5)
+            stats.APRSDStats().email_thread_update()
             # always sleep for 5 seconds and see if we need to check email
             # This allows CTRL-C to stop the execution of this loop sooner
             # than check_email_delay time
