@@ -44,6 +44,7 @@ output/*/index.html
 
 # Sphinx
 doc/build
+docs/_build
 
 # pbr generates these
 AUTHORS
