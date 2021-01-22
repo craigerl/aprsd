@@ -12,3 +12,4 @@ py3-validate-email
 pre-commit
 pytz
 opencage
+flask

@@ -1,8 +1,7 @@
-import datetime
 import json
 
 import aprsd
-from aprsd import messaging
+from aprsd import messaging, stats
 import flask
 import flask_classful
 
@@ -18,14 +17,16 @@ class APRSDFlask(flask_classful.FlaskView):
         # return flask.render_template("index.html", message=msg)
 
     def stats(self):
+        stats_obj = stats.APRSDStats()
         track = messaging.MsgTrack()
-        uptime = datetime.datetime.now() - track._start_time
-        stats = {
+
+        result = {
             "version": aprsd.__version__,
-            "uptime": str(uptime),
+            "uptime": stats_obj.uptime,
             "size_tracker": len(track),
+            "stats": stats_obj.stats(),
         }
-        return json.dumps(stats)
+        return json.dumps(result)
 
 
 def init_flask(config):

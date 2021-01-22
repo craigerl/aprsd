@@ -1,10 +1,11 @@
 import abc
+import datetime
 import logging
 import queue
 import threading
 import time
 
-from aprsd import client, messaging, plugin
+from aprsd import client, messaging, plugin, stats
 import aprslib
 
 LOG = logging.getLogger("APRSD")
@@ -63,6 +64,37 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         LOG.debug("Exiting")
 
 
+class KeepAliveThread(APRSDThread):
+    cntr = 0
+
+    def __init__(self):
+        super().__init__("KeepAlive")
+
+    def loop(self):
+        if self.cntr % 6 == 0:
+            tracker = messaging.MsgTrack()
+            stats_obj = stats.APRSDStats()
+            now = datetime.datetime.now()
+            last_email = stats.APRSDStats().email_thread_time
+            if last_email:
+                email_thread_time = str(now - last_email)
+            else:
+                email_thread_time = "N/A"
+
+            LOG.debug(
+                "Tracker({}) EmailThread: {} "
+                "  Msgs: TX:{}  RX:{}".format(
+                    len(tracker),
+                    email_thread_time,
+                    stats_obj.msgs_tx,
+                    stats_obj.msgs_rx,
+                ),
+            )
+        self.cntr += 1
+        time.sleep(10)
+        return True
+
+
 class APRSDRXThread(APRSDThread):
     def __init__(self, msg_queues, config):
         super().__init__("RX_MSG")
@@ -118,11 +150,13 @@ class APRSDRXThread(APRSDThread):
         )
         tracker = messaging.MsgTrack()
         tracker.remove(ack_num)
+        stats.APRSDStats().ack_rx_inc()
         return
 
     def process_mic_e_packet(self, packet):
         LOG.info("Mic-E Packet detected.  Currenlty unsupported.")
         messaging.log_packet(packet)
+        stats.APRSDStats().msgs_mice_inc()
         return
 
     def process_message_packet(self, packet):
@@ -196,6 +230,7 @@ class APRSDRXThread(APRSDThread):
 
         try:
             LOG.info("Got message: {}".format(packet))
+            stats.APRSDStats().msgs_rx_inc()
 
             msg = packet.get("message_text", None)
             msg_format = packet.get("format", None)

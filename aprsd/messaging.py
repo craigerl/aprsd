@@ -9,7 +9,7 @@ import re
 import threading
 import time
 
-from aprsd import client, threads, utils
+from aprsd import client, stats, threads, utils
 
 LOG = logging.getLogger("APRSD")
 
@@ -49,7 +49,7 @@ class MsgTrack:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.track = {}
-            cls._start_time = datetime.datetime.now()
+            cls._instance._start_time = datetime.datetime.now()
             cls._instance.lock = threading.Lock()
         return cls._instance
 
@@ -57,6 +57,7 @@ class MsgTrack:
         with self.lock:
             key = int(msg.id)
             self.track[key] = msg
+            stats.APRSDStats().msgs_tracked_inc()
             self.total_messages_tracked += 1
 
     def get(self, id):
@@ -251,6 +252,7 @@ class RawMessage(Message):
             fromcall=self.fromcall,
         )
         cl.sendall(repr(self))
+        stats.APRSDStats().msgs_sent_inc()
 
 
 class TextMessage(Message):
@@ -267,7 +269,7 @@ class TextMessage(Message):
 
     def __repr__(self):
         """Build raw string to send over the air."""
-        return "{}>APRS::{}:{}{{{}\n".format(
+        return "{}>APZ100::{}:{}{{{}\n".format(
             self.fromcall,
             self.tocall.ljust(9),
             self._filter_for_send(),
@@ -315,6 +317,7 @@ class TextMessage(Message):
             fromcall=self.fromcall,
         )
         cl.sendall(repr(self))
+        stats.APRSDStats().msgs_tx_inc()
 
 
 class SendMessageThread(threads.APRSDThread):
@@ -374,6 +377,7 @@ class SendMessageThread(threads.APRSDThread):
                     msg_num=msg.id,
                 )
                 cl.sendall(repr(msg))
+                stats.APRSDStats().msgs_tx_inc()
                 msg.last_send_time = datetime.datetime.now()
                 msg.last_send_attempt += 1
 
@@ -389,7 +393,7 @@ class AckMessage(Message):
         super().__init__(fromcall, tocall, msg_id=msg_id)
 
     def __repr__(self):
-        return "{}>APRS::{}:ack{}\n".format(
+        return "{}>APZ100::{}:ack{}\n".format(
             self.fromcall,
             self.tocall.ljust(9),
             self.id,
@@ -411,6 +415,7 @@ class AckMessage(Message):
                 retry_number=i,
             )
             cl.sendall(repr(self))
+            stats.APRSDStats().ack_tx_inc()
             # aprs duplicate detection is 30 secs?
             # (21 only sends first, 28 skips middle)
             time.sleep(31)
@@ -478,6 +483,7 @@ class SendAckThread(threads.APRSDThread):
                 retry_number=self.ack.last_send_attempt,
             )
             cl.sendall(repr(self.ack))
+            stats.APRSDStats().ack_tx_inc()
             self.ack.last_send_attempt += 1
             self.ack.last_send_time = datetime.datetime.now()
         time.sleep(5)

@@ -32,7 +32,7 @@ import time
 
 # local imports here
 import aprsd
-from aprsd import client, email, messaging, plugin, threads, utils
+from aprsd import client, email, flask, messaging, plugin, stats, threads, utils
 import aprslib
 from aprslib.exceptions import LoginError
 import click
@@ -157,7 +157,9 @@ def signal_handler(sig, frame):
     )
     threads.APRSDThreadList().stop_all()
     server_event.set()
-    time.sleep(1)
+    LOG.info("EXITING STATS")
+    LOG.info(stats.APRSDStats())
+    # time.sleep(1)
     signal.signal(signal.SIGTERM, sys.exit(0))
 
 
@@ -384,19 +386,12 @@ def send_message(
     default=False,
     help="Flush out all old aged messages on disk.",
 )
-@click.option(
-    "--stats-server",
-    is_flag=True,
-    default=False,
-    help="Run a stats web server on port 5001?",
-)
 def server(
     loglevel,
     quiet,
     disable_validation,
     config_file,
     flush,
-    stats_server,
 ):
     """Start the aprsd server process."""
     global event
@@ -416,6 +411,7 @@ def server(
 
     setup_logging(config, loglevel, quiet)
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
+    stats.APRSDStats(config)
 
     email_enabled = config["aprsd"]["email"].get("enabled", False)
 
@@ -463,18 +459,25 @@ def server(
 
     messaging.MsgTrack().restart()
 
-    cntr = 0
-    while not server_event.is_set():
-        # to keep the log noise down
-        if cntr % 12 == 0:
-            tracker = messaging.MsgTrack()
-            LOG.debug("KeepAlive  Tracker({}): {}".format(len(tracker), str(tracker)))
-        cntr += 1
-        time.sleep(10)
+    keepalive = threads.KeepAliveThread()
+    keepalive.start()
+
+    try:
+        web_enabled = utils.check_config_option(config, ["aprsd", "web", "enabled"])
+    except Exception:
+        web_enabled = False
+
+    if web_enabled:
+        app = flask.init_flask(config)
+        app.run(
+            host=config["aprsd"]["web"]["host"],
+            port=config["aprsd"]["web"]["port"],
+        )
 
     # If there are items in the msgTracker, then save them
     tracker = messaging.MsgTrack()
     tracker.save()
+    LOG.info(stats.APRSDStats())
     LOG.info("APRSD Exiting.")
 
 
