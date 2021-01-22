@@ -35,8 +35,12 @@ filelock==3.0.12
     # via
     #   py3-validate-email
     #   virtualenv
-flask==1.1.2
+flask-classful==0.14.2
     # via -r requirements.in
+flask==1.1.2
+    # via
+    #   -r requirements.in
+    #   flask-classful
 identify==1.5.13
     # via pre-commit
 idna==2.10
