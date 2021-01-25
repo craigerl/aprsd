@@ -410,7 +410,10 @@ class APRSDEmailThread(threads.APRSDThread):
                 LOG.debug("Try Server.fetch.")
                 for msgid, data in server.fetch(messages, ["ENVELOPE"]).items():
                     envelope = data[b"ENVELOPE"]
-                    # LOG.debug('ID:%d  "%s" (%s)' % (msgid, envelope.subject.decode(), envelope.date))
+                    LOG.debug(
+                        'ID:%d  "%s" (%s)'
+                        % (msgid, envelope.subject.decode(), envelope.date),
+                    )
                     f = re.search(
                         r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)",
                         str(envelope.from_[0]),
@@ -429,10 +432,14 @@ class APRSDEmailThread(threads.APRSDThread):
                     ]
                     if "APRS" not in taglist:
                         # if msg not flagged as sent via aprs
+                        LOG.debug("Try single fetch.")
                         server.fetch([msgid], ["RFC822"])
+                        LOG.debug("Did single fetch.")
                         (body, from_addr) = parse_email(msgid, data, server)
                         # unset seen flag, will stay bold in email client
+                        LOG.debug("Try remove flags.")
                         server.remove_flags(msgid, [imapclient.SEEN])
+                        LOG.debug("Did remove flags.")
 
                         if from_addr in shortcuts_inverted:
                             # reverse lookup of a shortcut
@@ -452,7 +459,7 @@ class APRSDEmailThread(threads.APRSDThread):
                         # check email more often since we just received an email
                         check_email_delay = 60
                 # reset clock
-                LOG.debug("Done looping over Server.fetch.")
+                LOG.debug("Done looping over Server.fetch, logging out.")
                 past = datetime.datetime.now()
                 server.logout()
             else:
