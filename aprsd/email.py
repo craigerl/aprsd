@@ -31,6 +31,7 @@ def _imap_connect():
             port=imap_port,
             use_uid=True,
             ssl=use_ssl,
+            timeout=30,
         )
     except Exception:
         LOG.error("Failed to connect IMAP server")
@@ -64,14 +65,26 @@ def _smtp_connect():
 
     try:
         if use_ssl:
-            server = smtplib.SMTP_SSL(host=host, port=smtp_port)
+            server = smtplib.SMTP_SSL(
+                host=host,
+                port=smtp_port,
+                timeout=30,
+            )
         else:
-            server = smtplib.SMTP(host=host, port=smtp_port)
+            server = smtplib.SMTP(
+                host=host,
+                port=smtp_port,
+                timeout=30,
+            )
     except Exception:
         LOG.error("Couldn't connect to SMTP Server")
         return
 
     LOG.debug("Connected to smtp host {}".format(msg))
+
+    debug = CONFIG["aprsd"]["email"]["smtp"].get("debug", False)
+    if debug:
+        server.set_debuglevel(5)
 
     try:
         server.login(
@@ -120,7 +133,7 @@ def validate_shortcuts(config):
     for key in delete_keys:
         del config["aprsd"]["email"]["shortcuts"][key]
 
-    LOG.info("Available shortcuts: {}".format(config["shortcuts"]))
+    LOG.info("Available shortcuts: {}".format(config["aprsd"]["email"]["shortcuts"]))
 
 
 def get_email_from_shortcut(addr):

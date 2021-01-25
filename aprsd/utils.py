@@ -46,6 +46,7 @@ DEFAULT_CONFIG_DICT = {
                 "host": "smtp.gmail.com",
                 "port": 465,
                 "use_ssl": False,
+                "debug": False,
             },
             "imap": {
                 "login": "IMAP_USERNAME",
@@ -53,6 +54,7 @@ DEFAULT_CONFIG_DICT = {
                 "host": "imap.gmail.com",
                 "port": 993,
                 "use_ssl": True,
+                "debug": False,
             },
         },
     },

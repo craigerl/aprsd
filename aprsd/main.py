@@ -189,10 +189,21 @@ def setup_logging(config, loglevel, quiet):
     fh.setFormatter(log_formatter)
     LOG.addHandler(fh)
 
+    imap_logger = None
+    if config["aprsd"]["email"].get("enabled", False) and config["aprsd"]["email"][
+        "imap"
+    ].get("debug", False):
+
+        imap_logger = logging.getLogger("imapclient.imaplib")
+        imap_logger.setLevel(log_level)
+        imap_logger.addHandler(fh)
+
     if not quiet:
         sh = logging.StreamHandler(sys.stdout)
         sh.setFormatter(log_formatter)
         LOG.addHandler(sh)
+        if imap_logger:
+            imap_logger.addHandler(sh)
 
 
 @main.command()
