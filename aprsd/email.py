@@ -87,7 +87,7 @@ def _smtp_connect():
 
 
 def validate_shortcuts(config):
-    shortcuts = config.get("shortcuts", None)
+    shortcuts = config["aprsd"]["email"].get("shortcuts", None)
     if not shortcuts:
         return
 
@@ -290,7 +290,7 @@ def resend_email(count, fromcall):
     year = date.year
     today = "{}-{}-{}".format(day, month, year)
 
-    shortcuts = CONFIG["shortcuts"]
+    shortcuts = CONFIG["aprsd"]["email"]["shortcuts"]
     # swap key/value
     shortcuts_inverted = {v: k for k, v in shortcuts.items()}
 
