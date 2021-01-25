@@ -392,17 +392,22 @@ class APRSDEmailThread(threads.APRSDThread):
                 today = "{}-{}-{}".format(day, month, year)
 
                 server = None
+                LOG.debug("Try _imap_connect")
                 try:
                     server = _imap_connect()
                 except Exception as e:
                     LOG.exception("Failed to get IMAP server Can't check email.", e)
 
+                LOG.debug("Tried _imap_connect")
+
                 if not server:
                     continue
 
+                LOG.debug("Try Server.search since today.")
                 messages = server.search(["SINCE", today])
                 LOG.debug("{} messages received today".format(len(messages)))
 
+                LOG.debug("Try Server.fetch.")
                 for msgid, data in server.fetch(messages, ["ENVELOPE"]).items():
                     envelope = data[b"ENVELOPE"]
                     # LOG.debug('ID:%d  "%s" (%s)' % (msgid, envelope.subject.decode(), envelope.date))
@@ -447,6 +452,7 @@ class APRSDEmailThread(threads.APRSDThread):
                         # check email more often since we just received an email
                         check_email_delay = 60
                 # reset clock
+                LOG.debug("Done looping over Server.fetch.")
                 past = datetime.datetime.now()
                 server.logout()
             else:
