@@ -29,6 +29,9 @@ DEFAULT_CONFIG_DICT = {
             "enabled": True,
             "host": "0.0.0.0",
             "port": 8001,
+            "users": {
+                "admin": "aprsd",
+            },
         },
         "email": {
             "enabled": True,
@@ -297,6 +300,15 @@ def parse_config(config_file):
         ["aprs", "password"],
         default_fail=DEFAULT_CONFIG_DICT["aprs"]["password"],
     )
+
+    # Ensure they change the admin password
+    if config["aprsd"]["web"]["enabled"] is True:
+        check_option(
+            config,
+            ["aprsd", "web", "users", "admin"],
+            default_fail=DEFAULT_CONFIG_DICT["aprsd"]["web"]["users"]["admin"],
+        )
+
     if config["aprsd"]["email"]["enabled"] is True:
         # Check IMAP server settings
         check_option(config, ["aprsd", "email", "imap", "host"])

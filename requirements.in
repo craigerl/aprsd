@@ -13,4 +13,5 @@ pre-commit
 pytz
 opencage
 flask
-flask_classful
+flask-classful
+flask-httpauth
