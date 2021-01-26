@@ -333,7 +333,7 @@ def resend_email(count, fromcall):
             reply = "-" + from_addr + " * " + body.decode(errors="ignore")
             # messaging.send_message(fromcall, reply)
             msg = messaging.TextMessage(
-                CONFIG["aprsd"]["email"]["aprs"]["login"],
+                CONFIG["aprs"]["login"],
                 fromcall,
                 reply,
             )
