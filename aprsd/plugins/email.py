@@ -79,6 +79,7 @@ class EmailPlugin(plugin.APRSDPluginBase):
                                 self.email_sent_dict.clear()
                             self.email_sent_dict[ack] = now
                     else:
+                        reply = messaging.NULL_MESSAGE
                         LOG.info(
                             "Email for message number "
                             + ack
