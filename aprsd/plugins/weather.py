@@ -2,7 +2,7 @@ import json
 import logging
 import re
 
-from aprsd import plugin, plugin_utils, utils
+from aprsd import plugin, plugin_utils, trace, utils
 import requests
 
 LOG = logging.getLogger("APRSD")
@@ -25,6 +25,7 @@ class USWeatherPlugin(plugin.APRSDPluginBase):
     command_regex = "^[wW]"
     command_name = "weather"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("Weather Plugin")
         try:
@@ -84,6 +85,7 @@ class USMetarPlugin(plugin.APRSDPluginBase):
     command_regex = "^[metar]"
     command_name = "Metar"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("WX Plugin '{}'".format(message))
         a = re.search(r"^.*\s+(.*)", message)
@@ -175,6 +177,7 @@ class OWMWeatherPlugin(plugin.APRSDPluginBase):
     command_regex = "^[wW]"
     command_name = "Weather"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("OWMWeather Plugin '{}'".format(message))
         a = re.search(r"^.*\s+(.*)", message)
@@ -295,6 +298,7 @@ class AVWXWeatherPlugin(plugin.APRSDPluginBase):
     command_regex = "^[metar]"
     command_name = "Weather"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("OWMWeather Plugin '{}'".format(message))
         a = re.search(r"^.*\s+(.*)", message)

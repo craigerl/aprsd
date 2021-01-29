@@ -2,7 +2,7 @@ import logging
 import re
 import time
 
-from aprsd import plugin, plugin_utils, utils
+from aprsd import plugin, plugin_utils, trace, utils
 
 LOG = logging.getLogger("APRSD")
 
@@ -14,6 +14,7 @@ class LocationPlugin(plugin.APRSDPluginBase):
     command_regex = "^[lL]"
     command_name = "location"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("Location Plugin")
         # get last location of a callsign, get descriptive name from weather service

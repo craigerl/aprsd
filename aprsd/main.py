@@ -32,7 +32,7 @@ import time
 
 # local imports here
 import aprsd
-from aprsd import client, email, flask, messaging, plugin, stats, threads, utils
+from aprsd import client, email, flask, messaging, plugin, stats, threads, trace, utils
 import aprslib
 from aprslib.exceptions import LoginError
 import click
@@ -424,6 +424,11 @@ def server(
     email.CONFIG = config
 
     setup_logging(config, loglevel, quiet)
+    if config["aprsd"].get("trace", False):
+        click.echo("PISS")
+        trace.setup_tracing(["method", "api"])
+    else:
+        click.echo("NO PISS")
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
     stats.APRSDStats(config)
 

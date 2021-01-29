@@ -5,7 +5,7 @@ import queue
 import threading
 import time
 
-from aprsd import client, messaging, plugin, stats
+from aprsd import client, messaging, plugin, stats, trace
 import aprslib
 
 LOG = logging.getLogger("APRSD")
@@ -219,11 +219,11 @@ class APRSDRXThread(APRSDThread):
         self.msg_queues["tx"].put(ack)
         LOG.debug("Packet processing complete")
 
+    @trace.trace
     def process_packet(self, packet):
         """Process a packet recieved from aprs-is server."""
 
         try:
-            LOG.info("Got message: {}".format(packet))
             stats.APRSDStats().msgs_rx_inc()
 
             msg = packet.get("message_text", None)

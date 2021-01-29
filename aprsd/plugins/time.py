@@ -1,7 +1,7 @@
 import logging
 import time
 
-from aprsd import fuzzyclock, plugin, plugin_utils, utils
+from aprsd import fuzzyclock, plugin, plugin_utils, trace, utils
 from opencage.geocoder import OpenCageGeocode
 import pytz
 
@@ -38,6 +38,7 @@ class TimePlugin(plugin.APRSDPluginBase):
 
         return reply
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("TIME COMMAND")
         # So we can mock this in unit tests
@@ -52,6 +53,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
     command_regex = "^[tT]"
     command_name = "Time"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
@@ -92,6 +94,7 @@ class TimeOWMPlugin(TimePlugin):
     command_regex = "^[tT]"
     command_name = "Time"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:

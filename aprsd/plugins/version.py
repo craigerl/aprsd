@@ -1,7 +1,7 @@
 import logging
 
 import aprsd
-from aprsd import plugin
+from aprsd import plugin, trace
 
 LOG = logging.getLogger("APRSD")
 
@@ -17,6 +17,7 @@ class VersionPlugin(plugin.APRSDPluginBase):
     # five mins {int:int}
     email_sent_dict = {}
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("Version COMMAND")
         return "APRSD version '{}'".format(aprsd.__version__)

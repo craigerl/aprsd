@@ -2,7 +2,7 @@ import logging
 import re
 import time
 
-from aprsd import email, messaging, plugin
+from aprsd import email, messaging, plugin, trace
 
 LOG = logging.getLogger("APRSD")
 
@@ -18,6 +18,7 @@ class EmailPlugin(plugin.APRSDPluginBase):
     # five mins {int:int}
     email_sent_dict = {}
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("Email COMMAND")
         reply = None

@@ -7,7 +7,7 @@ import re
 import smtplib
 import time
 
-from aprsd import messaging, stats, threads
+from aprsd import messaging, stats, threads, trace
 import imapclient
 from validate_email import validate_email
 
@@ -17,6 +17,7 @@ LOG = logging.getLogger("APRSD")
 CONFIG = None
 
 
+@trace.trace
 def _imap_connect():
     imap_port = CONFIG["aprsd"]["email"]["imap"].get("port", 143)
     use_ssl = CONFIG["aprsd"]["email"]["imap"].get("use_ssl", False)
@@ -48,9 +49,12 @@ def _imap_connect():
         return
 
     server.select_folder("INBOX")
+
+    server.fetch = trace.trace(server.fetch)
     return server
 
 
+@trace.trace
 def _smtp_connect():
     host = CONFIG["aprsd"]["email"]["smtp"]["host"]
     smtp_port = CONFIG["aprsd"]["email"]["smtp"]["port"]
@@ -165,6 +169,7 @@ def validate_email_config(config, disable_validation=False):
         return False
 
 
+@trace.trace
 def parse_email(msgid, data, server):
     envelope = data[b"ENVELOPE"]
     # email address match
@@ -251,6 +256,7 @@ def parse_email(msgid, data, server):
 # end parse_email
 
 
+@trace.trace
 def send_email(to_addr, content):
     global check_email_delay
 
@@ -295,6 +301,7 @@ def send_email(to_addr, content):
 # end send_email
 
 
+@trace.trace
 def resend_email(count, fromcall):
     global check_email_delay
     date = datetime.datetime.now()
@@ -371,6 +378,7 @@ class APRSDEmailThread(threads.APRSDThread):
         self.msg_queues = msg_queues
         self.config = config
 
+    @trace.trace
     def run(self):
         global check_email_delay
 
@@ -483,6 +491,3 @@ class APRSDEmailThread(threads.APRSDThread):
         # Remove ourselves from the global threads list
         threads.APRSDThreadList().remove(self)
         LOG.info("Exiting")
-
-
-# end check_email()
