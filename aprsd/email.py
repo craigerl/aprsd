@@ -51,6 +51,9 @@ def _imap_connect():
     server.select_folder("INBOX")
 
     server.fetch = trace.trace(server.fetch)
+    server.search = trace.trace(server.search)
+    server.remove_flags = trace.trace(server.remove_flags)
+    server.add_flags = trace.trace(server.add_flags)
     return server
 
 
@@ -89,6 +92,7 @@ def _smtp_connect():
     debug = CONFIG["aprsd"]["email"]["smtp"].get("debug", False)
     if debug:
         server.set_debuglevel(5)
+        server.sendmail = trace.trace(server.sendmail)
 
     try:
         server.login(

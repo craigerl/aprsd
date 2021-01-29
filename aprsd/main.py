@@ -425,10 +425,7 @@ def server(
 
     setup_logging(config, loglevel, quiet)
     if config["aprsd"].get("trace", False):
-        click.echo("PISS")
         trace.setup_tracing(["method", "api"])
-    else:
-        click.echo("NO PISS")
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
     stats.APRSDStats(config)
 

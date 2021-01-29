@@ -4,6 +4,7 @@ import logging
 import queue
 import threading
 import time
+import tracemalloc
 
 from aprsd import client, messaging, plugin, stats, trace
 import aprslib
@@ -69,6 +70,7 @@ class KeepAliveThread(APRSDThread):
 
     def __init__(self):
         super().__init__("KeepAlive")
+        tracemalloc.start()
 
     def loop(self):
         if self.cntr % 6 == 0:
@@ -81,14 +83,17 @@ class KeepAliveThread(APRSDThread):
             else:
                 email_thread_time = "N/A"
 
+            current, peak = tracemalloc.get_traced_memory()
             LOG.debug(
                 "Uptime ({}) Tracker({}) "
-                "Msgs: TX:{} RX:{} EmailThread: {}".format(
+                "Msgs: TX:{} RX:{} EmailThread: {} RAM: Current:{} Peak:{}".format(
                     stats_obj.uptime,
                     len(tracker),
                     stats_obj.msgs_tx,
                     stats_obj.msgs_rx,
                     email_thread_time,
+                    current,
+                    peak,
                 ),
             )
         self.cntr += 1
