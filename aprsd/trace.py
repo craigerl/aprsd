@@ -138,18 +138,18 @@ class TraceWrapperMetaclass(type):
     class MyClass(object, metaclass=utils.TraceWrapperMetaclass):
     """
 
-    def __new__(meta, classname, bases, classDict):
-        newClassDict = {}
-        for attributeName, attribute in classDict.items():
+    def __new__(cls, classname, bases, class_dict):
+        new_class_dict = {}
+        for attribute_name, attribute in class_dict.items():
             if isinstance(attribute, types.FunctionType):
                 # replace it with a wrapped version
                 attribute = functools.update_wrapper(
                     trace_method(attribute),
                     attribute,
                 )
-            newClassDict[attributeName] = attribute
+            new_class_dict[attribute_name] = attribute
 
-        return type.__new__(meta, classname, bases, newClassDict)
+        return type.__new__(cls, classname, bases, new_class_dict)
 
 
 class TraceWrapperWithABCMetaclass(abc.ABCMeta, TraceWrapperMetaclass):
