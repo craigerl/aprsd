@@ -34,8 +34,8 @@ def _imap_connect():
             ssl=use_ssl,
             timeout=30,
         )
-    except Exception:
-        LOG.error("Failed to connect IMAP server")
+    except Exception as e:
+        LOG.error("Failed to connect IMAP server", e)
         return
 
     try:
@@ -421,7 +421,7 @@ class APRSDEmailThread(threads.APRSDThread):
                 try:
                     server = _imap_connect()
                 except Exception as e:
-                    LOG.exception("Failed to get IMAP server Can't check email.", e)
+                    LOG.exception("IMAP failed to connect.", e)
 
                 LOG.debug("Tried _imap_connect")
 
@@ -429,64 +429,75 @@ class APRSDEmailThread(threads.APRSDThread):
                     continue
 
                 LOG.debug("Try Server.search since today.")
-                messages = server.search(["SINCE", today])
+                try:
+                    messages = server.search(["SINCE", today])
+                except Exception as e:
+                    LOG.exception("IMAP failed to search for messages since today.", e)
+                    continue
                 LOG.debug("{} messages received today".format(len(messages)))
 
                 LOG.debug("Try Server.fetch.")
-                for msgid, data in server.fetch(messages, ["ENVELOPE"]).items():
-                    envelope = data[b"ENVELOPE"]
-                    LOG.debug(
-                        'ID:%d  "%s" (%s)'
-                        % (msgid, envelope.subject.decode(), envelope.date),
-                    )
-                    f = re.search(
-                        r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)",
-                        str(envelope.from_[0]),
-                    )
-                    if f is not None:
-                        from_addr = f.group(1)
-                    else:
-                        from_addr = "noaddr"
-
-                    # LOG.debug("Message flags/tags:  " + str(server.get_flags(msgid)[msgid]))
-                    # if "APRS" not in server.get_flags(msgid)[msgid]:
-                    # in python3, imap tags are unicode.  in py2 they're strings. so .decode them to handle both
-                    taglist = [
-                        x.decode(errors="ignore")
-                        for x in server.get_flags(msgid)[msgid]
-                    ]
-                    if "APRS" not in taglist:
-                        # if msg not flagged as sent via aprs
-                        LOG.debug("Try single fetch.")
-                        server.fetch([msgid], ["RFC822"])
-                        LOG.debug("Did single fetch.")
-                        (body, from_addr) = parse_email(msgid, data, server)
-                        # unset seen flag, will stay bold in email client
-                        LOG.debug("Try remove flags.")
-                        server.remove_flags(msgid, [imapclient.SEEN])
-                        LOG.debug("Did remove flags.")
-
-                        if from_addr in shortcuts_inverted:
-                            # reverse lookup of a shortcut
-                            from_addr = shortcuts_inverted[from_addr]
-
-                        reply = "-" + from_addr + " " + body.decode(errors="ignore")
-                        msg = messaging.TextMessage(
-                            self.config["aprs"]["login"],
-                            self.config["ham"]["callsign"],
-                            reply,
+                try:
+                    for msgid, data in server.fetch(messages, ["ENVELOPE"]).items():
+                        envelope = data[b"ENVELOPE"]
+                        LOG.debug(
+                            'ID:%d  "%s" (%s)'
+                            % (msgid, envelope.subject.decode(), envelope.date),
                         )
-                        self.msg_queues["tx"].put(msg)
-                        # flag message as sent via aprs
-                        server.add_flags(msgid, ["APRS"])
-                        # unset seen flag, will stay bold in email client
-                        server.remove_flags(msgid, [imapclient.SEEN])
-                        # check email more often since we just received an email
-                        check_email_delay = 60
+                        f = re.search(
+                            r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)",
+                            str(envelope.from_[0]),
+                        )
+                        if f is not None:
+                            from_addr = f.group(1)
+                        else:
+                            from_addr = "noaddr"
+
+                        # LOG.debug("Message flags/tags:  " + str(server.get_flags(msgid)[msgid]))
+                        # if "APRS" not in server.get_flags(msgid)[msgid]:
+                        # in python3, imap tags are unicode.  in py2 they're strings. so .decode them to handle both
+                        taglist = [
+                            x.decode(errors="ignore")
+                            for x in server.get_flags(msgid)[msgid]
+                        ]
+                        if "APRS" not in taglist:
+                            # if msg not flagged as sent via aprs
+                            LOG.debug("Try single fetch.")
+                            server.fetch([msgid], ["RFC822"])
+                            LOG.debug("Did single fetch.")
+                            (body, from_addr) = parse_email(msgid, data, server)
+                            # unset seen flag, will stay bold in email client
+                            LOG.debug("Try remove flags.")
+                            server.remove_flags(msgid, [imapclient.SEEN])
+                            LOG.debug("Did remove flags.")
+
+                            if from_addr in shortcuts_inverted:
+                                # reverse lookup of a shortcut
+                                from_addr = shortcuts_inverted[from_addr]
+
+                            reply = "-" + from_addr + " " + body.decode(errors="ignore")
+                            msg = messaging.TextMessage(
+                                self.config["aprs"]["login"],
+                                self.config["ham"]["callsign"],
+                                reply,
+                            )
+                            self.msg_queues["tx"].put(msg)
+                            # flag message as sent via aprs
+                            server.add_flags(msgid, ["APRS"])
+                            # unset seen flag, will stay bold in email client
+                            server.remove_flags(msgid, [imapclient.SEEN])
+                            # check email more often since we just received an email
+                            check_email_delay = 60
+                except Exception as e:
+                    LOG.exception("IMAP failed to fetch/flag messages: ", e)
                 # reset clock
                 LOG.debug("Done looping over Server.fetch, logging out.")
                 past = datetime.datetime.now()
-                server.logout()
+                try:
+                    server.logout()
+                except Exception as e:
+                    LOG.exception("IMAP failed to logout: ", e)
+                    continue
             else:
                 # We haven't hit the email delay yet.
                 # LOG.debug("Delta({}) < {}".format(now - past, check_email_delay))
