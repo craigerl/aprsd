@@ -480,10 +480,15 @@ class APRSDEmailThread(threads.APRSDThread):
                     # LOG.debug("Message flags/tags:  " + str(server.get_flags(msgid)[msgid]))
                     # if "APRS" not in server.get_flags(msgid)[msgid]:
                     # in python3, imap tags are unicode.  in py2 they're strings. so .decode them to handle both
-                    taglist = [
-                        x.decode(errors="ignore")
-                        for x in server.get_flags(msgid)[msgid]
-                    ]
+                    try:
+                        taglist = [
+                            x.decode(errors="ignore")
+                            for x in server.get_flags(msgid)[msgid]
+                        ]
+                    except Exception as e:
+                        LOG.exception("Failed to get flags.", e)
+                        break
+
                     if "APRS" not in taglist:
                         # if msg not flagged as sent via aprs
                         LOG.debug("Try single fetch.")
