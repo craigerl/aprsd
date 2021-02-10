@@ -437,18 +437,14 @@ class APRSDEmailThread(threads.APRSDThread):
                 today = "{}-{}-{}".format(day, month, year)
 
                 server = None
-                LOG.debug("Try _imap_connect")
                 try:
                     server = _imap_connect()
                 except Exception as e:
                     LOG.exception("IMAP failed to connect.", e)
 
-                LOG.debug("Tried _imap_connect")
-
                 if not server:
                     continue
 
-                LOG.debug("Try Server.search since today.")
                 try:
                     messages = server.search(["SINCE", today])
                 except Exception as e:
@@ -491,20 +487,16 @@ class APRSDEmailThread(threads.APRSDThread):
 
                     if "APRS" not in taglist:
                         # if msg not flagged as sent via aprs
-                        LOG.debug("Try single fetch.")
                         try:
                             server.fetch([msgid], ["RFC822"])
                         except Exception as e:
                             LOG.exception("Failed single server fetch for RFC822", e)
                             break
 
-                        LOG.debug("Did single fetch.")
                         (body, from_addr) = parse_email(msgid, data, server)
                         # unset seen flag, will stay bold in email client
                         try:
-                            LOG.debug("Try remove flags.")
                             server.remove_flags(msgid, [imapclient.SEEN])
-                            LOG.debug("Did remove flags.")
                         except Exception as e:
                             LOG.exception("Failed to remove flags SEEN", e)
                             # Not much we can do here, so lets try and
