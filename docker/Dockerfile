@@ -1,12 +1,18 @@
 FROM alpine:latest as aprsd
 
-ENV VERSION=1.0.0
+# Dockerfile for building a container during aprsd development.
+ARG BRANCH
+
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
+ENV APRSD=http://github.com/craigerl/aprsd.git
+ENV APRSD_BRANCH=$BRANCH
 ENV VIRTUAL_ENV=$HOME/.venv3
 
 ENV INSTALL=$HOME/install
-RUN apk add --update git wget py3-pip py3-virtualenv bash fortune
+RUN apk add --update git vim wget py3-pip py3-virtualenv bash fortune
+RUN apk add --update gcc python3-dev linux-headers musl-dev libffi-dev libc-dev
+RUN apk add --update openssl-dev
 
 # Setup Timezone
 ENV TZ=US/Eastern
@@ -14,8 +20,7 @@ ENV TZ=US/Eastern
 #RUN apt-get install -y tzdata
 #RUN dpkg-reconfigure --frontend noninteractive tzdata
 
-
-RUN addgroup --gid 1000 $APRS_USER
+RUN addgroup --gid 1001 $APRS_USER
 RUN adduser -h $HOME -D -u 1001 -G $APRS_USER $APRS_USER
 
 ENV LC_ALL=C.UTF-8
@@ -29,7 +34,10 @@ RUN echo "export PATH=\$PATH:\$HOME/.local/bin" >> $HOME/.bashrc
 VOLUME ["/config", "/plugins"]
 
 WORKDIR $HOME
-RUN pip install aprsd
+RUN mkdir $INSTALL
+RUN git clone -b $APRSD_BRANCH $APRSD $INSTALL/aprsd
+RUN    cd $INSTALL/aprsd && pip3 install .
+RUN which aprsd
 USER root
 RUN aprsd sample-config > /config/aprsd.yml
 RUN chown -R $APRS_USER:$APRS_USER /config
