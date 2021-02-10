@@ -46,5 +46,5 @@ RUN chown -R $APRS_USER:$APRS_USER /config
 ENV CONF default
 USER $APRS_USER
 
-ADD build/bin/run.sh $HOME/
+ADD bin/run.sh $HOME/
 ENTRYPOINT ["/home/aprs/run.sh"]
