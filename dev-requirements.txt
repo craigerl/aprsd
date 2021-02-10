@@ -30,7 +30,7 @@ colorama==0.4.4
     # via twine
 coverage==5.3.1
     # via pytest-cov
-cryptography==3.3.1
+cryptography==3.3.2
     # via secretstorage
 distlib==0.3.1
     # via virtualenv
