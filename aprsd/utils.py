@@ -22,6 +22,7 @@ DEFAULT_CONFIG_DICT = {
     },
     "aprsd": {
         "logfile": "/tmp/aprsd.log",
+        "trace": False,
         "plugin_dir": "~/.config/aprsd/plugins",
         "enabled_plugins": plugin.CORE_PLUGINS,
         "units": "imperial",
@@ -29,6 +30,9 @@ DEFAULT_CONFIG_DICT = {
             "enabled": True,
             "host": "0.0.0.0",
             "port": 8001,
+            "users": {
+                "admin": "aprsd",
+            },
         },
         "email": {
             "enabled": True,
@@ -43,6 +47,7 @@ DEFAULT_CONFIG_DICT = {
                 "host": "smtp.gmail.com",
                 "port": 465,
                 "use_ssl": False,
+                "debug": False,
             },
             "imap": {
                 "login": "IMAP_USERNAME",
@@ -50,6 +55,7 @@ DEFAULT_CONFIG_DICT = {
                 "host": "imap.gmail.com",
                 "port": 993,
                 "use_ssl": True,
+                "debug": False,
             },
         },
     },
@@ -297,6 +303,15 @@ def parse_config(config_file):
         ["aprs", "password"],
         default_fail=DEFAULT_CONFIG_DICT["aprs"]["password"],
     )
+
+    # Ensure they change the admin password
+    if config["aprsd"]["web"]["enabled"] is True:
+        check_option(
+            config,
+            ["aprsd", "web", "users", "admin"],
+            default_fail=DEFAULT_CONFIG_DICT["aprsd"]["web"]["users"]["admin"],
+        )
+
     if config["aprsd"]["email"]["enabled"] is True:
         # Check IMAP server settings
         check_option(config, ["aprsd", "email", "imap", "host"])

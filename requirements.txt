@@ -37,10 +37,13 @@ filelock==3.0.12
     #   virtualenv
 flask-classful==0.14.2
     # via -r requirements.in
+flask-httpauth==4.2.0
+    # via -r requirements.in
 flask==1.1.2
     # via
     #   -r requirements.in
     #   flask-classful
+    #   flask-httpauth
 identify==1.5.13
     # via pre-commit
 idna==2.10

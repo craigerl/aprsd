@@ -53,6 +53,38 @@ class MsgTrack:
             cls._instance.lock = threading.Lock()
         return cls._instance
 
+    def __getitem__(self, name):
+        with self.lock:
+            return self.track[name]
+
+    def __iter__(self):
+        with self.lock:
+            return iter(self.track)
+
+    def keys(self):
+        with self.lock:
+            return self.track.keys()
+
+    def items(self):
+        with self.lock:
+            return self.track.items()
+
+    def values(self):
+        with self.lock:
+            return self.track.values()
+
+    def __len__(self):
+        with self.lock:
+            return len(self.track)
+
+    def __str__(self):
+        with self.lock:
+            result = "{"
+            for key in self.track.keys():
+                result += "{}: {}, ".format(key, str(self.track[key]))
+            result += "}"
+            return result
+
     def add(self, msg):
         with self.lock:
             key = int(msg.id)
@@ -71,24 +103,18 @@ class MsgTrack:
             if key in self.track.keys():
                 del self.track[key]
 
-    def __len__(self):
-        with self.lock:
-            return len(self.track)
-
-    def __str__(self):
-        with self.lock:
-            result = "{"
-            for key in self.track.keys():
-                result += "{}: {}, ".format(key, str(self.track[key]))
-            result += "}"
-            return result
-
     def save(self):
-        """Save this shit to disk?"""
+        """Save any queued to disk?"""
+        LOG.debug("Save tracker to disk? {}".format(len(self)))
         if len(self) > 0:
             LOG.info("Saving {} tracking messages to disk".format(len(self)))
             pickle.dump(self.dump(), open(utils.DEFAULT_SAVE_FILE, "wb+"))
         else:
+            LOG.debug(
+                "Nothing to save, flushing old save file '{}'".format(
+                    utils.DEFAULT_SAVE_FILE,
+                ),
+            )
             self.flush()
 
     def dump(self):
@@ -229,8 +255,17 @@ class RawMessage(Message):
         super().__init__(None, None, msg_id=None)
         self.message = message
 
-    def __repr__(self):
-        return self.message
+    def dict(self):
+        now = datetime.datetime.now()
+        return {
+            "type": "raw",
+            "message": self.message.rstrip("\n"),
+            "raw": self.message.rstrip("\n"),
+            "retry_count": self.retry_count,
+            "last_send_attempt": self.last_send_attempt,
+            "last_send_time": str(self.last_send_time),
+            "last_send_age": str(now - self.last_send_time),
+        }
 
     def __str__(self):
         return self.message
@@ -246,12 +281,12 @@ class RawMessage(Message):
         cl = client.get_client()
         log_message(
             "Sending Message Direct",
-            repr(self).rstrip("\n"),
+            str(self).rstrip("\n"),
             self.message,
             tocall=self.tocall,
             fromcall=self.fromcall,
         )
-        cl.sendall(repr(self))
+        cl.sendall(str(self))
         stats.APRSDStats().msgs_sent_inc()
 
 
@@ -267,26 +302,28 @@ class TextMessage(Message):
         # an ack?  Some messages we don't want to do this ever.
         self.allow_delay = allow_delay
 
-    def __repr__(self):
+    def dict(self):
+        now = datetime.datetime.now()
+        return {
+            "id": self.id,
+            "type": "text-message",
+            "fromcall": self.fromcall,
+            "tocall": self.tocall,
+            "message": self.message.rstrip("\n"),
+            "raw": str(self).rstrip("\n"),
+            "retry_count": self.retry_count,
+            "last_send_attempt": self.last_send_attempt,
+            "last_send_time": str(self.last_send_time),
+            "last_send_age": str(now - self.last_send_time),
+        }
+
+    def __str__(self):
         """Build raw string to send over the air."""
         return "{}>APZ100::{}:{}{{{}\n".format(
             self.fromcall,
             self.tocall.ljust(9),
             self._filter_for_send(),
             str(self.id),
-        )
-
-    def __str__(self):
-        delta = "Never"
-        if self.last_send_time:
-            now = datetime.datetime.now()
-            delta = now - self.last_send_time
-        return "{}>{} Msg({})({}): '{}'".format(
-            self.fromcall,
-            self.tocall,
-            self.id,
-            delta,
-            self.message,
         )
 
     def _filter_for_send(self):
@@ -311,12 +348,12 @@ class TextMessage(Message):
         cl = client.get_client()
         log_message(
             "Sending Message Direct",
-            repr(self).rstrip("\n"),
+            str(self).rstrip("\n"),
             self.message,
             tocall=self.tocall,
             fromcall=self.fromcall,
         )
-        cl.sendall(repr(self))
+        cl.sendall(str(self))
         stats.APRSDStats().msgs_tx_inc()
 
 
@@ -370,13 +407,13 @@ class SendMessageThread(threads.APRSDThread):
                 # tracking the time.
                 log_message(
                     "Sending Message",
-                    repr(msg).rstrip("\n"),
+                    str(msg).rstrip("\n"),
                     msg.message,
                     tocall=self.msg.tocall,
                     retry_number=msg.last_send_attempt,
                     msg_num=msg.id,
                 )
-                cl.sendall(repr(msg))
+                cl.sendall(str(msg))
                 stats.APRSDStats().msgs_tx_inc()
                 msg.last_send_time = datetime.datetime.now()
                 msg.last_send_attempt += 1
@@ -392,15 +429,26 @@ class AckMessage(Message):
     def __init__(self, fromcall, tocall, msg_id):
         super().__init__(fromcall, tocall, msg_id=msg_id)
 
-    def __repr__(self):
+    def dict(self):
+        now = datetime.datetime.now()
+        return {
+            "id": self.id,
+            "type": "ack",
+            "fromcall": self.fromcall,
+            "tocall": self.tocall,
+            "raw": str(self).rstrip("\n"),
+            "retry_count": self.retry_count,
+            "last_send_attempt": self.last_send_attempt,
+            "last_send_time": str(self.last_send_time),
+            "last_send_age": str(now - self.last_send_time),
+        }
+
+    def __str__(self):
         return "{}>APZ100::{}:ack{}\n".format(
             self.fromcall,
             self.tocall.ljust(9),
             self.id,
         )
-
-    def __str__(self):
-        return "From({}) TO({}) Ack ({})".format(self.fromcall, self.tocall, self.id)
 
     def send_thread(self):
         """Separate thread to send acks with retries."""
@@ -408,13 +456,13 @@ class AckMessage(Message):
         for i in range(self.retry_count, 0, -1):
             log_message(
                 "Sending ack",
-                repr(self).rstrip("\n"),
+                str(self).rstrip("\n"),
                 None,
                 ack=self.id,
                 tocall=self.tocall,
                 retry_number=i,
             )
-            cl.sendall(repr(self))
+            cl.sendall(str(self))
             stats.APRSDStats().ack_tx_inc()
             # aprs duplicate detection is 30 secs?
             # (21 only sends first, 28 skips middle)
@@ -433,13 +481,13 @@ class AckMessage(Message):
         cl = client.get_client()
         log_message(
             "Sending ack",
-            repr(self).rstrip("\n"),
+            str(self).rstrip("\n"),
             None,
             ack=self.id,
             tocall=self.tocall,
             fromcall=self.fromcall,
         )
-        cl.sendall(repr(self))
+        cl.sendall(str(self))
 
 
 class SendAckThread(threads.APRSDThread):
@@ -476,13 +524,13 @@ class SendAckThread(threads.APRSDThread):
             cl = client.get_client()
             log_message(
                 "Sending ack",
-                repr(self.ack).rstrip("\n"),
+                str(self.ack).rstrip("\n"),
                 None,
                 ack=self.ack.id,
                 tocall=self.ack.tocall,
                 retry_number=self.ack.last_send_attempt,
             )
-            cl.sendall(repr(self.ack))
+            cl.sendall(str(self.ack))
             stats.APRSDStats().ack_tx_inc()
             self.ack.last_send_attempt += 1
             self.ack.last_send_time = datetime.datetime.now()

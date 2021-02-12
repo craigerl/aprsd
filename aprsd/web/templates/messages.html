@@ -1,0 +1,15 @@
+<html>
+    <head>
+        <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+        <script src="json-viewer/jquery.json-viewer.js"></script>
+        <link href="json-viewer/jquery.json-viewer.css" type="text/css" rel="stylesheet" />
+    </head>
+
+    <pre id="json-viewer"></pre>
+
+    <script>
+       var data = {{ messages | safe }}
+       $('#json-viewer').jsonViewer(data)
+    </script>
+
+</html>

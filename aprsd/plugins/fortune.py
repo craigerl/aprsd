@@ -2,7 +2,7 @@ import logging
 import shutil
 import subprocess
 
-from aprsd import plugin
+from aprsd import plugin, trace
 
 LOG = logging.getLogger("APRSD")
 
@@ -14,6 +14,7 @@ class FortunePlugin(plugin.APRSDPluginBase):
     command_regex = "^[fF]"
     command_name = "fortune"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("FortunePlugin")
         reply = None

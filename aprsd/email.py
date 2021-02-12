@@ -7,7 +7,7 @@ import re
 import smtplib
 import time
 
-from aprsd import messaging, stats, threads
+from aprsd import messaging, stats, threads, trace
 import imapclient
 from validate_email import validate_email
 
@@ -17,6 +17,7 @@ LOG = logging.getLogger("APRSD")
 CONFIG = None
 
 
+@trace.trace
 def _imap_connect():
     imap_port = CONFIG["aprsd"]["email"]["imap"].get("port", 143)
     use_ssl = CONFIG["aprsd"]["email"]["imap"].get("use_ssl", False)
@@ -31,9 +32,10 @@ def _imap_connect():
             port=imap_port,
             use_uid=True,
             ssl=use_ssl,
+            timeout=30,
         )
-    except Exception:
-        LOG.error("Failed to connect IMAP server")
+    except Exception as e:
+        LOG.error("Failed to connect IMAP server", e)
         return
 
     try:
@@ -47,9 +49,15 @@ def _imap_connect():
         return
 
     server.select_folder("INBOX")
+
+    server.fetch = trace.trace(server.fetch)
+    server.search = trace.trace(server.search)
+    server.remove_flags = trace.trace(server.remove_flags)
+    server.add_flags = trace.trace(server.add_flags)
     return server
 
 
+@trace.trace
 def _smtp_connect():
     host = CONFIG["aprsd"]["email"]["smtp"]["host"]
     smtp_port = CONFIG["aprsd"]["email"]["smtp"]["port"]
@@ -64,14 +72,27 @@ def _smtp_connect():
 
     try:
         if use_ssl:
-            server = smtplib.SMTP_SSL(host=host, port=smtp_port)
+            server = smtplib.SMTP_SSL(
+                host=host,
+                port=smtp_port,
+                timeout=30,
+            )
         else:
-            server = smtplib.SMTP(host=host, port=smtp_port)
+            server = smtplib.SMTP(
+                host=host,
+                port=smtp_port,
+                timeout=30,
+            )
     except Exception:
         LOG.error("Couldn't connect to SMTP Server")
         return
 
     LOG.debug("Connected to smtp host {}".format(msg))
+
+    debug = CONFIG["aprsd"]["email"]["smtp"].get("debug", False)
+    if debug:
+        server.set_debuglevel(5)
+        server.sendmail = trace.trace(server.sendmail)
 
     try:
         server.login(
@@ -87,7 +108,7 @@ def _smtp_connect():
 
 
 def validate_shortcuts(config):
-    shortcuts = config.get("shortcuts", None)
+    shortcuts = config["aprsd"]["email"].get("shortcuts", None)
     if not shortcuts:
         return
 
@@ -120,7 +141,7 @@ def validate_shortcuts(config):
     for key in delete_keys:
         del config["aprsd"]["email"]["shortcuts"][key]
 
-    LOG.info("Available shortcuts: {}".format(config["shortcuts"]))
+    LOG.info("Available shortcuts: {}".format(config["aprsd"]["email"]["shortcuts"]))
 
 
 def get_email_from_shortcut(addr):
@@ -152,6 +173,7 @@ def validate_email_config(config, disable_validation=False):
         return False
 
 
+@trace.trace
 def parse_email(msgid, data, server):
     envelope = data[b"ENVELOPE"]
     # email address match
@@ -162,7 +184,12 @@ def parse_email(msgid, data, server):
     else:
         from_addr = "noaddr"
     LOG.debug("Got a message from '{}'".format(from_addr))
-    m = server.fetch([msgid], ["RFC822"])
+    try:
+        m = server.fetch([msgid], ["RFC822"])
+    except Exception as e:
+        LOG.exception("Couldn't fetch email from server in parse_email", e)
+        return
+
     msg = email.message_from_string(m[msgid][b"RFC822"].decode(errors="ignore"))
     if msg.is_multipart():
         text = ""
@@ -238,6 +265,7 @@ def parse_email(msgid, data, server):
 # end parse_email
 
 
+@trace.trace
 def send_email(to_addr, content):
     global check_email_delay
 
@@ -282,6 +310,7 @@ def send_email(to_addr, content):
 # end send_email
 
 
+@trace.trace
 def resend_email(count, fromcall):
     global check_email_delay
     date = datetime.datetime.now()
@@ -290,7 +319,7 @@ def resend_email(count, fromcall):
     year = date.year
     today = "{}-{}-{}".format(day, month, year)
 
-    shortcuts = CONFIG["shortcuts"]
+    shortcuts = CONFIG["aprsd"]["email"]["shortcuts"]
     # swap key/value
     shortcuts_inverted = {v: k for k, v in shortcuts.items()}
 
@@ -300,7 +329,12 @@ def resend_email(count, fromcall):
         LOG.exception("Failed to Connect to IMAP. Cannot resend email ", e)
         return
 
-    messages = server.search(["SINCE", today])
+    try:
+        messages = server.search(["SINCE", today])
+    except Exception as e:
+        LOG.exception("Couldn't search for emails in resend_email ", e)
+        return
+
     # LOG.debug("%d messages received today" % len(messages))
 
     msgexists = False
@@ -308,11 +342,21 @@ def resend_email(count, fromcall):
     messages.sort(reverse=True)
     del messages[int(count) :]  # only the latest "count" messages
     for message in messages:
-        for msgid, data in list(server.fetch(message, ["ENVELOPE"]).items()):
+        try:
+            parts = server.fetch(message, ["ENVELOPE"]).items()
+        except Exception as e:
+            LOG.exception("Couldn't fetch email parts in resend_email", e)
+            continue
+
+        for msgid, data in list(parts):
             # one at a time, otherwise order is random
             (body, from_addr) = parse_email(msgid, data, server)
             # unset seen flag, will stay bold in email client
-            server.remove_flags(msgid, [imapclient.SEEN])
+            try:
+                server.remove_flags(msgid, [imapclient.SEEN])
+            except Exception as e:
+                LOG.exception("Failed to remove SEEN flag in resend_email", e)
+
             if from_addr in shortcuts_inverted:
                 # reverse lookup of a shortcut
                 from_addr = shortcuts_inverted[from_addr]
@@ -320,7 +364,7 @@ def resend_email(count, fromcall):
             reply = "-" + from_addr + " * " + body.decode(errors="ignore")
             # messaging.send_message(fromcall, reply)
             msg = messaging.TextMessage(
-                CONFIG["aprsd"]["email"]["aprs"]["login"],
+                CONFIG["aprs"]["login"],
                 fromcall,
                 reply,
             )
@@ -358,6 +402,7 @@ class APRSDEmailThread(threads.APRSDThread):
         self.msg_queues = msg_queues
         self.config = config
 
+    @trace.trace
     def run(self):
         global check_email_delay
 
@@ -395,17 +440,30 @@ class APRSDEmailThread(threads.APRSDThread):
                 try:
                     server = _imap_connect()
                 except Exception as e:
-                    LOG.exception("Failed to get IMAP server Can't check email.", e)
+                    LOG.exception("IMAP failed to connect.", e)
 
                 if not server:
                     continue
 
-                messages = server.search(["SINCE", today])
+                try:
+                    messages = server.search(["SINCE", today])
+                except Exception as e:
+                    LOG.exception("IMAP failed to search for messages since today.", e)
+                    continue
                 LOG.debug("{} messages received today".format(len(messages)))
 
-                for msgid, data in server.fetch(messages, ["ENVELOPE"]).items():
+                try:
+                    _msgs = server.fetch(messages, ["ENVELOPE"])
+                except Exception as e:
+                    LOG.exception("IMAP failed to fetch/flag messages: ", e)
+                    continue
+
+                for msgid, data in _msgs.items():
                     envelope = data[b"ENVELOPE"]
-                    # LOG.debug('ID:%d  "%s" (%s)' % (msgid, envelope.subject.decode(), envelope.date))
+                    LOG.debug(
+                        'ID:%d  "%s" (%s)'
+                        % (msgid, envelope.subject.decode(), envelope.date),
+                    )
                     f = re.search(
                         r"'([[A-a][0-9]_-]+@[[A-a][0-9]_-\.]+)",
                         str(envelope.from_[0]),
@@ -418,16 +476,31 @@ class APRSDEmailThread(threads.APRSDThread):
                     # LOG.debug("Message flags/tags:  " + str(server.get_flags(msgid)[msgid]))
                     # if "APRS" not in server.get_flags(msgid)[msgid]:
                     # in python3, imap tags are unicode.  in py2 they're strings. so .decode them to handle both
-                    taglist = [
-                        x.decode(errors="ignore")
-                        for x in server.get_flags(msgid)[msgid]
-                    ]
+                    try:
+                        taglist = [
+                            x.decode(errors="ignore")
+                            for x in server.get_flags(msgid)[msgid]
+                        ]
+                    except Exception as e:
+                        LOG.exception("Failed to get flags.", e)
+                        break
+
                     if "APRS" not in taglist:
                         # if msg not flagged as sent via aprs
-                        server.fetch([msgid], ["RFC822"])
+                        try:
+                            server.fetch([msgid], ["RFC822"])
+                        except Exception as e:
+                            LOG.exception("Failed single server fetch for RFC822", e)
+                            break
+
                         (body, from_addr) = parse_email(msgid, data, server)
                         # unset seen flag, will stay bold in email client
-                        server.remove_flags(msgid, [imapclient.SEEN])
+                        try:
+                            server.remove_flags(msgid, [imapclient.SEEN])
+                        except Exception as e:
+                            LOG.exception("Failed to remove flags SEEN", e)
+                            # Not much we can do here, so lets try and
+                            # send the aprs message anyway
 
                         if from_addr in shortcuts_inverted:
                             # reverse lookup of a shortcut
@@ -441,14 +514,28 @@ class APRSDEmailThread(threads.APRSDThread):
                         )
                         self.msg_queues["tx"].put(msg)
                         # flag message as sent via aprs
-                        server.add_flags(msgid, ["APRS"])
-                        # unset seen flag, will stay bold in email client
-                        server.remove_flags(msgid, [imapclient.SEEN])
+                        try:
+                            server.add_flags(msgid, ["APRS"])
+                            # unset seen flag, will stay bold in email client
+                        except Exception as e:
+                            LOG.exception("Couldn't add APRS flag to email", e)
+
+                        try:
+                            server.remove_flags(msgid, [imapclient.SEEN])
+                        except Exception as e:
+                            LOG.exception("Couldn't remove seen flag from email", e)
+
                         # check email more often since we just received an email
                         check_email_delay = 60
+
                 # reset clock
+                LOG.debug("Done looping over Server.fetch, logging out.")
                 past = datetime.datetime.now()
-                server.logout()
+                try:
+                    server.logout()
+                except Exception as e:
+                    LOG.exception("IMAP failed to logout: ", e)
+                    continue
             else:
                 # We haven't hit the email delay yet.
                 # LOG.debug("Delta({}) < {}".format(now - past, check_email_delay))
@@ -457,6 +544,3 @@ class APRSDEmailThread(threads.APRSDThread):
         # Remove ourselves from the global threads list
         threads.APRSDThreadList().remove(self)
         LOG.info("Exiting")
-
-
-# end check_email()

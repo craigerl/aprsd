@@ -2,7 +2,7 @@ import logging
 import re
 import time
 
-from aprsd import plugin, plugin_utils, utils
+from aprsd import plugin, plugin_utils, trace, utils
 
 LOG = logging.getLogger("APRSD")
 
@@ -14,6 +14,7 @@ class LocationPlugin(plugin.APRSDPluginBase):
     command_regex = "^[lL]"
     command_name = "location"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("Location Plugin")
         # get last location of a callsign, get descriptive name from weather service
@@ -63,6 +64,10 @@ class LocationPlugin(plugin.APRSDPluginBase):
             wx_data = plugin_utils.get_weather_gov_for_gps(lat, lon)
         except Exception as ex:
             LOG.error("Couldn't fetch forecast.weather.gov '{}'".format(ex))
+            wx_data = {"location": {"areaDescription": "Unknown Location"}}
+
+        if "location" not in wx_data:
+            LOG.error("Couldn't fetch forecast.weather.gov '{}'".format(wx_data))
             wx_data = {"location": {"areaDescription": "Unknown Location"}}
 
         reply = "{}: {} {}' {},{} {}h ago".format(

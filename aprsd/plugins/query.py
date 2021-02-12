@@ -2,7 +2,7 @@ import datetime
 import logging
 import re
 
-from aprsd import messaging, plugin
+from aprsd import messaging, plugin, trace
 
 LOG = logging.getLogger("APRSD")
 
@@ -14,6 +14,7 @@ class QueryPlugin(plugin.APRSDPluginBase):
     command_regex = r"^\!.*"
     command_name = "query"
 
+    @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("Query COMMAND")
 

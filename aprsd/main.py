@@ -20,6 +20,7 @@
 #
 
 # python included libs
+import datetime
 import logging
 from logging import NullHandler
 from logging.handlers import RotatingFileHandler
@@ -27,12 +28,11 @@ import os
 import queue
 import signal
 import sys
-import threading
 import time
 
 # local imports here
 import aprsd
-from aprsd import client, email, flask, messaging, plugin, stats, threads, utils
+from aprsd import client, email, flask, messaging, plugin, stats, threads, trace, utils
 import aprslib
 from aprslib.exceptions import LoginError
 import click
@@ -52,7 +52,9 @@ LOG_LEVELS = {
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
-server_event = threading.Event()
+flask_enabled = False
+
+# server_event = threading.Event()
 
 # localization, please edit:
 # HOST = "noam.aprs2.net"     # north america tier2 servers round robin
@@ -150,20 +152,23 @@ def install(append, case_insensitive, shell, path):
 
 
 def signal_handler(sig, frame):
-    global server_vent
+    global flask_enabled
 
-    LOG.info(
-        "Ctrl+C, Sending all threads exit! Can take up to 10 seconds to exit all threads",
-    )
     threads.APRSDThreadList().stop_all()
-    server_event.set()
-    LOG.info("EXITING STATS")
-    LOG.info(stats.APRSDStats())
-    # time.sleep(1)
-    signal.signal(signal.SIGTERM, sys.exit(0))
-
-
-# end signal_handler
+    if "subprocess" not in str(frame):
+        LOG.info(
+            "Ctrl+C, Sending all threads exit! Can take up to 10 seconds {}".format(
+                datetime.datetime.now(),
+            ),
+        )
+        time.sleep(5)
+        tracker = messaging.MsgTrack()
+        tracker.save()
+        LOG.info(stats.APRSDStats())
+        # signal.signal(signal.SIGTERM, sys.exit(0))
+        # sys.exit(0)
+    if flask_enabled:
+        signal.signal(signal.SIGTERM, sys.exit(0))
 
 
 # Setup the logging faciility
@@ -184,10 +189,21 @@ def setup_logging(config, loglevel, quiet):
     fh.setFormatter(log_formatter)
     LOG.addHandler(fh)
 
+    imap_logger = None
+    if config["aprsd"]["email"].get("enabled", False) and config["aprsd"]["email"][
+        "imap"
+    ].get("debug", False):
+
+        imap_logger = logging.getLogger("imapclient.imaplib")
+        imap_logger.setLevel(log_level)
+        imap_logger.addHandler(fh)
+
     if not quiet:
         sh = logging.StreamHandler(sys.stdout)
         sh.setFormatter(log_formatter)
         LOG.addHandler(sh)
+        if imap_logger:
+            imap_logger.addHandler(sh)
 
 
 @main.command()
@@ -394,9 +410,7 @@ def server(
     flush,
 ):
     """Start the aprsd server process."""
-    global event
-
-    event = threading.Event()
+    global flask_enabled
     signal.signal(signal.SIGINT, signal_handler)
 
     if not quiet:
@@ -410,6 +424,8 @@ def server(
     email.CONFIG = config
 
     setup_logging(config, loglevel, quiet)
+    if config["aprsd"].get("trace", False):
+        trace.setup_tracing(["method", "api"])
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
     stats.APRSDStats(config)
 
@@ -468,6 +484,7 @@ def server(
         web_enabled = False
 
     if web_enabled:
+        flask_enabled = True
         app = flask.init_flask(config)
         app.run(
             host=config["aprsd"]["web"]["host"],
@@ -475,10 +492,8 @@ def server(
         )
 
     # If there are items in the msgTracker, then save them
-    tracker = messaging.MsgTrack()
-    tracker.save()
-    LOG.info(stats.APRSDStats())
     LOG.info("APRSD Exiting.")
+    return 0
 
 
 if __name__ == "__main__":
