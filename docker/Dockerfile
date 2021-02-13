@@ -39,6 +39,7 @@ RUN git clone -b $APRSD_BRANCH $APRSD $INSTALL/aprsd
 RUN    cd $INSTALL/aprsd && pip3 install .
 RUN which aprsd
 USER root
+RUN mkdir /config
 RUN aprsd sample-config > /config/aprsd.yml
 RUN chown -R $APRS_USER:$APRS_USER /config
 

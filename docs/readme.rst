@@ -160,40 +160,77 @@ Output
     └─[$] > aprsd sample-config
 
     aprs:
-      host: rotate.aprs.net
-      logfile: /tmp/arsd.log
-      login: someusername
-      password: somepassword
-      port: 14580
+        # Get the passcode for your callsign here:
+        # https://apps.magicbug.co.uk/passcode
+        host: rotate.aprs2.net
+        login: CALLSIGN
+        password: '00000'
+        port: 14580
     aprsd:
-      enabled_plugins:
-      - aprsd.plugin.EmailPlugin
-      - aprsd.plugin.FortunePlugin
-      - aprsd.plugin.LocationPlugin
-      - aprsd.plugin.PingPlugin
-      - aprsd.plugin.TimePlugin
-      - aprsd.plugin.WeatherPlugin
-      - aprsd.plugin.VersionPlugin
-      plugin_dir: ~/.config/aprsd/plugins
+        email:
+            enabled: true
+            imap:
+                debug: false
+                host: imap.gmail.com
+                login: IMAP_USERNAME
+                password: IMAP_PASSWORD
+                port: 993
+                use_ssl: true
+            shortcuts:
+                aa: 5551239999@vtext.com
+                cl: craiglamparter@somedomain.org
+                wb: 555309@vtext.com
+            smtp:
+                debug: false
+                host: smtp.gmail.com
+                login: SMTP_USERNAME
+                password: SMTP_PASSWORD
+                port: 465
+                use_ssl: false
+        enabled_plugins:
+        - aprsd.plugins.email.EmailPlugin
+        - aprsd.plugins.fortune.FortunePlugin
+        - aprsd.plugins.location.LocationPlugin
+        - aprsd.plugins.ping.PingPlugin
+        - aprsd.plugins.query.QueryPlugin
+        - aprsd.plugins.time.TimePlugin
+        - aprsd.plugins.weather.USWeatherPlugin
+        - aprsd.plugins.version.VersionPlugin
+        logfile: /tmp/aprsd.log
+        plugin_dir: ~/.config/aprsd/plugins
+        trace: false
+        units: imperial
+        web:
+            enabled: true
+            host: 0.0.0.0
+            port: 8001
+            users:
+                admin: aprsd
     ham:
-      callsign: KFART
-    imap:
-      host: imap.gmail.com
-      login: imapuser
-      password: something here too
-      port: 993
-      use_ssl: true
-    shortcuts:
-      aa: 5551239999@vtext.com
-      cl: craiglamparter@somedomain.org
-      wb: 555309@vtext.com
-    smtp:
-      host: imap.gmail.com
-      login: something
-      password: some lame password
-      port: 465
-      use_ssl: false
-
+        callsign: CALLSIGN
+    services:
+        aprs.fi:
+            # Get the apiKey from your aprs.fi account here:
+            # http://aprs.fi/account
+            apiKey: APIKEYVALUE
+        avwx:
+            # (Optional for AVWXWeatherPlugin)
+            # Use hosted avwx-api here: https://avwx.rest
+            # or deploy your own from here:
+            # https://github.com/avwx-rest/avwx-api
+            apiKey: APIKEYVALUE
+            base_url: http://host:port
+        opencagedata:
+            # (Optional for TimeOpenCageDataPlugin)
+            # Get the apiKey from your opencagedata account here:
+            # https://opencagedata.com/dashboard#api-keys
+            apiKey: APIKEYVALUE
+        openweathermap:
+            # (Optional for OWMWeatherPlugin)
+            # Get the apiKey from your
+            # openweathermap account here:
+            # https://home.openweathermap.org/api_keys
+            apiKey: APIKEYVALUE
 
 server
 ------
@@ -211,7 +248,7 @@ look for incomming commands to the callsign configured in the config file
     Options:
       --loglevel [CRITICAL|ERROR|WARNING|INFO|DEBUG]
                                       The log level to use for aprsd.log
-                                      [default: DEBUG]
+                                      [default: INFO]
 
       --quiet                         Don't log to stdout
       --disable-validation            Disable email shortcut validation.  Bad
@@ -219,15 +256,20 @@ look for incomming commands to the callsign configured in the config file
                                       responses!!
 
       -c, --config TEXT               The aprsd config file to use for options.
-                                      [default: ~/.config/aprsd/aprsd.yml]
+                                      [default:
+                                      /home/waboring/.config/aprsd/aprsd.yml]
+
+      -f, --flush                     Flush out all old aged messages on disk.
+                                      [default: False]
 
       -h, --help                      Show this message and exit.
-    (.venv3) ┌─[waboring@dl360-1] - [~/devel/aprsd] - [Sun Dec 20, 12:32] -
-    └─[$] <git:(master*)> aprsd server
+
+      $ aprsd server
     Load config
-    [12/20/2020 12:33:03 PM] [MainThread  ] [INFO ] APRSD Started version: 1.0.2
-    [12/20/2020 12:33:03 PM] [MainThread  ] [INFO ] Checking IMAP configuration
-    [12/20/2020 12:33:04 PM] [MainThread  ] [INFO ] Checking SMTP configuration
+    [02/13/2021 09:22:09 AM] [MainThread  ] [INFO ] APRSD Started version: 1.6.0
+    [02/13/2021 09:22:09 AM] [MainThread  ] [INFO ] Checking IMAP configuration
+    [02/13/2021 09:22:09 AM] [MainThread  ] [INFO ] Checking SMTP configuration
+    [02/13/2021 09:22:10 AM] [MainThread  ] [INFO ] Validating 2 Email shortcuts. This can take up to 10 seconds per shortcut
 
 
 send-message
