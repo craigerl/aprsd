@@ -6,7 +6,7 @@ ARG BRANCH
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
 ENV APRSD=http://github.com/craigerl/aprsd.git
-ENV APRSD_BRANCH=$BRANCH
+ENV APRSD_BRANCH=${BRANCH:-master}
 ENV VIRTUAL_ENV=$HOME/.venv3
 
 ENV INSTALL=$HOME/install

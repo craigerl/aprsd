@@ -43,6 +43,9 @@ build: test
 upload: build
 	.venv/bin/twine upload dist/*
 
+docker: test
+	docker build -t hemna6969/aprsd:latest -f docker/Dockerfile docker
+
 update-requirements: dev pip-tools
 	.venv/bin/pip-compile -q -U requirements.in
 	.venv/bin/pip-compile -q -U dev-requirements.in

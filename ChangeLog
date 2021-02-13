@@ -1,10 +1,53 @@
 CHANGES
 =======
 
+v1.6.0
+------
+
+* Updated path of run.sh for docker build
+* Moved docker related stuffs to docker dir
+* Removed some noisy debug log
+* Bump cryptography from 3.3.1 to 3.3.2
+* Wrap another server call with try except
+* Wrap all imap calls with try except blocks
+* Bump bleach from 3.2.1 to 3.3.0
+* EmailThread was exiting because of IMAP timeout, added exceptions for this
+* Added memory tracing in keeplive
+* Fixed tox pep8 failure for trace
+* Added tracing facility
+* Fixed email login issue
+* duplicate email messages from RF would generate usage response
+* Enable debug logging for smtp and imap
+* more debug around email thread
+* debug around EmailThread hanging or vanishing
+* Fixed resend email after config rework
+* Added flask messages web UI and basic auth
+* Fixed an issue with LocationPlugin
+* Cleaned up the KeepAlive output
+* updated .gitignore
+* Added healthcheck app
+* Add flask and flask\_classful reqs
+* Added Flask web thread and stats collection
+* First hack at flask
+* Allow email to be disabled
+* Reworked the config file and options
+* Updated documentation and config output
+* Fixed extracting lat/lon
+* Added openweathermap weather plugin
+* Added new time plugins
+* Fixed TimePlugin timezone issue
+* remove fortune white space
+* fix git with install.txt
+* change query char from ? to !
+* Updated readme to include readthedocs link
+* Added aprsd-dev plugin test cli and WxPlugin
+
 v1.5.1
 ------
 
+* Updated Changelog for v1.5.1
 * Updated README to fix pypi page
+* Update INSTALL.txt
 
 v1.5.0
 ------
