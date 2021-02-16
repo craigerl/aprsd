@@ -1,43 +1,34 @@
-FROM alpine:latest as aprsd
+FROM python:3.8-slim as aprsd
 
 # Dockerfile for building a container during aprsd development.
-ARG BRANCH
 
+ARG UID
+ARG GID
+ARG TZ
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
-ENV APRSD=http://github.com/craigerl/aprsd.git
-ENV APRSD_BRANCH=${BRANCH:-master}
-ENV VIRTUAL_ENV=$HOME/.venv3
-
-ENV INSTALL=$HOME/install
-RUN apk add --update git vim wget py3-pip py3-virtualenv bash fortune
-RUN apk add --update gcc python3-dev linux-headers musl-dev libffi-dev libc-dev
-RUN apk add --update openssl-dev
-
-# Setup Timezone
-ENV TZ=US/Eastern
-#RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-#RUN apt-get install -y tzdata
-#RUN dpkg-reconfigure --frontend noninteractive tzdata
-
-RUN addgroup --gid 1001 $APRS_USER
-RUN adduser -h $HOME -D -u 1001 -G $APRS_USER $APRS_USER
-
+ENV TZ=${TZ:-US/Eastern}
+ENV UID=${UID:-1000}
+ENV GID=${GID:-1000}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-USER $APRS_USER
-RUN pip3 install wheel
-RUN python3 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-RUN echo "export PATH=\$PATH:\$HOME/.local/bin" >> $HOME/.bashrc
-VOLUME ["/config", "/plugins"]
+#RUN apt update
+#RUN apt-get install -y apt-utils
+#RUN apt-get install -y pkg-config
+#RUN apt upgrade -y
+#RUN apk add --update git wget bash
+#RUN apk add --update gcc linux-headers musl-dev libffi-dev libc-dev
+#RUN apk add --update openssl-dev
+#RUN add cmd:pip3 lsb-release
 
-WORKDIR $HOME
-RUN mkdir $INSTALL
-RUN git clone -b $APRSD_BRANCH $APRSD $INSTALL/aprsd
-RUN    cd $INSTALL/aprsd && pip3 install .
-RUN which aprsd
+RUN addgroup --gid $GID $APRS_USER
+RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
+
+# Install aprsd
+RUN /usr/local/bin/pip3 install aprsd
+
+# Ensure /config is there with a default config file
 USER root
 RUN mkdir -p /config
 RUN aprsd sample-config > /config/aprsd.yml
@@ -45,7 +36,8 @@ RUN chown -R $APRS_USER:$APRS_USER /config
 
 # override this to run another configuration
 ENV CONF default
-USER $APRS_USER
+VOLUME ["/config", "/plugins"]
 
-ADD bin/run.sh $HOME/
-ENTRYPOINT ["/home/aprs/run.sh"]
+USER $APRS_USER
+ADD bin/run.sh /usr/local/bin
+ENTRYPOINT ["/usr/local/bin/run.sh"]

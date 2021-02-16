@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 set -x
 
-export PATH=$PATH:$HOME/.local/bin
-export VIRTUAL_ENV=$HOME/.venv3
-source $VIRTUAL_ENV/bin/activate
-
 if [ ! -z "${APRSD_PLUGINS}" ]; then
     OLDIFS=$IFS
     IFS=','
@@ -23,4 +19,5 @@ if [ ! -e "$APRSD_CONFIG" ]; then
     echo "'$APRSD_CONFIG' File does not exist. Creating."
     aprsd sample-config > $APRSD_CONFIG
 fi
-$VIRTUAL_ENV/bin/aprsd server -c $APRSD_CONFIG --loglevel DEBUG
+
+/usr/local/bin/aprsd server -c $APRSD_CONFIG --loglevel DEBUG
