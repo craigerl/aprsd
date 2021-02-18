@@ -1,4 +1,5 @@
 #!/bin/bash
+# Official docker image build script.
 
 VERSION="1.6.0"
 
@@ -6,6 +7,6 @@ VERSION="1.6.0"
 docker buildx build --push --platform linux/arm/v7,linux/arm/v6,linux/arm64,linux/amd64 \
     -t hemna6969/aprsd:$VERSION \
     -t hemna6969/aprsd:latest \
-    -t 192.168.1.3:5000/hemna6969/aprsd:latest \
-    -t 192.168.1.3:5000/hemna6969/aprsd:$VERSION \
+    -t harbor.hemna.com/hemna6969/aprsd:latest \
+    -t harbor.hemna.com/hemna6969/aprsd:$VERSION \
     -f Dockerfile .

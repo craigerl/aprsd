@@ -13,7 +13,9 @@ ENV GID=${GID:-1000}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-#RUN apt update
+RUN apt update
+RUN apt install -y git build-essential
+RUN apt install -y libffi-dev python3-dev libssl-dev
 #RUN apt-get install -y apt-utils
 #RUN apt-get install -y pkg-config
 #RUN apt upgrade -y
@@ -26,7 +28,7 @@ RUN addgroup --gid $GID $APRS_USER
 RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
 
 # Install aprsd
-RUN /usr/local/bin/pip3 install aprsd
+RUN /usr/local/bin/pip3 install aprsd==1.6.0
 
 # Ensure /config is there with a default config file
 USER root
