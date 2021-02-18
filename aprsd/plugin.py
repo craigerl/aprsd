@@ -6,6 +6,7 @@ import inspect
 import logging
 import os
 import re
+import threading
 
 import pluggy
 from thesmuggler import smuggle
@@ -22,6 +23,7 @@ CORE_PLUGINS = [
     "aprsd.plugins.location.LocationPlugin",
     "aprsd.plugins.ping.PingPlugin",
     "aprsd.plugins.query.QueryPlugin",
+    "aprsd.plugins.stock.StockPlugin",
     "aprsd.plugins.time.TimePlugin",
     "aprsd.plugins.weather.USWeatherPlugin",
     "aprsd.plugins.version.VersionPlugin",
@@ -82,11 +84,14 @@ class PluginManager:
     # aprsd config dict
     config = None
 
+    lock = None
+
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             # Put any initialization here.
+            cls._instance.lock = threading.Lock()
         return cls._instance
 
     def __init__(self, config=None):
@@ -135,6 +140,7 @@ class PluginManager:
         module_name, class_name = module_class_string.rsplit(".", 1)
         try:
             module = importlib.import_module(module_name)
+            module = importlib.reload(module)
         except Exception as ex:
             LOG.error("Failed to load Plugin '{}' : '{}'".format(module_name, ex))
             return
@@ -180,6 +186,11 @@ class PluginManager:
         except Exception as ex:
             LOG.exception("Couldn't load plugin '{}'".format(plugin_name), ex)
 
+    def reload_plugins(self):
+        with self.lock:
+            del self._pluggy_pm
+            self.setup_plugins()
+
     def setup_plugins(self):
         """Create the plugin manager and register plugins."""
 
@@ -223,7 +234,8 @@ class PluginManager:
 
     def run(self, *args, **kwargs):
         """Execute all the pluguns run method."""
-        return self._pluggy_pm.hook.run(*args, **kwargs)
+        with self.lock:
+            return self._pluggy_pm.hook.run(*args, **kwargs)
 
     def register(self, obj):
         """Register the plugin."""

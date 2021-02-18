@@ -2,7 +2,7 @@ import json
 import logging
 
 import aprsd
-from aprsd import messaging, stats
+from aprsd import messaging, plugin, stats
 import flask
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
@@ -54,6 +54,13 @@ class APRSDFlask(flask_classful.FlaskView):
         return flask.render_template("messages.html", messages=json.dumps(msgs))
 
     @auth.login_required
+    def plugins(self):
+        pm = plugin.PluginManager()
+        pm.reload_plugins()
+
+        return "reloaded"
+
+    @auth.login_required
     def save(self):
         """Save the existing queue to disk."""
         track = messaging.MsgTrack()
@@ -86,4 +93,5 @@ def init_flask(config):
     flask_app.route("/stats", methods=["GET"])(server.stats)
     flask_app.route("/messages", methods=["GET"])(server.messages)
     flask_app.route("/save", methods=["GET"])(server.save)
+    flask_app.route("/plugins", methods=["GET"])(server.plugins)
     return flask_app
