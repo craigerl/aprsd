@@ -177,8 +177,8 @@ def signal_handler(sig, frame):
 def setup_logging(config, loglevel, quiet):
     log_level = LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    log_format = "[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s]" " %(message)s"
-    date_format = "%m/%d/%Y %I:%M:%S %p"
+    log_format = config["aprsd"].get("logformat", utils.DEFAULT_LOG_FORMAT)
+    date_format = config["aprsd"].get("dateformat", utils.DEFAULT_DATE_FORMAT)
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
     log_file = config["aprsd"].get("logfile", None)
     if log_file:

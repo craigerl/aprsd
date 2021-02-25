@@ -11,6 +11,13 @@ from aprsd import plugin
 import click
 import yaml
 
+DEFAULT_LOG_FORMAT = (
+    "[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s]"
+    " %(message)s - [%(pathname)s.%(funcName)s:%(lineno)d]"
+)
+
+DEFAULT_DATE_FORMAT = "%m/%d/%Y %I:%M:%S %p"
+
 # an example of what should be in the ~/.aprsd/config.yml
 DEFAULT_CONFIG_DICT = {
     "ham": {"callsign": "CALLSIGN"},
@@ -22,6 +29,8 @@ DEFAULT_CONFIG_DICT = {
     },
     "aprsd": {
         "logfile": "/tmp/aprsd.log",
+        "logformat": DEFAULT_LOG_FORMAT,
+        "dateformat": DEFAULT_DATE_FORMAT,
         "trace": False,
         "plugin_dir": "~/.config/aprsd/plugins",
         "enabled_plugins": plugin.CORE_PLUGINS,
