@@ -37,7 +37,7 @@ import click_completion
 # local imports here
 import aprsd
 from aprsd import (
-    client, flask, messaging, packets, plugin, stats, threads, trace, utils,
+    client, flask, kissclient,  messaging, packets, plugin, stats, threads, trace, utils,
 )
 
 
@@ -458,15 +458,21 @@ def server(
         trace.setup_tracing(["method", "api"])
     stats.APRSDStats(config)
 
-    try:
-        cl = client.Client(config)
-        cl.client
-    except LoginError:
-        sys.exit(-1)
-
     # Create the initial PM singleton and Register plugins
     plugin_manager = plugin.PluginManager(config)
     plugin_manager.setup_plugins()
+
+    if config["aprs"].get("enabled", True):
+        try:
+            cl = client.Client(config)
+            cl.client
+        except LoginError:
+            sys.exit(-1)
+    else:
+        LOG.info(
+            "APRS network connection Not Enabled in config.  This is"
+            " for setups without internet connectivity.",
+        )
 
     # Now load the msgTrack from disk if any
     if flush:
@@ -491,6 +497,14 @@ def server(
         True,
     ):
         packets.WatchList(config=config)
+
+    if kissclient.KISSClient.kiss_enabled(config):
+        kcl = kissclient.KISSClient(config=config)
+        kcl.client
+
+        kissrx_thread = threads.KISSRXThread(msg_queues=msg_queues, config=config)
+        kissrx_thread.start()
+
 
     messaging.MsgTrack().restart()
 

@@ -4,6 +4,8 @@
 #
 #    pip-compile requirements.in
 #
+aioax25==0.0.9
+    # via -r requirements.in
 aprslib==0.6.47
     # via -r requirements.in
 backoff==1.10.0
@@ -21,6 +23,8 @@ click==7.1.2
     #   -r requirements.in
     #   click-completion
     #   flask
+contexter==0.1.4
+    # via signalslot
 cryptography==3.4.7
     # via pyopenssl
 dnspython==2.1.0
@@ -72,6 +76,8 @@ pycparser==2.20
     # via cffi
 pyopenssl==20.0.1
     # via opencage
+pyserial==3.5
+    # via aioax25
 python-dateutil==2.8.1
     # via pandas
 pytz==2021.1
@@ -88,6 +94,8 @@ requests==2.25.1
     #   yfinance
 shellingham==1.4.0
     # via click-completion
+signalslot==0.1.2
+    # via aioax25
 six==1.15.0
     # via
     #   -r requirements.in
@@ -96,12 +104,15 @@ six==1.15.0
     #   opencage
     #   pyopenssl
     #   python-dateutil
+    #   signalslot
 thesmuggler==1.0.1
     # via -r requirements.in
 update-checker==0.18.0
     # via -r requirements.in
 urllib3==1.26.5
     # via requests
+weakrefmethod==1.0.3
+    # via signalslot
 werkzeug==1.0.1
     # via flask
 yfinance==0.1.59

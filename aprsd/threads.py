@@ -8,7 +8,7 @@ import tracemalloc
 
 import aprslib
 
-from aprsd import client, messaging, packets, plugin, stats, utils
+from aprsd import client, kissclient, messaging, packets, plugin, stats, utils
 
 
 LOG = logging.getLogger("APRSD")
@@ -314,3 +314,176 @@ class APRSDTXThread(APRSDThread):
             pass
         # Continue to loop
         return True
+
+
+class KISSRXThread(APRSDThread):
+    """Thread that connects to direwolf's TCPKISS interface.
+
+    All Packets are processed and sent back out the direwolf
+    interface instead of the aprs-is server.
+
+    """
+
+    def __init__(self, msg_queues, config):
+        super().__init__("KISSRX_MSG")
+        self.msg_queues = msg_queues
+        self.config = config
+
+    def stop(self):
+        self.thread_stop = True
+        kissclient.get_client().stop()
+
+    def loop(self):
+        kiss_client = kissclient.get_client()
+
+        # setup the consumer of messages and block until a messages
+        try:
+            # This will register a packet consumer with aprslib
+            # When new packets come in the consumer will process
+            # the packet
+
+            # Do a partial here because the consumer signature doesn't allow
+            # For kwargs to be passed in to the consumer func we declare
+            # and the aprslib developer didn't want to allow a PR to add
+            # kwargs.  :(
+            # https://github.com/rossengeorgiev/aprs-python/pull/56
+            kiss_client.consumer(self.process_packet, callsign="APN382")
+            kiss_client.loop.run_forever()
+
+        except aprslib.exceptions.ConnectionDrop:
+            LOG.error("Connection dropped, reconnecting")
+            time.sleep(5)
+            # Force the deletion of the client object connected to aprs
+            # This will cause a reconnect, next time client.get_client()
+            # is called
+            client.Client().reset()
+        # Continue to loop
+
+    @trace.trace
+    def process_packet(self, interface, frame, match):
+        """Process a packet recieved from aprs-is server."""
+
+        LOG.debug("Got an APRS Frame '{}'".format(frame))
+
+        payload = str(frame.payload.decode())
+        msg = "{}:{}".format(str(frame.header), payload)
+
+        packet = aprslib.parse(msg)
+        LOG.debug(packet)
+
+        try:
+            stats.APRSDStats().msgs_rx_inc()
+
+            msg = packet.get("message_text", None)
+            msg_format = packet.get("format", None)
+            msg_response = packet.get("response", None)
+            if msg_format == "message" and msg:
+                # we want to send the message through the
+                # plugins
+                self.process_message_packet(packet)
+                return
+            elif msg_response == "ack":
+                self.process_ack_packet(packet)
+                return
+
+            if msg_format == "mic-e":
+                # process a mic-e packet
+                self.process_mic_e_packet(packet)
+                return
+
+        except (aprslib.ParseError, aprslib.UnknownFormat) as exp:
+            LOG.exception("Failed to parse packet from aprs-is", exp)
+
+    @trace.trace
+    def process_message_packet(self, packet):
+        LOG.debug("Message packet rx")
+        fromcall = packet["from"]
+        message = packet.get("message_text", None)
+        msg_id = packet.get("msgNo", "0")
+        messaging.log_message(
+            "Received Message",
+            packet["raw"],
+            message,
+            fromcall=fromcall,
+            msg_num=msg_id,
+        )
+        found_command = False
+        # Get singleton of the PM
+        pm = plugin.PluginManager()
+        try:
+            results = pm.run(fromcall=fromcall, message=message, ack=msg_id)
+            for reply in results:
+                found_command = True
+                # A plugin can return a null message flag which signals
+                # us that they processed the message correctly, but have
+                # nothing to reply with, so we avoid replying with a usage string
+                if reply is not messaging.NULL_MESSAGE:
+                    LOG.debug("Sending '{}'".format(reply))
+
+                    msg = messaging.TextMessage(
+                        self.config["aprs"]["login"],
+                        fromcall,
+                        reply,
+                        transport=messaging.MESSAGE_TRANSPORT_TCPKISS,
+                    )
+                    self.msg_queues["tx"].put(msg)
+                else:
+                    LOG.debug("Got NULL MESSAGE from plugin")
+
+            if not found_command:
+                plugins = pm.get_plugins()
+                names = [x.command_name for x in plugins]
+                names.sort()
+
+                # reply = "Usage: {}".format(", ".join(names))
+                reply = "Usage: weather, locate [call], time, fortune, ping"
+
+                msg = messaging.TextMessage(
+                    self.config["aprs"]["login"],
+                    fromcall,
+                    reply,
+                    transport=messaging.MESSAGE_TRANSPORT_TCPKISS,
+                )
+                self.msg_queues["tx"].put(msg)
+        except Exception as ex:
+            LOG.exception("Plugin failed!!!", ex)
+            reply = "A Plugin failed! try again?"
+            msg = messaging.TextMessage(
+                self.config["aprs"]["login"],
+                fromcall,
+                reply,
+                transport=messaging.MESSAGE_TRANSPORT_TCPKISS,
+            )
+            self.msg_queues["tx"].put(msg)
+
+        # let any threads do their thing, then ack
+        # send an ack last
+        ack = messaging.AckMessage(
+            self.config["aprs"]["login"],
+            fromcall,
+            msg_id=msg_id,
+            transport=messaging.MESSAGE_TRANSPORT_TCPKISS,
+        )
+        self.msg_queues["tx"].put(ack)
+        LOG.debug("Packet processing complete")
+
+    def process_ack_packet(self, packet):
+        ack_num = packet.get("msgNo")
+        LOG.info("Got ack for message {}".format(ack_num))
+        messaging.log_message(
+            "ACK",
+            packet["raw"],
+            None,
+            ack=ack_num,
+            fromcall=packet["from"],
+        )
+        tracker = messaging.MsgTrack()
+        tracker.remove(ack_num)
+        stats.APRSDStats().ack_rx_inc()
+        return
+
+    def process_mic_e_packet(self, packet):
+        LOG.info("Mic-E Packet detected.  Currenlty unsupported.")
+        messaging.log_packet(packet)
+        stats.APRSDStats().msgs_mice_inc()
+        return
