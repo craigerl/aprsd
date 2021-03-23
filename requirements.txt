@@ -117,7 +117,7 @@ thesmuggler==1.0.1
     # via -r requirements.in
 toml==0.10.2
     # via pre-commit
-urllib3==1.26.2
+urllib3==1.26.3
     # via requests
 virtualenv==20.4.0
     # via pre-commit
