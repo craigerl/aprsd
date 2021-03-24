@@ -1,13 +1,132 @@
 <html>
     <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/prism.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-json.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-tomorrow.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.bundle.js"></script>
 
 
     <script type="text/javascript"">
+
+        var memory_chart = null
+        var message_chart = null
+        var color = Chart.helpers.color;
+
+        window.chartColors = {
+            red: 'rgb(255, 99, 132)',
+            orange: 'rgb(255, 159, 64)',
+            yellow: 'rgb(255, 205, 86)',
+            green: 'rgb(26, 181, 77)',
+            blue: 'rgb(54, 162, 235)',
+            purple: 'rgb(153, 102, 255)',
+            grey: 'rgb(201, 203, 207)'
+        };
+
+        function start_charts() {
+            memory_chart = new Chart($("#memChart"), {
+                label: 'Memory Usage',
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Peak Ram usage',
+                        borderColor: window.chartColors.red,
+                        data: [],
+                    },
+                    {
+                        label: 'Current Ram usage',
+                        borderColor: window.chartColors.blue,
+                        data: [],
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRation: false,
+                    scales: {
+                        x: {
+                            type: 'timeseries',
+                            offset: true,
+                            ticks: {
+                                major: { enabled: true },
+                                fontStyle: context => context.tick.major ? 'bold' : undefined,
+                                source: 'data',
+                                maxRotation: 0,
+                                autoSkip: true,
+                                autoSkipPadding: 75,
+                            }
+                        }
+                    }
+                }
+            });
+
+            message_chart = new Chart($("#messageChart"), {
+                label: 'Messages',
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Messages Sent',
+                        borderColor: window.chartColors.green,
+                        data: [],
+                    },
+                    {
+                        label: 'Messages Recieved',
+                        borderColor: window.chartColors.yellow,
+                        data: [],
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRation: false,
+                    scales: {
+                        x: {
+                            type: 'timeseries',
+                            offset: true,
+                            ticks: {
+                                major: { enabled: true },
+                                fontStyle: context => context.tick.major ? 'bold' : undefined,
+                                source: 'data',
+                                maxRotation: 0,
+                                autoSkip: true,
+                                autoSkipPadding: 75,
+                            }
+                        }
+                    }
+                }
+            });
+
+        }
+
+
+        function addData(chart, label, newdata) {
+            chart.data.labels.push(label);
+            chart.data.datasets.forEach((dataset) => {
+                dataset.data.push(newdata);
+            });
+            chart.update();
+        }
+
+        function updateDualData(chart, label, first, second) {
+            chart.data.labels.push(label);
+            chart.data.datasets[0].data.push(first);
+            chart.data.datasets[1].data.push(second);
+            chart.update();
+        }
+
+        function update_stats( data ) {
+            $("#version").text( data["version"] );
+            $("#uptime").text( "uptime: " + data["uptime"] );
+            const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
+            $("#jsonstats").html(html_pretty);
+            //$("#jsonstats").effect("highlight", {color: "#333333"}, 800);
+            //console.log(data);
+            updateDualData(memory_chart, data["time"], data["memory_peak"], data["memory_current"]);
+            updateDualData(message_chart, data["time"], data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"]);
+        }
 
         function start_update() {
 
@@ -17,12 +136,10 @@
                         type: 'GET',
                         dataType: 'json',
                         success: function(data) {
-                            //data = JSON.parse(response)
-                            const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
-                            $("#app").html(html_pretty)
+                            update_stats(data);
                         },
                         complete: function() {
-                            setTimeout(statsworker, 60000);
+                            setTimeout(statsworker, 10000);
                         }
                     });
                 })();
@@ -30,15 +147,106 @@
 
 
         $(document).ready(function() {
-            $("#app").text("Starting PEEPIS")
             start_update();
+            start_charts();
+
+            $("#toggleStats").click(function() {
+                $("#jsonstats").fadeToggle(1000);
+            });
         });
     </script>
+
+    <style>
+        body {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            background: #eeeeee;
+            margin: 2em;
+            padding: 0;
+            text-align: center;
+            font-family: system-ui, sans-serif;
+            height: 100vh;
+        }
+
+        header {
+            padding: 2rem;
+        }
+
+        main {
+            padding: 0px;
+        }
+
+        footer, .push {
+            padding: 2rem;
+            text-align: center;
+        }
+
+        #messageChart {
+            border: 1px solid #ccc;
+            background: #ddd;
+            height: 10vh;
+        }
+        #memChart {
+            border: 1px solid #ccc;
+            background: #ddd;
+            height: 10vh;
+        }
+
+        #graphs {
+            display: grid;
+            width: 100%;
+            grid-template-columns: 1fr 1fr;
+        }
+        #left {
+            border: 1px solid black;
+            margin: 2px;
+        }
+        #right {
+            border: 1px solid black;
+            margin: 2px;
+        }
+
+        #stats {
+            margin: auto;
+            width: 80%;
+        }
+
+        #jsonstats {
+            display: none;
+        }
+
+        #title {
+            font-size: 4em;
+        }
+        #uptime: {
+            font-size: 4px;
+        }
+
+    </style>
 
     </head>
 
     <body>
-        <pre id="app" class="language-json">{{ stats }}</pre>
-        <canvas id="messsageChart"></canvas>
+        <header>
+          <div id="title">APRSD version <span id="version"></div></div>
+          <div id="uptime"></div>
+        </header>
+
+        <main>
+            <div id="graphs">
+                <div id="left"><canvas id="messageChart"></canvas></div>
+                <div id="right"><canvas class="right" id="memChart"></canvas></div>
+            </div>
+
+            <div id="stats">
+                <button id="toggleStats">Toggle raw json</button>
+                <pre id="jsonstats" class="language-json">{{ stats }}</pre>
+            </div>
+        </main>
+
+        <footer>
+            <a href="https://badge.fury.io/py/aprsd"><img src="https://badge.fury.io/py/aprsd.svg" alt="PyPI version" height="18"></a>
+            <a href="https://github.com/craigerl/aprsd"><img src="https://img.shields.io/badge/Made%20with-Python-1f425f.svg" height="18"></a>
+        </footer>
     </body>
 </html>

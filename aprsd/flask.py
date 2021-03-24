@@ -1,5 +1,7 @@
+import datetime
 import json
 import logging
+import tracemalloc
 
 import aprsd
 from aprsd import messaging, plugin, stats
@@ -69,12 +71,17 @@ class APRSDFlask(flask_classful.FlaskView):
     def stats(self):
         stats_obj = stats.APRSDStats()
         track = messaging.MsgTrack()
+        now = datetime.datetime.now()
+        current, peak = tracemalloc.get_traced_memory()
 
         result = {
             "version": aprsd.__version__,
             "uptime": stats_obj.uptime,
             "size_tracker": len(track),
             "stats": stats_obj.stats(),
+            "time": now.strftime("%m-%d-%Y %H:%M:%S"),
+            "memory_current": current,
+            "memory_peak": peak,
         }
         return json.dumps(result)
 

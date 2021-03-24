@@ -84,6 +84,8 @@ class KeepAliveThread(APRSDThread):
                 email_thread_time = "N/A"
 
             current, peak = tracemalloc.get_traced_memory()
+            stats_obj.set_memory(current)
+            stats_obj.set_memory_peak(peak)
             LOG.debug(
                 "Uptime ({}) Tracker({}) "
                 "Msgs: TX:{} RX:{} EmailThread: {} RAM: Current:{} Peak:{}".format(

@@ -26,6 +26,9 @@ class APRSDStats:
     _email_tx = 0
     _email_rx = 0
 
+    _mem_current = 0
+    _mem_peak = 0
+
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -42,6 +45,24 @@ class APRSDStats:
     def uptime(self):
         with self.lock:
             return str(datetime.datetime.now() - self.start_time)
+
+    @property
+    def memory(self):
+        with self.lock:
+            return self._mem_current
+
+    def set_memory(self, memory):
+        with self.lock:
+            self._mem_curent = memory
+
+    @property
+    def memory_peak(self):
+        with self.lock:
+            return self._mem_peak
+
+    def set_memory_peak(self, memory):
+        with self.lock:
+            self._mem_peak = memory
 
     @property
     def msgs_tx(self):
@@ -126,6 +147,11 @@ class APRSDStats:
 
     def stats(self):
         now = datetime.datetime.now()
+        if self._email_thread_last_time:
+            last_update = str(now - self._email_thread_last_time)
+        else:
+            last_update = "never"
+
         stats = {
             "messages": {
                 "tracked": self.msgs_tracked,
@@ -138,7 +164,7 @@ class APRSDStats:
             "email": {
                 "sent": self._email_tx,
                 "recieved": self._email_rx,
-                "thread_last_update": str(now - self._email_thread_last_time),
+                "thread_last_update": last_update,
             },
         }
         return stats
