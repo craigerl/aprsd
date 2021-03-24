@@ -1,4 +1,44 @@
 <html>
+    <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 
-    <body><h1>{{ message }}</h1></body>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-json.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-tomorrow.css">
+
+
+    <script type="text/javascript"">
+
+        function start_update() {
+
+            (function statsworker() {
+                    $.ajax({
+                        url: "/stats",
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            //data = JSON.parse(response)
+                            const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
+                            $("#app").html(html_pretty)
+                        },
+                        complete: function() {
+                            setTimeout(statsworker, 60000);
+                        }
+                    });
+                })();
+        }
+
+
+        $(document).ready(function() {
+            $("#app").text("Starting PEEPIS")
+            start_update();
+        });
+    </script>
+
+    </head>
+
+    <body>
+        <pre id="app" class="language-json">{{ stats }}</pre>
+        <canvas id="messsageChart"></canvas>
+    </body>
 </html>

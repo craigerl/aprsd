@@ -40,8 +40,7 @@ class APRSDFlask(flask_classful.FlaskView):
         users = self.users
 
     def index(self):
-        return "Hello"
-        # return flask.render_template("index.html", message=msg)
+        return flask.render_template("index.html", message=self.stats())
 
     @auth.login_required
     def messages(self):
@@ -89,7 +88,7 @@ def init_flask(config):
     )
     server = APRSDFlask()
     server.set_config(config)
-    # flask_app.route('/', methods=['GET'])(server.index)
+    flask_app.route("/", methods=["GET"])(server.index)
     flask_app.route("/stats", methods=["GET"])(server.stats)
     flask_app.route("/messages", methods=["GET"])(server.messages)
     flask_app.route("/save", methods=["GET"])(server.save)
