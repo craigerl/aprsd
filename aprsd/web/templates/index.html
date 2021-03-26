@@ -23,7 +23,8 @@
             green: 'rgb(26, 181, 77)',
             blue: 'rgb(54, 162, 235)',
             purple: 'rgb(153, 102, 255)',
-            grey: 'rgb(201, 203, 207)'
+            grey: 'rgb(201, 203, 207)',
+            black: 'rgb(0, 0, 0)'
         };
 
         function start_charts() {
@@ -77,6 +78,16 @@
                         label: 'Messages Recieved',
                         borderColor: window.chartColors.yellow,
                         data: [],
+                    },
+                    {
+                        label: 'Ack Sent',
+                        borderColor: window.chartColors.purple,
+                        data: [],
+                    },
+                    {
+                        label: 'Ack Recieved',
+                        borderColor: window.chartColors.black,
+                        data: [],
                     }],
                 },
                 options: {
@@ -116,6 +127,14 @@
             chart.data.datasets[1].data.push(second);
             chart.update();
         }
+        function updateQuadData(chart, label, first, second, third, fourth) {
+            chart.data.labels.push(label);
+            chart.data.datasets[0].data.push(first);
+            chart.data.datasets[1].data.push(second);
+            chart.data.datasets[2].data.push(third);
+            chart.data.datasets[3].data.push(fourth);
+            chart.update();
+        }
 
         function update_stats( data ) {
             $("#version").text( data["version"] );
@@ -125,7 +144,7 @@
             //$("#jsonstats").effect("highlight", {color: "#333333"}, 800);
             //console.log(data);
             updateDualData(memory_chart, data["time"], data["memory_peak"], data["memory_current"]);
-            updateDualData(message_chart, data["time"], data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"]);
+            updateQuadData(message_chart, data["time"], data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
         }
 
         function start_update() {
