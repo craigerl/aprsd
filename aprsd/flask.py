@@ -41,6 +41,7 @@ class APRSDFlask(flask_classful.FlaskView):
 
         users = self.users
 
+    @auth.login_required
     def index(self):
         return flask.render_template("index.html", message=self.stats())
 
