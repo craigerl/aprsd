@@ -4,7 +4,7 @@ import logging
 import tracemalloc
 
 import aprsd
-from aprsd import messaging, plugin, stats
+from aprsd import client, messaging, plugin, stats
 import flask
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
@@ -75,9 +75,12 @@ class APRSDFlask(flask_classful.FlaskView):
         track = messaging.MsgTrack()
         now = datetime.datetime.now()
         current, peak = tracemalloc.get_traced_memory()
+        cl = client.Client()
+        server_string = cl.client.server_string
 
         result = {
             "version": aprsd.__version__,
+            "aprsis_server": server_string,
             "uptime": stats_obj.uptime,
             "size_tracker": len(track),
             "stats": stats_obj.stats(),

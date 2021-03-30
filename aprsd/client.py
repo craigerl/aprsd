@@ -18,6 +18,7 @@ class Client:
     config = None
 
     connected = False
+    server_string = None
 
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
@@ -153,7 +154,15 @@ class Aprsdis(aprslib.IS):
 
             self.logger.debug("Server: %s", test)
 
-            _, _, callsign, status, _ = test.split(" ", 4)
+            a, b, callsign, status, e = test.split(" ", 4)
+            s = e.split(",")
+            if len(s):
+                server_string = s[0].replace("server ", "")
+            else:
+                server_string = e.replace("server ", "")
+
+            self.logger.info("Connected to {}".format(server_string))
+            self.server_string = server_string
 
             if callsign == "":
                 raise LoginError("Server responded with empty callsign???")
