@@ -58,7 +58,7 @@ jinja2==2.11.3
     # via
     #   click-completion
     #   flask
-lxml==4.6.2
+lxml==4.6.3
     # via yfinance
 markupsafe==1.1.1
     # via jinja2
