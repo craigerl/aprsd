@@ -43,7 +43,8 @@ class APRSDFlask(flask_classful.FlaskView):
 
     @auth.login_required
     def index(self):
-        return flask.render_template("index.html", message=self.stats())
+        stats = self._stats()
+        return flask.render_template("index.html", initial_stats=stats)
 
     @auth.login_required
     def messages(self):
@@ -69,7 +70,7 @@ class APRSDFlask(flask_classful.FlaskView):
         track.save()
         return json.dumps({"messages": "saved"})
 
-    def stats(self):
+    def _stats(self):
         stats_obj = stats.APRSDStats()
         track = messaging.MsgTrack()
         now = datetime.datetime.now()
@@ -84,7 +85,11 @@ class APRSDFlask(flask_classful.FlaskView):
             "memory_current": current,
             "memory_peak": peak,
         }
-        return json.dumps(result)
+
+        return result
+
+    def stats(self):
+        return json.dumps(self._stats())
 
 
 def init_flask(config):

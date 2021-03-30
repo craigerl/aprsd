@@ -12,6 +12,8 @@
 
     <script type="text/javascript"">
 
+        var initial_stats = {{ initial_stats|tojson|safe }};
+
         var memory_chart = null
         var message_chart = null
         var color = Chart.helpers.color;
@@ -166,6 +168,7 @@
 
 
         $(document).ready(function() {
+            console.log(initial_stats);
             start_update();
             start_charts();
 
