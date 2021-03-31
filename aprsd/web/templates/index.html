@@ -179,79 +179,80 @@
         });
     </script>
 
-    <style>
-        body {
-            display: grid;
-            grid-template-rows: auto 1fr auto;
-            background: #eeeeee;
-            margin: 2em;
-            padding: 0;
-            text-align: center;
-            font-family: system-ui, sans-serif;
-            height: 100vh;
-        }
+        <style type="text/css">
+            body {
+                display: grid;
+                grid-template-rows: auto 1fr auto;
+                background: #eeeeee;
+                margin: 2em;
+                padding: 0;
+                text-align: center;
+                font-family: system-ui, sans-serif;
+                height: 100vh;
+            }
 
-        header {
-            padding: 2rem;
-        }
+            header {
+                padding: 2rem;
+            }
 
-        main {
-            padding: 0px;
-        }
+            main {
+                padding: 0px;
+            }
 
-        footer, .push {
-            padding: 2rem;
-            text-align: center;
-        }
+            footer, .push {
+                padding: 2rem;
+                text-align: center;
+            }
 
-        #messageChart {
-            border: 1px solid #ccc;
-            background: #ddd;
-            height: 10vh;
-        }
-        #memChart {
-            border: 1px solid #ccc;
-            background: #ddd;
-            height: 10vh;
-        }
+            #messageChart {
+                border: 1px solid #ccc;
+                background: #ddd;
+                height: 10vh;
+            }
+            #memChart {
+                border: 1px solid #ccc;
+                background: #ddd;
+                height: 10vh;
+            }
 
-        #graphs {
-            display: grid;
-            width: 100%;
-            grid-template-columns: 1fr 1fr;
-        }
-        #left {
-            border: 1px solid black;
-            margin: 2px;
-        }
-        #right {
-            border: 1px solid black;
-            margin: 2px;
-        }
-
-        #stats {
-            margin: auto;
-            width: 80%;
-        }
-
-        #jsonstats {
-            display: none;
-        }
-
-        #title {
-            font-size: 4em;
-        }
-        #uptime, #arpsis: {
-            font-size: 4px;
-        }
-
-    </style>
+            #graphs {
+                display: grid;
+                width: 100%;
+                grid-template-columns: 1fr 1fr;
+            }
+            #left {
+                border: 1px solid black;
+                margin: 2px;
+            }
+            #right {
+                border: 1px solid black;
+                margin: 2px;
+            }
+            #stats {
+                margin: auto;
+                width: 80%;
+            }
+            #jsonstats {
+                display: none;
+            }
+            #title {
+                font-size: 4em;
+            }
+            #uptime, #aprsis {
+                font-size: 1em;
+            }
+            #callsign {
+                font-size: 1.4em;
+                color: #00F;
+            }
+        </style>
 
     </head>
 
     <body>
         <header>
           <div id="title">APRSD version <span id="version"></div></div>
+          <div id="callsign">{{ callsign }}</div>
           <div id="aprsis"></div>
           <div id="uptime"></div>
         </header>

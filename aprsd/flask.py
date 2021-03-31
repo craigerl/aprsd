@@ -47,7 +47,11 @@ class APRSDFlask(flask_classful.FlaskView):
     @auth.login_required
     def index(self):
         stats = self._stats()
-        return flask.render_template("index.html", initial_stats=stats)
+        return flask.render_template(
+            "index.html",
+            initial_stats=stats,
+            callsign=self.config["aprs"]["login"],
+        )
 
     @auth.login_required
     def messages(self):
@@ -84,6 +88,7 @@ class APRSDFlask(flask_classful.FlaskView):
         result = {
             "version": aprsd.__version__,
             "aprsis_server": server_string,
+            "callsign": self.config["aprs"]["login"],
             "uptime": stats_obj.uptime,
             "size_tracker": len(track),
             "stats": stats_obj.stats(),
