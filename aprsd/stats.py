@@ -162,6 +162,7 @@ class APRSDStats:
                 "mic-e recieved": self.msgs_mice_rx,
             },
             "email": {
+                "enabled": self.config["aprsd"]["email"]["enabled"],
                 "sent": self._email_tx,
                 "recieved": self._email_rx,
                 "thread_last_update": last_update,
