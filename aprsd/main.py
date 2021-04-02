@@ -42,13 +42,6 @@ import click_completion
 # logging.basicConfig(level=logging.DEBUG) # level=10
 LOG = logging.getLogger("APRSD")
 
-LOG_LEVELS = {
-    "CRITICAL": logging.CRITICAL,
-    "ERROR": logging.ERROR,
-    "WARNING": logging.WARNING,
-    "INFO": logging.INFO,
-    "DEBUG": logging.DEBUG,
-}
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -175,7 +168,7 @@ def signal_handler(sig, frame):
 # to disable logging to stdout, but still log to file
 # use the --quiet option on the cmdln
 def setup_logging(config, loglevel, quiet):
-    log_level = LOG_LEVELS[loglevel]
+    log_level = utils.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
     log_format = config["aprsd"].get("logformat", utils.DEFAULT_LOG_FORMAT)
     date_format = config["aprsd"].get("dateformat", utils.DEFAULT_DATE_FORMAT)
@@ -485,7 +478,7 @@ def server(
 
     if web_enabled:
         flask_enabled = True
-        app = flask.init_flask(config)
+        app = flask.init_flask(config, loglevel, quiet)
         app.run(
             host=config["aprsd"]["web"]["host"],
             port=config["aprsd"]["web"]["port"],

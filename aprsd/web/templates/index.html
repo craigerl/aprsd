@@ -1,4 +1,337 @@
 <html>
+    <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 
-    <body><h1>{{ message }}</h1></body>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-json.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-tomorrow.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.bundle.js"></script>
+
+
+    <script type="text/javascript"">
+
+        var initial_stats = {{ initial_stats|tojson|safe }};
+
+        var memory_chart = null
+        var message_chart = null
+        var color = Chart.helpers.color;
+
+        window.chartColors = {
+            red: 'rgb(255, 99, 132)',
+            orange: 'rgb(255, 159, 64)',
+            yellow: 'rgb(255, 205, 86)',
+            green: 'rgb(26, 181, 77)',
+            blue: 'rgb(54, 162, 235)',
+            purple: 'rgb(153, 102, 255)',
+            grey: 'rgb(201, 203, 207)',
+            black: 'rgb(0, 0, 0)'
+        };
+
+        function start_charts() {
+            Chart.scaleService.updateScaleDefaults('linear', {
+                ticks: {
+                    min: 0
+                }
+            });
+
+            memory_chart = new Chart($("#memChart"), {
+                label: 'Memory Usage',
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Peak Ram usage',
+                        borderColor: window.chartColors.red,
+                        data: [],
+                    },
+                    {
+                        label: 'Current Ram usage',
+                        borderColor: window.chartColors.blue,
+                        data: [],
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    title: {
+                        display: true,
+                        text: 'Memory Usage',
+                    },
+                    scales: {
+                        x: {
+                            type: 'timeseries',
+                            offset: true,
+                            ticks: {
+                                major: { enabled: true },
+                                fontStyle: context => context.tick.major ? 'bold' : undefined,
+                                source: 'data',
+                                maxRotation: 0,
+                                autoSkip: true,
+                                autoSkipPadding: 75,
+                            }
+                        }
+                    }
+                }
+            });
+
+            message_chart = new Chart($("#messageChart"), {
+                label: 'Messages',
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Messages Sent',
+                        borderColor: window.chartColors.green,
+                        data: [],
+                    },
+                    {
+                        label: 'Messages Recieved',
+                        borderColor: window.chartColors.yellow,
+                        data: [],
+                    },
+                    {
+                        label: 'Ack Sent',
+                        borderColor: window.chartColors.purple,
+                        data: [],
+                    },
+                    {
+                        label: 'Ack Recieved',
+                        borderColor: window.chartColors.black,
+                        data: [],
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    title: {
+                        display: true,
+                        text: 'APRS Messages',
+                    },
+                    scales: {
+                        x: {
+                            type: 'timeseries',
+                            offset: true,
+                            ticks: {
+                                major: { enabled: true },
+                                fontStyle: context => context.tick.major ? 'bold' : undefined,
+                                source: 'data',
+                                maxRotation: 0,
+                                autoSkip: true,
+                                autoSkipPadding: 75,
+                            }
+                        }
+                    }
+                }
+            });
+
+            email_chart = new Chart($("#emailChart"), {
+                label: 'Email Messages',
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Sent',
+                        borderColor: window.chartColors.green,
+                        data: [],
+                    },
+                    {
+                        label: 'Recieved',
+                        borderColor: window.chartColors.yellow,
+                        data: [],
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    title: {
+                        display: true,
+                        text: 'Email Messages',
+                    },
+                    scales: {
+                        x: {
+                            type: 'timeseries',
+                            offset: true,
+                            ticks: {
+                                major: { enabled: true },
+                                fontStyle: context => context.tick.major ? 'bold' : undefined,
+                                source: 'data',
+                                maxRotation: 0,
+                                autoSkip: true,
+                                autoSkipPadding: 75,
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        function addData(chart, label, newdata) {
+            chart.data.labels.push(label);
+            chart.data.datasets.forEach((dataset) => {
+                dataset.data.push(newdata);
+            });
+            chart.update();
+        }
+
+        function updateDualData(chart, label, first, second) {
+            chart.data.labels.push(label);
+            chart.data.datasets[0].data.push(first);
+            chart.data.datasets[1].data.push(second);
+            chart.update();
+        }
+        function updateQuadData(chart, label, first, second, third, fourth) {
+            chart.data.labels.push(label);
+            chart.data.datasets[0].data.push(first);
+            chart.data.datasets[1].data.push(second);
+            chart.data.datasets[2].data.push(third);
+            chart.data.datasets[3].data.push(fourth);
+            chart.update();
+        }
+
+        function update_stats( data ) {
+            $("#version").text( data["stats"]["aprsd"]["version"] );
+            $("#aprsis").text( "APRS-IS Server: " + data["stats"]["aprs-is"]["server"] );
+            $("#uptime").text( "uptime: " + data["stats"]["aprsd"]["uptime"] );
+            const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
+            $("#jsonstats").html(html_pretty);
+            short_time = data["time"].split(/\s(.+)/)[1];
+            updateQuadData(message_chart, short_time, data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
+            updateDualData(email_chart, short_time, data["stats"]["email"]["sent"], data["stats"]["email"]["recieved"]);
+            updateDualData(memory_chart, short_time, data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);
+        }
+
+        function start_update() {
+
+            (function statsworker() {
+                    $.ajax({
+                        url: "/stats",
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(data) {
+                            update_stats(data);
+                        },
+                        complete: function() {
+                            setTimeout(statsworker, 10000);
+                        }
+                    });
+                })();
+        }
+
+
+        $(document).ready(function() {
+            console.log(initial_stats);
+            start_update();
+            start_charts();
+
+            $("#toggleStats").click(function() {
+                $("#jsonstats").fadeToggle(1000);
+            });
+        });
+    </script>
+
+        <style type="text/css">
+            body {
+                display: grid;
+                grid-template-rows: auto 1fr auto;
+                background: #eeeeee;
+                margin: 2em;
+                padding: 0;
+                text-align: center;
+                font-family: system-ui, sans-serif;
+                height: 100vh;
+            }
+
+            header {
+                padding: 2em;
+                height: 10vh;
+            }
+
+            #main {
+                padding: 2em;
+                height: 80vh;
+            }
+            footer {
+                padding: 2em;
+                text-align: center;
+                height: 10vh;
+            }
+            #graphs {
+                display: grid;
+                width: 100%;
+                height: 300px;
+                grid-template-columns: 1fr 1fr;
+            }
+            #graphs_center {
+                display: block;
+                margin-top: 10px;
+                margin-bottom: 10px;
+                width: 100%;
+                height: 300px;
+            }
+            #left {
+                margin-right: 2px;
+                height: 300px;
+            }
+            #right {
+                height: 300px;
+            }
+            #center {
+                height: 300px;
+            }
+            #messageChart, #emailChart, #memChart {
+                border: 1px solid #ccc;
+                background: #ddd;
+            }
+            #stats {
+                margin: auto;
+                width: 80%;
+            }
+            #jsonstats {
+                display: none;
+            }
+            #title {
+                font-size: 4em;
+            }
+            #uptime, #aprsis {
+                font-size: 1em;
+            }
+            #callsign {
+                font-size: 1.4em;
+                color: #00F;
+            }
+        </style>
+
+    </head>
+
+    <body>
+        <header>
+          <div id="title">APRSD version <span id="version"></div></div>
+          <div id="callsign">{{ callsign }}</div>
+          <div id="aprsis"></div>
+          <div id="uptime"></div>
+        </header>
+
+        <div id="main">
+            <div id="graphs">
+                <div id="left"><canvas id="messageChart"></canvas></div>
+                <div id="right"><canvas class="right" id="emailChart"></canvas></div>
+            </div>
+            <div id="graphs_center">
+                <div id="center"><canvas id="memChart"></canvas></div>
+            </div>
+
+            <div id="stats">
+                <button id="toggleStats">Toggle raw json</button>
+                <pre id="jsonstats" class="language-json">{{ stats }}</pre>
+            </div>
+        </div>
+
+        <footer>
+            <a href="https://badge.fury.io/py/aprsd"><img src="https://badge.fury.io/py/aprsd.svg" alt="PyPI version" height="18"></a>
+            <a href="https://github.com/craigerl/aprsd"><img src="https://img.shields.io/badge/Made%20with-Python-1f425f.svg" height="18"></a>
+        </footer>
+    </body>
 </html>

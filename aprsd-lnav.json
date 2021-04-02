@@ -1,0 +1,39 @@
+{
+    "aprsd" : {
+        "title" : "APRSD APRS-IS server log format",
+        "description" : "Log formats used by ARPRSD server",
+        "url" : "http://github.com/craigerl/aprsd",
+        "regex" : {
+            "std" : {
+                "pattern" : "^\\[(?<timestamp>\\d{2}\\/\\d{2}\\/\\d{4} \\d{2}:\\d{2}:\\d{2} ([AaPp][Mm]))\\] \\[(?<thread>\\w+\\s*)\\] \\[(?<alert_level>\\w+\\s*)\\] (?<body>([^-]*)-*)\\s\\[(?<file>([^:]*))\\:(?<line>\\d+)\\]"
+            }
+        },
+        "level-field" : "alert_level",
+        "level" : {
+            "info"    : "INFO",
+            "error"   : "ERROR",
+            "warning" : "WARN",
+            "debug"   : "DEBUG",
+            "fatal"   : "FATAL",
+            "info"    : "UNKNOWN"
+        },
+        "value" : {
+            "alert_level": { "kind" : "string", "identifier" : true },
+            "thread": { "kind" : "string", "identifier" : true },
+            "body" : { "kind" : "string" },
+            "file" : { "kind" : "string" }
+        },
+        "timestamp-field" : "timestamp",
+        "timestamp-format" : [
+            "%m/%d/%Y %I:%M:%S %p"
+        ],
+        "sample" : [
+            {
+                "line" : "[03/30/2021 08:57:44 PM] [MainThread  ] [INFO ] Skipping Custom Plugins directory. - [/home/waboring/devel/aprsd/aprsd/plugin.py:232]"
+            },
+            {
+                "line" : "[03/30/2021 08:57:44 PM] [KeepAlive   ] [DEBUG] Uptime (0:00:00.577754) Tracker(0) Msgs: TX:0 RX:0 EmailThread: N/A RAM: Current:50289 Peak:99697 - [/home/waboring/devel/aprsd/aprsd/threads.py:89]"
+            }
+        ]
+    }
+}

@@ -2,6 +2,7 @@
 
 import errno
 import functools
+import logging
 import os
 from pathlib import Path
 import sys
@@ -11,9 +12,17 @@ from aprsd import plugin
 import click
 import yaml
 
+LOG_LEVELS = {
+    "CRITICAL": logging.CRITICAL,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+}
+
 DEFAULT_LOG_FORMAT = (
     "[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s]"
-    " %(message)s - [%(pathname)s.%(funcName)s:%(lineno)d]"
+    " %(message)s - [%(pathname)s:%(lineno)d]"
 )
 
 DEFAULT_DATE_FORMAT = "%m/%d/%Y %I:%M:%S %p"
@@ -37,6 +46,7 @@ DEFAULT_CONFIG_DICT = {
         "units": "imperial",
         "web": {
             "enabled": True,
+            "logging_enabled": True,
             "host": "0.0.0.0",
             "port": 8001,
             "users": {
@@ -351,3 +361,10 @@ def parse_config(config_file):
         )
 
     return config
+
+
+def human_size(bytes, units=None):
+    """ Returns a human readable string representation of bytes """
+    if not units:
+        units = [" bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
+    return str(bytes) + units[0] if bytes < 1024 else human_size(bytes >> 10, units[1:])

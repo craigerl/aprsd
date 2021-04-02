@@ -1,8 +1,11 @@
+import datetime
 import json
 import logging
+from logging import NullHandler
+from logging.handlers import RotatingFileHandler
+import sys
 
-import aprsd
-from aprsd import messaging, plugin, stats
+from aprsd import messaging, plugin, stats, utils
 import flask
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
@@ -39,9 +42,14 @@ class APRSDFlask(flask_classful.FlaskView):
 
         users = self.users
 
+    @auth.login_required
     def index(self):
-        return "Hello"
-        # return flask.render_template("index.html", message=msg)
+        stats = self._stats()
+        return flask.render_template(
+            "index.html",
+            initial_stats=stats,
+            callsign=self.config["aprs"]["login"],
+        )
 
     @auth.login_required
     def messages(self):
@@ -67,29 +75,71 @@ class APRSDFlask(flask_classful.FlaskView):
         track.save()
         return json.dumps({"messages": "saved"})
 
-    def stats(self):
+    def _stats(self):
         stats_obj = stats.APRSDStats()
         track = messaging.MsgTrack()
+        now = datetime.datetime.now()
+
+        time_format = "%m-%d-%Y %H:%M:%S"
+
+        stats_dict = stats_obj.stats()
 
         result = {
-            "version": aprsd.__version__,
-            "uptime": stats_obj.uptime,
+            "time": now.strftime(time_format),
             "size_tracker": len(track),
-            "stats": stats_obj.stats(),
+            "stats": stats_dict,
         }
-        return json.dumps(result)
+
+        return result
+
+    def stats(self):
+        return json.dumps(self._stats())
 
 
-def init_flask(config):
+def setup_logging(config, flask_app, loglevel, quiet):
+    flask_log = logging.getLogger("werkzeug")
+
+    if not config["aprsd"]["web"].get("logging_enabled", False):
+        # disable web logging
+        flask_log.disabled = True
+        flask_app.logger.disabled = True
+        return
+
+    log_level = utils.LOG_LEVELS[loglevel]
+    LOG.setLevel(log_level)
+    log_format = config["aprsd"].get("logformat", utils.DEFAULT_LOG_FORMAT)
+    date_format = config["aprsd"].get("dateformat", utils.DEFAULT_DATE_FORMAT)
+    log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
+    log_file = config["aprsd"].get("logfile", None)
+    if log_file:
+        fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
+    else:
+        fh = NullHandler()
+
+    fh.setFormatter(log_formatter)
+    for handler in flask_app.logger.handlers:
+        handler.setFormatter(log_formatter)
+        print(handler)
+
+    flask_log.addHandler(fh)
+
+    if not quiet:
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setFormatter(log_formatter)
+        flask_log.addHandler(sh)
+
+
+def init_flask(config, loglevel, quiet):
     flask_app = flask.Flask(
         "aprsd",
         static_url_path="",
         static_folder="web/static",
         template_folder="web/templates",
     )
+    setup_logging(config, flask_app, loglevel, quiet)
     server = APRSDFlask()
     server.set_config(config)
-    # flask_app.route('/', methods=['GET'])(server.index)
+    flask_app.route("/", methods=["GET"])(server.index)
     flask_app.route("/stats", methods=["GET"])(server.stats)
     flask_app.route("/messages", methods=["GET"])(server.messages)
     flask_app.route("/save", methods=["GET"])(server.save)
