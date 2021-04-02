@@ -368,3 +368,10 @@ def human_size(bytes, units=None):
     if not units:
         units = [" bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
     return str(bytes) + units[0] if bytes < 1024 else human_size(bytes >> 10, units[1:])
+
+
+def strfdelta(tdelta, fmt="{hours}:{minutes}:{seconds}"):
+    d = {"days": tdelta.days}
+    d["hours"], rem = divmod(tdelta.seconds, 3600)
+    d["minutes"], d["seconds"] = divmod(rem, 60)
+    return fmt.format(**d)

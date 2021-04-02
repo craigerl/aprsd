@@ -1,7 +1,7 @@
 import logging
 
 import aprsd
-from aprsd import plugin, trace
+from aprsd import plugin, stats, trace
 
 LOG = logging.getLogger("APRSD")
 
@@ -20,4 +20,9 @@ class VersionPlugin(plugin.APRSDPluginBase):
     @trace.trace
     def command(self, fromcall, message, ack):
         LOG.info("Version COMMAND")
-        return "APRSD version '{}'".format(aprsd.__version__)
+        stats_obj = stats.APRSDStats()
+        s = stats_obj.stats()
+        return "APRSD ver:{} uptime:{}".format(
+            aprsd.__version__,
+            s["aprsd"]["uptime"],
+        )

@@ -1,6 +1,5 @@
 import abc
 import datetime
-import gc
 import logging
 import queue
 import threading
@@ -75,25 +74,24 @@ class KeepAliveThread(APRSDThread):
 
     def loop(self):
         if self.cntr % 6 == 0:
-            nuked = gc.collect()
             tracker = messaging.MsgTrack()
             stats_obj = stats.APRSDStats()
             now = datetime.datetime.now()
             last_email = stats_obj.email_thread_time
             if last_email:
-                email_thread_time = str(now - last_email)
+                email_thread_time = utils.strfdelta(now - last_email)
             else:
                 email_thread_time = "N/A"
 
-            last_msg_time = str(now - stats_obj.aprsis_keepalive)
+            last_msg_time = utils.strfdelta(now - stats_obj.aprsis_keepalive)
 
             current, peak = tracemalloc.get_traced_memory()
             stats_obj.set_memory(current)
             stats_obj.set_memory_peak(peak)
-            LOG.debug(
-                "Uptime ({}) Tracker({}) "
-                "Msgs: TX:{} RX:{} Last: {} - EmailThread: {} - RAM: Current:{} Peak:{} Nuked: {}".format(
-                    stats_obj.uptime,
+            keepalive = (
+                "Uptime {} Tracker {} "
+                "Msgs TX:{} RX:{} Last:{} Email:{} RAM Current:{} Peak:{}".format(
+                    utils.strfdelta(stats_obj.uptime),
                     len(tracker),
                     stats_obj.msgs_tx,
                     stats_obj.msgs_rx,
@@ -101,9 +99,10 @@ class KeepAliveThread(APRSDThread):
                     email_thread_time,
                     utils.human_size(current),
                     utils.human_size(peak),
-                    nuked,
-                ),
+                )
             )
+            LOG.debug(keepalive)
+            LOG.debug(len(keepalive))
         self.cntr += 1
         time.sleep(10)
         return True

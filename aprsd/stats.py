@@ -49,7 +49,7 @@ class APRSDStats:
     @property
     def uptime(self):
         with self.lock:
-            return str(datetime.datetime.now() - self.start_time)
+            return datetime.datetime.now() - self.start_time
 
     @property
     def memory(self):
@@ -183,7 +183,7 @@ class APRSDStats:
         stats = {
             "aprsd": {
                 "version": aprsd.__version__,
-                "uptime": self.uptime,
+                "uptime": utils.strfdelta(self.uptime),
                 "memory_current": self.memory,
                 "memory_current_str": utils.human_size(self.memory),
                 "memory_peak": self.memory_peak,
