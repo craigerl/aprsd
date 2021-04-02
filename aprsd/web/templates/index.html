@@ -48,7 +48,11 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRation: false,
+                    maintainAspectRatio: false,
+                    title: {
+                        display: true,
+                        text: 'Memory Usage',
+                    },
                     scales: {
                         x: {
                             type: 'timeseries',
@@ -94,7 +98,11 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRation: false,
+                    maintainAspectRatio: false,
+                    title: {
+                        display: true,
+                        text: 'APRS Messages',
+                    },
                     scales: {
                         x: {
                             type: 'timeseries',
@@ -112,6 +120,45 @@
                 }
             });
 
+            email_chart = new Chart($("#emailChart"), {
+                label: 'Email Messages',
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Sent',
+                        borderColor: window.chartColors.green,
+                        data: [],
+                    },
+                    {
+                        label: 'Recieved',
+                        borderColor: window.chartColors.yellow,
+                        data: [],
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    title: {
+                        display: true,
+                        text: 'Email Messages',
+                    },
+                    scales: {
+                        x: {
+                            type: 'timeseries',
+                            offset: true,
+                            ticks: {
+                                major: { enabled: true },
+                                fontStyle: context => context.tick.major ? 'bold' : undefined,
+                                source: 'data',
+                                maxRotation: 0,
+                                autoSkip: true,
+                                autoSkipPadding: 75,
+                            }
+                        }
+                    }
+                }
+            });
         }
 
 
@@ -144,10 +191,10 @@
             $("#uptime").text( "uptime: " + data["stats"]["aprsd"]["uptime"] );
             const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
             $("#jsonstats").html(html_pretty);
-            //$("#jsonstats").effect("highlight", {color: "#333333"}, 800);
-            //console.log(data);
-            updateDualData(memory_chart, data["time"], data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);
-            updateQuadData(message_chart, data["time"], data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
+            short_time = data["time"].split(/\s(.+)/)[1];
+            updateQuadData(message_chart, short_time, data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
+            updateDualData(email_chart, short_time, data["stats"]["email"]["sent"], data["stats"]["email"]["recieved"]);
+            updateDualData(memory_chart, short_time, data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);
         }
 
         function start_update() {
@@ -192,41 +239,45 @@
             }
 
             header {
-                padding: 2rem;
+                padding: 2em;
+                height: 10vh;
             }
 
-            main {
-                padding: 0px;
+            #main {
+                padding: 2em;
+                height: 80vh;
             }
-
-            footer, .push {
-                padding: 2rem;
+            footer {
+                padding: 2em;
                 text-align: center;
-            }
-
-            #messageChart {
-                border: 1px solid #ccc;
-                background: #ddd;
                 height: 10vh;
             }
-            #memChart {
-                border: 1px solid #ccc;
-                background: #ddd;
-                height: 10vh;
-            }
-
             #graphs {
                 display: grid;
                 width: 100%;
+                height: 300px;
                 grid-template-columns: 1fr 1fr;
             }
+            #graphs_center {
+                display: block;
+                margin-top: 10px;
+                margin-bottom: 10px;
+                width: 100%;
+                height: 300px;
+            }
             #left {
-                border: 1px solid black;
-                margin: 2px;
+                margin-right: 2px;
+                height: 300px;
             }
             #right {
-                border: 1px solid black;
-                margin: 2px;
+                height: 300px;
+            }
+            #center {
+                height: 300px;
+            }
+            #messageChart, #emailChart, #memChart {
+                border: 1px solid #ccc;
+                background: #ddd;
             }
             #stats {
                 margin: auto;
@@ -257,17 +308,20 @@
           <div id="uptime"></div>
         </header>
 
-        <main>
+        <div id="main">
             <div id="graphs">
                 <div id="left"><canvas id="messageChart"></canvas></div>
-                <div id="right"><canvas class="right" id="memChart"></canvas></div>
+                <div id="right"><canvas class="right" id="emailChart"></canvas></div>
+            </div>
+            <div id="graphs_center">
+                <div id="center"><canvas id="memChart"></canvas></div>
             </div>
 
             <div id="stats">
                 <button id="toggleStats">Toggle raw json</button>
                 <pre id="jsonstats" class="language-json">{{ stats }}</pre>
             </div>
-        </main>
+        </div>
 
         <footer>
             <a href="https://badge.fury.io/py/aprsd"><img src="https://badge.fury.io/py/aprsd.svg" alt="PyPI version" height="18"></a>
