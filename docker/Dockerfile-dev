@@ -27,17 +27,16 @@ ENV LANG=C.UTF-8
 
 USER $APRS_USER
 RUN pip3 install wheel
-RUN python3 -m venv $VIRTUAL_ENV
+#RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 RUN echo "export PATH=\$PATH:\$HOME/.local/bin" >> $HOME/.bashrc
-VOLUME ["/config", "/plugins"]
 
+USER root
 WORKDIR $HOME
 RUN mkdir $INSTALL
 RUN git clone -b $APRSD_BRANCH $APRSD $INSTALL/aprsd
 RUN    cd $INSTALL/aprsd && pip3 install .
 RUN which aprsd
-USER root
 RUN mkdir -p /config
 RUN aprsd sample-config > /config/aprsd.yml
 RUN chown -R $APRS_USER:$APRS_USER /config
@@ -45,6 +44,7 @@ RUN chown -R $APRS_USER:$APRS_USER /config
 # override this to run another configuration
 ENV CONF default
 USER $APRS_USER
+VOLUME ["/config", "/plugins"]
 
 ADD bin/run.sh $HOME/
 ENTRYPOINT ["/home/aprs/run.sh"]
