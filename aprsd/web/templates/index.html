@@ -30,6 +30,12 @@
         };
 
         function start_charts() {
+            Chart.scaleService.updateScaleDefaults('linear', {
+                ticks: {
+                    min: 0
+                }
+            });
+
             memory_chart = new Chart($("#memChart"), {
                 label: 'Memory Usage',
                 type: 'line',
