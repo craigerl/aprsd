@@ -2,6 +2,9 @@ import datetime
 import logging
 import threading
 
+import aprsd
+from aprsd import utils
+
 LOG = logging.getLogger("APRSD")
 
 
@@ -12,6 +15,7 @@ class APRSDStats:
     config = None
 
     start_time = None
+    _aprsis_keepalive = None
 
     _msgs_tracked = 0
     _msgs_tx = 0
@@ -35,6 +39,7 @@ class APRSDStats:
             # any initializetion here
             cls._instance.lock = threading.Lock()
             cls._instance.start_time = datetime.datetime.now()
+            cls._instance._aprsis_keepalive = datetime.datetime.now()
         return cls._instance
 
     def __init__(self, config=None):
@@ -53,7 +58,7 @@ class APRSDStats:
 
     def set_memory(self, memory):
         with self.lock:
-            self._mem_curent = memory
+            self._mem_current = memory
 
     @property
     def memory_peak(self):
@@ -63,6 +68,24 @@ class APRSDStats:
     def set_memory_peak(self, memory):
         with self.lock:
             self._mem_peak = memory
+
+    @property
+    def aprsis_server(self):
+        with self.lock:
+            return self._aprsis_server
+
+    def set_aprsis_server(self, server):
+        with self.lock:
+            self._aprsis_server = server
+
+    @property
+    def aprsis_keepalive(self):
+        with self.lock:
+            return self._aprsis_keepalive
+
+    def set_aprsis_keepalive(self):
+        with self.lock:
+            self._aprsis_keepalive = datetime.datetime.now()
 
     @property
     def msgs_tx(self):
@@ -152,7 +175,25 @@ class APRSDStats:
         else:
             last_update = "never"
 
+        if self._aprsis_keepalive:
+            last_aprsis_keepalive = str(now - self._aprsis_keepalive)
+        else:
+            last_aprsis_keepalive = "never"
+
         stats = {
+            "aprsd": {
+                "version": aprsd.__version__,
+                "uptime": self.uptime,
+                "memory_current": self.memory,
+                "memory_current_str": utils.human_size(self.memory),
+                "memory_peak": self.memory_peak,
+                "memory_peak_str": utils.human_size(self.memory_peak),
+            },
+            "aprs-is": {
+                "server": self.aprsis_server,
+                "callsign": self.config["aprs"]["login"],
+                "last_update": last_aprsis_keepalive,
+            },
             "messages": {
                 "tracked": self.msgs_tracked,
                 "sent": self.msgs_tx,

@@ -215,6 +215,15 @@ def check(loglevel, config_file, health_url, timeout):
             LOG.error("Email thread is very old! {}".format(d))
             sys.exit(-1)
 
+        aprsis_last_update = stats["stats"]["aprs-is"]["last_update"]
+        delta = parse_delta_str(aprsis_last_update)
+        d = datetime.timedelta(**delta)
+        max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
+        max_delta = datetime.timedelta(**max_timeout)
+        if d > max_delta:
+            LOG.error("APRS-IS last update is very old! {}".format(d))
+            sys.exit(-1)
+
         sys.exit(0)
 
 

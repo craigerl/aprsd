@@ -361,3 +361,10 @@ def parse_config(config_file):
         )
 
     return config
+
+
+def human_size(bytes, units=None):
+    """ Returns a human readable string representation of bytes """
+    if not units:
+        units = [" bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
+    return str(bytes) + units[0] if bytes < 1024 else human_size(bytes >> 10, units[1:])

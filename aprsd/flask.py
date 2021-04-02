@@ -4,10 +4,8 @@ import logging
 from logging import NullHandler
 from logging.handlers import RotatingFileHandler
 import sys
-import tracemalloc
 
-import aprsd
-from aprsd import client, messaging, plugin, stats, utils
+from aprsd import messaging, plugin, stats, utils
 import flask
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
@@ -81,20 +79,15 @@ class APRSDFlask(flask_classful.FlaskView):
         stats_obj = stats.APRSDStats()
         track = messaging.MsgTrack()
         now = datetime.datetime.now()
-        current, peak = tracemalloc.get_traced_memory()
-        cl = client.Client()
-        server_string = cl.client.server_string
+
+        time_format = "%m-%d-%Y %H:%M:%S"
+
+        stats_dict = stats_obj.stats()
 
         result = {
-            "version": aprsd.__version__,
-            "aprsis_server": server_string,
-            "callsign": self.config["aprs"]["login"],
-            "uptime": stats_obj.uptime,
+            "time": now.strftime(time_format),
             "size_tracker": len(track),
-            "stats": stats_obj.stats(),
-            "time": now.strftime("%m-%d-%Y %H:%M:%S"),
-            "memory_current": current,
-            "memory_peak": peak,
+            "stats": stats_dict,
         }
 
         return result

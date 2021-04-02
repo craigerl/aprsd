@@ -139,14 +139,14 @@
         }
 
         function update_stats( data ) {
-            $("#version").text( data["version"] );
-            $("#aprsis").text( "APRS-IS Server: " + data["aprsis_server"] );
-            $("#uptime").text( "uptime: " + data["uptime"] );
+            $("#version").text( data["stats"]["aprsd"]["version"] );
+            $("#aprsis").text( "APRS-IS Server: " + data["stats"]["aprs-is"]["server"] );
+            $("#uptime").text( "uptime: " + data["stats"]["aprsd"]["uptime"] );
             const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
             $("#jsonstats").html(html_pretty);
             //$("#jsonstats").effect("highlight", {color: "#333333"}, 800);
             //console.log(data);
-            updateDualData(memory_chart, data["time"], data["memory_peak"], data["memory_current"]);
+            updateDualData(memory_chart, data["time"], data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);
             updateQuadData(message_chart, data["time"], data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
         }
 

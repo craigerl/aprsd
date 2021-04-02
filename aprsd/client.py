@@ -3,9 +3,17 @@ import select
 import time
 
 import aprsd
+from aprsd import stats
 import aprslib
 from aprslib import is_py3
-from aprslib.exceptions import LoginError
+from aprslib.exceptions import (
+    ConnectionDrop,
+    ConnectionError,
+    GenericError,
+    LoginError,
+    ParseError,
+    UnknownFormat,
+)
 
 LOG = logging.getLogger("APRSD")
 
@@ -163,6 +171,7 @@ class Aprsdis(aprslib.IS):
 
             self.logger.info("Connected to {}".format(server_string))
             self.server_string = server_string
+            stats.APRSDStats().set_aprsis_server(server_string)
 
             if callsign == "":
                 raise LoginError("Server responded with empty callsign???")
@@ -180,10 +189,66 @@ class Aprsdis(aprslib.IS):
             self.logger.error(str(e))
             self.close()
             raise
-        except Exception:
+        except Exception as e:
             self.close()
-            self.logger.error("Failed to login")
+            self.logger.error("Failed to login '{}'".format(e))
             raise LoginError("Failed to login")
+
+    def consumer(self, callback, blocking=True, immortal=False, raw=False):
+        """
+        When a position sentence is received, it will be passed to the callback function
+
+        blocking: if true (default), runs forever, otherwise will return after one sentence
+                  You can still exit the loop, by raising StopIteration in the callback function
+
+        immortal: When true, consumer will try to reconnect and stop propagation of Parse exceptions
+                  if false (default), consumer will return
+
+        raw: when true, raw packet is passed to callback, otherwise the result from aprs.parse()
+        """
+
+        if not self._connected:
+            raise ConnectionError("not connected to a server")
+
+        line = b""
+
+        while True:
+            try:
+                for line in self._socket_readlines(blocking):
+                    if line[0:1] != b"#":
+                        if raw:
+                            callback(line)
+                        else:
+                            callback(self._parse(line))
+                    else:
+                        self.logger.debug("Server: %s", line.decode("utf8"))
+                        stats.APRSDStats().set_aprsis_keepalive()
+            except ParseError as exp:
+                self.logger.log(11, "%s\n    Packet: %s", exp.args[0], exp.args[1])
+            except UnknownFormat as exp:
+                self.logger.log(9, "%s\n    Packet: %s", exp.args[0], exp.args[1])
+            except LoginError as exp:
+                self.logger.error("%s: %s", exp.__class__.__name__, exp.args[0])
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except (ConnectionDrop, ConnectionError):
+                self.close()
+
+                if not immortal:
+                    raise
+                else:
+                    self.connect(blocking=blocking)
+                    continue
+            except GenericError:
+                pass
+            except StopIteration:
+                break
+            except Exception:
+                self.logger.error("APRS Packet: %s", line)
+                raise
+
+            if not blocking:
+                break
 
 
 def get_client():
