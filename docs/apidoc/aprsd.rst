@@ -28,14 +28,6 @@ aprsd.dev module
    :undoc-members:
    :show-inheritance:
 
-aprsd.dev module
-----------------
-
-.. automodule:: aprsd.dev
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 aprsd.email module
 ------------------
 
@@ -64,6 +56,14 @@ aprsd.fuzzyclock module
 -----------------------
 
 .. automodule:: aprsd.fuzzyclock
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.healthcheck module
+------------------------
+
+.. automodule:: aprsd.healthcheck
    :members:
    :undoc-members:
    :show-inheritance:
@@ -100,10 +100,10 @@ aprsd.plugin\_utils module
    :undoc-members:
    :show-inheritance:
 
-aprsd.plugin\_utils module
---------------------------
+aprsd.stats module
+------------------
 
-.. automodule:: aprsd.plugin_utils
+.. automodule:: aprsd.stats
    :members:
    :undoc-members:
    :show-inheritance:
@@ -112,6 +112,14 @@ aprsd.threads module
 --------------------
 
 .. automodule:: aprsd.threads
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.trace module
+------------------
+
+.. automodule:: aprsd.trace
    :members:
    :undoc-members:
    :show-inheritance:

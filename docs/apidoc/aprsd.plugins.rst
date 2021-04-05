@@ -44,6 +44,14 @@ aprsd.plugins.query module
    :undoc-members:
    :show-inheritance:
 
+aprsd.plugins.stock module
+--------------------------
+
+.. automodule:: aprsd.plugins.stock
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.plugins.time module
 -------------------------
 

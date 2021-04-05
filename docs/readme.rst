@@ -1,17 +1,15 @@
+=====
 APRSD
------
+=====
 
 .. image:: https://badge.fury.io/py/aprsd.svg
     :target: https://badge.fury.io/py/aprsd
 
+.. image:: http://hits.dwyl.com/craigerl/aprsd.svg
+    :target: http://hits.dwyl.com/craigerl/aprsd
+
 .. image:: https://github.com/craigerl/aprsd/workflows/python/badge.svg
     :target: https://github.com/craigerl/aprsd/actions
-
-.. image:: https://img.shields.io/pypi/pyversions/aprsd.svg
-   :target: https://pypi.python.org/pypi/aprsd
-
-.. image:: https://img.shields.io/:license-apache-blue.svg
-   :target: http://www.apache.org/licenses/LICENSE-2.0
 
 .. image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://black.readthedocs.io/en/stable/
@@ -26,9 +24,7 @@ APRSD
 .. image:: https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads
      :target: https://pepy.tech/project/aprsd
 
-
-Summary
-=======
+.. contents:: :local:
 
 `APRSD <http://github.com/craigerl/aprsd>`_ is a Ham radio `APRS <http://aprs.org>`_ message command gateway built on python.
 
@@ -43,12 +39,13 @@ provide responding to messages to check email, get location, ping,
 time of day, get weather, and fortune telling as well as version information
 of aprsd itself.
 
-APRSD overview diagram
+Documentation: https://aprsd.readthedocs.io
+
+
+APRSD Overview Diagram
 ----------------------
 
-.. figure:: _static/aprsd_overview.svg
-   :align: center
-   :width: 800px
+.. image:: https://raw.githubusercontent.com/craigerl/aprsd/master/docs/_static/aprsd_overview.svg?sanitize=true
 
 
 Typical use case
@@ -116,6 +113,11 @@ email server, and associated logins, passwords.  search for "yourdomain",
 "password".  Search for "shortcuts" to setup email aliases as well.
 
 
+Installation:
+=============
+
+  pip install aprsd
+
 Example usage:
 ==============
 
@@ -145,9 +147,11 @@ Help
 
 
 
+Commands
+========
 
 Configuration
--------------
+=============
 This command outputs a sample config yml formatted block that you can edit
 and use to pass in to aprsd with -c.  By default aprsd looks in ~/.config/aprsd/aprsd.yml
 
@@ -157,8 +161,7 @@ Output
 ======
 ::
 
-    └─[$] > aprsd sample-config
-
+    └─> aprsd sample-config
     aprs:
         # Get the passcode for your callsign here:
         # https://apps.magicbug.co.uk/passcode
@@ -167,6 +170,7 @@ Output
         password: '00000'
         port: 14580
     aprsd:
+        dateformat: '%m/%d/%Y %I:%M:%S %p'
         email:
             enabled: true
             imap:
@@ -193,16 +197,19 @@ Output
         - aprsd.plugins.location.LocationPlugin
         - aprsd.plugins.ping.PingPlugin
         - aprsd.plugins.query.QueryPlugin
+        - aprsd.plugins.stock.StockPlugin
         - aprsd.plugins.time.TimePlugin
         - aprsd.plugins.weather.USWeatherPlugin
         - aprsd.plugins.version.VersionPlugin
         logfile: /tmp/aprsd.log
+        logformat: '[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s] %(message)s - [%(pathname)s:%(lineno)d]'
         plugin_dir: ~/.config/aprsd/plugins
         trace: false
         units: imperial
         web:
             enabled: true
             host: 0.0.0.0
+            logging_enabled: true
             port: 8001
             users:
                 admin: aprsd
@@ -233,7 +240,7 @@ Output
             apiKey: APIKEYVALUE
 
 server
-------
+======
 
 This is the main server command that will listen to APRS-IS servers and
 look for incomming commands to the callsign configured in the config file
@@ -273,7 +280,7 @@ look for incomming commands to the callsign configured in the config file
 
 
 send-message
-------------
+============
 
 This command is typically used for development to send another aprsd instance
 test messages
@@ -303,8 +310,8 @@ test messages
       -h, --help                      Show this message and exit.
 
 
-Example Message output:
------------------------
+Example output:
+===============
 
 
 SEND EMAIL (radio to smtp server)
@@ -375,7 +382,7 @@ AND... ping, fortune, time.....
 
 
 Development
------------
+===========
 
 * git clone git@github.com:craigerl/aprsd.git
 * cd aprsd
@@ -386,10 +393,18 @@ Workflow
 
 While working aprsd, The workflow is as follows
 
-* Edit code, save file
+* checkout a new branch to work on
+* git checkout -b mybranch
+* Edit code
+* run tox -epep8
 * run tox -efmt
 * run tox -p
 * git commit  ( This will run the pre-commit hooks which does checks too )
+* Once you are done with all of your commits, then push up the branch to
+  github
+* git push -u origin mybranch
+* Create a pull request from your branch so github tests can run and we can do
+  a code review.
 
 
 Release
@@ -415,7 +430,7 @@ To do release to pypi:
 
 
 Docker Container
-----------------
+================
 
 Building
 ========

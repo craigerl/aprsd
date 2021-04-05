@@ -16,7 +16,9 @@ dev: venv
 	$(VENV)/pre-commit install
 
 .PHONY: docs
-docs: venv
+docs: build
+	cp README.rst docs/readme.rst
+	cp Changelog docs/changelog.rst
 	tox -edocs
 
 .PHONY: server

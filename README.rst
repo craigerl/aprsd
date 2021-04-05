@@ -161,8 +161,7 @@ Output
 ======
 ::
 
-    └─[$] > aprsd sample-config
-
+    └─> aprsd sample-config
     aprs:
         # Get the passcode for your callsign here:
         # https://apps.magicbug.co.uk/passcode
@@ -171,6 +170,7 @@ Output
         password: '00000'
         port: 14580
     aprsd:
+        dateformat: '%m/%d/%Y %I:%M:%S %p'
         email:
             enabled: true
             imap:
@@ -197,16 +197,19 @@ Output
         - aprsd.plugins.location.LocationPlugin
         - aprsd.plugins.ping.PingPlugin
         - aprsd.plugins.query.QueryPlugin
+        - aprsd.plugins.stock.StockPlugin
         - aprsd.plugins.time.TimePlugin
         - aprsd.plugins.weather.USWeatherPlugin
         - aprsd.plugins.version.VersionPlugin
         logfile: /tmp/aprsd.log
+        logformat: '[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s] %(message)s - [%(pathname)s:%(lineno)d]'
         plugin_dir: ~/.config/aprsd/plugins
         trace: false
         units: imperial
         web:
             enabled: true
             host: 0.0.0.0
+            logging_enabled: true
             port: 8001
             users:
                 admin: aprsd

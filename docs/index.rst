@@ -13,6 +13,7 @@
    :caption: Contents:
 
    readme
+   changelog
    install
    configure
    server
