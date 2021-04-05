@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 
 import aprsd
-from aprsd import messaging
+from aprsd import messaging, stats, utils
 from aprsd.fuzzyclock import fuzzy
 from aprsd.plugins import fortune as fortune_plugin
 from aprsd.plugins import ping as ping_plugin
@@ -16,7 +16,10 @@ class TestPlugin(unittest.TestCase):
     def setUp(self):
         self.fromcall = "KFART"
         self.ack = 1
-        self.config = {"ham": {"callsign": self.fromcall}}
+        self.config = utils.DEFAULT_CONFIG_DICT
+        self.config["ham"]["callsign"] = self.fromcall
+        # Inintialize the stats object with the config
+        stats.APRSDStats(self.config)
 
     @mock.patch("shutil.which")
     def test_fortune_fail(self, mock_which):
@@ -141,7 +144,7 @@ class TestPlugin(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_version(self):
-        expected = "APRSD version '{}'".format(aprsd.__version__)
+        expected = "APRSD ver:{} uptime:0:0:0".format(aprsd.__version__)
         version = version_plugin.VersionPlugin(self.config)
 
         fromcall = "KFART"

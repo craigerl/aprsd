@@ -15,6 +15,7 @@ class APRSDStats:
     config = None
 
     start_time = None
+    _aprsis_server = None
     _aprsis_keepalive = None
 
     _msgs_tracked = 0
