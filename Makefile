@@ -1,61 +1,56 @@
-.PHONY: virtual dev build-requirements black isort flake8
+REQUIREMENTS_TXT ?= requirements.txt dev-requirements.txt
+
+include Makefile.venv
+Makefile.venv:
+	curl \
+			-o Makefile.fetched \
+			-L "https://github.com/sio/Makefile.venv/raw/v2020.08.14/Makefile.venv"
+	echo "5afbcf51a82f629cd65ff23185acde90ebe4dec889ef80bbdc12562fbd0b2611 *Makefile.fetched" \
+			| sha256sum --check - \
+			&& mv Makefile.fetched Makefile.venv
 
 all: pip dev
 
-virtual: .venv/bin/pip # Creates an isolated python 3 environment
+.PHONY: dev
+dev: venv
+	$(VENV)/pre-commit install
 
-.venv/bin/pip:
-	virtualenv -p /usr/bin/python3 .venv
+.PHONY: docs
+docs: venv
+	tox -edocs
 
-.venv/bin/aprsd: virtual
-	test -s .venv/bin/aprsd || .venv/bin/pip install -q -e .
+.PHONY: server
+server: venv
+	$(VENV)/aprsd server --loglevel DEBUG
 
-install: .venv/bin/aprsd
-	.venv/bin/pip install -Ur requirements.txt
-
-dev-pre-commit:
-	test -s .git/hooks/pre-commit || .venv/bin/pre-commit install
-
-dev-requirements:
-	test -s .venv/bin/twine || .venv/bin/pip install -q -r dev-requirements.txt
-
-pip: virtual
-	.venv/bin/pip install -q -U pip
-
-dev: pip .venv/bin/aprsd dev-requirements dev-pre-commit
-
-pip-tools:
-	test -s .venv/bin/pip-compile || .venv/bin/pip install pip-tools
-
-clean:
+clean: clean-venv
 	rm -rf dist/*
-	rm -rf .venv
 
+.PHONY: test
 test: dev
-	.venv/bin/pre-commit run --all-files
 	tox -p all
 
 build: test
-	rm -rf dist/*
-	.venv/bin/python3 setup.py sdist bdist_wheel
-	.venv/bin/twine check dist/*
+	$(VENV)/python3 setup.py sdist bdist_wheel
+	$(VENV)/twine check dist/*
 
 upload: build
-	.venv/bin/twine upload dist/*
+	$(VENV)/twine upload dist/*
 
 docker: test
 	docker build -t hemna6969/aprsd:latest -f docker/Dockerfile docker
 
-update-requirements: dev pip-tools
-	.venv/bin/pip-compile -q -U requirements.in
-	.venv/bin/pip-compile -q -U dev-requirements.in
+docker-dev: test
+	docker build -t hemna6969/aprsd:master -f docker/Dockerfile-dev docker
 
-.venv/bin/tox: # install tox
-	test -s .venv/bin/tox || .venv/bin/pip install -q -U tox
+update-requirements: dev
+	$(VENV)/pip-compile requirements.in
+	$(VENV)/pip-compile dev-requirements.in
 
-check: .venv/bin/tox # Code format check with isort and black
+
+check: dev # Code format check with isort and black
 	tox -efmt-check
 	tox -epep8
 
-fix: .venv/bin/tox # fixes code formatting with isort and black
+fix: dev # fixes code formatting with isort and black
 	tox -efmt

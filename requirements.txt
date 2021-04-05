@@ -4,8 +4,6 @@
 #
 #    pip-compile requirements.in
 #
-appdirs==1.4.4
-    # via virtualenv
 aprslib==0.6.47
     # via -r requirements.in
 backoff==1.10.0
@@ -14,8 +12,6 @@ certifi==2020.12.5
     # via requests
 cffi==1.14.4
     # via cryptography
-cfgv==3.2.0
-    # via pre-commit
 chardet==4.0.0
     # via requests
 click-completion==0.5.2
@@ -27,14 +23,10 @@ click==7.1.2
     #   flask
 cryptography==3.3.2
     # via pyopenssl
-distlib==0.3.1
-    # via virtualenv
 dnspython==2.1.0
     # via py3-validate-email
 filelock==3.0.12
-    # via
-    #   py3-validate-email
-    #   virtualenv
+    # via py3-validate-email
 flask-classful==0.14.2
     # via -r requirements.in
 flask-httpauth==4.2.0
@@ -44,8 +36,6 @@ flask==1.1.2
     #   -r requirements.in
     #   flask-classful
     #   flask-httpauth
-identify==1.5.13
-    # via pre-commit
 idna==2.10
     # via
     #   py3-validate-email
@@ -64,8 +54,6 @@ markupsafe==1.1.1
     # via jinja2
 multitasking==0.0.9
     # via yfinance
-nodeenv==1.5.0
-    # via pre-commit
 numpy==1.20.1
     # via
     #   pandas
@@ -77,8 +65,6 @@ pandas==1.2.2
 pbr==5.5.1
     # via -r requirements.in
 pluggy==0.13.1
-    # via -r requirements.in
-pre-commit==2.9.3
     # via -r requirements.in
 py3-validate-email==0.2.12
     # via -r requirements.in
@@ -93,9 +79,7 @@ pytz==2020.5
     #   -r requirements.in
     #   pandas
 pyyaml==5.4.1
-    # via
-    #   -r requirements.in
-    #   pre-commit
+    # via -r requirements.in
 requests==2.25.1
     # via
     #   -r requirements.in
@@ -112,15 +96,10 @@ six==1.15.0
     #   opencage
     #   pyopenssl
     #   python-dateutil
-    #   virtualenv
 thesmuggler==1.0.1
     # via -r requirements.in
-toml==0.10.2
-    # via pre-commit
 urllib3==1.26.3
     # via requests
-virtualenv==20.4.0
-    # via pre-commit
 werkzeug==1.0.1
     # via flask
 yfinance==0.1.55
