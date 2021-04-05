@@ -56,3 +56,5 @@ AUTHORS
 .*sw?
 .ropeproject
 .idea
+
+Makefile.venv
