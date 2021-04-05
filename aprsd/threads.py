@@ -102,7 +102,6 @@ class KeepAliveThread(APRSDThread):
                 )
             )
             LOG.debug(keepalive)
-            LOG.debug(len(keepalive))
         self.cntr += 1
         time.sleep(10)
         return True
