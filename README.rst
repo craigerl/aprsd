@@ -1,7 +1,7 @@
 =====
 APRSD  
 =====
-by KM6LYW and WA6BOR
+by KM6LYW and WB4BOR
 
 .. image:: https://badge.fury.io/py/aprsd.svg
     :target: https://badge.fury.io/py/aprsd
