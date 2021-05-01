@@ -1,24 +1,36 @@
 
 # installation instructions for the short-attention-span user like me
 
-mkdir -p ~/.aprsd
+# First off the easiest way is to use the official pypi release.
+# To use the official release:
+pip install aprsd
 
+# For developers, there are a few ways:
+# The EASY way?  Use the makefile:
+git clone https://github.com/craigerl/aprsd.git
+cd aprsd
+make dev
+source .venv/bin/activate
+
+
+# The HARD way?
 cd ~
-virtualenv .venv_aprsd
-cd .venv_aprsd/
-source ./bin/activate
-
+sudo apt get install virtualenv
+virtualenv ~/.venv_aprsd
+source ~/.venv_aprsd/bin/activate
 mkdir ~/aprsd2
 cd ~/aprsd2
 git clone https://github.com/craigerl/aprsd.git
 cd aprsd
 pip install -e .
-cd ~/.venv_aprsd/bin
 
+
+# CONFIGURE
+# Now configure aprsd HERE
 ./aprsd sample-config    # generates a config.yml template
 
 vi ~/.config/aprsd/config.yml   # copy/edit config here
 
-./aprsd server
+aprsd server
 
 # profit! #
