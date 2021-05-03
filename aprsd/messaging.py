@@ -299,7 +299,7 @@ class RawMessage(Message):
         thread = SendMessageThread(message=self)
         thread.start()
 
-    def send_direct(self):
+    def send_direct(self, aprsis_client=None):
         """Send a message without a separate thread."""
         cl = self.get_transport()
         log_message(
@@ -379,7 +379,7 @@ class TextMessage(Message):
         thread = SendMessageThread(message=self)
         thread.start()
 
-    def send_direct(self):
+    def send_direct(self, aprsis_client=None):
         """Send a message without a separate thread."""
         cl = self.get_transport()
         log_message(
@@ -498,7 +498,8 @@ class AckMessage(Message):
         thread = SendAckThread(self)
         thread.start()
 
-    def send_direct(self):
+
+    def send_direct(self, aprsis_client=None):
         """Send an ack message without a separate thread."""
         cl = self.get_transport()
         log_message(

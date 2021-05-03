@@ -4,14 +4,17 @@ import logging
 from logging import NullHandler
 from logging.handlers import RotatingFileHandler
 import sys
+import time
 
+from aprslib.exceptions import LoginError
 import flask
+from flask import request
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import aprsd
-from aprsd import kissclient, messaging, packets, plugin, stats, utils
+from aprsd import client, kissclient, messaging, packets, plugin, stats, utils
 
 
 LOG = logging.getLogger("APRSD")
@@ -114,6 +117,70 @@ class APRSDFlask(flask_classful.FlaskView):
             msgs.append(track[id].dict())
 
         return flask.render_template("messages.html", messages=json.dumps(msgs))
+
+    def setup_connection(self):
+        user = self.config["aprs"]["login"]
+        password = self.config["aprs"]["password"]
+        host = self.config["aprs"].get("host", "rotate.aprs.net")
+        port = self.config["aprs"].get("port", 14580)
+        connected = False
+        backoff = 1
+        while not connected:
+            try:
+                LOG.info("Creating aprslib client")
+                aprs_client = client.Aprsdis(
+                    user,
+                    passwd=password,
+                    host=host,
+                    port=port,
+                )
+                # Force the logging to be the same
+                aprs_client.logger = LOG
+                aprs_client.connect()
+                connected = True
+                backoff = 1
+            except LoginError as e:
+                LOG.error("Failed to login to APRS-IS Server '{}'".format(e))
+                connected = False
+                raise e
+            except Exception as e:
+                LOG.error("Unable to connect to APRS-IS server. '{}' ".format(e))
+                time.sleep(backoff)
+                backoff = backoff * 2
+                continue
+        LOG.debug("Logging in to APRS-IS with user '%s'" % user)
+        return aprs_client
+
+    def send_message(self):
+        if request.method == "POST":
+            from_call = request.form["from_call"]
+            to_call = request.form["to_call"]
+            message = request.form["message"]
+            LOG.info(
+                "From: '{}' To: '{}'  Send '{}'".format(
+                    from_call,
+                    to_call,
+                    message,
+                ),
+            )
+
+            try:
+                aprsis_client = self.setup_connection()
+            except LoginError as e:
+                result = "Failed to setup Connection {}".format(e)
+
+            msg = messaging.TextMessage(from_call, to_call, message)
+            msg.send_direct(aprsis_client=aprsis_client)
+            result = "Message sent"
+        else:
+            from_call = self.config["aprs"]["login"]
+            result = ""
+
+        return flask.render_template(
+            "send-message.html",
+            from_call=from_call,
+            result=result,
+        )
 
     @auth.login_required
     def packets(self):
@@ -224,6 +291,7 @@ def init_flask(config, loglevel, quiet):
     flask_app.route("/stats", methods=["GET"])(server.stats)
     flask_app.route("/messages", methods=["GET"])(server.messages)
     flask_app.route("/packets", methods=["GET"])(server.packets)
+    flask_app.route("/send-message", methods=["GET", "POST"])(server.send_message)
     flask_app.route("/save", methods=["GET"])(server.save)
     flask_app.route("/plugins", methods=["GET"])(server.plugins)
     return flask_app

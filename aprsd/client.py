@@ -38,6 +38,11 @@ class Client:
         if config:
             self.config = config
 
+    def new(self):
+        obj = super().__new__(Client)
+        obj.config = self.config
+        return obj
+
     @property
     def client(self):
         if not self.aprs_client:
