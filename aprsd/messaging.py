@@ -276,9 +276,13 @@ class RawMessage(Message):
         thread = SendMessageThread(message=self)
         thread.start()
 
-    def send_direct(self):
+    def send_direct(self, aprsis_client=None):
         """Send a message without a separate thread."""
-        cl = client.get_client()
+        if not aprsis_client:
+            cl = client.get_client()
+        else:
+            cl = aprsis_client
+
         log_message(
             "Sending Message Direct",
             str(self).rstrip("\n"),
@@ -343,9 +347,13 @@ class TextMessage(Message):
         thread = SendMessageThread(message=self)
         thread.start()
 
-    def send_direct(self):
+    def send_direct(self, aprsis_client=None):
         """Send a message without a separate thread."""
-        cl = client.get_client()
+        if not aprsis_client:
+            cl = client.get_client()
+        else:
+            cl = aprsis_client
+
         log_message(
             "Sending Message Direct",
             str(self).rstrip("\n"),
@@ -476,9 +484,13 @@ class AckMessage(Message):
 
     # end send_ack()
 
-    def send_direct(self):
+    def send_direct(self, aprsis_client=None):
         """Send an ack message without a separate thread."""
-        cl = client.get_client()
+        if not aprsis_client:
+            cl = client.get_client()
+        else:
+            cl = aprsis_client
+
         log_message(
             "Sending ack",
             str(self).rstrip("\n"),
