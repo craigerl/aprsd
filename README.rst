@@ -1,5 +1,5 @@
 =====
-APRSD  
+APRSD
 =====
 by KM6LYW and WB4BOR
 

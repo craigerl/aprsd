@@ -8,8 +8,10 @@ from pathlib import Path
 import sys
 import threading
 
+import aprsd
 from aprsd import plugin
 import click
+import update_checker
 import yaml
 
 LOG_LEVELS = {
@@ -364,7 +366,7 @@ def parse_config(config_file):
 
 
 def human_size(bytes, units=None):
-    """ Returns a human readable string representation of bytes """
+    """Returns a human readable string representation of bytes"""
     if not units:
         units = [" bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
     return str(bytes) + units[0] if bytes < 1024 else human_size(bytes >> 10, units[1:])
@@ -375,3 +377,20 @@ def strfdelta(tdelta, fmt="{hours}:{minutes}:{seconds}"):
     d["hours"], rem = divmod(tdelta.seconds, 3600)
     d["minutes"], d["seconds"] = divmod(rem, 60)
     return fmt.format(**d)
+
+
+def _check_version():
+    # check for a newer version
+    try:
+        check = update_checker.UpdateChecker()
+        result = check.check("aprsd", aprsd.__version__)
+        if result:
+            # Looks like there is an updated version.
+            return 1, result
+        else:
+            return 0, "APRSD is up to date"
+    except Exception:
+        # probably can't get in touch with pypi for some reason
+        # Lets put up an error and move on.  We might not
+        # have internet in this aprsd deployment.
+        return 1, "Couldn't check for new version of APRSD"
