@@ -9,9 +9,12 @@ opencage
 pluggy
 pbr
 pyyaml
-py3-validate-email
+# Allowing a newer version can lead to a conflict with
+# requests.
+py3-validate-email==0.2.16
 pytz
 requests
 six
 thesmuggler
 yfinance
+update_checker

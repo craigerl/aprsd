@@ -67,10 +67,11 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
 
 class KeepAliveThread(APRSDThread):
     cntr = 0
+    checker_time = datetime.datetime.now()
 
     def __init__(self):
-        super().__init__("KeepAlive")
         tracemalloc.start()
+        super().__init__("KeepAlive")
 
     def loop(self):
         if self.cntr % 6 == 0:
@@ -102,6 +103,13 @@ class KeepAliveThread(APRSDThread):
                 )
             )
             LOG.debug(keepalive)
+            # Check version every hour
+            delta = now - self.checker_time
+            if delta > datetime.timedelta(hours=1):
+                self.checker_time = now
+                level, msg = utils._check_version()
+                if level:
+                    LOG.warning(msg)
         self.cntr += 1
         time.sleep(10)
         return True

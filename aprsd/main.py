@@ -200,6 +200,43 @@ def setup_logging(config, loglevel, quiet):
 
 
 @main.command()
+@click.option(
+    "--loglevel",
+    default="INFO",
+    show_default=True,
+    type=click.Choice(
+        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
+        case_sensitive=False,
+    ),
+    show_choices=True,
+    help="The log level to use for aprsd.log",
+)
+@click.option(
+    "-c",
+    "--config",
+    "config_file",
+    show_default=True,
+    default=utils.DEFAULT_CONFIG_FILE,
+    help="The aprsd config file to use for options.",
+)
+def check_version(loglevel, config_file):
+    config = utils.parse_config(config_file)
+
+    # Force setting the config to the modules that need it
+    # TODO(Walt): convert these modules to classes that can
+    # Accept the config as a constructor param, instead of this
+    # hacky global setting
+    email.CONFIG = config
+
+    setup_logging(config, loglevel, False)
+    level, msg = utils._check_version()
+    if level:
+        LOG.warning(msg)
+    else:
+        LOG.info(msg)
+
+
+@main.command()
 def sample_config():
     """This dumps the config to stdout."""
     click.echo(utils.dump_default_cfg())
@@ -417,6 +454,12 @@ def server(
     email.CONFIG = config
 
     setup_logging(config, loglevel, quiet)
+    level, msg = utils._check_version()
+    if level:
+        LOG.warning(msg)
+    else:
+        LOG.info(msg)
+
     if config["aprsd"].get("trace", False):
         trace.setup_tracing(["method", "api"])
     LOG.info("APRSD Started version: {}".format(aprsd.__version__))
