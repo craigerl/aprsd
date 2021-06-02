@@ -100,7 +100,7 @@ thesmuggler==1.0.1
     # via -r requirements.in
 update-checker==0.18.0
     # via -r requirements.in
-urllib3==1.26.4
+urllib3==1.26.5
     # via requests
 werkzeug==1.0.1
     # via flask
