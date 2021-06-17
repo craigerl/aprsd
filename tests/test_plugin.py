@@ -143,7 +143,8 @@ class TestPlugin(unittest.TestCase):
         actual = ping.run(fromcall, message, ack)
         self.assertEqual(expected, actual)
 
-    def test_version(self):
+    @mock.patch("aprsd.plugin.PluginManager.get_plugins")
+    def test_version(self, mock_get_plugins):
         expected = "APRSD ver:{} uptime:0:0:0".format(aprsd.__version__)
         version = version_plugin.VersionPlugin(self.config)
 

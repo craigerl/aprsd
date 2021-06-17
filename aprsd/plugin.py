@@ -43,6 +43,7 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     def __init__(self, config):
         """The aprsd config object is stored."""
         self.config = config
+        self.message_counter = 0
 
     @property
     def command_name(self):
@@ -59,9 +60,14 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         """Version"""
         raise NotImplementedError
 
+    @property
+    def message_count(self):
+        return self.message_counter
+
     @hookimpl
     def run(self, fromcall, message, ack):
         if re.search(self.command_regex, message):
+            self.message_counter += 1
             return self.command(fromcall, message, ack)
 
     @abc.abstractmethod

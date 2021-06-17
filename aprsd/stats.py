@@ -3,7 +3,7 @@ import logging
 import threading
 
 import aprsd
-from aprsd import utils
+from aprsd import plugin, utils
 
 LOG = logging.getLogger("APRSD")
 
@@ -181,6 +181,20 @@ class APRSDStats:
         else:
             last_aprsis_keepalive = "never"
 
+        pm = plugin.PluginManager()
+        plugins = pm.get_plugins()
+        plugin_stats = {}
+
+        def full_name_with_qualname(obj):
+            return "{}.{}".format(
+                obj.__class__.__module__,
+                obj.__class__.__qualname__,
+            )
+
+        for p in plugins:
+            LOG.debug(p)
+            plugin_stats[full_name_with_qualname(p)] = p.message_count
+
         stats = {
             "aprsd": {
                 "version": aprsd.__version__,
@@ -209,6 +223,7 @@ class APRSDStats:
                 "recieved": self._email_rx,
                 "thread_last_update": last_update,
             },
+            "plugins": plugin_stats,
         }
         return stats
 
