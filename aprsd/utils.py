@@ -1,5 +1,6 @@
 """Utilities and helper functions."""
 
+import collections
 import errno
 import functools
 import logging
@@ -394,3 +395,15 @@ def _check_version():
         # Lets put up an error and move on.  We might not
         # have internet in this aprsd deployment.
         return 1, "Couldn't check for new version of APRSD"
+
+
+def flatten_dict(d, parent_key="", sep="."):
+    """Flatten a dict to key.key.key = value."""
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, collections.MutableMapping):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
