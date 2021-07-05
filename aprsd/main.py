@@ -445,6 +445,7 @@ def server(
 
     if not quiet:
         click.echo("Load config")
+
     config = utils.parse_config(config_file)
 
     # Force setting the config to the modules that need it
@@ -459,6 +460,14 @@ def server(
         LOG.warning(msg)
     else:
         LOG.info(msg)
+
+    flat_config = utils.flatten_dict(config)
+    LOG.info("Using CONFIG values:")
+    for x in flat_config:
+        if "password" in x or "aprsd.web.users.admin" in x:
+            LOG.info("{} = XXXXXXXXXXXXXXXXXXX".format(x))
+        else:
+            LOG.info("{} = {}".format(x, flat_config[x]))
 
     if config["aprsd"].get("trace", False):
         trace.setup_tracing(["method", "api"])
