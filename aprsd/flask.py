@@ -5,7 +5,7 @@ from logging import NullHandler
 from logging.handlers import RotatingFileHandler
 import sys
 
-from aprsd import messaging, plugin, stats, utils
+from aprsd import messaging, packets, plugin, stats, utils
 import flask
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
@@ -49,6 +49,7 @@ class APRSDFlask(flask_classful.FlaskView):
             "index.html",
             initial_stats=stats,
             callsign=self.config["aprs"]["login"],
+            config_json=json.dumps(self.config),
         )
 
     @auth.login_required
@@ -60,6 +61,11 @@ class APRSDFlask(flask_classful.FlaskView):
             msgs.append(track[id].dict())
 
         return flask.render_template("messages.html", messages=json.dumps(msgs))
+
+    @auth.login_required
+    def packets(self):
+        packet_list = packets.PacketList().packet_list
+        return json.dumps(packet_list)
 
     @auth.login_required
     def plugins(self):
@@ -142,6 +148,7 @@ def init_flask(config, loglevel, quiet):
     flask_app.route("/", methods=["GET"])(server.index)
     flask_app.route("/stats", methods=["GET"])(server.stats)
     flask_app.route("/messages", methods=["GET"])(server.messages)
+    flask_app.route("/packets", methods=["GET"])(server.packets)
     flask_app.route("/save", methods=["GET"])(server.save)
     flask_app.route("/plugins", methods=["GET"])(server.plugins)
     return flask_app

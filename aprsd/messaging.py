@@ -223,7 +223,7 @@ class Message(metaclass=abc.ABCMeta):
     id = 0
 
     retry_count = 3
-    last_send_time = None
+    last_send_time = 0
     last_send_attempt = 0
 
     def __init__(self, fromcall, tocall, msg_id=None):
@@ -257,6 +257,9 @@ class RawMessage(Message):
 
     def dict(self):
         now = datetime.datetime.now()
+        last_send_age = None
+        if self.last_send_time:
+            last_send_age = str(now - self.last_send_time)
         return {
             "type": "raw",
             "message": self.message.rstrip("\n"),
@@ -264,7 +267,7 @@ class RawMessage(Message):
             "retry_count": self.retry_count,
             "last_send_attempt": self.last_send_attempt,
             "last_send_time": str(self.last_send_time),
-            "last_send_age": str(now - self.last_send_time),
+            "last_send_age": last_send_age,
         }
 
     def __str__(self):
@@ -304,6 +307,11 @@ class TextMessage(Message):
 
     def dict(self):
         now = datetime.datetime.now()
+
+        last_send_age = None
+        if self.last_send_time:
+            last_send_age = str(now - self.last_send_time)
+
         return {
             "id": self.id,
             "type": "text-message",
@@ -314,7 +322,7 @@ class TextMessage(Message):
             "retry_count": self.retry_count,
             "last_send_attempt": self.last_send_attempt,
             "last_send_time": str(self.last_send_time),
-            "last_send_age": str(now - self.last_send_time),
+            "last_send_age": last_send_age,
         }
 
     def __str__(self):
@@ -431,6 +439,9 @@ class AckMessage(Message):
 
     def dict(self):
         now = datetime.datetime.now()
+        last_send_age = None
+        if self.last_send_time:
+            last_send_age = str(now - self.last_send_time)
         return {
             "id": self.id,
             "type": "ack",
@@ -440,7 +451,7 @@ class AckMessage(Message):
             "retry_count": self.retry_count,
             "last_send_attempt": self.last_send_attempt,
             "last_send_time": str(self.last_send_time),
-            "last_send_age": str(now - self.last_send_time),
+            "last_send_age": last_send_age,
         }
 
     def __str__(self):
