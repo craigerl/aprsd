@@ -192,7 +192,6 @@ class APRSDStats:
             )
 
         for p in plugins:
-            LOG.debug(p)
             plugin_stats[full_name_with_qualname(p)] = p.message_count
 
         stats = {
