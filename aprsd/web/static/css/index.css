@@ -1,0 +1,85 @@
+body {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    background: #eeeeee;
+    margin: 2em;
+    padding: 0;
+    text-align: center;
+    font-family: system-ui, sans-serif;
+    height: 100vh;
+}
+
+header {
+    padding: 2em;
+    height: 10vh;
+    margin: 10px;
+}
+
+#main {
+    padding: 2em;
+    height: 80vh;
+}
+footer {
+    padding: 2em;
+    text-align: center;
+    height: 10vh;
+}
+#graphs {
+    display: grid;
+    width: 100%;
+    height: 300px;
+    grid-template-columns: 1fr 1fr;
+}
+#graphs_center {
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    width: 100%;
+    height: 300px;
+}
+#left {
+    margin-right: 2px;
+    height: 300px;
+}
+#right {
+    height: 300px;
+}
+#center {
+    height: 300px;
+}
+#messageChart, #emailChart, #memChart {
+    border: 1px solid #ccc;
+    background: #ddd;
+}
+#stats {
+    margin: auto;
+    width: 80%;
+}
+#jsonstats {
+    display: none;
+}
+#title {
+    font-size: 4em;
+}
+#version{
+    font-size: .5em;
+}
+#uptime, #aprsis {
+    font-size: 1em;
+}
+#callsign {
+    font-size: 1.4em;
+    color: #00F;
+    padding-top: 8px;
+    margin:10px;
+}
+
+#title_rx {
+    background-color: darkseagreen;
+    text-align: left;
+}
+
+#title_tx {
+    background-color: lightcoral;
+    text-align: left;
+}

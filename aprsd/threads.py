@@ -6,7 +6,7 @@ import threading
 import time
 import tracemalloc
 
-from aprsd import client, messaging, plugin, stats, trace, utils
+from aprsd import client, messaging, packets, plugin, stats, trace, utils
 import aprslib
 
 LOG = logging.getLogger("APRSD")
@@ -77,6 +77,7 @@ class KeepAliveThread(APRSDThread):
         if self.cntr % 6 == 0:
             tracker = messaging.MsgTrack()
             stats_obj = stats.APRSDStats()
+            packets_list = packets.PacketList().packet_list
             now = datetime.datetime.now()
             last_email = stats_obj.email_thread_time
             if last_email:
@@ -89,18 +90,16 @@ class KeepAliveThread(APRSDThread):
             current, peak = tracemalloc.get_traced_memory()
             stats_obj.set_memory(current)
             stats_obj.set_memory_peak(peak)
-            keepalive = (
-                "Uptime {} Tracker {} "
-                "Msgs TX:{} RX:{} Last:{} Email:{} RAM Current:{} Peak:{}".format(
-                    utils.strfdelta(stats_obj.uptime),
-                    len(tracker),
-                    stats_obj.msgs_tx,
-                    stats_obj.msgs_rx,
-                    last_msg_time,
-                    email_thread_time,
-                    utils.human_size(current),
-                    utils.human_size(peak),
-                )
+            keepalive = "Uptime {} Tracker {} " "Msgs TX:{} RX:{} Last:{} Email:{} Packets:{} RAM Current:{} Peak:{}".format(
+                utils.strfdelta(stats_obj.uptime),
+                len(tracker),
+                stats_obj.msgs_tx,
+                stats_obj.msgs_rx,
+                last_msg_time,
+                email_thread_time,
+                len(packets_list),
+                utils.human_size(current),
+                utils.human_size(peak),
             )
             LOG.debug(keepalive)
             # Check version every hour
@@ -244,6 +243,7 @@ class APRSDRXThread(APRSDThread):
 
         try:
             stats.APRSDStats().msgs_rx_inc()
+            packets.PacketList().add(packet)
 
             msg = packet.get("message_text", None)
             msg_format = packet.get("format", None)
@@ -275,6 +275,7 @@ class APRSDTXThread(APRSDThread):
     def loop(self):
         try:
             msg = self.msg_queues["tx"].get(timeout=0.1)
+            packets.PacketList().add(msg.dict())
             msg.send()
         except queue.Empty:
             pass
