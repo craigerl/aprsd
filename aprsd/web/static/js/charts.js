@@ -11,6 +11,8 @@ window.chartColors = {
     black: 'rgb(0, 0, 0)'
 };
 
+function size_dict(d){c=0; for (i in d) ++c; return c}
+
 function start_charts() {
     Chart.scaleService.updateScaleDefaults('linear', {
         ticks: {
@@ -221,6 +223,10 @@ function update_packets( data ) {
 
     $('.ui.accordion').accordion('refresh');
 
+    // Update the count of messages shown
+    cnt = size_dict(packet_list);
+    console.log("packets list " + cnt)
+    $('#packets_count').html(cnt);
 
     const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
     $("#packetsjson").html(html_pretty);
