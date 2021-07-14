@@ -48,54 +48,60 @@
     </head>
 
     <body>
-        <header>
-          <div id="title">APRSD <span id="version"></span></div>
-          <div id="callsign">{{ callsign }}</div>
-          <div id="aprsis"></div>
-          <div id="uptime"></div>
-        </header>
+        <div class='ui text container'>
+            <h1 class='ui dividing header'>APRSD {{ version }}</h1>
+        </div>
 
-        <div id="main" class="main ui container">
-            <!-- Tab links -->
-            <div class="ui tabular menu">
-                <div class="active item" data-tab="charts-tab">Charts</div>
-                <div class="item" data-tab="msgs-tab">Messages</div>
-                <div class="item" data-tab="config-tab">Config</div>
+        <div class='ui grid text container'>
+            <div class='left floated ten wide column'>
+                <span style='color: green'>{{ callsign }}</span>
+                connected to
+                <span style='color: blue' id='aprsis'>NONE</span>
             </div>
 
-            <!-- Tab content -->
-            <div class="ui active tab" data-tab="charts-tab">
-                <h3>Charts</h3>
-                <div id="graphs">
-                    <div id="left"><canvas id="messageChart"></canvas></div>
-                    <div id="right"><canvas class="right" id="emailChart"></canvas></div>
-                </div>
-                <div id="graphs_center">
-                    <div id="center"><canvas id="memChart"></canvas></div>
-                </div>
-                <div id="stats">
-                    <button id="toggleStats">Toggle raw json</button>
-                    <pre id="jsonstats" class="language-json">{{ stats }}</pre>
-                </div>
-            </div>
-
-            <div class="ui tab" data-tab="msgs-tab">
-                <h3>Messages (<span id="packets_count">0</span>)</h3>
-              <div class="ui styled fluid accordion" id="accordion">
-                  <div id="packetsDiv">
-                  </div>
-              </div>
-            </div>
-
-            <div class="ui tab" data-tab="config-tab">
-              <h3>Config</h3>
-              <pre id="configjson" class="language-json">{{ config_json|safe }}</pre>
+            <div class='right floated four wide column'>
+                <span id='uptime'>NONE</span>
             </div>
         </div>
 
-        <footer>
+        <!-- Tab links -->
+        <div class="ui top attached tabular menu">
+            <div class="active item" data-tab="charts-tab">Charts</div>
+            <div class="item" data-tab="msgs-tab">Messages</div>
+            <div class="item" data-tab="config-tab">Config</div>
+        </div>
+
+        <!-- Tab content -->
+        <div class="ui bottom attached active tab segment" data-tab="charts-tab">
+            <h3 class="ui dividing header">Charts</h3>
+            <div id="graphs">
+                <div id="left"><canvas id="messageChart"></canvas></div>
+                <div id="right"><canvas class="right" id="emailChart"></canvas></div>
+            </div>
+            <div id="graphs_center">
+                <div id="center"><canvas id="memChart"></canvas></div>
+            </div>
+            <div id="stats">
+                <button class="ui button" id="toggleStats">Toggle raw json</button>
+                <pre id="jsonstats" class="language-json">{{ stats }}</pre>
+            </div>
+        </div>
+
+        <div class="ui bottom attached tab segment" data-tab="msgs-tab">
+          <h3 class="ui dividing header">Messages (<span id="packets_count">0</span>)</h3>
+          <div class="ui styled fluid accordion" id="accordion">
+              <div id="packetsDiv" class="ui mini text">Loading</div>
+          </div>
+        </div>
+
+        <div class="ui bottom attached tab segment" data-tab="config-tab">
+          <h3 class="ui dividing header">Config</h3>
+          <pre id="configjson" class="language-json">{{ config_json|safe }}</pre>
+        </div>
+
+        <div class="ui text container">
             <a href="https://badge.fury.io/py/aprsd"><img src="https://badge.fury.io/py/aprsd.svg" alt="PyPI version" height="18"></a>
             <a href="https://github.com/craigerl/aprsd"><img src="https://img.shields.io/badge/Made%20with-Python-1f425f.svg" height="18"></a>
-        </footer>
+        </div>
     </body>
 </html>

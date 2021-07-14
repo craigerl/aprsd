@@ -5,6 +5,7 @@ from logging import NullHandler
 from logging.handlers import RotatingFileHandler
 import sys
 
+import aprsd
 from aprsd import messaging, packets, plugin, stats, utils
 import flask
 import flask_classful
@@ -49,6 +50,7 @@ class APRSDFlask(flask_classful.FlaskView):
             "index.html",
             initial_stats=stats,
             callsign=self.config["aprs"]["login"],
+            version=aprsd.__version__,
             config_json=json.dumps(self.config),
         )
 

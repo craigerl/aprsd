@@ -191,6 +191,9 @@ function update_stats( data ) {
 function update_packets( data ) {
     var packetsdiv = $("#packetsDiv");
     //nuke the contents first, then add to it.
+    if (size_dict(packet_list) == 0 && size_dict(data) > 0) {
+        packetsdiv.html('')
+    }
     jQuery.each(data, function(i, val) {
         if ( packet_list.hasOwnProperty(i) == false ) {
             packet_list[i] = val;
