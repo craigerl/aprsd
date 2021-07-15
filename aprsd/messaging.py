@@ -9,7 +9,7 @@ import re
 import threading
 import time
 
-from aprsd import client, stats, threads, utils
+from aprsd import client, stats, threads, trace, utils
 
 LOG = logging.getLogger("APRSD")
 
@@ -461,25 +461,6 @@ class AckMessage(Message):
             self.id,
         )
 
-    def send_thread(self):
-        """Separate thread to send acks with retries."""
-        cl = client.get_client()
-        for i in range(self.retry_count, 0, -1):
-            log_message(
-                "Sending ack",
-                str(self).rstrip("\n"),
-                None,
-                ack=self.id,
-                tocall=self.tocall,
-                retry_number=i,
-            )
-            cl.sendall(str(self))
-            stats.APRSDStats().ack_tx_inc()
-            # aprs duplicate detection is 30 secs?
-            # (21 only sends first, 28 skips middle)
-            time.sleep(31)
-        # end_send_ack_thread
-
     def send(self):
         LOG.debug("Send ACK({}:{}) to radio.".format(self.tocall, self.id))
         thread = SendAckThread(self)
@@ -506,8 +487,10 @@ class SendAckThread(threads.APRSDThread):
         self.ack = ack
         super().__init__("SendAck-{}".format(self.ack.id))
 
+    @trace.trace
     def loop(self):
         """Separate thread to send acks with retries."""
+        LOG.debug("SendAckThread loop start")
         send_now = False
         if self.ack.last_send_attempt == self.ack.retry_count:
             # we reached the send limit, don't send again
@@ -546,6 +529,7 @@ class SendAckThread(threads.APRSDThread):
             self.ack.last_send_attempt += 1
             self.ack.last_send_time = datetime.datetime.now()
         time.sleep(5)
+        return True
 
 
 def log_packet(packet):
