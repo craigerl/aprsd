@@ -6,6 +6,7 @@ import functools
 import logging
 import os
 from pathlib import Path
+import re
 import sys
 import threading
 
@@ -32,9 +33,9 @@ DEFAULT_DATE_FORMAT = "%m/%d/%Y %I:%M:%S %p"
 
 # an example of what should be in the ~/.aprsd/config.yml
 DEFAULT_CONFIG_DICT = {
-    "ham": {"callsign": "CALLSIGN"},
+    "ham": {"callsign": "NOCALL"},
     "aprs": {
-        "login": "CALLSIGN",
+        "login": "NOCALL",
         "password": "00000",
         "host": "rotate.aprs2.net",
         "port": 14580,
@@ -45,15 +46,24 @@ DEFAULT_CONFIG_DICT = {
         "dateformat": DEFAULT_DATE_FORMAT,
         "trace": False,
         "plugin_dir": "~/.config/aprsd/plugins",
-        "enabled_plugins": plugin.CORE_PLUGINS,
+        "enabled_plugins": plugin.CORE_MESSAGE_PLUGINS,
         "units": "imperial",
+        "watch_list": {
+            "enabled": False,
+            # Who gets the alert?
+            "alert_callsign": "NOCALL",
+            # 43200 is 12 hours
+            "alert_time_seconds": 43200,
+            "callsigns": [],
+            "enabled_plugins": plugin.CORE_NOTIFY_PLUGINS,
+        },
         "web": {
             "enabled": True,
             "logging_enabled": True,
             "host": "0.0.0.0",
             "port": 8001,
             "users": {
-                "admin": "aprsd",
+                "admin": "password-here",
             },
         },
         "email": {
@@ -334,6 +344,13 @@ def parse_config(config_file):
             default_fail=DEFAULT_CONFIG_DICT["aprsd"]["web"]["users"]["admin"],
         )
 
+    if config["aprsd"]["watch_list"]["enabled"] is True:
+        check_option(
+            config,
+            ["aprsd", "watch_list", "alert_callsign"],
+            default_fail=DEFAULT_CONFIG_DICT["aprsd"]["watch_list"]["alert_callsign"],
+        )
+
     if config["aprsd"]["email"]["enabled"] is True:
         # Check IMAP server settings
         check_option(config, ["aprsd", "email", "imap", "host"])
@@ -407,3 +424,14 @@ def flatten_dict(d, parent_key="", sep="."):
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def parse_delta_str(s):
+    if "day" in s:
+        m = re.match(
+            r"(?P<days>[-\d]+) day[s]*, (?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)",
+            s,
+        )
+    else:
+        m = re.match(r"(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)", s)
+    return {key: float(val) for key, val in m.groupdict().items()}

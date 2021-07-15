@@ -7,7 +7,7 @@ from aprsd import email, messaging, plugin, trace
 LOG = logging.getLogger("APRSD")
 
 
-class EmailPlugin(plugin.APRSDPluginBase):
+class EmailPlugin(plugin.APRSDMessagePluginBase):
     """Email Plugin."""
 
     version = "1.0"
@@ -19,8 +19,13 @@ class EmailPlugin(plugin.APRSDPluginBase):
     email_sent_dict = {}
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("Email COMMAND")
+
+        fromcall = packet.get("from")
+        message = packet.get("message_text", None)
+        ack = packet.get("msgNo", "0")
+
         reply = None
         if not self.config["aprsd"]["email"].get("enabled", False):
             LOG.debug("Email is not enabled in config file ignoring.")

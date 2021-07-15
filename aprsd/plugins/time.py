@@ -8,7 +8,7 @@ import pytz
 LOG = logging.getLogger("APRSD")
 
 
-class TimePlugin(plugin.APRSDPluginBase):
+class TimePlugin(plugin.APRSDMessagePluginBase):
     """Time command."""
 
     version = "1.0"
@@ -39,7 +39,7 @@ class TimePlugin(plugin.APRSDPluginBase):
         return reply
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("TIME COMMAND")
         # So we can mock this in unit tests
         localzone = self._get_local_tz()
@@ -54,7 +54,11 @@ class TimeOpenCageDataPlugin(TimePlugin):
     command_name = "Time"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
+        fromcall = packet.get("from")
+        # message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
+
         api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
@@ -95,7 +99,10 @@ class TimeOWMPlugin(TimePlugin):
     command_name = "Time"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
+        fromcall = packet.get("from")
+        # message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
         api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)

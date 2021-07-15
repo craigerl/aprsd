@@ -6,7 +6,7 @@ from aprsd import plugin, stats, trace
 LOG = logging.getLogger("APRSD")
 
 
-class VersionPlugin(plugin.APRSDPluginBase):
+class VersionPlugin(plugin.APRSDMessagePluginBase):
     """Version of APRSD Plugin."""
 
     version = "1.0"
@@ -18,8 +18,11 @@ class VersionPlugin(plugin.APRSDPluginBase):
     email_sent_dict = {}
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("Version COMMAND")
+        # fromcall = packet.get("from")
+        # message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
         stats_obj = stats.APRSDStats()
         s = stats_obj.stats()
         return "APRSD ver:{} uptime:{}".format(

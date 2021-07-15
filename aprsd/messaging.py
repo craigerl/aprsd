@@ -186,11 +186,12 @@ class MessageCounter:
 
     _instance = None
     max_count = 9999
+    lock = None
 
     def __new__(cls, *args, **kwargs):
         """Make this a singleton class."""
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            cls._instance = super().__new__(cls, *args, **kwargs)
             cls._instance.val = RawValue("i", 1)
             cls._instance.lock = threading.Lock()
         return cls._instance

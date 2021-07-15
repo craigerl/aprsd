@@ -226,7 +226,7 @@ class Aprsdis(aprslib.IS):
             except ParseError as exp:
                 self.logger.log(11, "%s\n    Packet: %s", exp.args[0], exp.args[1])
             except UnknownFormat as exp:
-                self.logger.log(9, "%s\n    Packet: %s", exp.args[0], exp.args[1])
+                self.logger.log(9, "unknown format %s", exp.args)
             except LoginError as exp:
                 self.logger.error("%s: %s", exp.__class__.__name__, exp.args[0])
             except (KeyboardInterrupt, SystemExit):

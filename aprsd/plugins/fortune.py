@@ -7,7 +7,7 @@ from aprsd import plugin, trace
 LOG = logging.getLogger("APRSD")
 
 
-class FortunePlugin(plugin.APRSDPluginBase):
+class FortunePlugin(plugin.APRSDMessagePluginBase):
     """Fortune."""
 
     version = "1.0"
@@ -15,8 +15,13 @@ class FortunePlugin(plugin.APRSDPluginBase):
     command_name = "fortune"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("FortunePlugin")
+
+        # fromcall = packet.get("from")
+        # message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
+
         reply = None
 
         fortune_path = shutil.which("fortune")

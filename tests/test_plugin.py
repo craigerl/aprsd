@@ -21,13 +21,23 @@ class TestPlugin(unittest.TestCase):
         # Inintialize the stats object with the config
         stats.APRSDStats(self.config)
 
+    def fake_packet(self, fromcall="KFART", message=None, msg_number=None):
+        packet = {"from": fromcall}
+        if message:
+            packet["message_text"] = message
+
+        if msg_number:
+            packet["msgNo"] = msg_number
+
+        return packet
+
     @mock.patch("shutil.which")
     def test_fortune_fail(self, mock_which):
         fortune = fortune_plugin.FortunePlugin(self.config)
         mock_which.return_value = None
-        message = "fortune"
         expected = "Fortune command not installed"
-        actual = fortune.run(self.fromcall, message, self.ack)
+        packet = self.fake_packet(message="fortune")
+        actual = fortune.run(packet)
         self.assertEqual(expected, actual)
 
     @mock.patch("subprocess.check_output")
@@ -38,18 +48,18 @@ class TestPlugin(unittest.TestCase):
 
         mock_output.return_value = "Funny fortune"
 
-        message = "fortune"
         expected = "Funny fortune"
-        actual = fortune.run(self.fromcall, message, self.ack)
+        packet = self.fake_packet(message="fortune")
+        actual = fortune.run(packet)
         self.assertEqual(expected, actual)
 
     @mock.patch("aprsd.messaging.MsgTrack.flush")
     def test_query_flush(self, mock_flush):
-        message = "!delete"
+        packet = self.fake_packet(message="!delete")
         query = query_plugin.QueryPlugin(self.config)
 
         expected = "Deleted ALL pending msgs."
-        actual = query.run(self.fromcall, message, self.ack)
+        actual = query.run(packet)
         mock_flush.assert_called_once()
         self.assertEqual(expected, actual)
 
@@ -57,11 +67,11 @@ class TestPlugin(unittest.TestCase):
     def test_query_restart_delayed(self, mock_restart):
         track = messaging.MsgTrack()
         track.track = {}
-        message = "!4"
+        packet = self.fake_packet(message="!4")
         query = query_plugin.QueryPlugin(self.config)
 
         expected = "No pending msgs to resend"
-        actual = query.run(self.fromcall, message, self.ack)
+        actual = query.run(packet)
         mock_restart.assert_not_called()
         self.assertEqual(expected, actual)
         mock_restart.reset_mock()
@@ -69,7 +79,7 @@ class TestPlugin(unittest.TestCase):
         # add a message
         msg = messaging.TextMessage(self.fromcall, "testing", self.ack)
         track.add(msg)
-        actual = query.run(self.fromcall, message, self.ack)
+        actual = query.run(packet)
         mock_restart.assert_called_once()
 
     @mock.patch("aprsd.plugins.time.TimePlugin._get_local_tz")
@@ -89,22 +99,28 @@ class TestPlugin(unittest.TestCase):
         fake_time.tm_sec = 13
         time = time_plugin.TimePlugin(self.config)
 
-        fromcall = "KFART"
-        message = "location"
-        ack = 1
+        packet = self.fake_packet(
+            fromcall="KFART",
+            message="location",
+            msg_number=1,
+        )
 
-        actual = time.run(fromcall, message, ack)
+        actual = time.run(packet)
         self.assertEqual(None, actual)
 
         cur_time = fuzzy(h, m, 1)
 
-        message = "time"
+        packet = self.fake_packet(
+            fromcall="KFART",
+            message="time",
+            msg_number=1,
+        )
         local_short_str = local_t.strftime("%H:%M %Z")
         expected = "{} ({})".format(
             cur_time,
             local_short_str,
         )
-        actual = time.run(fromcall, message, ack)
+        actual = time.run(packet)
         self.assertEqual(expected, actual)
 
     @mock.patch("time.localtime")
@@ -117,11 +133,13 @@ class TestPlugin(unittest.TestCase):
 
         ping = ping_plugin.PingPlugin(self.config)
 
-        fromcall = "KFART"
-        message = "location"
-        ack = 1
+        packet = self.fake_packet(
+            fromcall="KFART",
+            message="location",
+            msg_number=1,
+        )
 
-        result = ping.run(fromcall, message, ack)
+        result = ping.run(packet)
         self.assertEqual(None, result)
 
         def ping_str(h, m, s):
@@ -134,31 +152,49 @@ class TestPlugin(unittest.TestCase):
                 + str(s).zfill(2)
             )
 
-        message = "Ping"
-        actual = ping.run(fromcall, message, ack)
+        packet = self.fake_packet(
+            fromcall="KFART",
+            message="Ping",
+            msg_number=1,
+        )
+        actual = ping.run(packet)
         expected = ping_str(h, m, s)
         self.assertEqual(expected, actual)
 
-        message = "ping"
-        actual = ping.run(fromcall, message, ack)
+        packet = self.fake_packet(
+            fromcall="KFART",
+            message="ping",
+            msg_number=1,
+        )
+        actual = ping.run(packet)
         self.assertEqual(expected, actual)
 
-    @mock.patch("aprsd.plugin.PluginManager.get_plugins")
+    @mock.patch("aprsd.plugin.PluginManager.get_msg_plugins")
     def test_version(self, mock_get_plugins):
         expected = "APRSD ver:{} uptime:0:0:0".format(aprsd.__version__)
         version = version_plugin.VersionPlugin(self.config)
 
-        fromcall = "KFART"
-        message = "No"
-        ack = 1
+        packet = self.fake_packet(
+            fromcall="KFART",
+            message="No",
+            msg_number=1,
+        )
 
-        actual = version.run(fromcall, message, ack)
+        actual = version.run(packet)
         self.assertEqual(None, actual)
 
-        message = "version"
-        actual = version.run(fromcall, message, ack)
+        packet = self.fake_packet(
+            fromcall="KFART",
+            message="version",
+            msg_number=1,
+        )
+        actual = version.run(packet)
         self.assertEqual(expected, actual)
 
-        message = "Version"
-        actual = version.run(fromcall, message, ack)
+        packet = self.fake_packet(
+            fromcall="KFART",
+            message="Version",
+            msg_number=1,
+        )
+        actual = version.run(packet)
         self.assertEqual(expected, actual)

@@ -46,12 +46,30 @@ class APRSDFlask(flask_classful.FlaskView):
     @auth.login_required
     def index(self):
         stats = self._stats()
+        LOG.debug(
+            "watch list? {}".format(
+                self.config["aprsd"]["watch_list"],
+            ),
+        )
+        if "watch_list" in self.config["aprsd"] and self.config["aprsd"][
+            "watch_list"
+        ].get("enabled", False):
+            watch_count = len(self.config["aprsd"]["watch_list"]["callsigns"])
+            watch_age = self.config["aprsd"]["watch_list"]["alert_time_seconds"]
+            age_time = {"seconds": watch_age}
+            watch_age = datetime.timedelta(**age_time)
+        else:
+            watch_count = 0
+            watch_age = 0
+
         return flask.render_template(
             "index.html",
             initial_stats=stats,
             callsign=self.config["aprs"]["login"],
             version=aprsd.__version__,
             config_json=json.dumps(self.config),
+            watch_count=watch_count,
+            watch_age=watch_age,
         )
 
     @auth.login_required
@@ -91,6 +109,18 @@ class APRSDFlask(flask_classful.FlaskView):
         time_format = "%m-%d-%Y %H:%M:%S"
 
         stats_dict = stats_obj.stats()
+
+        # Convert the watch_list entries to age
+        watch_list = stats_dict["aprsd"]["watch_list"]
+        new_list = {}
+        for call in watch_list:
+            call_date = datetime.datetime.strptime(
+                watch_list[call],
+                "%Y-%m-%d %H:%M:%S.%f",
+            )
+            new_list[call] = str(now - call_date)
+
+        stats_dict["aprsd"]["watch_list"] = new_list
 
         result = {
             "time": now.strftime(time_format),

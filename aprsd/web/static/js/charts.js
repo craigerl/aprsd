@@ -177,7 +177,7 @@ function updateQuadData(chart, label, first, second, third, fourth) {
 
 function update_stats( data ) {
     $("#version").text( data["stats"]["aprsd"]["version"] );
-    $("#aprsis").text( "APRS-IS Server: " + data["stats"]["aprs-is"]["server"] );
+    $("#aprsis").html( "APRS-IS Server: <a href='http://status.aprs2.net' >" + data["stats"]["aprs-is"]["server"] + "</a>" );
     $("#uptime").text( "uptime: " + data["stats"]["aprsd"]["uptime"] );
     const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
     $("#jsonstats").html(html_pretty);
@@ -185,6 +185,16 @@ function update_stats( data ) {
     updateQuadData(message_chart, short_time, data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
     updateDualData(email_chart, short_time, data["stats"]["email"]["sent"], data["stats"]["email"]["recieved"]);
     updateDualData(memory_chart, short_time, data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);
+
+    // Update the watch list
+    var watchdiv = $("#watchDiv");
+    var html_str = '<table class="ui celled striped table"><thead><tr><th>HAM Callsign</th><th>Age since last seen by APRSD</th></tr></thead><tbody>'
+    watchdiv.html('')
+    jQuery.each(data["stats"]["aprsd"]["watch_list"], function(i, val) {
+        html_str += '<tr><td class="collapsing"><i class="phone volume icon"></i>' + i + '</td><td>' + val + '</td></tr>'
+    });
+    html_str += "</tbody></table>";
+    watchdiv.append(html_str);
 }
 
 

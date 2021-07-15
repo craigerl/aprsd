@@ -7,7 +7,7 @@ import yfinance as yf
 LOG = logging.getLogger("APRSD")
 
 
-class StockPlugin(plugin.APRSDPluginBase):
+class StockPlugin(plugin.APRSDMessagePluginBase):
     """Stock market plugin for fetching stock quotes"""
 
     version = "1.0"
@@ -15,8 +15,12 @@ class StockPlugin(plugin.APRSDPluginBase):
     command_name = "stock"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("StockPlugin")
+
+        # fromcall = packet.get("from")
+        message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
 
         a = re.search(r"^.*\s+(.*)", message)
         if a is not None:

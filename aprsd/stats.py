@@ -33,6 +33,7 @@ class APRSDStats:
 
     _mem_current = 0
     _mem_peak = 0
+    _watch_list = {}
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -169,6 +170,15 @@ class APRSDStats:
         with self.lock:
             self._email_thread_last_time = datetime.datetime.now()
 
+    @property
+    def watch_list(self):
+        with self.lock:
+            return self._watch_list
+
+    def update_watch_list(self, watch_list):
+        with self.lock:
+            self._watch_list = watch_list
+
     def stats(self):
         now = datetime.datetime.now()
         if self._email_thread_last_time:
@@ -182,7 +192,7 @@ class APRSDStats:
             last_aprsis_keepalive = "never"
 
         pm = plugin.PluginManager()
-        plugins = pm.get_plugins()
+        plugins = pm.get_msg_plugins()
         plugin_stats = {}
 
         def full_name_with_qualname(obj):
@@ -202,6 +212,7 @@ class APRSDStats:
                 "memory_current_str": utils.human_size(self.memory),
                 "memory_peak": self.memory_peak,
                 "memory_peak_str": utils.human_size(self.memory_peak),
+                "watch_list": self.watch_list,
             },
             "aprs-is": {
                 "server": self.aprsis_server,
