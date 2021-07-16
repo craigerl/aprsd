@@ -8,7 +8,7 @@ import requests
 LOG = logging.getLogger("APRSD")
 
 
-class USWeatherPlugin(plugin.APRSDPluginBase):
+class USWeatherPlugin(plugin.APRSDMessagePluginBase):
     """USWeather Command
 
     Returns a weather report for the calling weather station
@@ -26,8 +26,11 @@ class USWeatherPlugin(plugin.APRSDPluginBase):
     command_name = "weather"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("Weather Plugin")
+        fromcall = packet.get("from")
+        # message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
         try:
             utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
         except Exception as ex:
@@ -66,7 +69,7 @@ class USWeatherPlugin(plugin.APRSDPluginBase):
         return reply
 
 
-class USMetarPlugin(plugin.APRSDPluginBase):
+class USMetarPlugin(plugin.APRSDMessagePluginBase):
     """METAR Command
 
     This provides a METAR weather report from a station near the caller
@@ -86,7 +89,10 @@ class USMetarPlugin(plugin.APRSDPluginBase):
     command_name = "Metar"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
+        fromcall = packet.get("from")
+        message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
         LOG.info("WX Plugin '{}'".format(message))
         a = re.search(r"^.*\s+(.*)", message)
         if a is not None:
@@ -154,7 +160,7 @@ class USMetarPlugin(plugin.APRSDPluginBase):
         return reply
 
 
-class OWMWeatherPlugin(plugin.APRSDPluginBase):
+class OWMWeatherPlugin(plugin.APRSDMessagePluginBase):
     """OpenWeatherMap Weather Command
 
     This provides weather near the caller or callsign.
@@ -178,7 +184,10 @@ class OWMWeatherPlugin(plugin.APRSDPluginBase):
     command_name = "Weather"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
+        fromcall = packet.get("from")
+        message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
         LOG.info("OWMWeather Plugin '{}'".format(message))
         a = re.search(r"^.*\s+(.*)", message)
         if a is not None:
@@ -271,7 +280,7 @@ class OWMWeatherPlugin(plugin.APRSDPluginBase):
         return reply
 
 
-class AVWXWeatherPlugin(plugin.APRSDPluginBase):
+class AVWXWeatherPlugin(plugin.APRSDMessagePluginBase):
     """AVWXWeatherMap Weather Command
 
     Fetches a METAR weather report for the nearest
@@ -299,7 +308,10 @@ class AVWXWeatherPlugin(plugin.APRSDPluginBase):
     command_name = "Weather"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
+        fromcall = packet.get("from")
+        message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
         LOG.info("OWMWeather Plugin '{}'".format(message))
         a = re.search(r"^.*\s+(.*)", message)
         if a is not None:

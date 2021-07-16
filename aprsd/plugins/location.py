@@ -7,7 +7,7 @@ from aprsd import plugin, plugin_utils, trace, utils
 LOG = logging.getLogger("APRSD")
 
 
-class LocationPlugin(plugin.APRSDPluginBase):
+class LocationPlugin(plugin.APRSDMessagePluginBase):
     """Location!"""
 
     version = "1.0"
@@ -15,8 +15,12 @@ class LocationPlugin(plugin.APRSDPluginBase):
     command_name = "location"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("Location Plugin")
+        fromcall = packet.get("from")
+        message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
+
         # get last location of a callsign, get descriptive name from weather service
         try:
             utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])

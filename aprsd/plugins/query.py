@@ -7,7 +7,7 @@ from aprsd import messaging, plugin, trace
 LOG = logging.getLogger("APRSD")
 
 
-class QueryPlugin(plugin.APRSDPluginBase):
+class QueryPlugin(plugin.APRSDMessagePluginBase):
     """Query command."""
 
     version = "1.0"
@@ -15,8 +15,12 @@ class QueryPlugin(plugin.APRSDPluginBase):
     command_name = "query"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("Query COMMAND")
+
+        fromcall = packet.get("from")
+        message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
 
         tracker = messaging.MsgTrack()
         now = datetime.datetime.now()

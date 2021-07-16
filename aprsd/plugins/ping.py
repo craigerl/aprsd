@@ -6,7 +6,7 @@ from aprsd import plugin, trace
 LOG = logging.getLogger("APRSD")
 
 
-class PingPlugin(plugin.APRSDPluginBase):
+class PingPlugin(plugin.APRSDMessagePluginBase):
     """Ping."""
 
     version = "1.0"
@@ -14,8 +14,11 @@ class PingPlugin(plugin.APRSDPluginBase):
     command_name = "ping"
 
     @trace.trace
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("PINGPlugin")
+        # fromcall = packet.get("from")
+        # message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
         stm = time.localtime()
         h = stm.tm_hour
         m = stm.tm_min

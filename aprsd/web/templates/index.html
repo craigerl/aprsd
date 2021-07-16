@@ -68,6 +68,7 @@
         <div class="ui top attached tabular menu">
             <div class="active item" data-tab="charts-tab">Charts</div>
             <div class="item" data-tab="msgs-tab">Messages</div>
+            <div class="item" data-tab="watch-tab">Watch List</div>
             <div class="item" data-tab="config-tab">Config</div>
         </div>
 
@@ -92,6 +93,15 @@
           <div class="ui styled fluid accordion" id="accordion">
               <div id="packetsDiv" class="ui mini text">Loading</div>
           </div>
+        </div>
+
+        <div class="ui bottom attached tab segment" data-tab="watch-tab">
+            <h3 class="ui dividing header">
+                Callsign Watch List (<span id="watch_count">{{ watch_count }}</span>)
+                &nbsp;&nbsp;&nbsp;
+                Notification age - <span id="watch_age">{{ watch_age }}</span>
+            </h3>
+            <div id="watchDiv" class="ui mini text">Loading</div>
         </div>
 
         <div class="ui bottom attached tab segment" data-tab="config-tab">
