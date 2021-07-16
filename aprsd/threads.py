@@ -192,11 +192,15 @@ class APRSDNotifyThread(APRSDThread):
 
                 LOG.debug("Update last seen from {}".format(packet["from"]))
                 self.last_seen[packet["from"]] = now
+                self.update_stats()
             else:
-                LOG.debug("Ignoring packet from {}".format(packet["from"]))
+                LOG.debug(
+                    "Ignoring packet from '{}'. Not in watch list.".format(
+                        packet["from"],
+                    ),
+                )
 
             # Allows stats object to have latest info from the last_seen dict
-            self.update_stats()
             LOG.debug("Packet processing complete")
         except queue.Empty:
             pass
@@ -342,7 +346,6 @@ class APRSDRXThread(APRSDThread):
             msg_id=msg_id,
         )
         self.msg_queues["tx"].put(ack)
-        LOG.debug("Packet processing complete")
 
     def process_packet(self, packet):
         """Process a packet recieved from aprs-is server."""
@@ -376,14 +379,16 @@ class APRSDRXThread(APRSDThread):
                     return
             else:
                 LOG.debug(
-                    "Packet wasn't meant for us '{}'. Ignoring packet to '{}'".format(
-                        self.config["aprs"]["login"],
+                    "Ignoring '{}' packet from '{}' to '{}'".format(
+                        packets.get_packet_type(packet),
+                        packet["from"],
                         tocall,
                     ),
                 )
 
         except (aprslib.ParseError, aprslib.UnknownFormat) as exp:
             LOG.exception("Failed to parse packet from aprs-is", exp)
+        LOG.debug("Packet processing complete")
 
 
 class APRSDTXThread(APRSDThread):

@@ -39,6 +39,7 @@ def get_packet_type(packet):
 
     msg_format = packet.get("format", None)
     msg_response = packet.get("response", None)
+    packet_type = "unknown"
     if msg_format == "message":
         packet_type = PACKET_TYPE_MESSAGE
     elif msg_response == "ack":
