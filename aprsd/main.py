@@ -460,6 +460,7 @@ def server(
         LOG.warning(msg)
     else:
         LOG.info(msg)
+    LOG.info("APRSD Started version: {}".format(aprsd.__version__))
 
     flat_config = utils.flatten_dict(config)
     LOG.info("Using CONFIG values:")
@@ -471,7 +472,6 @@ def server(
 
     if config["aprsd"].get("trace", False):
         trace.setup_tracing(["method", "api"])
-    LOG.info("APRSD Started version: {}".format(aprsd.__version__))
     stats.APRSDStats(config)
 
     email_enabled = config["aprsd"]["email"].get("enabled", False)

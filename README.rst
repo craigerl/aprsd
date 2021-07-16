@@ -6,9 +6,6 @@ by KM6LYW and WB4BOR
 .. image:: https://badge.fury.io/py/aprsd.svg
     :target: https://badge.fury.io/py/aprsd
 
-.. image:: http://hits.dwyl.com/craigerl/aprsd.svg
-    :target: http://hits.dwyl.com/craigerl/aprsd
-
 .. image:: https://github.com/craigerl/aprsd/workflows/python/badge.svg
     :target: https://github.com/craigerl/aprsd/actions
 
@@ -47,6 +44,7 @@ APRSD Overview Diagram
 ----------------------
 
 .. image:: https://raw.githubusercontent.com/craigerl/aprsd/master/docs/_static/aprsd_overview.svg?sanitize=true
+.. image:: docs/_static/aprsd_overview.svg?sanitize=true
 
 
 Typical use case
