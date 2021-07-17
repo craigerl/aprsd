@@ -30,7 +30,7 @@ CORE_MESSAGE_PLUGINS = [
 ]
 
 CORE_NOTIFY_PLUGINS = [
-    "aprsd.plugins.notify.BaseNotifyPlugin",
+    "aprsd.plugins.notify.NotifySeenPlugin",
 ]
 
 
@@ -297,27 +297,6 @@ class PluginManager:
             if enabled_notify_plugins:
                 for p_name in enabled_notify_plugins:
                     self._load_notify_plugin(p_name)
-
-        # FIXME(Walt) - no real need to support loading random python classes
-        # from a directory anymore.  Need to remove this.
-        plugin_dir = self.config["aprsd"].get("plugin_dir", None)
-        if plugin_dir:
-            LOG.info("Trying to load custom plugins from '{}'".format(plugin_dir))
-            plugins_list = self.load_plugins_from_path(plugin_dir)
-            if plugins_list:
-                LOG.info("Discovered {} modules to load".format(len(plugins_list)))
-                for o in plugins_list:
-                    plugin_obj = None
-
-                    if plugin_obj:
-                        LOG.info(
-                            "Registering Command plugin '{}'({}) '{}'".format(
-                                o["name"],
-                                o["obj"].version,
-                                o["obj"].command_regex,
-                            ),
-                        )
-                        self._pluggy_pm.register(o["obj"])
 
         else:
             LOG.info("Skipping Custom Plugins directory.")

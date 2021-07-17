@@ -51,13 +51,10 @@ class APRSDFlask(flask_classful.FlaskView):
                 self.config["aprsd"]["watch_list"],
             ),
         )
-        if "watch_list" in self.config["aprsd"] and self.config["aprsd"][
-            "watch_list"
-        ].get("enabled", False):
-            watch_count = len(self.config["aprsd"]["watch_list"]["callsigns"])
-            watch_age = self.config["aprsd"]["watch_list"]["alert_time_seconds"]
-            age_time = {"seconds": watch_age}
-            watch_age = datetime.timedelta(**age_time)
+        wl = packets.WatchList()
+        if wl.is_enabled():
+            watch_count = len(wl.callsigns)
+            watch_age = wl.max_delta()
         else:
             watch_count = 0
             watch_age = 0
@@ -84,7 +81,7 @@ class APRSDFlask(flask_classful.FlaskView):
 
     @auth.login_required
     def packets(self):
-        packet_list = packets.PacketList().packet_list
+        packet_list = packets.PacketList().get()
         return json.dumps(packet_list)
 
     @auth.login_required
@@ -111,14 +108,17 @@ class APRSDFlask(flask_classful.FlaskView):
         stats_dict = stats_obj.stats()
 
         # Convert the watch_list entries to age
-        watch_list = stats_dict["aprsd"]["watch_list"]
+        wl = packets.WatchList()
         new_list = {}
-        for call in watch_list:
-            call_date = datetime.datetime.strptime(
-                watch_list[call],
-                "%Y-%m-%d %H:%M:%S.%f",
-            )
-            new_list[call] = str(now - call_date)
+        for call in wl.callsigns:
+            # call_date = datetime.datetime.strptime(
+            #    str(wl.last_seen(call)),
+            #    "%Y-%m-%d %H:%M:%S.%f",
+            # )
+            new_list[call] = {
+                "last": wl.age(call),
+                "packets": wl.callsigns[call]["packets"].get(),
+            }
 
         stats_dict["aprsd"]["watch_list"] = new_list
 
