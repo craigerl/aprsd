@@ -54,7 +54,9 @@ the weather.  an APRS message is sent, and then picked up by APRSD.  The
 APRS packet is decoded, and the message is sent through the list of plugins
 for processing.  For example, the WeatherPlugin picks up the message, fetches the weather
 for the area around the user who sent the request, and then responds with
-the weather conditions in that area.
+the weather conditions in that area.  Also includes a watch list of HAM
+callsigns to look out for.  The watch list can notify you when a HAM callsign
+in the list is seen and now available to message on the APRS network.
 
 
 APRSD Capabilities
@@ -80,6 +82,18 @@ If it matches, the plugin runs.  IF the regex doesn't match, the plugin is skipp
 * TimePlugin - Current time of day
 * WeatherPlugin - Get weather conditions for current location of HAM callsign
 * VersionPlugin - Reports the version information for aprsd
+
+
+List of core notification plugins
+=================================
+
+These plugins see all APRS messages from ham callsigns in the config's watch
+list.
+
+* NotifySeenPlugin - Send a message when a message is seen from a callsign in
+                     the watch list.  This is helpful when you want to know
+                     when a friend is online in the ARPS network, but haven't
+                     been seen in a while.
 
 
 Current messages this will respond to:
@@ -201,7 +215,6 @@ Output
         - aprsd.plugins.version.VersionPlugin
         logfile: /tmp/aprsd.log
         logformat: '[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s] %(message)s - [%(pathname)s:%(lineno)d]'
-        plugin_dir: ~/.config/aprsd/plugins
         trace: false
         units: imperial
         web:

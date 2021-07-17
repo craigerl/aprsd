@@ -1,6 +1,30 @@
 CHANGES
 =======
 
+v2.0.0
+------
+
+* Reworked the notification threads and admin ui
+* Fixed small bug with packets get\_packet\_type
+* Updated overview images
+* Move version string output to top of log
+* Add new watchlist feature
+* Fixed the Ack thread not resending acks
+* reworked the admin ui to use semenatic ui more
+* Added messages count to admin messages list
+* Add admin UI tabs for charts, messages, config
+* Removed a noisy debug log
+* Dump out the config during startup
+* Added message counts for each plugin
+* Bump urllib3 from 1.26.4 to 1.26.5
+* Added aprsd version checking
+* Updated INSTALL.txt
+* Update my callsign
+* Update README.rst
+* Update README.rst
+* Bump urllib3 from 1.26.3 to 1.26.4
+* Prep for v1.6.1 release
+
 v1.6.1
 ------
 

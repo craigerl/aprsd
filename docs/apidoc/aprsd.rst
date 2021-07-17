@@ -68,6 +68,14 @@ aprsd.healthcheck module
    :undoc-members:
    :show-inheritance:
 
+aprsd.listen module
+-------------------
+
+.. automodule:: aprsd.listen
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.main module
 -----------------
 
@@ -80,6 +88,14 @@ aprsd.messaging module
 ----------------------
 
 .. automodule:: aprsd.messaging
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.packets module
+--------------------
+
+.. automodule:: aprsd.packets
    :members:
    :undoc-members:
    :show-inheritance:

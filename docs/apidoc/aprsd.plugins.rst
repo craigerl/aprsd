@@ -28,6 +28,14 @@ aprsd.plugins.location module
    :undoc-members:
    :show-inheritance:
 
+aprsd.plugins.notify module
+---------------------------
+
+.. automodule:: aprsd.plugins.notify
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.plugins.ping module
 -------------------------
 
