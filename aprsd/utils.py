@@ -45,7 +45,6 @@ DEFAULT_CONFIG_DICT = {
         "logformat": DEFAULT_LOG_FORMAT,
         "dateformat": DEFAULT_DATE_FORMAT,
         "trace": False,
-        "plugin_dir": "~/.config/aprsd/plugins",
         "enabled_plugins": plugin.CORE_MESSAGE_PLUGINS,
         "units": "imperial",
         "watch_list": {
@@ -54,6 +53,9 @@ DEFAULT_CONFIG_DICT = {
             "alert_callsign": "NOCALL",
             # 43200 is 12 hours
             "alert_time_seconds": 43200,
+            # How many packets to save in a ring Buffer
+            # for a particular callsign
+            "packet_keep_count": 10,
             "callsigns": [],
             "enabled_plugins": plugin.CORE_NOTIFY_PLUGINS,
         },
@@ -435,3 +437,39 @@ def parse_delta_str(s):
     else:
         m = re.match(r"(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)", s)
     return {key: float(val) for key, val in m.groupdict().items()}
+
+
+class RingBuffer:
+    """class that implements a not-yet-full buffer"""
+
+    def __init__(self, size_max):
+        self.max = size_max
+        self.data = []
+
+    class __Full:
+        """class that implements a full buffer"""
+
+        def append(self, x):
+            """Append an element overwriting the oldest one."""
+            self.data[self.cur] = x
+            self.cur = (self.cur + 1) % self.max
+
+        def get(self):
+            """return list of elements in correct order"""
+            return self.data[self.cur :] + self.data[: self.cur]
+
+    def append(self, x):
+        """append an element at the end of the buffer"""
+
+        self.data.append(x)
+        if len(self.data) == self.max:
+            self.cur = 0
+            # Permanently change self's class from non-full to full
+            self.__class__ = self.__Full
+
+    def get(self):
+        """Return a list of elements from the oldest to the newest."""
+        return self.data
+
+    def __len__(self):
+        return len(self.data)

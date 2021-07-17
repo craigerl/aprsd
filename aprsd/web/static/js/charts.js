@@ -191,7 +191,7 @@ function update_stats( data ) {
     var html_str = '<table class="ui celled striped table"><thead><tr><th>HAM Callsign</th><th>Age since last seen by APRSD</th></tr></thead><tbody>'
     watchdiv.html('')
     jQuery.each(data["stats"]["aprsd"]["watch_list"], function(i, val) {
-        html_str += '<tr><td class="collapsing"><i class="phone volume icon"></i>' + i + '</td><td>' + val + '</td></tr>'
+        html_str += '<tr><td class="collapsing"><i class="phone volume icon"></i>' + i + '</td><td>' + val["last"] + '</td></tr>'
     });
     html_str += "</tbody></table>";
     watchdiv.append(html_str);
@@ -205,10 +205,13 @@ function update_packets( data ) {
         packetsdiv.html('')
     }
     jQuery.each(data, function(i, val) {
-        if ( packet_list.hasOwnProperty(i) == false ) {
-            packet_list[i] = val;
-            var d = new Date(i*1000).toLocaleDateString("en-US")
-            var t = new Date(i*1000).toLocaleTimeString("en-US")
+        if ( packet_list.hasOwnProperty(val["ts"]) == false ) {
+            // Store the packet
+            packet_list[val["ts"]] = val;
+            ts_str = val["ts"].toString();
+            ts = ts_str.split(".")[0]*1000;
+            var d = new Date(ts).toLocaleDateString("en-US")
+            var t = new Date(ts).toLocaleTimeString("en-US")
             if (val.hasOwnProperty('from') == false) {
                 from = val['fromcall']
                 title_id = 'title_tx'

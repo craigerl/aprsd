@@ -121,78 +121,29 @@ class APRSDNotifyThread(APRSDThread):
         super().__init__("NOTIFY_MSG")
         self.msg_queues = msg_queues
         self.config = config
-        for callsign in config["aprsd"]["watch_list"].get("callsigns", []):
-            call = callsign.replace("*", "")
-            # FIXME(waboring) - we should fetch the last time we saw
-            # a beacon from a callsign or some other mechanism to find
-            # last time a message was seen by aprs-is.  For now this
-            # is all we can do.
-            self.last_seen[call] = datetime.datetime.now()
-        self.update_stats()
-
-    def update_stats(self):
-        stats_seen = {}
-        for callsign in self.last_seen:
-            stats_seen[callsign] = str(self.last_seen[callsign])
-
-        stats.APRSDStats().update_watch_list(stats_seen)
+        packets.WatchList(config=config)
 
     def loop(self):
         try:
             packet = self.msg_queues["notify"].get(timeout=5)
+            wl = packets.WatchList()
+            if wl.callsign_in_watchlist(packet["from"]):
+                # NOW WE RUN through the notify plugins.
+                # If they return a msg, then we queue it for sending.
+                pm = plugin.PluginManager()
+                results = pm.notify(packet)
+                for reply in results:
+                    if reply is not messaging.NULL_MESSAGE:
+                        watch_list_conf = self.config["aprsd"]["watch_list"]
 
-            if packet["from"] in self.last_seen:
-                # We only notify if the last time a callsign was seen
-                # is older than the alert_time_seconds
-                now = datetime.datetime.now()
-                age = str(now - self.last_seen[packet["from"]])
+                        msg = messaging.TextMessage(
+                            self.config["aprs"]["login"],
+                            watch_list_conf["alert_callsign"],
+                            reply,
+                        )
+                        self.msg_queues["tx"].put(msg)
 
-                delta = utils.parse_delta_str(age)
-                d = datetime.timedelta(**delta)
-
-                watch_list_conf = self.config["aprsd"]["watch_list"]
-                max_timeout = {
-                    "seconds": watch_list_conf["alert_time_seconds"],
-                }
-                max_delta = datetime.timedelta(**max_timeout)
-
-                if d > max_delta:
-                    LOG.info(
-                        "NOTIFY {} last seen {} max age={}".format(
-                            packet["from"],
-                            age,
-                            max_delta,
-                        ),
-                    )
-                    # NOW WE RUN through the notify plugins.
-                    # If they return a msg, then we queue it for sending.
-                    pm = plugin.PluginManager()
-                    results = pm.notify(packet)
-                    for reply in results:
-                        if reply is not messaging.NULL_MESSAGE:
-                            LOG.debug("Sending '{}'".format(reply))
-
-                            msg = messaging.TextMessage(
-                                self.config["aprs"]["login"],
-                                watch_list_conf["alert_callsign"],
-                                reply,
-                            )
-                            self.msg_queues["tx"].put(msg)
-                        else:
-                            LOG.debug("Got NULL MESSAGE from plugin")
-
-                else:
-                    LOG.debug(
-                        "Not old enough to notify callsign {}: {} < {}".format(
-                            packet["from"],
-                            age,
-                            max_delta,
-                        ),
-                    )
-
-                LOG.debug("Update last seen from {}".format(packet["from"]))
-                self.last_seen[packet["from"]] = now
-                self.update_stats()
+                wl.update_seen(packet)
             else:
                 LOG.debug(
                     "Ignoring packet from '{}'. Not in watch list.".format(
@@ -353,6 +304,7 @@ class APRSDRXThread(APRSDThread):
         try:
             LOG.debug("Adding packet to notify queue {}".format(packet["raw"]))
             self.msg_queues["notify"].put(packet)
+            packets.PacketList().add(packet)
 
             # since we can see packets from anyone now with the
             # watch list, we need to filter messages directly only to us.
