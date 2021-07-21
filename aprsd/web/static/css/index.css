@@ -74,3 +74,11 @@ footer {
     background-color: lightcoral;
     text-align: left;
 }
+
+.aprsd_1 {
+    background-image: url(/static/images/aprs-symbols-16-0.png);
+    background-repeat: no-repeat;
+    background-position: -160px -48px;
+    width: 16px;
+    height: 16px;
+}
