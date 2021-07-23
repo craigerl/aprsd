@@ -8,7 +8,10 @@ window.chartColors = {
     blue: 'rgb(54, 162, 235)',
     purple: 'rgb(153, 102, 255)',
     grey: 'rgb(201, 203, 207)',
-    black: 'rgb(0, 0, 0)'
+    black: 'rgb(0, 0, 0)',
+    lightcoral: 'rgb(240,128,128)',
+    darkseagreen: 'rgb(143, 188,143)'
+
 };
 
 function size_dict(d){c=0; for (i in d) ++c; return c}
@@ -20,28 +23,28 @@ function start_charts() {
         }
     });
 
-    memory_chart = new Chart($("#memChart"), {
-        label: 'Memory Usage',
+    packets_chart = new Chart($("#packetsChart"), {
+        label: 'APRS Packets',
         type: 'line',
         data: {
             labels: [],
             datasets: [{
-                label: 'Peak Ram usage',
-                borderColor: window.chartColors.red,
+                label: 'Packets Sent',
+                borderColor: window.chartColors.lightcoral,
                 data: [],
             },
             {
-                label: 'Current Ram usage',
-                borderColor: window.chartColors.blue,
+                label: 'Packets Recieved',
+                borderColor: window.chartColors.darkseagreen,
                 data: [],
-            }],
+            }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             title: {
                 display: true,
-                text: 'Memory Usage',
+                text: 'APRS Packets',
             },
             scales: {
                 x: {
@@ -67,12 +70,12 @@ function start_charts() {
             labels: [],
             datasets: [{
                 label: 'Messages Sent',
-                borderColor: window.chartColors.green,
+                borderColor: window.chartColors.lightcoral,
                 data: [],
             },
             {
                 label: 'Messages Recieved',
-                borderColor: window.chartColors.yellow,
+                borderColor: window.chartColors.darkseagreen,
                 data: [],
             },
             {
@@ -117,12 +120,12 @@ function start_charts() {
             labels: [],
             datasets: [{
                 label: 'Sent',
-                borderColor: window.chartColors.green,
+                borderColor: window.chartColors.lightcoral,
                 data: [],
             },
             {
                 label: 'Recieved',
-                borderColor: window.chartColors.yellow,
+                borderColor: window.chartColors.darkseagreen,
                 data: [],
             }],
         },
@@ -132,6 +135,46 @@ function start_charts() {
             title: {
                 display: true,
                 text: 'Email Messages',
+            },
+            scales: {
+                x: {
+                    type: 'timeseries',
+                    offset: true,
+                    ticks: {
+                        major: { enabled: true },
+                        fontStyle: context => context.tick.major ? 'bold' : undefined,
+                        source: 'data',
+                        maxRotation: 0,
+                        autoSkip: true,
+                        autoSkipPadding: 75,
+                    }
+                }
+            }
+        }
+    });
+
+    memory_chart = new Chart($("#memChart"), {
+        label: 'Memory Usage',
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Peak Ram usage',
+                borderColor: window.chartColors.red,
+                data: [],
+            },
+            {
+                label: 'Current Ram usage',
+                borderColor: window.chartColors.blue,
+                data: [],
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            title: {
+                display: true,
+                text: 'Memory Usage',
             },
             scales: {
                 x: {
@@ -182,6 +225,7 @@ function update_stats( data ) {
     const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
     $("#jsonstats").html(html_pretty);
     short_time = data["time"].split(/\s(.+)/)[1];
+    updateDualData(packets_chart, short_time, data["stats"]["packets"]["sent"], data["stats"]["packets"]["received"]);
     updateQuadData(message_chart, short_time, data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
     updateDualData(email_chart, short_time, data["stats"]["email"]["sent"], data["stats"]["email"]["recieved"]);
     updateDualData(memory_chart, short_time, data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);

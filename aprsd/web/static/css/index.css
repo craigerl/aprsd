@@ -38,7 +38,7 @@ footer {
 #center {
     height: 300px;
 }
-#messageChart, #emailChart, #memChart {
+#packetsChart, #messageChart, #emailChart, #memChart {
     border: 1px solid #ccc;
     background: #ddd;
 }

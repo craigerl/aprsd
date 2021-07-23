@@ -121,6 +121,13 @@ class APRSDFlask(flask_classful.FlaskView):
             }
 
         stats_dict["aprsd"]["watch_list"] = new_list
+        packet_list = packets.PacketList()
+        rx = packet_list.total_received()
+        tx = packet_list.total_sent()
+        stats_dict["packets"] = {
+            "sent": tx,
+            "received": rx,
+        }
 
         result = {
             "time": now.strftime(time_format),

@@ -16,8 +16,12 @@ class PacketList:
     """Class to track all of the packets rx'd and tx'd by aprsd."""
 
     _instance = None
+    config = None
 
     packet_list = {}
+
+    total_recv = 0
+    total_tx = 0
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -26,6 +30,10 @@ class PacketList:
             cls._instance.lock = threading.Lock()
         return cls._instance
 
+    def __init__(self, config=None):
+        if config:
+            self.config = config
+
     def __iter__(self):
         with self.lock:
             return iter(self.packet_list)
@@ -33,11 +41,21 @@ class PacketList:
     def add(self, packet):
         with self.lock:
             packet["ts"] = time.time()
+            if "from" in packet and packet["from"] == self.config["aprs"]["login"]:
+                self.total_tx += 1
+            else:
+                self.total_recv += 1
             self.packet_list.append(packet)
 
     def get(self):
         with self.lock:
             return self.packet_list.get()
+
+    def total_received(self):
+        return self.total_recv
+
+    def total_sent(self):
+        return self.total_tx
 
 
 class WatchList:

@@ -32,7 +32,18 @@ import time
 
 # local imports here
 import aprsd
-from aprsd import client, email, flask, messaging, plugin, stats, threads, trace, utils
+from aprsd import (
+    client,
+    email,
+    flask,
+    messaging,
+    packets,
+    plugin,
+    stats,
+    threads,
+    trace,
+    utils,
+)
 import aprslib
 from aprslib.exceptions import LoginError
 import click
@@ -519,6 +530,7 @@ def server(
         "enabled",
         True,
     ):
+        packets.PacketList(config)
         notify_thread = threads.APRSDNotifyThread(
             msg_queues=msg_queues,
             config=config,

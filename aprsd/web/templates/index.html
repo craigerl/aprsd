@@ -41,6 +41,7 @@
                 var cfg_pretty = JSON.stringify(cfg_json, null, '\t');
                 const html_pretty = Prism.highlight( cfg_pretty, Prism.languages.json, 'json');
                 $("#configjson").html(html_pretty);
+                $("#jsonstats").fadeToggle(1000);
 
                 $('.ui.accordion').accordion({exclusive: false});
                 $('.menu .item').tab('change tab', 'charts-tab');
@@ -71,22 +72,45 @@
             <div class="item" data-tab="msgs-tab">Messages</div>
             <div class="item" data-tab="watch-tab">Watch List</div>
             <div class="item" data-tab="config-tab">Config</div>
+            <div class="item" data-tab="raw-tab">Raw JSON</div>
         </div>
 
         <!-- Tab content -->
         <div class="ui bottom attached active tab segment" data-tab="charts-tab">
             <h3 class="ui dividing header">Charts</h3>
-            <div id="graphs">
-                <div id="left"><canvas id="messageChart"></canvas></div>
-                <div id="right"><canvas class="right" id="emailChart"></canvas></div>
+            <div class="ui equal width relaxed grid">
+                <div class="row">
+                    <div class="column">
+                        <div class="ui segment" style="height: 300px">
+                            <canvas id="packetsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="ui segment" style="height: 300px">
+                            <canvas id="messageChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="column">
+                        <div class="ui segment" style="height: 300px">
+                            <canvas id="emailChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="ui segment" style="height: 300px">
+                            <canvas id="memChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+          <!--      <div class="row">
+                    <div id="stats" class="two column">
+                        <button class="ui button" id="toggleStats">Toggle raw json</button>
+                        <pre id="jsonstats" class="language-json">{{ stats }}</pre>
+                    </div> --!>
+                </div>
             </div>
-            <div id="graphs_center">
-                <div id="center"><canvas id="memChart"></canvas></div>
-            </div>
-            <div id="stats">
-                <button class="ui button" id="toggleStats">Toggle raw json</button>
-                <pre id="jsonstats" class="language-json">{{ stats }}</pre>
-            </div>
+
         </div>
 
         <div class="ui bottom attached tab segment" data-tab="msgs-tab">
@@ -108,6 +132,11 @@
         <div class="ui bottom attached tab segment" data-tab="config-tab">
           <h3 class="ui dividing header">Config</h3>
           <pre id="configjson" class="language-json">{{ config_json|safe }}</pre>
+        </div>
+
+        <div class="ui bottom attached tab segment" data-tab="raw-tab">
+          <h3 class="ui dividing header">Raw JSON</h3>
+          <pre id="jsonstats" class="language-json">{{ stats|safe }}</pre>
         </div>
 
         <div class="ui text container">
