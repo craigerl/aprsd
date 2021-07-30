@@ -1,4 +1,5 @@
 import logging
+import re
 import time
 
 from aprsd import fuzzyclock, plugin, plugin_utils, trace, utils
@@ -56,17 +57,38 @@ class TimeOpenCageDataPlugin(TimePlugin):
     @trace.trace
     def command(self, packet):
         fromcall = packet.get("from")
-        # message = packet.get("message_text", None)
+        message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
 
-        api_key = self.config["services"]["aprs.fi"]["apiKey"]
+        # get last location of a callsign, get descriptive name from weather service
         try:
-            aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
+            utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+        except Exception as ex:
+            LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+            return "No aprs.fi apikey found"
+
+        api_key = self.config["services"]["aprs.fi"]["apiKey"]
+
+        # optional second argument is a callsign to search
+        a = re.search(r"^.*\s+(.*)", message)
+        if a is not None:
+            searchcall = a.group(1)
+            searchcall = searchcall.upper()
+        else:
+            # if no second argument, search for calling station
+            searchcall = fromcall
+
+        try:
+            aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
             LOG.error("Failed to fetch aprs.fi data {}".format(ex))
             return "Failed to fetch location"
 
         # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+        if not len(aprs_data["entries"]):
+            LOG.error("Didn't get any entries from aprs.fi")
+            return "Failed to fetch aprs.fi location"
+
         lat = aprs_data["entries"][0]["lat"]
         lon = aprs_data["entries"][0]["lng"]
 
@@ -101,16 +123,37 @@ class TimeOWMPlugin(TimePlugin):
     @trace.trace
     def command(self, packet):
         fromcall = packet.get("from")
-        # message = packet.get("message_text", None)
+        message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
+
+        # get last location of a callsign, get descriptive name from weather service
+        try:
+            utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+        except Exception as ex:
+            LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+            return "No aprs.fi apikey found"
+
+        # optional second argument is a callsign to search
+        a = re.search(r"^.*\s+(.*)", message)
+        if a is not None:
+            searchcall = a.group(1)
+            searchcall = searchcall.upper()
+        else:
+            # if no second argument, search for calling station
+            searchcall = fromcall
+
         api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
-            aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
+            aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
             LOG.error("Failed to fetch aprs.fi data {}".format(ex))
             return "Failed to fetch location"
 
-        # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+        LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+        if not len(aprs_data["entries"]):
+            LOG.error("Didn't get any entries from aprs.fi")
+            return "Failed to fetch aprs.fi location"
+
         lat = aprs_data["entries"][0]["lat"]
         lon = aprs_data["entries"][0]["lng"]
 
