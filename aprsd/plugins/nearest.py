@@ -5,6 +5,8 @@ import requests
 
 LOG = logging.getLogger("APRSD")
 
+API_KEY_HEADER = "X-Api-Key"
+
 
 class NearestPlugin(plugin.APRSDMessagePluginBase):
     """Nearest!
@@ -76,9 +78,13 @@ class NearestPlugin(plugin.APRSDMessagePluginBase):
         LOG.info("Looking for {} nearest stations in band {}".format(count, band))
 
         try:
-            url = "http://0.0.0.0:8081/nearest"
+            url = "{}/nearest".format(
+                self.config["services"]["haminfo"]["base_url"],
+            )
+            api_key = self.config["services"]["haminfo"]["apiKey"]
             parameters = {"lat": lat, "lon": lon, "count": count, "band": band}
-            result = requests.post(url=url, params=parameters)
+            headers = {API_KEY_HEADER: api_key}
+            result = requests.post(url=url, params=parameters, headers=headers)
             data = result.json()
             LOG.info(data)
         except Exception as ex:

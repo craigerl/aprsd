@@ -98,6 +98,7 @@ DEFAULT_CONFIG_DICT = {
         "openweathermap": {"apiKey": "APIKEYVALUE"},
         "opencagedata": {"apiKey": "APIKEYVALUE"},
         "avwx": {"base_url": "http://host:port", "apiKey": "APIKEYVALUE"},
+        "haminfo": {"base_url": "http://host:port", "apiKey": "APIKEYVALUE"},
     },
 }
 
