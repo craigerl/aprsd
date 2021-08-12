@@ -142,7 +142,7 @@ class NearestPlugin(plugin.APRSDMessagePluginBase):
         # n[earest] should be part[0]
         # part[1] could be
 
-        def isInt(value):
+        def is_int(value):
             try:
                 int(value)
                 return True
@@ -159,7 +159,7 @@ class NearestPlugin(plugin.APRSDMessagePluginBase):
         filters = []
         for part in command_parts[1:]:
             LOG.debug(part)
-            if isInt(part):
+            if is_int(part):
                 # this is the number of stations
                 count = int(part)
             elif part.endswith("m"):
@@ -174,6 +174,9 @@ class NearestPlugin(plugin.APRSDMessagePluginBase):
                 # this is the filtering
                 if part[1:] in STATION_FEATURES:
                     filters.append(part[1:])
+            else:
+                # We don't know what this is.
+                return "Usage: n [num] [band] [+filter]"
 
         if not count:
             # They didn't specify a count
