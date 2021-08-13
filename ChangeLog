@@ -1,9 +1,19 @@
 CHANGES
 =======
 
+v2.1.0
+------
+
+* Enable multiple replies for plugins
+* Put in a fix for aprslib parse exceptions
+* Fixed time plugin
+* Updated the charts Added the packets chart
+* Added showing symbol images to watch list
+
 v2.0.0
 ------
 
+* Updated docs for 2.0.0
 * Reworked the notification threads and admin ui
 * Fixed small bug with packets get\_packet\_type
 * Updated overview images
