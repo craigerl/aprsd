@@ -253,21 +253,35 @@ class APRSDRXThread(APRSDThread):
         try:
             results = pm.run(packet)
             for reply in results:
-                found_command = True
-                # A plugin can return a null message flag which signals
-                # us that they processed the message correctly, but have
-                # nothing to reply with, so we avoid replying with a usage string
-                if reply is not messaging.NULL_MESSAGE:
-                    LOG.debug("Sending '{}'".format(reply))
+                if isinstance(reply, list):
+                    # one of the plugins wants to send multiple messages
+                    found_command = True
+                    for subreply in reply:
+                        LOG.debug("Sending '{}'".format(subreply))
 
-                    msg = messaging.TextMessage(
-                        self.config["aprs"]["login"],
-                        fromcall,
-                        reply,
-                    )
-                    self.msg_queues["tx"].put(msg)
+                        msg = messaging.TextMessage(
+                            self.config["aprs"]["login"],
+                            fromcall,
+                            subreply,
+                        )
+                        self.msg_queues["tx"].put(msg)
+
                 else:
-                    LOG.debug("Got NULL MESSAGE from plugin")
+                    found_command = True
+                    # A plugin can return a null message flag which signals
+                    # us that they processed the message correctly, but have
+                    # nothing to reply with, so we avoid replying with a usage string
+                    if reply is not messaging.NULL_MESSAGE:
+                        LOG.debug("Sending '{}'".format(reply))
+
+                        msg = messaging.TextMessage(
+                            self.config["aprs"]["login"],
+                            fromcall,
+                            reply,
+                        )
+                        self.msg_queues["tx"].put(msg)
+                    else:
+                        LOG.debug("Got NULL MESSAGE from plugin")
 
             if not found_command:
                 plugins = pm.get_msg_plugins()
