@@ -224,11 +224,21 @@ class Aprsdis(aprslib.IS):
                         self.logger.debug("Server: %s", line.decode("utf8"))
                         stats.APRSDStats().set_aprsis_keepalive()
             except ParseError as exp:
-                self.logger.log(11, "%s\n    Packet: %s", exp.args[0], exp.args[1])
+                self.logger.log(
+                    11,
+                    "%s\n    Packet: %s",
+                    exp,
+                    exp.packet,
+                )
             except UnknownFormat as exp:
-                self.logger.log(9, "unknown format %s", exp.args)
+                self.logger.log(
+                    9,
+                    "%s\n    Packet: %s",
+                    exp,
+                    exp.packet,
+                )
             except LoginError as exp:
-                self.logger.error("%s: %s", exp.__class__.__name__, exp.args[0])
+                self.logger.error("%s: %s", exp.__class__.__name__, exp)
             except (KeyboardInterrupt, SystemExit):
                 raise
             except (ConnectionDrop, ConnectionError):
