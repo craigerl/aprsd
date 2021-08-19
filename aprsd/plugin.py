@@ -8,6 +8,7 @@ import os
 import re
 import threading
 
+from aprsd import messaging, packets
 import pluggy
 from thesmuggler import smuggle
 
@@ -39,12 +40,48 @@ class APRSDCommandSpec:
     """A hook specification namespace."""
 
     @hookspec
-    def run(self, packet):
+    def filter(self, packet):
         """My special little hook that you can customize."""
 
 
-class APRSDNotificationPluginBase(metaclass=abc.ABCMeta):
-    """Base plugin class for all notification ased plugins.
+class APRSDPluginBase(metaclass=abc.ABCMeta):
+    """The base class for all APRSD Plugins."""
+
+    config = None
+    message_counter = 0
+    version = "1.0"
+
+    def __init__(self, config):
+        self.config = config
+        self.message_counter = 0
+        self.setup()
+
+    @property
+    def message_count(self):
+        return self.message_counter
+
+    @property
+    def version(self):
+        """Version"""
+        raise NotImplementedError
+
+    def setup(self):
+        """Do any plugin setup here."""
+        pass
+
+    @hookimpl
+    @abc.abstractmethod
+    def filter(self, packet):
+        pass
+
+    @abc.abstractmethod
+    def process(self, packet):
+        """This is called when the filter passes."""
+        pass
+
+
+class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
+    """Base plugin class for all notification APRSD plugins.
 
     All these plugins will get every packet seen by APRSD's
     registered list of HAM callsigns in the config file's
@@ -55,35 +92,32 @@ class APRSDNotificationPluginBase(metaclass=abc.ABCMeta):
     this class.
     """
 
-    def __init__(self, config):
-        """The aprsd config object is stored."""
-        self.config = config
-        self.message_counter = 0
+    def filter(self, packet):
+        wl = packets.WatchList()
+        result = messaging.NULL_MESSAGE
+        if wl.callsign_in_watchlist(packet["from"]):
+            # packet is from a callsign in the watch list
+            result = self.process()
+            wl.update_seen(packet)
 
-    @hookimpl
-    def run(self, packet):
-        return self.notify(packet)
+        return result
 
-    @abc.abstractmethod
-    def notify(self, packet):
-        """This is the main method called when a packet is rx.
 
+<<<<<<< HEAD
         This will get called when a packet is seen by a callsign
         registered in the watch list in the config file."""
 
 
 class APRSDMessagePluginBase(metaclass=abc.ABCMeta):
+=======
+class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
+>>>>>>> 2e7c884 (Refactor Message processing and MORE)
     """Base Message plugin class.
 
     When you want to search for a particular command in an
     APRSD message and send a direct reply, write a plugin
     based off of this class.
     """
-
-    def __init__(self, config):
-        """The aprsd config object is stored."""
-        self.config = config
-        self.message_counter = 0
 
     @property
     def command_name(self):
@@ -100,24 +134,32 @@ class APRSDMessagePluginBase(metaclass=abc.ABCMeta):
         """Version"""
         raise NotImplementedError
 
-    @property
-    def message_count(self):
-        return self.message_counter
-
     @hookimpl
-    def run(self, packet):
+    def filter(self, packet):
+        result = None
+
         message = packet.get("message_text", None)
-        if re.search(self.command_regex, message):
-            self.message_counter += 1
-            return self.command(packet)
+        msg_format = packet.get("format", None)
+        tocall = packet.get("addresse", None)
 
-    @abc.abstractmethod
-    def command(self, packet):
-        """This is the command that runs when the regex matches.
+        # Only process messages destined for us
+        # and is an APRS message format and has a message.
+        if (
+            tocall == self.config["aprs"]["login"]
+            and msg_format == "message"
+            and message
+        ):
+            if re.search(self.command_regex, message):
+                self.message_counter += 1
+                result = self.process(packet)
 
+<<<<<<< HEAD
         To reply with a message over the air, return a string
         to send.
         """
+=======
+        return result
+>>>>>>> 2e7c884 (Refactor Message processing and MORE)
 
 
 class PluginManager:
@@ -125,10 +167,7 @@ class PluginManager:
     _instance = None
 
     # the pluggy PluginManager for all Message plugins
-    _pluggy_msg_pm = None
-
-    # the pluggy PluginManager for all Notification plugins
-    _pluggy_notify_pm = None
+    _pluggy_pm = None
 
     # aprsd config dict
     config = None
@@ -173,15 +212,17 @@ class PluginManager:
 
     def is_plugin(self, obj):
         for c in inspect.getmro(obj):
-            if issubclass(c, APRSDMessagePluginBase) or issubclass(
-                c,
-                APRSDNotificationPluginBase,
-            ):
+            if issubclass(c, APRSDPluginBase):
                 return True
 
         return False
 
-    def _create_class(self, module_class_string, super_cls: type = None, **kwargs):
+    def _create_class(
+        self,
+        module_class_string,
+        super_cls: type = None,
+        **kwargs,
+    ):
         """
         Method to create a class from a fqn python string.
         :param module_class_string: full name of the class to create an object of
@@ -213,7 +254,7 @@ class PluginManager:
         obj = cls(**kwargs)
         return obj
 
-    def _load_msg_plugin(self, plugin_name):
+    def _load_plugin(self, plugin_name):
         """
         Given a python fully qualified class path.name,
         Try importing the path, then creating the object,
@@ -223,61 +264,35 @@ class PluginManager:
         try:
             plugin_obj = self._create_class(
                 plugin_name,
-                APRSDMessagePluginBase,
+                APRSDPluginBase,
                 config=self.config,
             )
             if plugin_obj:
                 LOG.info(
-                    "Registering Message plugin '{}'({})  '{}'".format(
-                        plugin_name,
-                        plugin_obj.version,
-                        plugin_obj.command_regex,
-                    ),
-                )
-                self._pluggy_msg_pm.register(plugin_obj)
-        except Exception as ex:
-            LOG.exception(f"Couldn't load plugin '{plugin_name}'", ex)
-
-    def _load_notify_plugin(self, plugin_name):
-        """
-        Given a python fully qualified class path.name,
-        Try importing the path, then creating the object,
-        then registering it as a aprsd Command Plugin
-        """
-        plugin_obj = None
-        try:
-            plugin_obj = self._create_class(
-                plugin_name,
-                APRSDNotificationPluginBase,
-                config=self.config,
-            )
-            if plugin_obj:
-                LOG.info(
-                    "Registering Notification plugin '{}'({})".format(
+                    "Registering plugin '{}'({})".format(
                         plugin_name,
                         plugin_obj.version,
                     ),
                 )
-                self._pluggy_notify_pm.register(plugin_obj)
+                self._pluggy_pm.register(plugin_obj)
         except Exception as ex:
             LOG.exception(f"Couldn't load plugin '{plugin_name}'", ex)
 
     def reload_plugins(self):
         with self.lock:
-            del self._pluggy_msg_pm
-            del self._pluggy_notify_pm
+            del self._pluggy_pm
             self.setup_plugins()
 
     def setup_plugins(self):
         """Create the plugin manager and register plugins."""
 
-        LOG.info("Loading APRSD Message Plugins")
-        enabled_msg_plugins = self.config["aprsd"].get("enabled_plugins", None)
-        self._pluggy_msg_pm = pluggy.PluginManager("aprsd")
-        self._pluggy_msg_pm.add_hookspecs(APRSDCommandSpec)
-        if enabled_msg_plugins:
-            for p_name in enabled_msg_plugins:
-                self._load_msg_plugin(p_name)
+        LOG.info("Loading APRSD Plugins")
+        enabled_plugins = self.config["aprsd"].get("enabled_plugins", None)
+        self._pluggy_pm = pluggy.PluginManager("aprsd")
+        self._pluggy_pm.add_hookspecs(APRSDCommandSpec)
+        if enabled_plugins:
+            for p_name in enabled_plugins:
+                self._load_plugin(p_name)
         else:
             # Enabled plugins isn't set, so we default to loading all of
             # the core plugins.
@@ -285,34 +300,24 @@ class PluginManager:
                 self._load_plugin(p_name)
 
         if self.config["aprsd"]["watch_list"].get("enabled", False):
-            LOG.info("Loading APRSD Notification Plugins")
+            LOG.info("Loading APRSD WatchList Plugins")
             enabled_notify_plugins = self.config["aprsd"]["watch_list"].get(
                 "enabled_plugins",
                 None,
             )
-            self._pluggy_notify_pm = pluggy.PluginManager("aprsd")
-            self._pluggy_notify_pm.add_hookspecs(APRSDCommandSpec)
             if enabled_notify_plugins:
                 for p_name in enabled_notify_plugins:
-                    self._load_notify_plugin(p_name)
-
-        else:
-            LOG.info("Skipping Custom Plugins directory.")
+                    self._load_plugin(p_name)
         LOG.info("Completed Plugin Loading.")
 
     def run(self, packet):
         """Execute all the pluguns run method."""
         with self.lock:
-            return self._pluggy_msg_pm.hook.run(packet=packet)
-
-    def notify(self, packet):
-        """Execute all the notify pluguns run method."""
-        with self.lock:
-            return self._pluggy_notify_pm.hook.run(packet=packet)
+            return self._pluggy_pm.hook.filter(packet=packet)
 
     def register_msg(self, obj):
         """Register the plugin."""
-        self._pluggy_msg_pm.register(obj)
+        self._pluggy_pm.register(obj)
 
-    def get_msg_plugins(self):
-        return self._pluggy_msg_pm.get_plugins()
+    def get_plugins(self):
+        return self._pluggy_pm.get_plugins()

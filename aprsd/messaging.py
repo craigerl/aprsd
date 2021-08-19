@@ -9,7 +9,7 @@ import re
 import threading
 import time
 
-from aprsd import client, stats, threads, trace, utils
+from aprsd import client, packets, stats, threads, trace, utils
 
 
 LOG = logging.getLogger("APRSD")
@@ -424,6 +424,7 @@ class SendMessageThread(threads.APRSDThread):
                 )
                 cl.sendall(str(msg))
                 stats.APRSDStats().msgs_tx_inc()
+                packets.PacketList().add(msg.dict())
                 msg.last_send_time = datetime.datetime.now()
                 msg.last_send_attempt += 1
 
@@ -527,6 +528,7 @@ class SendAckThread(threads.APRSDThread):
             )
             cl.sendall(str(self.ack))
             stats.APRSDStats().ack_tx_inc()
+            packets.PacketList().add(self.ack.dict())
             self.ack.last_send_attempt += 1
             self.ack.last_send_time = datetime.datetime.now()
         time.sleep(5)

@@ -183,7 +183,7 @@ class APRSDStats:
             last_aprsis_keepalive = "never"
 
         pm = plugin.PluginManager()
-        plugins = pm.get_msg_plugins()
+        plugins = pm.get_plugins()
         plugin_stats = {}
 
         def full_name_with_qualname(obj):

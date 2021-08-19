@@ -10,7 +10,7 @@ from aprsd import plugin, plugin_utils, trace, utils
 LOG = logging.getLogger("APRSD")
 
 
-class USWeatherPlugin(plugin.APRSDMessagePluginBase):
+class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     """USWeather Command
 
     Returns a weather report for the calling weather station
@@ -28,7 +28,7 @@ class USWeatherPlugin(plugin.APRSDMessagePluginBase):
     command_name = "weather"
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         LOG.info("Weather Plugin")
         fromcall = packet.get("from")
         # message = packet.get("message_text", None)
@@ -71,7 +71,7 @@ class USWeatherPlugin(plugin.APRSDMessagePluginBase):
         return reply
 
 
-class USMetarPlugin(plugin.APRSDMessagePluginBase):
+class USMetarPlugin(plugin.APRSDRegexCommandPluginBase):
     """METAR Command
 
     This provides a METAR weather report from a station near the caller
@@ -91,7 +91,7 @@ class USMetarPlugin(plugin.APRSDMessagePluginBase):
     command_name = "Metar"
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         fromcall = packet.get("from")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
@@ -162,7 +162,7 @@ class USMetarPlugin(plugin.APRSDMessagePluginBase):
         return reply
 
 
-class OWMWeatherPlugin(plugin.APRSDMessagePluginBase):
+class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     """OpenWeatherMap Weather Command
 
     This provides weather near the caller or callsign.
@@ -186,7 +186,7 @@ class OWMWeatherPlugin(plugin.APRSDMessagePluginBase):
     command_name = "Weather"
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         fromcall = packet.get("from")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
@@ -282,7 +282,7 @@ class OWMWeatherPlugin(plugin.APRSDMessagePluginBase):
         return reply
 
 
-class AVWXWeatherPlugin(plugin.APRSDMessagePluginBase):
+class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     """AVWXWeatherMap Weather Command
 
     Fetches a METAR weather report for the nearest
@@ -310,7 +310,7 @@ class AVWXWeatherPlugin(plugin.APRSDMessagePluginBase):
     command_name = "Weather"
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         fromcall = packet.get("from")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")

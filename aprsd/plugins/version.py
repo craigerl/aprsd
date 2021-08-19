@@ -7,7 +7,7 @@ from aprsd import plugin, stats, trace
 LOG = logging.getLogger("APRSD")
 
 
-class VersionPlugin(plugin.APRSDMessagePluginBase):
+class VersionPlugin(plugin.APRSDRegexCommandPluginBase):
     """Version of APRSD Plugin."""
 
     version = "1.0"
@@ -19,7 +19,7 @@ class VersionPlugin(plugin.APRSDMessagePluginBase):
     email_sent_dict = {}
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         LOG.info("Version COMMAND")
         # fromcall = packet.get("from")
         # message = packet.get("message_text", None)

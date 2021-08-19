@@ -17,6 +17,13 @@ RX_THREAD = "RX"
 TX_THREAD = "TX"
 EMAIL_THREAD = "Email"
 
+rx_msg_queue = queue.Queue(maxsize=20)
+tx_msg_queue = queue.Queue(maxsize=20)
+msg_queues = {
+    "rx": rx_msg_queue,
+    "tx": tx_msg_queue,
+}
+
 
 class APRSDThreadList:
     """Singleton class that keeps track of application wide threads."""
@@ -57,6 +64,10 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
     def stop(self):
         self.thread_stop = True
 
+    @abc.abstractmethod
+    def loop(self):
+        pass
+
     def run(self):
         LOG.debug("Starting")
         while not self.thread_stop:
@@ -92,7 +103,11 @@ class KeepAliveThread(APRSDThread):
             current, peak = tracemalloc.get_traced_memory()
             stats_obj.set_memory(current)
             stats_obj.set_memory_peak(peak)
-            keepalive = "Uptime {} Tracker {} " "Msgs TX:{} RX:{} Last:{} Email:{} Packets:{} RAM Current:{} Peak:{}".format(
+            keepalive = (
+                "Uptime {} Tracker {} Msgs TX:{} RX:{} "
+                "Last:{} Email:{} Packets:{} RAM Current:{} "
+                "Peak:{}"
+            ).format(
                 utils.strfdelta(stats_obj.uptime),
                 len(tracker),
                 stats_obj.msgs_tx,
@@ -113,51 +128,6 @@ class KeepAliveThread(APRSDThread):
                     LOG.warning(msg)
         self.cntr += 1
         time.sleep(10)
-        return True
-
-
-class APRSDNotifyThread(APRSDThread):
-    last_seen = {}
-
-    def __init__(self, msg_queues, config):
-        super().__init__("NOTIFY_MSG")
-        self.msg_queues = msg_queues
-        self.config = config
-        packets.WatchList(config=config)
-
-    def loop(self):
-        try:
-            packet = self.msg_queues["notify"].get(timeout=5)
-            wl = packets.WatchList()
-            if wl.callsign_in_watchlist(packet["from"]):
-                # NOW WE RUN through the notify plugins.
-                # If they return a msg, then we queue it for sending.
-                pm = plugin.PluginManager()
-                results = pm.notify(packet)
-                for reply in results:
-                    if reply is not messaging.NULL_MESSAGE:
-                        watch_list_conf = self.config["aprsd"]["watch_list"]
-
-                        msg = messaging.TextMessage(
-                            self.config["aprs"]["login"],
-                            watch_list_conf["alert_callsign"],
-                            reply,
-                        )
-                        self.msg_queues["tx"].put(msg)
-
-                wl.update_seen(packet)
-            else:
-                LOG.debug(
-                    "Ignoring packet from '{}'. Not in watch list.".format(
-                        packet["from"],
-                    ),
-                )
-
-            # Allows stats object to have latest info from the last_seen dict
-            LOG.debug("Packet processing complete")
-        except queue.Empty:
-            pass
-        # Continue to loop
         return True
 
 
@@ -229,133 +199,102 @@ class APRSDRXThread(APRSDThread):
         stats.APRSDStats().ack_rx_inc()
         return
 
-    def process_mic_e_packet(self, packet):
-        LOG.info("Mic-E Packet detected.  Currenlty unsupported.")
-        messaging.log_packet(packet)
-        stats.APRSDStats().msgs_mice_inc()
-        return
-
-    def process_message_packet(self, packet):
-        fromcall = packet["from"]
-        message = packet.get("message_text", None)
-
-        msg_id = packet.get("msgNo", "0")
-
-        messaging.log_message(
-            "Received Message",
-            packet["raw"],
-            message,
-            fromcall=fromcall,
-            msg_num=msg_id,
-        )
-
-        found_command = False
-        # Get singleton of the PM
-        pm = plugin.PluginManager()
-        try:
-            results = pm.run(packet)
-            for reply in results:
-                if isinstance(reply, list):
-                    # one of the plugins wants to send multiple messages
-                    found_command = True
-                    for subreply in reply:
-                        LOG.debug(f"Sending '{subreply}'")
-
-                        msg = messaging.TextMessage(
-                            self.config["aprs"]["login"],
-                            fromcall,
-                            subreply,
-                        )
-                        self.msg_queues["tx"].put(msg)
-
-                else:
-                    found_command = True
-                    # A plugin can return a null message flag which signals
-                    # us that they processed the message correctly, but have
-                    # nothing to reply with, so we avoid replying with a usage string
-                    if reply is not messaging.NULL_MESSAGE:
-                        LOG.debug(f"Sending '{reply}'")
-
-                        msg = messaging.TextMessage(
-                            self.config["aprs"]["login"],
-                            fromcall,
-                            reply,
-                        )
-                        self.msg_queues["tx"].put(msg)
-                    else:
-                        LOG.debug("Got NULL MESSAGE from plugin")
-
-            if not found_command:
-                plugins = pm.get_msg_plugins()
-                names = [x.command_name for x in plugins]
-                names.sort()
-
-                # reply = "Usage: {}".format(", ".join(names))
-                reply = "Usage: weather, locate [call], time, fortune, ping"
-
-                msg = messaging.TextMessage(
-                    self.config["aprs"]["login"],
-                    fromcall,
-                    reply,
-                )
-                self.msg_queues["tx"].put(msg)
-        except Exception as ex:
-            LOG.exception("Plugin failed!!!", ex)
-            reply = "A Plugin failed! try again?"
-            msg = messaging.TextMessage(self.config["aprs"]["login"], fromcall, reply)
-            self.msg_queues["tx"].put(msg)
-
-        # let any threads do their thing, then ack
-        # send an ack last
-        ack = messaging.AckMessage(
-            self.config["aprs"]["login"],
-            fromcall,
-            msg_id=msg_id,
-        )
-        self.msg_queues["tx"].put(ack)
-
     def process_packet(self, packet):
         """Process a packet recieved from aprs-is server."""
+        packets.PacketList().add(packet)
+        stats.APRSDStats().msgs_rx_inc()
 
-        try:
-            LOG.debug("Adding packet to notify queue {}".format(packet["raw"]))
-            self.msg_queues["notify"].put(packet)
-            packets.PacketList().add(packet)
+        fromcall = packet["from"]
+        tocall = packet.get("addresse", None)
+        msg = packet.get("message_text", None)
+        msg_id = packet.get("msgNo", "0")
+        msg_response = packet.get("response", None)
+        LOG.debug("Got packet from '{}' - {}".format(fromcall, packet))
 
-            # since we can see packets from anyone now with the
-            # watch list, we need to filter messages directly only to us.
-            tocall = packet.get("addresse", None)
+        # We don't put ack packets destined for us through the
+        # plugins.
+        if tocall == self.config["aprs"]["login"] and msg_response == "ack":
+            self.process_ack_packet(packet)
+        else:
+            # It's not an ACK for us, so lets run it through
+            # the plugins.
+            messaging.log_message(
+                "Received Message",
+                packet["raw"],
+                msg,
+                fromcall=fromcall,
+                msg_num=msg_id,
+            )
+
+            # Only ack messages that were sent directly to us
             if tocall == self.config["aprs"]["login"]:
-                stats.APRSDStats().msgs_rx_inc()
-                packets.PacketList().add(packet)
-
-                msg = packet.get("message_text", None)
-                msg_format = packet.get("format", None)
-                msg_response = packet.get("response", None)
-                if msg_format == "message" and msg:
-                    # we want to send the message through the
-                    # plugins
-                    self.process_message_packet(packet)
-                    return
-                elif msg_response == "ack":
-                    self.process_ack_packet(packet)
-                    return
-
-                if msg_format == "mic-e":
-                    # process a mic-e packet
-                    self.process_mic_e_packet(packet)
-                    return
-            else:
-                LOG.debug(
-                    "Ignoring '{}' packet from '{}' to '{}'".format(
-                        packets.get_packet_type(packet),
-                        packet["from"],
-                        tocall,
-                    ),
+                # let any threads do their thing, then ack
+                # send an ack last
+                ack = messaging.AckMessage(
+                    self.config["aprs"]["login"],
+                    fromcall,
+                    msg_id=msg_id,
                 )
+                self.msg_queues["tx"].put(ack)
 
-        except (aprslib.ParseError, aprslib.UnknownFormat) as exp:
-            LOG.exception("Failed to parse packet from aprs-is", exp)
+            pm = plugin.PluginManager()
+            try:
+                results = pm.run(packet)
+                LOG.debug("RESULTS {}".format(results))
+                replied = False
+                for reply in results:
+                    if isinstance(reply, list):
+                        # one of the plugins wants to send multiple messages
+                        replied = True
+                        for subreply in reply:
+                            LOG.debug("Sending '{}'".format(subreply))
+
+                            msg = messaging.TextMessage(
+                                self.config["aprs"]["login"],
+                                fromcall,
+                                subreply,
+                            )
+                            self.msg_queues["tx"].put(msg)
+
+                    else:
+                        replied = True
+                        # A plugin can return a null message flag which signals
+                        # us that they processed the message correctly, but have
+                        # nothing to reply with, so we avoid replying with a
+                        # usage string
+                        if reply is not messaging.NULL_MESSAGE:
+                            LOG.debug("Sending '{}'".format(reply))
+
+                            msg = messaging.TextMessage(
+                                self.config["aprs"]["login"],
+                                fromcall,
+                                reply,
+                            )
+                            self.msg_queues["tx"].put(msg)
+
+                # If the message was for us and we didn't have a
+                # response, then we send a usage statement.
+                if tocall == self.config["aprs"]["login"] and not replied:
+                    reply = "Usage: weather, locate [call], time, fortune, ping"
+
+                    msg = messaging.TextMessage(
+                        self.config["aprs"]["login"],
+                        fromcall,
+                        reply,
+                    )
+                    self.msg_queues["tx"].put(msg)
+            except Exception as ex:
+                LOG.exception("Plugin failed!!!", ex)
+                # Do we need to send a reply?
+                if tocall == self.config["aprs"]["login"]:
+                    reply = "A Plugin failed! try again?"
+                    msg = messaging.TextMessage(
+                        self.config["aprs"]["login"],
+                        fromcall,
+                        reply,
+                    )
+                    self.msg_queues["tx"].put(msg)
+
         LOG.debug("Packet processing complete")
 
 
@@ -368,7 +307,6 @@ class APRSDTXThread(APRSDThread):
     def loop(self):
         try:
             msg = self.msg_queues["tx"].get(timeout=5)
-            packets.PacketList().add(msg.dict())
             msg.send()
         except queue.Empty:
             pass

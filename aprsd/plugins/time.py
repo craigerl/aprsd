@@ -11,7 +11,7 @@ from aprsd import fuzzyclock, plugin, plugin_utils, trace, utils
 LOG = logging.getLogger("APRSD")
 
 
-class TimePlugin(plugin.APRSDMessagePluginBase):
+class TimePlugin(plugin.APRSDRegexCommandPluginBase):
     """Time command."""
 
     version = "1.0"
@@ -42,7 +42,7 @@ class TimePlugin(plugin.APRSDMessagePluginBase):
         return reply
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         LOG.info("TIME COMMAND")
         # So we can mock this in unit tests
         localzone = self._get_local_tz()
@@ -57,7 +57,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
     command_name = "Time"
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         fromcall = packet.get("from")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
@@ -123,7 +123,7 @@ class TimeOWMPlugin(TimePlugin):
     command_name = "Time"
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         fromcall = packet.get("from")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
