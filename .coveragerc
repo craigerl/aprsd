@@ -1,0 +1,14 @@
+[run]
+include =
+  aprsd/*
+  tests/*
+  */lib/python*/site-packages/aprsd/*
+  */pypy*/site-packages/aprsd/*
+  *\Lib\site-packages\aprsd\*
+branch = 1
+
+[paths]
+source = aprsd/
+  */lib/python*/site-packages/aprsd/
+  */pypy*/site-packages/aprsd/
+  *\Lib\site-packages\aprsd\
