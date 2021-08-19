@@ -1,28 +1,12 @@
-=====
-APRSD
-=====
-by KM6LYW and WB4BOR
+===============================================
+APRSD - Ham radio APRS-IS Message plugin server
+===============================================
 
-.. image:: https://badge.fury.io/py/aprsd.svg
-    :target: https://badge.fury.io/py/aprsd
+KM6LYW and WB4BOR
+____________________
 
-.. image:: https://github.com/craigerl/aprsd/workflows/python/badge.svg
-    :target: https://github.com/craigerl/aprsd/actions
+|pypi| |pytest| |versions| |slack| |issues| |commit| |black| |imports| |down|
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://black.readthedocs.io/en/stable/
-
-.. image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
-    :target: https://timothycrosley.github.io/isort/
-
-.. image:: https://img.shields.io/github/issues/craigerl/aprsd
-
-.. image:: https://img.shields.io/github/last-commit/craigerl/aprsd
-
-.. image:: https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads
-     :target: https://pepy.tech/project/aprsd
-
-.. contents:: :local:
 
 `APRSD <http://github.com/craigerl/aprsd>`_ is a Ham radio `APRS <http://aprs.org>`_ message command gateway built on python.
 
@@ -37,7 +21,10 @@ provide responding to messages to check email, get location, ping,
 time of day, get weather, and fortune telling as well as version information
 of aprsd itself.
 
-Documentation: https://aprsd.readthedocs.io
+Please `read the docs`_ to learn more!
+
+
+.. contents:: :local:
 
 
 APRSD Overview Diagram
@@ -50,22 +37,13 @@ Typical use case
 ================
 
 Ham radio operator using an APRS enabled HAM radio sends a message to check
-the weather.  an APRS message is sent, and then picked up by APRSD.  The
+the weather.  An APRS message is sent, and then picked up by APRSD.  The
 APRS packet is decoded, and the message is sent through the list of plugins
 for processing.  For example, the WeatherPlugin picks up the message, fetches the weather
 for the area around the user who sent the request, and then responds with
 the weather conditions in that area.  Also includes a watch list of HAM
 callsigns to look out for.  The watch list can notify you when a HAM callsign
 in the list is seen and now available to message on the APRS network.
-
-
-APRSD Capabilities
-==================
-
-* server - The main aprsd server processor.  Send/Rx APRS messages to HAM callsign
-* send-message - use aprsd to send a command/message to aprsd server.  Used for development testing
-* sample-config - generate a sample aprsd.yml config file for use/editing
-* bash completion generation.  Uses python click bash completion to generate completion code for your .bashrc/.zshrc
 
 
 List of core server plugins
@@ -82,14 +60,6 @@ If it matches, the plugin runs.  IF the regex doesn't match, the plugin is skipp
 * TimePlugin - Current time of day
 * WeatherPlugin - Get weather conditions for current location of HAM callsign
 * VersionPlugin - Reports the version information for aprsd
-
-
-List of core notification plugins
-=================================
-
-These plugins see all APRS messages from ham callsigns in the config's watch
-list.
-
 * NotifySeenPlugin - Send a message when a message is seen from a callsign in
                      the watch list.  This is helpful when you want to know
                      when a friend is online in the ARPS network, but haven't
@@ -476,3 +446,35 @@ Provide a csv list of pypi installable plugins.  Then make sure the plugin
 python file is in your /plugins volume and the plugin will be installed at
 container startup.  The plugin may have dependencies that are required.
 The plugin file should be copied to /plugins for loading by aprsd
+
+
+.. badges
+
+.. |pypi| image:: https://badge.fury.io/py/aprsd.svg
+    :target: https://badge.fury.io/py/aprsd
+
+.. |pytest| image:: https://github.com/craigerl/aprsd/workflows/python/badge.svg
+    :target: https://github.com/craigerl/aprsd/actions
+
+.. |versions| image:: https://img.shields.io/pypi/pyversions/aprsd.svg
+    :target: https://pypi.org/pypi/aprsd
+
+.. |slack| image:: https://img.shields.io/badge/slack-@hemna/aprsd-blue.svg?logo=slack
+    :target: https://hemna.slack.com/archives/C01KQSCP5RP
+
+.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+    :target: https://black.readthedocs.io/en/stable/
+
+.. |imports| image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
+    :target: https://timothycrosley.github.io/isort/
+
+.. |issues| image:: https://img.shields.io/github/issues/craigerl/aprsd
+
+.. |commit| image:: https://img.shields.io/github/last-commit/craigerl/aprsd
+
+.. |down| image:: https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads
+     :target: https://pepy.tech/project/aprsd
+
+.. links
+.. _read the docs:
+ https://aprsd.readthedocs.io
