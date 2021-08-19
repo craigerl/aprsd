@@ -187,9 +187,11 @@ def test_plugin(
     client.Client(config)
 
     pm = plugin.PluginManager(config)
-    obj = pm._create_class(plugin_path, plugin.APRSDPluginBase, config=config)
+    obj = pm._create_class(plugin_path, plugin.APRSDMessagePluginBase, config=config)
 
-    reply = obj.run(fromcall, message, 1)
+    packet = {"from": fromcall, "message_text": message, "msgNo": 1}
+
+    reply = obj.run(packet)
     LOG.info("Result = '{}'".format(reply))
 
 
