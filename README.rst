@@ -460,7 +460,7 @@ The plugin file should be copied to /plugins for loading by aprsd
     :target: https://pypi.org/pypi/aprsd
 
 .. |slack| image:: https://img.shields.io/badge/slack-@hemna/aprsd-blue.svg?logo=slack
-    :target: https://hemna.slack.com/archives/C01KQSCP5RP
+    :target: https://hemna.slack.com/app_redirect?channel=C01KQSCP5RP
 
 .. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://black.readthedocs.io/en/stable/
