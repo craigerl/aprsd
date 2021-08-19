@@ -350,7 +350,7 @@ class AVWXWeatherPlugin(plugin.APRSDMessagePluginBase):
         try:
             utils.check_config_option(self.config, ["services", "avwx", "base_url"])
         except Exception as ex:
-            LOG.debut("Didn't find avwx:base_url {}".format(ex))
+            LOG.debug("Didn't find avwx:base_url {}".format(ex))
             base_url = "https://avwx.rest"
         else:
             base_url = self.config["services"]["avwx"]["base_url"]
