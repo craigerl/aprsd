@@ -71,6 +71,7 @@
             <div class="active item" data-tab="charts-tab">Charts</div>
             <div class="item" data-tab="msgs-tab">Messages</div>
             <div class="item" data-tab="watch-tab">Watch List</div>
+            <div class="item" data-tab="plugin-tab">Plugins</div>
             <div class="item" data-tab="config-tab">Config</div>
             <div class="item" data-tab="raw-tab">Raw JSON</div>
         </div>
@@ -127,6 +128,13 @@
                 Notification age - <span id="watch_age">{{ watch_age }}</span>
             </h3>
             <div id="watchDiv" class="ui mini text">Loading</div>
+        </div>
+
+        <div class="ui bottom attached tab segment" data-tab="plugin-tab">
+            <h3 class="ui dividing header">
+                Plugins Loaded (<span id="plugin_count">{{ plugin_count }}</span>)
+            </h3>
+            <div id="pluginDiv" class="ui mini text">Loading</div>
         </div>
 
         <div class="ui bottom attached tab segment" data-tab="config-tab">

@@ -48,7 +48,8 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     """The base class for all APRSD Plugins."""
 
     config = None
-    message_counter = 0
+    rx_count = 0
+    tx_count = 0
     version = "1.0"
 
     # Holds the list of APRSDThreads that the plugin creates
@@ -103,6 +104,12 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         """Gives the plugin writer the ability start a background thread."""
         return []
 
+    def rx_inc(self):
+        self.rx_count += 1
+
+    def tx_inc(self):
+        self.tx_count += 1
+
     def stop_threads(self):
         """Stop any threads this plugin might have created."""
         for thread in self.threads:
@@ -137,7 +144,10 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         result = messaging.NULL_MESSAGE
         if wl.callsign_in_watchlist(packet["from"]):
             # packet is from a callsign in the watch list
+            self.rx_inc()
             result = self.process()
+            if result:
+                self.tx_inc()
             wl.update_seen(packet)
 
         return result
@@ -185,8 +195,10 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
             and message
         ):
             if re.search(self.command_regex, message):
-                self.message_counter += 1
+                self.rx_inc()
                 result = self.process(packet)
+                if result:
+                    self.tx_inc()
 
 <<<<<<< HEAD
         To reply with a message over the air, return a string

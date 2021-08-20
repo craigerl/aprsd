@@ -193,7 +193,10 @@ class APRSDStats:
             )
 
         for p in plugins:
-            plugin_stats[full_name_with_qualname(p)] = p.message_count
+            plugin_stats[full_name_with_qualname(p)] = {
+                "rx": p.rx_count,
+                "tx": p.tx_count,
+            }
 
         wl = packets.WatchList()
 
