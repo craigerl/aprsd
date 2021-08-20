@@ -8,7 +8,7 @@ import os
 import re
 import threading
 
-from aprsd import messaging, packets
+from aprsd import messaging, packets, threads
 import pluggy
 from thesmuggler import smuggle
 
@@ -51,10 +51,40 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     message_counter = 0
     version = "1.0"
 
+    # Holds the list of APRSDThreads that the plugin creates
+    threads = []
+
     def __init__(self, config):
         self.config = config
         self.message_counter = 0
         self.setup()
+        self.threads = self.create_threads()
+        if self.threads:
+            self.start_threads()
+
+    def start_threads(self):
+        if self.threads:
+            if not isinstance(self.threads, list):
+                self.threads = [self.threads]
+
+            try:
+                for thread in self.threads:
+                    if isinstance(thread, threads.APRSDThread):
+                        thread.start()
+                    else:
+                        LOG.error(
+                            "Can't start thread {}:{}, Must be a child "
+                            "of aprsd.threads.APRSDThread".format(
+                                self,
+                                thread,
+                            ),
+                        )
+            except Exception:
+                LOG.error(
+                    "Failed to start threads for plugin {}".format(
+                        self,
+                    ),
+                )
 
     @property
     def message_count(self):
@@ -68,6 +98,16 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     def setup(self):
         """Do any plugin setup here."""
         pass
+
+    def create_threads(self):
+        """Gives the plugin writer the ability start a background thread."""
+        return []
+
+    def stop_threads(self):
+        """Stop any threads this plugin might have created."""
+        for thread in self.threads:
+            if isinstance(thread, threads.APRSDThread):
+                thread.stop()
 
     @hookimpl
     @abc.abstractmethod
@@ -127,11 +167,6 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
     @property
     def command_regex(self):
         """The regex to match from the caller"""
-        raise NotImplementedError
-
-    @property
-    def version(self):
-        """Version"""
         raise NotImplementedError
 
     @hookimpl
@@ -225,7 +260,7 @@ class PluginManager:
     ):
         """
         Method to create a class from a fqn python string.
-        :param module_class_string: full name of the class to create an object of
+        :param module_class_string: full name of the class to create an object
         :param super_cls: expected super class for validity, None if bypass
         :param kwargs: parameters to pass
         :return:

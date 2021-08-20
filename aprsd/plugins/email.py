@@ -46,13 +46,15 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
                 LOG.error("EmailPlugin DISABLED!!!!")
             else:
                 self.enabled = True
-                email_thread = APRSDEmailThread(
-                    msg_queues=threads.msg_queues,
-                    config=self.config,
-                )
-                email_thread.start()
         else:
             LOG.info("Email services not enabled.")
+
+    def create_threads(self):
+        if self.enabled:
+            return APRSDEmailThread(
+                msg_queues=threads.msg_queues,
+                config=self.config,
+            )
 
     @trace.trace
     def process(self, packet):
