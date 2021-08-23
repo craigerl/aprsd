@@ -14,7 +14,7 @@ import click_completion
 
 # local imports here
 import aprsd
-from aprsd import client, email, plugin, utils
+from aprsd import client, plugin, utils
 
 
 # setup the global logger
@@ -192,15 +192,10 @@ def test_plugin(
 
     packet = {"from": fromcall, "message_text": message, "msgNo": 1}
 
-<<<<<<< HEAD
-    reply = obj.run(packet)
-    LOG.info(f"Result = '{reply}'")
-=======
     reply = obj.filter(packet)
     # Plugin might have threads, so lets stop them so we can exit.
     obj.stop_threads()
-    LOG.info("Result = '{}'".format(reply))
->>>>>>> f8f84c4 (Added threads functions to APRSDPluginBase)
+    LOG.info(f"Result = '{reply}'")
 
 
 if __name__ == "__main__":

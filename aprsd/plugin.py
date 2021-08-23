@@ -8,9 +8,10 @@ import os
 import re
 import threading
 
-from aprsd import messaging, packets, threads
 import pluggy
 from thesmuggler import smuggle
+
+from aprsd import messaging, packets, threads
 
 
 # setup the global logger
@@ -98,7 +99,6 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
 
     def setup(self):
         """Do any plugin setup here."""
-        pass
 
     def create_threads(self):
         """Gives the plugin writer the ability start a background thread."""
@@ -124,7 +124,6 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def process(self, packet):
         """This is called when the filter passes."""
-        pass
 
 
 class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
@@ -153,15 +152,7 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         return result
 
 
-<<<<<<< HEAD
-        This will get called when a packet is seen by a callsign
-        registered in the watch list in the config file."""
-
-
-class APRSDMessagePluginBase(metaclass=abc.ABCMeta):
-=======
 class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
->>>>>>> 2e7c884 (Refactor Message processing and MORE)
     """Base Message plugin class.
 
     When you want to search for a particular command in an
@@ -200,13 +191,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 if result:
                     self.tx_inc()
 
-<<<<<<< HEAD
-        To reply with a message over the air, return a string
-        to send.
-        """
-=======
         return result
->>>>>>> 2e7c884 (Refactor Message processing and MORE)
 
 
 class PluginManager:

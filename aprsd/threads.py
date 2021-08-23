@@ -209,7 +209,7 @@ class APRSDRXThread(APRSDThread):
         msg = packet.get("message_text", None)
         msg_id = packet.get("msgNo", "0")
         msg_response = packet.get("response", None)
-        LOG.debug("Got packet from '{}' - {}".format(fromcall, packet))
+        LOG.debug(f"Got packet from '{fromcall}' - {packet}")
 
         # We don't put ack packets destined for us through the
         # plugins.
@@ -240,14 +240,14 @@ class APRSDRXThread(APRSDThread):
             pm = plugin.PluginManager()
             try:
                 results = pm.run(packet)
-                LOG.debug("RESULTS {}".format(results))
+                LOG.debug(f"RESULTS {results}")
                 replied = False
                 for reply in results:
                     if isinstance(reply, list):
                         # one of the plugins wants to send multiple messages
                         replied = True
                         for subreply in reply:
-                            LOG.debug("Sending '{}'".format(subreply))
+                            LOG.debug(f"Sending '{subreply}'")
 
                             msg = messaging.TextMessage(
                                 self.config["aprs"]["login"],
@@ -263,7 +263,7 @@ class APRSDRXThread(APRSDThread):
                         # nothing to reply with, so we avoid replying with a
                         # usage string
                         if reply is not messaging.NULL_MESSAGE:
-                            LOG.debug("Sending '{}'".format(reply))
+                            LOG.debug(f"Sending '{reply}'")
 
                             msg = messaging.TextMessage(
                                 self.config["aprs"]["login"],

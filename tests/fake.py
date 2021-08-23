@@ -1,5 +1,6 @@
 from aprsd import packets, plugin, threads
 
+
 FAKE_MESSAGE_TEXT = "fake MeSSage"
 FAKE_FROM_CALLSIGN = "KFART"
 FAKE_TO_CALLSIGN = "KMINE"

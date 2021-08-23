@@ -7,9 +7,10 @@ import re
 import smtplib
 import time
 
-from aprsd import messaging, plugin, stats, threads, trace
 import imapclient
 from validate_email import validate_email
+
+from aprsd import messaging, plugin, stats, threads, trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -171,7 +172,7 @@ def _imap_connect():
         )
     except (imaplib.IMAP4.error, Exception) as e:
         msg = getattr(e, "message", repr(e))
-        LOG.error("Failed to login {}".format(msg))
+        LOG.error(f"Failed to login {msg}")
         return
 
     server.select_folder("INBOX")
@@ -213,7 +214,7 @@ def _smtp_connect():
         LOG.error("Couldn't connect to SMTP Server")
         return
 
-    LOG.debug("Connected to smtp host {}".format(msg))
+    LOG.debug(f"Connected to smtp host {msg}")
 
     debug = CONFIG["aprsd"]["email"]["smtp"].get("debug", False)
     if debug:
@@ -229,7 +230,7 @@ def _smtp_connect():
         LOG.error("Couldn't connect to SMTP Server")
         return
 
-    LOG.debug("Logged into SMTP server {}".format(msg))
+    LOG.debug(f"Logged into SMTP server {msg}")
     return server
 
 
@@ -244,7 +245,7 @@ def validate_shortcuts(config):
     )
     delete_keys = []
     for key in shortcuts:
-        LOG.info("Validating {}:{}".format(key, shortcuts[key]))
+        LOG.info(f"Validating {key}:{shortcuts[key]}")
         is_valid = validate_email(
             email_address=shortcuts[key],
             check_regex=True,
@@ -313,7 +314,7 @@ def parse_email(msgid, data, server):
         from_addr = f.group(1)
     else:
         from_addr = "noaddr"
-    LOG.debug("Got a message from '{}'".format(from_addr))
+    LOG.debug(f"Got a message from '{from_addr}'")
     try:
         m = server.fetch([msgid], ["RFC822"])
     except Exception as e:
@@ -447,7 +448,7 @@ def resend_email(count, fromcall):
     month = date.strftime("%B")[:3]  # Nov, Mar, Apr
     day = date.day
     year = date.year
-    today = "{}-{}-{}".format(day, month, year)
+    today = f"{day}-{month}-{year}"
 
     shortcuts = CONFIG["aprsd"]["email"]["shortcuts"]
     # swap key/value
@@ -564,7 +565,7 @@ class APRSDEmailThread(threads.APRSDThread):
             month = date.strftime("%B")[:3]  # Nov, Mar, Apr
             day = date.day
             year = date.year
-            today = "{}-{}-{}".format(day, month, year)
+            today = f"{day}-{month}-{year}"
 
             try:
                 server = _imap_connect()
@@ -580,7 +581,7 @@ class APRSDEmailThread(threads.APRSDThread):
                     e,
                 )
                 return True
-            LOG.debug("{} messages received today".format(len(messages)))
+            LOG.debug(f"{len(messages)} messages received today")
 
             try:
                 _msgs = server.fetch(messages, ["ENVELOPE"])

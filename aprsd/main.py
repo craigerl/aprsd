@@ -37,8 +37,7 @@ import click_completion
 # local imports here
 import aprsd
 from aprsd import (
-    client, email, flask, messaging, packets, plugin, stats, threads, trace,
-    utils,
+    client, flask, messaging, packets, plugin, stats, threads, trace, utils,
 )
 
 
