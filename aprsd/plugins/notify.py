@@ -2,6 +2,7 @@ import logging
 
 from aprsd import messaging, packets, plugin
 
+
 LOG = logging.getLogger("APRSD")
 
 
@@ -40,7 +41,7 @@ class NotifySeenPlugin(plugin.APRSDNotificationPluginBase):
             packet_type = packets.get_packet_type(packet)
             # we shouldn't notify the alert user that they are online.
             if fromcall != notify_callsign:
-                return "{} was just seen by type:'{}'".format(fromcall, packet_type)
+                return f"{fromcall} was just seen by type:'{packet_type}'"
         else:
             LOG.debug(
                 "Not old enough to notify callsign '{}' : {} < {}".format(

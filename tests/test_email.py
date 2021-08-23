@@ -7,7 +7,7 @@ class TestEmail(unittest.TestCase):
     def test_get_email_from_shortcut(self):
         email.CONFIG = {"aprsd": {"email": {"shortcuts": {}}}}
         email_address = "something@something.com"
-        addr = "-{}".format(email_address)
+        addr = f"-{email_address}"
         actual = email.get_email_from_shortcut(addr)
         self.assertEqual(addr, actual)
 

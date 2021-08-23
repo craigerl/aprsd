@@ -7,6 +7,7 @@ import time
 
 from aprsd import utils
 
+
 # command line args
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -56,7 +57,7 @@ class MyAPRSTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip()
-        LOG.debug("{} wrote:".format(self.client_address[0]))
+        LOG.debug(f"{self.client_address[0]} wrote:")
         LOG.debug(self.data)
         # just send back the same data, but upper-cased
         self.request.sendall(self.data.upper())
@@ -73,7 +74,7 @@ def main():
 
     ip = CONFIG["aprs"]["host"]
     port = CONFIG["aprs"]["port"]
-    LOG.info("Start server listening on {}:{}".format(args.ip, args.port))
+    LOG.info(f"Start server listening on {args.ip}:{args.port}")
 
     with socketserver.TCPServer((ip, port), MyAPRSTCPHandler) as server:
         server.serve_forever()

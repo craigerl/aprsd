@@ -29,13 +29,15 @@ import signal
 import sys
 import time
 
-# local imports here
-import aprsd
-from aprsd import client, messaging, stats, threads, trace, utils
 import aprslib
 from aprslib.exceptions import LoginError
 import click
 import click_completion
+
+# local imports here
+import aprsd
+from aprsd import client, messaging, stats, threads, trace, utils
+
 
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
@@ -78,7 +80,7 @@ Available shell types:
   %s
 Default type: auto
 """ % "\n  ".join(
-    "{:<12} {}".format(k, click_completion.core.shells[k])
+    f"{k:<12} {click_completion.core.shells[k]}"
     for k in sorted(click_completion.core.shells.keys())
 )
 
@@ -140,7 +142,7 @@ def install(append, case_insensitive, shell, path):
         append=append,
         extra_env=extra_env,
     )
-    click.echo("{} completion installed in {}".format(shell, path))
+    click.echo(f"{shell} completion installed in {path}")
 
 
 def signal_handler(sig, frame):
@@ -270,22 +272,22 @@ def listen(
     messaging.CONFIG = config
 
     setup_logging(config, loglevel, quiet)
-    LOG.info("APRSD TEST Started version: {}".format(aprsd.__version__))
+    LOG.info(f"APRSD TEST Started version: {aprsd.__version__}")
     if type(command) is tuple:
         command = " ".join(command)
     if not quiet:
         if raw:
-            LOG.info("L'{}' R'{}'".format(aprs_login, raw))
+            LOG.info(f"L'{aprs_login}' R'{raw}'")
         else:
-            LOG.info("L'{}' To'{}' C'{}'".format(aprs_login, tocallsign, command))
+            LOG.info(f"L'{aprs_login}' To'{tocallsign}' C'{command}'")
 
     flat_config = utils.flatten_dict(config)
     LOG.info("Using CONFIG values:")
     for x in flat_config:
         if "password" in x or "aprsd.web.users.admin" in x:
-            LOG.info("{} = XXXXXXXXXXXXXXXXXXX".format(x))
+            LOG.info(f"{x} = XXXXXXXXXXXXXXXXXXX")
         else:
-            LOG.info("{} = {}".format(x, flat_config[x]))
+            LOG.info(f"{x} = {flat_config[x]}")
 
     got_ack = False
     got_response = False
@@ -328,7 +330,7 @@ def listen(
                     ),
                 )
             else:
-                LOG.debug("Not old enough to notify {} < {}".format(d, max_delta))
+                LOG.debug(f"Not old enough to notify {d} < {max_delta}")
             LOG.debug("Update last seen from {}".format(packet["from"]))
             last_seen[packet["from"]] = now
         else:
@@ -339,7 +341,7 @@ def listen(
         resp = packet.get("response", None)
         if resp == "ack":
             ack_num = packet.get("msgNo")
-            LOG.info("We saw an ACK {} Ignoring".format(ack_num))
+            LOG.info(f"We saw an ACK {ack_num} Ignoring")
             # messaging.log_packet(packet)
             got_ack = True
         else:
@@ -366,7 +368,7 @@ def listen(
     # LOG.debug("Filter by '{}'".format(filter_str))
     # aprs_client.set_filter(filter_str)
     filter_str = "p/{}".format("/".join(watch_list))
-    LOG.debug("Filter by '{}'".format(filter_str))
+    LOG.debug(f"Filter by '{filter_str}'")
     aprs_client.set_filter(filter_str)
 
     while True:

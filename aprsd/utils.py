@@ -10,11 +10,13 @@ import re
 import sys
 import threading
 
-import aprsd
-from aprsd import plugin
 import click
 import update_checker
 import yaml
+
+import aprsd
+from aprsd import plugin
+
 
 LOG_LEVELS = {
     "CRITICAL": logging.CRITICAL,
@@ -102,9 +104,9 @@ DEFAULT_CONFIG_DICT = {
 }
 
 home = str(Path.home())
-DEFAULT_CONFIG_DIR = "{}/.config/aprsd/".format(home)
-DEFAULT_SAVE_FILE = "{}/.config/aprsd/aprsd.p".format(home)
-DEFAULT_CONFIG_FILE = "{}/.config/aprsd/aprsd.yml".format(home)
+DEFAULT_CONFIG_DIR = f"{home}/.config/aprsd/"
+DEFAULT_SAVE_FILE = f"{home}/.config/aprsd/aprsd.p"
+DEFAULT_CONFIG_FILE = f"{home}/.config/aprsd/aprsd.yml"
 
 
 def synchronized(wrapped):
@@ -229,7 +231,7 @@ def create_default_config():
     config_file_expanded = os.path.expanduser(DEFAULT_CONFIG_FILE)
     config_dir = os.path.dirname(config_file_expanded)
     if not os.path.exists(config_dir):
-        click.echo("Config dir '{}' doesn't exist, creating.".format(config_dir))
+        click.echo(f"Config dir '{config_dir}' doesn't exist, creating.")
         mkdir_p(config_dir)
     with open(config_file_expanded, "w+") as cf:
         cf.write(dump_default_cfg())
@@ -245,7 +247,7 @@ def get_config(config_file):
     else:
         if config_file == DEFAULT_CONFIG_FILE:
             click.echo(
-                "{} is missing, creating config file".format(config_file_expanded),
+                f"{config_file_expanded} is missing, creating config file",
             )
             create_default_config()
             msg = (
@@ -256,7 +258,7 @@ def get_config(config_file):
         else:
             # The user provided a config file path different from the
             # Default, so we won't try and create it, just bitch and bail.
-            msg = "Custom config file '{}' is missing.".format(config_file)
+            msg = f"Custom config file '{config_file}' is missing."
             click.echo(msg)
 
         sys.exit(-1)

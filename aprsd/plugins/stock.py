@@ -1,8 +1,10 @@
 import logging
 import re
 
-from aprsd import plugin, trace
 import yfinance as yf
+
+from aprsd import plugin, trace
+
 
 LOG = logging.getLogger("APRSD")
 
@@ -30,7 +32,7 @@ class StockPlugin(plugin.APRSDMessagePluginBase):
             reply = "No stock symbol"
             return reply
 
-        LOG.info("Fetch stock quote for '{}'".format(stock_symbol))
+        LOG.info(f"Fetch stock quote for '{stock_symbol}'")
 
         try:
             stock = yf.Ticker(stock_symbol)
@@ -42,8 +44,8 @@ class StockPlugin(plugin.APRSDMessagePluginBase):
             )
         except Exception as e:
             LOG.error(
-                "Failed to fetch stock '{}' from yahoo '{}'".format(stock_symbol, e),
+                f"Failed to fetch stock '{stock_symbol}' from yahoo '{e}'",
             )
-            reply = "Failed to fetch stock '{}'".format(stock_symbol)
+            reply = f"Failed to fetch stock '{stock_symbol}'"
 
         return reply.rstrip()

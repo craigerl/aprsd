@@ -4,6 +4,7 @@ import subprocess
 
 from aprsd import plugin, trace
 
+
 LOG = logging.getLogger("APRSD")
 
 
@@ -45,7 +46,7 @@ class FortunePlugin(plugin.APRSDMessagePluginBase):
                 .replace("\t", " ")
             )
         except subprocess.CalledProcessError as ex:
-            reply = "Fortune command failed '{}'".format(ex.output)
+            reply = f"Fortune command failed '{ex.output}'"
         else:
             reply = output
 

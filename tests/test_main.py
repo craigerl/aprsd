@@ -3,6 +3,7 @@ import unittest
 
 from aprsd import email
 
+
 if sys.version_info >= (3, 2):
     from unittest import mock
 else:

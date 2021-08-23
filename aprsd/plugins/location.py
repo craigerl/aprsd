@@ -4,6 +4,7 @@ import time
 
 from aprsd import plugin, plugin_utils, trace, utils
 
+
 LOG = logging.getLogger("APRSD")
 
 
@@ -25,7 +26,7 @@ class LocationPlugin(plugin.APRSDMessagePluginBase):
         try:
             utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
         except Exception as ex:
-            LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
             return "No aprs.fi apikey found"
 
         api_key = self.config["services"]["aprs.fi"]["apiKey"]
@@ -42,10 +43,10 @@ class LocationPlugin(plugin.APRSDMessagePluginBase):
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
-            LOG.error("Failed to fetch aprs.fi '{}'".format(ex))
+            LOG.error(f"Failed to fetch aprs.fi '{ex}'")
             return "Failed to fetch aprs.fi location"
 
-        LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+        LOG.debug(f"LocationPlugin: aprs_data = {aprs_data}")
         if not len(aprs_data["entries"]):
             LOG.error("Didn't get any entries from aprs.fi")
             return "Failed to fetch aprs.fi location"
@@ -67,11 +68,11 @@ class LocationPlugin(plugin.APRSDMessagePluginBase):
         try:
             wx_data = plugin_utils.get_weather_gov_for_gps(lat, lon)
         except Exception as ex:
-            LOG.error("Couldn't fetch forecast.weather.gov '{}'".format(ex))
+            LOG.error(f"Couldn't fetch forecast.weather.gov '{ex}'")
             wx_data = {"location": {"areaDescription": "Unknown Location"}}
 
         if "location" not in wx_data:
-            LOG.error("Couldn't fetch forecast.weather.gov '{}'".format(wx_data))
+            LOG.error(f"Couldn't fetch forecast.weather.gov '{wx_data}'")
             wx_data = {"location": {"areaDescription": "Unknown Location"}}
 
         reply = "{}: {} {}' {},{} {}h ago".format(

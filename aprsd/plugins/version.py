@@ -3,6 +3,7 @@ import logging
 import aprsd
 from aprsd import plugin, stats, trace
 
+
 LOG = logging.getLogger("APRSD")
 
 

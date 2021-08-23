@@ -2,18 +2,16 @@ import logging
 import select
 import time
 
-import aprsd
-from aprsd import stats
 import aprslib
 from aprslib import is_py3
 from aprslib.exceptions import (
-    ConnectionDrop,
-    ConnectionError,
-    GenericError,
-    LoginError,
-    ParseError,
+    ConnectionDrop, ConnectionError, GenericError, LoginError, ParseError,
     UnknownFormat,
 )
+
+import aprsd
+from aprsd import stats
+
 
 LOG = logging.getLogger("APRSD")
 
@@ -67,15 +65,15 @@ class Client:
                 connected = True
                 backoff = 1
             except LoginError as e:
-                LOG.error("Failed to login to APRS-IS Server '{}'".format(e))
+                LOG.error(f"Failed to login to APRS-IS Server '{e}'")
                 connected = False
                 raise e
             except Exception as e:
-                LOG.error("Unable to connect to APRS-IS server. '{}' ".format(e))
+                LOG.error(f"Unable to connect to APRS-IS server. '{e}' ")
                 time.sleep(backoff)
                 backoff = backoff * 2
                 continue
-        LOG.debug("Logging in to APRS-IS with user '%s'" % user)
+        LOG.debug(f"Logging in to APRS-IS with user '{user}'")
         return aprs_client
 
 
@@ -99,7 +97,7 @@ class Aprsdis(aprslib.IS):
         try:
             self.sock.setblocking(0)
         except OSError as e:
-            self.logger.error("socket error when setblocking(0): %s" % str(e))
+            self.logger.error(f"socket error when setblocking(0): {str(e)}")
             raise aprslib.ConnectionDrop("connection dropped")
 
         while not self.thread_stop:
@@ -169,14 +167,14 @@ class Aprsdis(aprslib.IS):
             else:
                 server_string = e.replace("server ", "")
 
-            self.logger.info("Connected to {}".format(server_string))
+            self.logger.info(f"Connected to {server_string}")
             self.server_string = server_string
             stats.APRSDStats().set_aprsis_server(server_string)
 
             if callsign == "":
                 raise LoginError("Server responded with empty callsign???")
             if callsign != self.callsign:
-                raise LoginError("Server: %s" % test)
+                raise LoginError(f"Server: {test}")
             if status != "verified," and self.passwd != "-1":
                 raise LoginError("Password is incorrect")
 
@@ -191,7 +189,7 @@ class Aprsdis(aprslib.IS):
             raise
         except Exception as e:
             self.close()
-            self.logger.error("Failed to login '{}'".format(e))
+            self.logger.error(f"Failed to login '{e}'")
             raise LoginError("Failed to login")
 
     def consumer(self, callback, blocking=True, immortal=False, raw=False):

@@ -4,6 +4,8 @@
 #
 #    pip-compile dev-requirements.in
 #
+add-trailing-comma==2.1.0
+    # via gray
 alabaster==0.7.12
     # via sphinx
 appdirs==1.4.4
@@ -11,17 +13,19 @@ appdirs==1.4.4
     #   black
     #   virtualenv
 attrs==20.3.0
-    # via pytest
+    # via
+    #   jsonschema
+    #   pytest
+autoflake==1.4
+    # via gray
 babel==2.9.1
     # via sphinx
-black==21.4b2
-    # via -r dev-requirements.in
+black==21.7b0
+    # via gray
 bleach==3.3.0
     # via readme-renderer
 certifi==2020.12.5
     # via requests
-cffi==1.14.5
-    # via cryptography
 cfgv==3.2.0
     # via pre-commit
 chardet==4.0.0
@@ -32,26 +36,35 @@ click==7.1.2
     #   pip-tools
 colorama==0.4.4
     # via twine
+colorlog==6.4.1
+    # via prettylog
+configargparse==1.5.2
+    # via gray
 coverage==5.5
     # via pytest-cov
-cryptography==3.4.7
-    # via secretstorage
 distlib==0.3.1
     # via virtualenv
 docutils==0.16
     # via
     #   readme-renderer
     #   sphinx
+fast-json==0.3.2
+    # via prettylog
 filelock==3.0.12
     # via
     #   tox
     #   virtualenv
+fixit==0.1.4
+    # via gray
 flake8-polyfill==1.0.2
     # via pep8-naming
 flake8==3.9.1
     # via
     #   -r dev-requirements.in
+    #   fixit
     #   flake8-polyfill
+gray==0.10.1
+    # via -r dev-requirements.in
 identify==2.2.4
     # via pre-commit
 idna==2.10
@@ -62,18 +75,22 @@ importlib-metadata==4.0.1
     # via
     #   keyring
     #   twine
+importlib-resources==5.2.2
+    # via fixit
 iniconfig==1.1.1
     # via pytest
 isort==5.8.0
-    # via -r dev-requirements.in
-jeepney==0.6.0
     # via
-    #   keyring
-    #   secretstorage
+    #   -r dev-requirements.in
+    #   gray
 jinja2==2.11.3
     # via sphinx
+jsonschema==3.2.0
+    # via fixit
 keyring==23.0.1
     # via twine
+libcst==0.3.20
+    # via fixit
 markupsafe==1.1.1
     # via jinja2
 mccabe==0.6.1
@@ -82,6 +99,7 @@ mypy-extensions==0.4.3
     # via
     #   black
     #   mypy
+    #   typing-inspect
 mypy==0.812
     # via -r dev-requirements.in
 nodeenv==1.6.0
@@ -108,22 +126,26 @@ pluggy==0.13.1
     #   tox
 pre-commit==2.12.1
     # via -r dev-requirements.in
+prettylog==0.3.0
+    # via gray
 py==1.10.0
     # via
     #   pytest
     #   tox
 pycodestyle==2.7.0
     # via flake8
-pycparser==2.20
-    # via cffi
 pyflakes==2.3.1
-    # via flake8
+    # via
+    #   autoflake
+    #   flake8
 pygments==2.9.0
     # via
     #   readme-renderer
     #   sphinx
 pyparsing==2.4.7
     # via packaging
+pyrsistent==0.18.0
+    # via jsonschema
 pytest-cov==2.11.1
     # via -r dev-requirements.in
 pytest==6.2.3
@@ -132,8 +154,13 @@ pytest==6.2.3
     #   pytest-cov
 pytz==2021.1
     # via babel
+pyupgrade==2.24.0
+    # via gray
 pyyaml==5.4.1
-    # via pre-commit
+    # via
+    #   fixit
+    #   libcst
+    #   pre-commit
 readme-renderer==29.0
     # via twine
 regex==2021.4.4
@@ -147,11 +174,10 @@ requests==2.25.1
     #   twine
 rfc3986==1.4.0
     # via twine
-secretstorage==3.3.1
-    # via keyring
 six==1.15.0
     # via
     #   bleach
+    #   jsonschema
     #   readme-renderer
     #   tox
     #   virtualenv
@@ -171,13 +197,18 @@ sphinxcontrib-qthelp==1.0.3
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.4
     # via sphinx
+tokenize-rt==4.1.0
+    # via
+    #   add-trailing-comma
+    #   pyupgrade
 toml==0.10.2
     # via
-    #   black
     #   pep517
     #   pre-commit
     #   pytest
     #   tox
+tomli==1.2.1
+    # via black
 tox==3.23.0
     # via -r dev-requirements.in
 tqdm==4.60.0
@@ -187,7 +218,18 @@ twine==3.4.1
 typed-ast==1.4.3
     # via mypy
 typing-extensions==3.10.0.0
-    # via mypy
+    # via
+    #   libcst
+    #   mypy
+    #   typing-inspect
+typing-inspect==0.7.1
+    # via libcst
+ujson==4.1.0
+    # via fast-json
+unify==0.5
+    # via gray
+untokenize==0.1.1
+    # via unify
 urllib3==1.26.5
     # via requests
 virtualenv==20.4.4
@@ -197,7 +239,9 @@ virtualenv==20.4.4
 webencodings==0.5.1
     # via bleach
 zipp==3.4.1
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip

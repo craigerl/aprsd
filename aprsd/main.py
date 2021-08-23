@@ -30,24 +30,18 @@ import signal
 import sys
 import time
 
-# local imports here
-import aprsd
-from aprsd import (
-    client,
-    email,
-    flask,
-    messaging,
-    packets,
-    plugin,
-    stats,
-    threads,
-    trace,
-    utils,
-)
 import aprslib
 from aprslib.exceptions import LoginError
 import click
 import click_completion
+
+# local imports here
+import aprsd
+from aprsd import (
+    client, email, flask, messaging, packets, plugin, stats, threads, trace,
+    utils,
+)
+
 
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
@@ -90,7 +84,7 @@ Available shell types:
   %s
 Default type: auto
 """ % "\n  ".join(
-    "{:<12} {}".format(k, click_completion.core.shells[k])
+    f"{k:<12} {click_completion.core.shells[k]}"
     for k in sorted(click_completion.core.shells.keys())
 )
 
@@ -152,7 +146,7 @@ def install(append, case_insensitive, shell, path):
         append=append,
         extra_env=extra_env,
     )
-    click.echo("{} completion installed in {}".format(shell, path))
+    click.echo(f"{shell} completion installed in {path}")
 
 
 def signal_handler(sig, frame):
@@ -325,14 +319,14 @@ def send_message(
     messaging.CONFIG = config
 
     setup_logging(config, loglevel, quiet)
-    LOG.info("APRSD Started version: {}".format(aprsd.__version__))
+    LOG.info(f"APRSD Started version: {aprsd.__version__}")
     if type(command) is tuple:
         command = " ".join(command)
     if not quiet:
         if raw:
-            LOG.info("L'{}' R'{}'".format(aprs_login, raw))
+            LOG.info(f"L'{aprs_login}' R'{raw}'")
         else:
-            LOG.info("L'{}' To'{}' C'{}'".format(aprs_login, tocallsign, command))
+            LOG.info(f"L'{aprs_login}' To'{tocallsign}' C'{command}'")
 
     got_ack = False
     got_response = False
@@ -343,7 +337,7 @@ def send_message(
         resp = packet.get("response", None)
         if resp == "ack":
             ack_num = packet.get("msgNo")
-            LOG.info("We got ack for our sent message {}".format(ack_num))
+            LOG.info(f"We got ack for our sent message {ack_num}")
             messaging.log_packet(packet)
             got_ack = True
         else:
@@ -471,15 +465,15 @@ def server(
         LOG.warning(msg)
     else:
         LOG.info(msg)
-    LOG.info("APRSD Started version: {}".format(aprsd.__version__))
+    LOG.info(f"APRSD Started version: {aprsd.__version__}")
 
     flat_config = utils.flatten_dict(config)
     LOG.info("Using CONFIG values:")
     for x in flat_config:
         if "password" in x or "aprsd.web.users.admin" in x:
-            LOG.info("{} = XXXXXXXXXXXXXXXXXXX".format(x))
+            LOG.info(f"{x} = XXXXXXXXXXXXXXXXXXX")
         else:
-            LOG.info("{} = {}".format(x, flat_config[x]))
+            LOG.info(f"{x} = {flat_config[x]}")
 
     if config["aprsd"].get("trace", False):
         trace.setup_tracing(["method", "api"])

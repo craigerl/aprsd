@@ -11,6 +11,7 @@ import threading
 import pluggy
 from thesmuggler import smuggle
 
+
 # setup the global logger
 LOG = logging.getLogger("APRSD")
 
@@ -40,7 +41,6 @@ class APRSDCommandSpec:
     @hookspec
     def run(self, packet):
         """My special little hook that you can customize."""
-        pass
 
 
 class APRSDNotificationPluginBase(metaclass=abc.ABCMeta):
@@ -70,7 +70,6 @@ class APRSDNotificationPluginBase(metaclass=abc.ABCMeta):
 
         This will get called when a packet is seen by a callsign
         registered in the watch list in the config file."""
-        pass
 
 
 class APRSDMessagePluginBase(metaclass=abc.ABCMeta):
@@ -119,7 +118,6 @@ class APRSDMessagePluginBase(metaclass=abc.ABCMeta):
         To reply with a message over the air, return a string
         to send.
         """
-        pass
 
 
 class PluginManager:
@@ -152,7 +150,7 @@ class PluginManager:
 
     def load_plugins_from_path(self, module_path):
         if not os.path.exists(module_path):
-            LOG.error("plugin path '{}' doesn't exist.".format(module_path))
+            LOG.error(f"plugin path '{module_path}' doesn't exist.")
             return None
 
         dir_path = os.path.realpath(module_path)
@@ -163,8 +161,8 @@ class PluginManager:
         for path, _subdirs, files in os.walk(dir_path):
             for name in files:
                 if fnmatch.fnmatch(name, pattern):
-                    LOG.debug("MODULE? '{}' '{}'".format(name, path))
-                    module = smuggle("{}/{}".format(path, name))
+                    LOG.debug(f"MODULE? '{name}' '{path}'")
+                    module = smuggle(f"{path}/{name}")
                     for mem_name, obj in inspect.getmembers(module):
                         if inspect.isclass(obj) and self.is_plugin(obj):
                             self.obj_list.append(
@@ -196,7 +194,7 @@ class PluginManager:
             module = importlib.import_module(module_name)
             module = importlib.reload(module)
         except Exception as ex:
-            LOG.error("Failed to load Plugin '{}' : '{}'".format(module_name, ex))
+            LOG.error(f"Failed to load Plugin '{module_name}' : '{ex}'")
             return
 
         assert hasattr(module, class_name), "class {} is not in {}".format(
@@ -238,7 +236,7 @@ class PluginManager:
                 )
                 self._pluggy_msg_pm.register(plugin_obj)
         except Exception as ex:
-            LOG.exception("Couldn't load plugin '{}'".format(plugin_name), ex)
+            LOG.exception(f"Couldn't load plugin '{plugin_name}'", ex)
 
     def _load_notify_plugin(self, plugin_name):
         """
@@ -262,7 +260,7 @@ class PluginManager:
                 )
                 self._pluggy_notify_pm.register(plugin_obj)
         except Exception as ex:
-            LOG.exception("Couldn't load plugin '{}'".format(plugin_name), ex)
+            LOG.exception(f"Couldn't load plugin '{plugin_name}'", ex)
 
     def reload_plugins(self):
         with self.lock:

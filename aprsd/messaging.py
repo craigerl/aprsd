@@ -11,6 +11,7 @@ import time
 
 from aprsd import client, stats, threads, trace, utils
 
+
 LOG = logging.getLogger("APRSD")
 
 # What to return from a plugin if we have processed the message
@@ -81,7 +82,7 @@ class MsgTrack:
         with self.lock:
             result = "{"
             for key in self.track.keys():
-                result += "{}: {}, ".format(key, str(self.track[key]))
+                result += f"{key}: {str(self.track[key])}, "
             result += "}"
             return result
 
@@ -105,9 +106,9 @@ class MsgTrack:
 
     def save(self):
         """Save any queued to disk?"""
-        LOG.debug("Save tracker to disk? {}".format(len(self)))
+        LOG.debug(f"Save tracker to disk? {len(self)}")
         if len(self) > 0:
-            LOG.info("Saving {} tracking messages to disk".format(len(self)))
+            LOG.info(f"Saving {len(self)} tracking messages to disk")
             pickle.dump(self.dump(), open(utils.DEFAULT_SAVE_FILE, "wb+"))
         else:
             LOG.debug(
@@ -239,7 +240,6 @@ class Message(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def send(self):
         """Child class must declare."""
-        pass
 
 
 class RawMessage(Message):
@@ -348,7 +348,7 @@ class TextMessage(Message):
     def send(self):
         tracker = MsgTrack()
         tracker.add(self)
-        LOG.debug("Length of MsgTrack is {}".format(len(tracker)))
+        LOG.debug(f"Length of MsgTrack is {len(tracker)}")
         thread = SendMessageThread(message=self)
         thread.start()
 
@@ -370,7 +370,7 @@ class SendMessageThread(threads.APRSDThread):
     def __init__(self, message):
         self.msg = message
         name = self.msg.message[:5]
-        super().__init__("SendMessage-{}-{}".format(self.msg.id, name))
+        super().__init__(f"SendMessage-{self.msg.id}-{name}")
 
     def loop(self):
         """Loop until a message is acked or it gets delayed.
@@ -463,7 +463,7 @@ class AckMessage(Message):
         )
 
     def send(self):
-        LOG.debug("Send ACK({}:{}) to radio.".format(self.tocall, self.id))
+        LOG.debug(f"Send ACK({self.tocall}:{self.id}) to radio.")
         thread = SendAckThread(self)
         thread.start()
 
@@ -486,7 +486,7 @@ class AckMessage(Message):
 class SendAckThread(threads.APRSDThread):
     def __init__(self, ack):
         self.ack = ack
-        super().__init__("SendAck-{}".format(self.ack.id))
+        super().__init__(f"SendAck-{self.ack.id}")
 
     @trace.trace
     def loop(self):
@@ -511,7 +511,7 @@ class SendAckThread(threads.APRSDThread):
                 # It's time to try to send it again
                 send_now = True
             else:
-                LOG.debug("Still wating. {}".format(delta))
+                LOG.debug(f"Still wating. {delta}")
         else:
             send_now = True
 
@@ -555,16 +555,8 @@ def log_packet(packet):
 
 
 def log_message(
-    header,
-    raw,
-    message,
-    tocall=None,
-    fromcall=None,
-    msg_num=None,
-    retry_number=None,
-    ack=None,
-    packet_type=None,
-    uuid=None,
+    header, raw, message, tocall=None, fromcall=None, msg_num=None,
+    retry_number=None, ack=None, packet_type=None, uuid=None,
 ):
     """
 
@@ -581,36 +573,36 @@ def log_message(
     log_list = [""]
     if retry_number:
         # LOG.info("    {} _______________(TX:{})".format(header, retry_number))
-        log_list.append("    {} _______________(TX:{})".format(header, retry_number))
+        log_list.append(f"    {header} _______________(TX:{retry_number})")
     else:
         # LOG.info("    {} _______________".format(header))
-        log_list.append("    {} _______________".format(header))
+        log_list.append(f"    {header} _______________")
 
     # LOG.info("    Raw         : {}".format(raw))
-    log_list.append("    Raw         : {}".format(raw))
+    log_list.append(f"    Raw         : {raw}")
 
     if packet_type:
         # LOG.info("    Packet      : {}".format(packet_type))
-        log_list.append("    Packet      : {}".format(packet_type))
+        log_list.append(f"    Packet      : {packet_type}")
     if tocall:
         # LOG.info("    To          : {}".format(tocall))
-        log_list.append("    To          : {}".format(tocall))
+        log_list.append(f"    To          : {tocall}")
     if fromcall:
         # LOG.info("    From        : {}".format(fromcall))
-        log_list.append("    From        : {}".format(fromcall))
+        log_list.append(f"    From        : {fromcall}")
 
     if ack:
         # LOG.info("    Ack         : {}".format(ack))
-        log_list.append("    Ack         : {}".format(ack))
+        log_list.append(f"    Ack         : {ack}")
     else:
         # LOG.info("    Message     : {}".format(message))
-        log_list.append("    Message     : {}".format(message))
+        log_list.append(f"    Message     : {message}")
     if msg_num:
         # LOG.info("    Msg number  : {}".format(msg_num))
-        log_list.append("    Msg number  : {}".format(msg_num))
+        log_list.append(f"    Msg number  : {msg_num}")
     if uuid:
-        log_list.append("    UUID        : {}".format(uuid))
+        log_list.append(f"    UUID        : {uuid}")
     # LOG.info("    {} _______________ Complete".format(header))
-    log_list.append("    {} _______________ Complete".format(header))
+    log_list.append(f"    {header} _______________ Complete")
 
     LOG.info("\n".join(log_list))

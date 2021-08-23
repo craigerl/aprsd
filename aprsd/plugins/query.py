@@ -4,6 +4,7 @@ import re
 
 from aprsd import messaging, plugin, trace
 
+
 LOG = logging.getLogger("APRSD")
 
 

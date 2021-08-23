@@ -6,8 +6,10 @@ import threading
 import time
 import tracemalloc
 
-from aprsd import client, messaging, packets, plugin, stats, utils
 import aprslib
+
+from aprsd import client, messaging, packets, plugin, stats, utils
+
 
 LOG = logging.getLogger("APRSD")
 
@@ -214,7 +216,7 @@ class APRSDRXThread(APRSDThread):
 
     def process_ack_packet(self, packet):
         ack_num = packet.get("msgNo")
-        LOG.info("Got ack for message {}".format(ack_num))
+        LOG.info(f"Got ack for message {ack_num}")
         messaging.log_message(
             "ACK",
             packet["raw"],
@@ -257,7 +259,7 @@ class APRSDRXThread(APRSDThread):
                     # one of the plugins wants to send multiple messages
                     found_command = True
                     for subreply in reply:
-                        LOG.debug("Sending '{}'".format(subreply))
+                        LOG.debug(f"Sending '{subreply}'")
 
                         msg = messaging.TextMessage(
                             self.config["aprs"]["login"],
@@ -272,7 +274,7 @@ class APRSDRXThread(APRSDThread):
                     # us that they processed the message correctly, but have
                     # nothing to reply with, so we avoid replying with a usage string
                     if reply is not messaging.NULL_MESSAGE:
-                        LOG.debug("Sending '{}'".format(reply))
+                        LOG.debug(f"Sending '{reply}'")
 
                         msg = messaging.TextMessage(
                             self.config["aprs"]["login"],

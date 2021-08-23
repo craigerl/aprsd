@@ -5,6 +5,7 @@ import logging
 import time
 import types
 
+
 VALID_TRACE_FLAGS = {"method", "api"}
 TRACE_API = False
 TRACE_METHOD = False
@@ -154,8 +155,6 @@ class TraceWrapperMetaclass(type):
 
 class TraceWrapperWithABCMetaclass(abc.ABCMeta, TraceWrapperMetaclass):
     """Metaclass that wraps all methods of a class with trace."""
-
-    pass
 
 
 def setup_tracing(trace_flags):

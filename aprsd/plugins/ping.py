@@ -3,6 +3,7 @@ import time
 
 from aprsd import plugin, trace
 
+
 LOG = logging.getLogger("APRSD")
 
 

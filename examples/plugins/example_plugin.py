@@ -2,6 +2,7 @@ import logging
 
 from aprsd import plugin
 
+
 LOG = logging.getLogger("APRSD")
 
 
@@ -15,5 +16,5 @@ class HelloPlugin(plugin.APRSDPluginBase):
 
     def command(self, fromcall, message, ack):
         LOG.info("HelloPlugin")
-        reply = "Hello '{}'".format(fromcall)
+        reply = f"Hello '{fromcall}'"
         return reply

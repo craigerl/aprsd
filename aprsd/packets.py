@@ -5,6 +5,7 @@ import time
 
 from aprsd import utils
 
+
 LOG = logging.getLogger("APRSD")
 
 PACKET_TYPE_MESSAGE = "message"

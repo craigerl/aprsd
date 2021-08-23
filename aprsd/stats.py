@@ -5,6 +5,7 @@ import threading
 import aprsd
 from aprsd import packets, plugin, utils
 
+
 LOG = logging.getLogger("APRSD")
 
 

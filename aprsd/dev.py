@@ -9,11 +9,13 @@ from logging.handlers import RotatingFileHandler
 import os
 import sys
 
+import click
+import click_completion
+
 # local imports here
 import aprsd
 from aprsd import client, email, plugin, utils
-import click
-import click_completion
+
 
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
@@ -48,7 +50,7 @@ Available shell types:
   %s
 Default type: auto
 """ % "\n  ".join(
-    "{:<12} {}".format(k, click_completion.core.shells[k])
+    f"{k:<12} {click_completion.core.shells[k]}"
     for k in sorted(click_completion.core.shells.keys())
 )
 
@@ -110,7 +112,7 @@ def install(append, case_insensitive, shell, path):
         append=append,
         extra_env=extra_env,
     )
-    click.echo("{} completion installed in {}".format(shell, path))
+    click.echo(f"{shell} completion installed in {path}")
 
 
 # Setup the logging faciility
@@ -180,10 +182,10 @@ def test_plugin(
     email.CONFIG = config
 
     setup_logging(config, loglevel, False)
-    LOG.info("Test APRSD PLugin version: {}".format(aprsd.__version__))
+    LOG.info(f"Test APRSD PLugin version: {aprsd.__version__}")
     if type(message) is tuple:
         message = " ".join(message)
-    LOG.info("P'{}'  F'{}'   C'{}'".format(plugin_path, fromcall, message))
+    LOG.info(f"P'{plugin_path}'  F'{fromcall}'   C'{message}'")
     client.Client(config)
 
     pm = plugin.PluginManager(config)
@@ -192,7 +194,7 @@ def test_plugin(
     packet = {"from": fromcall, "message_text": message, "msgNo": 1}
 
     reply = obj.run(packet)
-    LOG.info("Result = '{}'".format(reply))
+    LOG.info(f"Result = '{reply}'")
 
 
 if __name__ == "__main__":

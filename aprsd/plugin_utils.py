@@ -4,11 +4,12 @@ import logging
 
 import requests
 
+
 LOG = logging.getLogger("APRSD")
 
 
 def get_aprs_fi(api_key, callsign):
-    LOG.debug("Fetch aprs.fi location for '{}'".format(callsign))
+    LOG.debug(f"Fetch aprs.fi location for '{callsign}'")
     try:
         url = (
             "http://api.aprs.fi/api/get?"
@@ -24,13 +25,13 @@ def get_aprs_fi(api_key, callsign):
 
 
 def get_weather_gov_for_gps(lat, lon):
-    LOG.debug("Fetch station at {}, {}".format(lat, lon))
+    LOG.debug(f"Fetch station at {lat}, {lon}")
     try:
         url2 = (
             "https://forecast.weather.gov/MapClick.php?lat=%s"
             "&lon=%s&FcstType=json" % (lat, lon)
         )
-        LOG.debug("Fetching weather '{}'".format(url2))
+        LOG.debug(f"Fetching weather '{url2}'")
         response = requests.get(url2)
     except Exception as e:
         LOG.error(e)
@@ -41,7 +42,7 @@ def get_weather_gov_for_gps(lat, lon):
 
 
 def get_weather_gov_metar(station):
-    LOG.debug("Fetch metar for station '{}'".format(station))
+    LOG.debug(f"Fetch metar for station '{station}'")
     try:
         url = "https://api.weather.gov/stations/{}/observations/latest".format(
             station,
@@ -55,7 +56,7 @@ def get_weather_gov_metar(station):
 
 
 def fetch_openweathermap(api_key, lat, lon, units="metric", exclude=None):
-    LOG.debug("Fetch openweathermap for {}, {}".format(lat, lon))
+    LOG.debug(f"Fetch openweathermap for {lat}, {lon}")
     if not exclude:
         exclude = "minutely,hourly,daily,alerts"
     try:

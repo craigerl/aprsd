@@ -2,9 +2,11 @@ import logging
 import re
 import time
 
-from aprsd import fuzzyclock, plugin, plugin_utils, trace, utils
 from opencage.geocoder import OpenCageGeocode
 import pytz
+
+from aprsd import fuzzyclock, plugin, plugin_utils, trace, utils
+
 
 LOG = logging.getLogger("APRSD")
 
@@ -64,7 +66,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
         try:
             utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
         except Exception as ex:
-            LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
             return "No aprs.fi apikey found"
 
         api_key = self.config["services"]["aprs.fi"]["apiKey"]
@@ -81,7 +83,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
-            LOG.error("Failed to fetch aprs.fi data {}".format(ex))
+            LOG.error(f"Failed to fetch aprs.fi data {ex}")
             return "Failed to fetch location"
 
         # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
@@ -95,7 +97,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
         try:
             utils.check_config_option(self.config, "opencagedata", "apiKey")
         except Exception as ex:
-            LOG.error("Failed to find config opencage:apiKey {}".format(ex))
+            LOG.error(f"Failed to find config opencage:apiKey {ex}")
             return "No opencage apiKey found"
 
         try:
@@ -103,7 +105,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
             geocoder = OpenCageGeocode(opencage_key)
             results = geocoder.reverse_geocode(lat, lon)
         except Exception as ex:
-            LOG.error("Couldn't fetch opencagedata api '{}'".format(ex))
+            LOG.error(f"Couldn't fetch opencagedata api '{ex}'")
             # Default to UTC instead
             localzone = pytz.timezone("UTC")
         else:
@@ -130,7 +132,7 @@ class TimeOWMPlugin(TimePlugin):
         try:
             utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
         except Exception as ex:
-            LOG.error("Failed to find config aprs.fi:apikey {}".format(ex))
+            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
             return "No aprs.fi apikey found"
 
         # optional second argument is a callsign to search
@@ -146,10 +148,10 @@ class TimeOWMPlugin(TimePlugin):
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
-            LOG.error("Failed to fetch aprs.fi data {}".format(ex))
+            LOG.error(f"Failed to fetch aprs.fi data {ex}")
             return "Failed to fetch location"
 
-        LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+        LOG.debug(f"LocationPlugin: aprs_data = {aprs_data}")
         if not len(aprs_data["entries"]):
             LOG.error("Didn't get any entries from aprs.fi")
             return "Failed to fetch aprs.fi location"
@@ -163,14 +165,14 @@ class TimeOWMPlugin(TimePlugin):
                 ["services", "openweathermap", "apiKey"],
             )
         except Exception as ex:
-            LOG.error("Failed to find config openweathermap:apiKey {}".format(ex))
+            LOG.error(f"Failed to find config openweathermap:apiKey {ex}")
             return "No openweathermap apiKey found"
 
         api_key = self.config["services"]["openweathermap"]["apiKey"]
         try:
             results = plugin_utils.fetch_openweathermap(api_key, lat, lon)
         except Exception as ex:
-            LOG.error("Couldn't fetch openweathermap api '{}'".format(ex))
+            LOG.error(f"Couldn't fetch openweathermap api '{ex}'")
             # default to UTC
             localzone = pytz.timezone("UTC")
         else:

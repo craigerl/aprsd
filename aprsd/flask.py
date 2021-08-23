@@ -5,12 +5,14 @@ from logging import NullHandler
 from logging.handlers import RotatingFileHandler
 import sys
 
-import aprsd
-from aprsd import messaging, packets, plugin, stats, utils
 import flask
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash, generate_password_hash
+
+import aprsd
+from aprsd import messaging, packets, plugin, stats, utils
+
 
 LOG = logging.getLogger("APRSD")
 

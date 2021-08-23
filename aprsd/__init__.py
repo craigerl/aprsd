@@ -12,4 +12,5 @@
 
 import pbr.version
 
+
 __version__ = pbr.version.VersionInfo("aprsd").version_string()

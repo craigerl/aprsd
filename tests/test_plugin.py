@@ -1,6 +1,8 @@
 import unittest
 from unittest import mock
 
+import pytz
+
 import aprsd
 from aprsd import messaging, stats, utils
 from aprsd.fuzzyclock import fuzzy
@@ -9,7 +11,6 @@ from aprsd.plugins import ping as ping_plugin
 from aprsd.plugins import query as query_plugin
 from aprsd.plugins import time as time_plugin
 from aprsd.plugins import version as version_plugin
-import pytz
 
 
 class TestPlugin(unittest.TestCase):
@@ -171,7 +172,7 @@ class TestPlugin(unittest.TestCase):
 
     @mock.patch("aprsd.plugin.PluginManager.get_msg_plugins")
     def test_version(self, mock_get_plugins):
-        expected = "APRSD ver:{} uptime:0:0:0".format(aprsd.__version__)
+        expected = f"APRSD ver:{aprsd.__version__} uptime:0:0:0"
         version = version_plugin.VersionPlugin(self.config)
 
         packet = self.fake_packet(

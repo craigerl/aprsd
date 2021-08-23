@@ -13,12 +13,14 @@ import os
 import re
 import sys
 
-# local imports here
-import aprsd
-from aprsd import utils
 import click
 import click_completion
 import requests
+
+# local imports here
+import aprsd
+from aprsd import utils
+
 
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
@@ -53,7 +55,7 @@ Available shell types:
   %s
 Default type: auto
 """ % "\n  ".join(
-    "{:<12} {}".format(k, click_completion.core.shells[k])
+    f"{k:<12} {click_completion.core.shells[k]}"
     for k in sorted(click_completion.core.shells.keys())
 )
 
@@ -115,7 +117,7 @@ def install(append, case_insensitive, shell, path):
         append=append,
         extra_env=extra_env,
     )
-    click.echo("{} completion installed in {}".format(shell, path))
+    click.echo(f"{shell} completion installed in {path}")
 
 
 # Setup the logging faciility
@@ -192,14 +194,14 @@ def check(loglevel, config_file, health_url, timeout):
     config = utils.parse_config(config_file)
 
     setup_logging(config, loglevel, False)
-    LOG.debug("APRSD HealthCheck version: {}".format(aprsd.__version__))
+    LOG.debug(f"APRSD HealthCheck version: {aprsd.__version__}")
 
     try:
         url = health_url
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
     except Exception as ex:
-        LOG.error("Failed to fetch healthcheck url '{}' : '{}'".format(url, ex))
+        LOG.error(f"Failed to fetch healthcheck url '{url}' : '{ex}'")
         sys.exit(-1)
     else:
         stats = json.loads(response.text)
@@ -212,7 +214,7 @@ def check(loglevel, config_file, health_url, timeout):
         max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
         max_delta = datetime.timedelta(**max_timeout)
         if d > max_delta:
-            LOG.error("Email thread is very old! {}".format(d))
+            LOG.error(f"Email thread is very old! {d}")
             sys.exit(-1)
 
         aprsis_last_update = stats["stats"]["aprs-is"]["last_update"]
@@ -221,7 +223,7 @@ def check(loglevel, config_file, health_url, timeout):
         max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
         max_delta = datetime.timedelta(**max_timeout)
         if d > max_delta:
-            LOG.error("APRS-IS last update is very old! {}".format(d))
+            LOG.error(f"APRS-IS last update is very old! {d}")
             sys.exit(-1)
 
         sys.exit(0)

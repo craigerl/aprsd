@@ -4,6 +4,7 @@ import time
 
 from aprsd import email, messaging, plugin, trace
 
+
 LOG = logging.getLogger("APRSD")
 
 
@@ -68,11 +69,11 @@ class EmailPlugin(plugin.APRSDMessagePluginBase):
                         if timedelta < 300:  # five minutes
                             too_soon = 1
                     if not too_soon or ack == 0:
-                        LOG.info("Send email '{}'".format(content))
+                        LOG.info(f"Send email '{content}'")
                         send_result = email.send_email(to_addr, content)
                         reply = messaging.NULL_MESSAGE
                         if send_result != 0:
-                            reply = "-{} failed".format(to_addr)
+                            reply = f"-{to_addr} failed"
                             # messaging.send_message(fromcall, "-" + to_addr + " failed")
                         else:
                             # clear email sent dictionary if somehow goes over 100
