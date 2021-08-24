@@ -545,15 +545,8 @@ def log_packet(packet):
     ack = packet.get("ack", None)
 
     log_message(
-        "Packet",
-        packet["raw"],
-        msg,
-        fromcall=fromcall,
-        tocall=tocall,
-        ack=ack,
-        packet_type=response_type,
-        msg_num=msg_num,
-    )
+        "Packet", packet["raw"], msg, fromcall=fromcall, tocall=tocall,
+        ack=ack, packet_type=response_type, msg_num=msg_num, )
 
 
 def log_message(

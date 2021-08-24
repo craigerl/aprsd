@@ -394,8 +394,11 @@ def human_size(bytes, units=None):
     return str(bytes) + units[0] if bytes < 1024 else human_size(bytes >> 10, units[1:])
 
 
-def strfdelta(tdelta, fmt="{hours}:{minutes}:{seconds}"):
-    d = {"days": tdelta.days}
+def strfdelta(tdelta, fmt="{hours:{width}}:{minutes:{width}}:{seconds:{width}}"):
+    d = {
+        "days": tdelta.days,
+        "width": "02",
+    }
     d["hours"], rem = divmod(tdelta.seconds, 3600)
     d["minutes"], d["seconds"] = divmod(rem, 60)
     return fmt.format(**d)
@@ -459,6 +462,9 @@ class RingBuffer:
         def get(self):
             """return list of elements in correct order"""
             return self.data[self.cur :] + self.data[: self.cur]
+
+        def __len__(self):
+            return len(self.data)
 
     def append(self, x):
         """append an element at the end of the buffer"""

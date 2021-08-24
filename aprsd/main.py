@@ -157,7 +157,7 @@ def signal_handler(sig, frame):
                 datetime.datetime.now(),
             ),
         )
-        time.sleep(5)
+        time.sleep(1.5)
         tracker = messaging.MsgTrack()
         tracker.save()
         LOG.info(stats.APRSDStats())
@@ -458,14 +458,15 @@ def server(
         trace.setup_tracing(["method", "api"])
     stats.APRSDStats(config)
 
-    # Create the initial PM singleton and Register plugins
-    plugin_manager = plugin.PluginManager(config)
-    plugin_manager.setup_plugins()
     try:
         cl = client.Client(config)
         cl.client
     except LoginError:
         sys.exit(-1)
+
+    # Create the initial PM singleton and Register plugins
+    plugin_manager = plugin.PluginManager(config)
+    plugin_manager.setup_plugins()
 
     # Now load the msgTrack from disk if any
     if flush:
@@ -498,7 +499,7 @@ def server(
 
     messaging.MsgTrack().restart()
 
-    keepalive = threads.KeepAliveThread()
+    keepalive = threads.KeepAliveThread(config=config)
     keepalive.start()
 
     try:

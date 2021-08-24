@@ -52,6 +52,7 @@ class APRSDThreadList:
         """Iterate over all threads and call stop on them."""
         with self.lock:
             for th in self.threads_list:
+                LOG.debug(f"Stopping Thread {th.name}")
                 th.stop()
 
 
@@ -82,15 +83,16 @@ class KeepAliveThread(APRSDThread):
     cntr = 0
     checker_time = datetime.datetime.now()
 
-    def __init__(self):
+    def __init__(self, config):
         tracemalloc.start()
         super().__init__("KeepAlive")
+        self.config = config
 
     def loop(self):
         if self.cntr % 6 == 0:
             tracker = messaging.MsgTrack()
             stats_obj = stats.APRSDStats()
-            packets_list = packets.PacketList().packet_list
+            pl = packets.PacketList()
             now = datetime.datetime.now()
             last_email = stats_obj.email_thread_time
             if last_email:
@@ -104,21 +106,22 @@ class KeepAliveThread(APRSDThread):
             stats_obj.set_memory(current)
             stats_obj.set_memory_peak(peak)
             keepalive = (
-                "Uptime {} Tracker {} Msgs TX:{} RX:{} "
-                "Last:{} Email:{} Packets:{} RAM Current:{} "
-                "Peak:{}"
+                "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
+                "Last:{} Email: {} - RAM Current:{} Peak:{}"
             ).format(
+                self.config["aprs"]["login"],
                 utils.strfdelta(stats_obj.uptime),
+                pl.total_recv,
+                pl.total_tx,
                 len(tracker),
                 stats_obj.msgs_tx,
                 stats_obj.msgs_rx,
                 last_msg_time,
                 email_thread_time,
-                len(packets_list),
                 utils.human_size(current),
                 utils.human_size(peak),
             )
-            LOG.debug(keepalive)
+            LOG.info(keepalive)
             # Check version every hour
             delta = now - self.checker_time
             if delta > datetime.timedelta(hours=1):
@@ -127,7 +130,7 @@ class KeepAliveThread(APRSDThread):
                 if level:
                     LOG.warning(msg)
         self.cntr += 1
-        time.sleep(10)
+        time.sleep(1)
         return True
 
 
@@ -143,23 +146,6 @@ class APRSDRXThread(APRSDThread):
 
     def loop(self):
         aprs_client = client.get_client()
-
-        # if we have a watch list enabled, we need to add filtering
-        # to enable seeing packets from the watch list.
-        if "watch_list" in self.config["aprsd"] and self.config["aprsd"][
-            "watch_list"
-        ].get("enabled", False):
-            # watch list is enabled
-            watch_list = self.config["aprsd"]["watch_list"].get(
-                "callsigns",
-                [],
-            )
-            # make sure the timeout is set or this doesn't work
-            if watch_list:
-                filter_str = "p/{}".format("/".join(watch_list))
-                aprs_client.set_filter(filter_str)
-            else:
-                LOG.warning("Watch list enabled, but no callsigns set.")
 
         # setup the consumer of messages and block until a messages
         try:
@@ -202,14 +188,13 @@ class APRSDRXThread(APRSDThread):
     def process_packet(self, packet):
         """Process a packet recieved from aprs-is server."""
         packets.PacketList().add(packet)
-        stats.APRSDStats().msgs_rx_inc()
 
         fromcall = packet["from"]
         tocall = packet.get("addresse", None)
         msg = packet.get("message_text", None)
         msg_id = packet.get("msgNo", "0")
         msg_response = packet.get("response", None)
-        LOG.debug(f"Got packet from '{fromcall}' - {packet}")
+        # LOG.debug(f"Got packet from '{fromcall}' - {packet}")
 
         # We don't put ack packets destined for us through the
         # plugins.
@@ -228,6 +213,7 @@ class APRSDRXThread(APRSDThread):
 
             # Only ack messages that were sent directly to us
             if tocall == self.config["aprs"]["login"]:
+                stats.APRSDStats().msgs_rx_inc()
                 # let any threads do their thing, then ack
                 # send an ack last
                 ack = messaging.AckMessage(
@@ -240,7 +226,6 @@ class APRSDRXThread(APRSDThread):
             pm = plugin.PluginManager()
             try:
                 results = pm.run(packet)
-                LOG.debug(f"RESULTS {results}")
                 replied = False
                 for reply in results:
                     if isinstance(reply, list):
@@ -306,7 +291,7 @@ class APRSDTXThread(APRSDThread):
 
     def loop(self):
         try:
-            msg = self.msg_queues["tx"].get(timeout=5)
+            msg = self.msg_queues["tx"].get(timeout=1)
             msg.send()
         except queue.Empty:
             pass

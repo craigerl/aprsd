@@ -11,7 +11,7 @@ import threading
 import pluggy
 from thesmuggler import smuggle
 
-from aprsd import messaging, packets, threads
+from aprsd import client, messaging, packets, threads
 
 
 # setup the global logger
@@ -137,6 +137,27 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
     by a particular HAM callsign, write a plugin based off of
     this class.
     """
+    enabled = False
+
+    def setup(self):
+        # if we have a watch list enabled, we need to add filtering
+        # to enable seeing packets from the watch list.
+        if "watch_list" in self.config["aprsd"] and self.config["aprsd"][
+            "watch_list"
+        ].get("enabled", False):
+            # watch list is enabled
+            self.enabled = True
+            watch_list = self.config["aprsd"]["watch_list"].get(
+                "callsigns",
+                [],
+            )
+            # make sure the timeout is set or this doesn't work
+            if watch_list:
+                aprs_client = client.get_client()
+                filter_str = "b/{}".format("/".join(watch_list))
+                aprs_client.set_filter(filter_str)
+            else:
+                LOG.warning("Watch list enabled, but no callsigns set.")
 
     def filter(self, packet):
         wl = packets.WatchList()
