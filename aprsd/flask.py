@@ -61,6 +61,10 @@ class APRSDFlask(flask_classful.FlaskView):
             watch_count = 0
             watch_age = 0
 
+        pm = plugin.PluginManager()
+        plugins = pm.get_plugins()
+        plugin_count = len(plugins)
+
         return flask.render_template(
             "index.html",
             initial_stats=stats,
@@ -69,6 +73,7 @@ class APRSDFlask(flask_classful.FlaskView):
             config_json=json.dumps(self.config),
             watch_count=watch_count,
             watch_age=watch_age,
+            plugin_count=plugin_count,
         )
 
     @auth.login_required

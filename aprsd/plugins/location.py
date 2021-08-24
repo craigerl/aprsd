@@ -8,7 +8,7 @@ from aprsd import plugin, plugin_utils, trace, utils
 LOG = logging.getLogger("APRSD")
 
 
-class LocationPlugin(plugin.APRSDMessagePluginBase):
+class LocationPlugin(plugin.APRSDRegexCommandPluginBase):
     """Location!"""
 
     version = "1.0"
@@ -16,7 +16,7 @@ class LocationPlugin(plugin.APRSDMessagePluginBase):
     command_name = "location"
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         LOG.info("Location Plugin")
         fromcall = packet.get("from")
         message = packet.get("message_text", None)

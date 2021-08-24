@@ -8,7 +8,7 @@ from aprsd import plugin, trace
 LOG = logging.getLogger("APRSD")
 
 
-class FortunePlugin(plugin.APRSDMessagePluginBase):
+class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
     """Fortune."""
 
     version = "1.0"
@@ -16,7 +16,7 @@ class FortunePlugin(plugin.APRSDMessagePluginBase):
     command_name = "fortune"
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         LOG.info("FortunePlugin")
 
         # fromcall = packet.get("from")

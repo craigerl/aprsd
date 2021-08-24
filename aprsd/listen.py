@@ -294,7 +294,7 @@ def listen(
 
     # TODO(walt) - manually edit this list
     # prior to running aprsd-listen listen
-    watch_list = []
+    watch_list = ["k*"]
 
     # build last seen list
     last_seen = {}

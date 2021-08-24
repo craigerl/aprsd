@@ -27,7 +27,7 @@ class PacketList:
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.packet_list = utils.RingBuffer(100)
+            cls._instance.packet_list = utils.RingBuffer(1000)
             cls._instance.lock = threading.Lock()
         return cls._instance
 
@@ -42,7 +42,10 @@ class PacketList:
     def add(self, packet):
         with self.lock:
             packet["ts"] = time.time()
-            if "from" in packet and packet["from"] == self.config["aprs"]["login"]:
+            if (
+                "fromcall" in packet
+                and packet["fromcall"] == self.config["aprs"]["login"]
+            ):
                 self.total_tx += 1
             else:
                 self.total_recv += 1
@@ -53,10 +56,12 @@ class PacketList:
             return self.packet_list.get()
 
     def total_received(self):
-        return self.total_recv
+        with self.lock:
+            return self.total_recv
 
     def total_sent(self):
-        return self.total_tx
+        with self.lock:
+            return self.total_tx
 
 
 class WatchList:
@@ -156,3 +161,15 @@ def get_packet_type(packet):
     elif msg_format == "mic-e":
         packet_type = PACKET_TYPE_MICE
     return packet_type
+
+
+def is_message_packet(packet):
+    return get_packet_type(packet) == PACKET_TYPE_MESSAGE
+
+
+def is_ack_packet(packet):
+    return get_packet_type(packet) == PACKET_TYPE_ACK
+
+
+def is_mice_packet(packet):
+    return get_packet_type(packet) == PACKET_TYPE_MICE

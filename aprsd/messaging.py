@@ -9,7 +9,7 @@ import re
 import threading
 import time
 
-from aprsd import client, stats, threads, trace, utils
+from aprsd import client, packets, stats, threads, trace, utils
 
 
 LOG = logging.getLogger("APRSD")
@@ -424,6 +424,7 @@ class SendMessageThread(threads.APRSDThread):
                 )
                 cl.sendall(str(msg))
                 stats.APRSDStats().msgs_tx_inc()
+                packets.PacketList().add(msg.dict())
                 msg.last_send_time = datetime.datetime.now()
                 msg.last_send_attempt += 1
 
@@ -466,8 +467,6 @@ class AckMessage(Message):
         LOG.debug(f"Send ACK({self.tocall}:{self.id}) to radio.")
         thread = SendAckThread(self)
         thread.start()
-
-    # end send_ack()
 
     def send_direct(self):
         """Send an ack message without a separate thread."""
@@ -527,6 +526,7 @@ class SendAckThread(threads.APRSDThread):
             )
             cl.sendall(str(self.ack))
             stats.APRSDStats().ack_tx_inc()
+            packets.PacketList().add(self.ack.dict())
             self.ack.last_send_attempt += 1
             self.ack.last_send_time = datetime.datetime.now()
         time.sleep(5)
@@ -543,15 +543,8 @@ def log_packet(packet):
     ack = packet.get("ack", None)
 
     log_message(
-        "Packet",
-        packet["raw"],
-        msg,
-        fromcall=fromcall,
-        tocall=tocall,
-        ack=ack,
-        packet_type=response_type,
-        msg_num=msg_num,
-    )
+        "Packet", packet["raw"], msg, fromcall=fromcall, tocall=tocall,
+        ack=ack, packet_type=response_type, msg_num=msg_num, )
 
 
 def log_message(

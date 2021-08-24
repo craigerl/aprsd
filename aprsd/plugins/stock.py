@@ -9,7 +9,7 @@ from aprsd import plugin, trace
 LOG = logging.getLogger("APRSD")
 
 
-class StockPlugin(plugin.APRSDMessagePluginBase):
+class StockPlugin(plugin.APRSDRegexCommandPluginBase):
     """Stock market plugin for fetching stock quotes"""
 
     version = "1.0"
@@ -17,7 +17,7 @@ class StockPlugin(plugin.APRSDMessagePluginBase):
     command_name = "stock"
 
     @trace.trace
-    def command(self, packet):
+    def process(self, packet):
         LOG.info("StockPlugin")
 
         # fromcall = packet.get("from")

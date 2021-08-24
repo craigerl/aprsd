@@ -25,7 +25,6 @@ import logging
 from logging import NullHandler
 from logging.handlers import RotatingFileHandler
 import os
-import queue
 import signal
 import sys
 import time
@@ -38,8 +37,7 @@ import click_completion
 # local imports here
 import aprsd
 from aprsd import (
-    client, email, flask, messaging, packets, plugin, stats, threads, trace,
-    utils,
+    client, flask, messaging, packets, plugin, stats, threads, trace, utils,
 )
 
 
@@ -159,7 +157,7 @@ def signal_handler(sig, frame):
                 datetime.datetime.now(),
             ),
         )
-        time.sleep(5)
+        time.sleep(1.5)
         tracker = messaging.MsgTrack()
         tracker.save()
         LOG.info(stats.APRSDStats())
@@ -226,12 +224,6 @@ def setup_logging(config, loglevel, quiet):
 )
 def check_version(loglevel, config_file):
     config = utils.parse_config(config_file)
-
-    # Force setting the config to the modules that need it
-    # TODO(Walt): convert these modules to classes that can
-    # Accept the config as a constructor param, instead of this
-    # hacky global setting
-    email.CONFIG = config
 
     setup_logging(config, loglevel, False)
     level, msg = utils._check_version()
@@ -415,12 +407,6 @@ def send_message(
 )
 @click.option("--quiet", is_flag=True, default=False, help="Don't log to stdout")
 @click.option(
-    "--disable-validation",
-    is_flag=True,
-    default=False,
-    help="Disable email shortcut validation.  Bad email addresses can result in broken email responses!!",
-)
-@click.option(
     "-c",
     "--config",
     "config_file",
@@ -440,7 +426,6 @@ def send_message(
 def server(
     loglevel,
     quiet,
-    disable_validation,
     config_file,
     flush,
 ):
@@ -452,12 +437,6 @@ def server(
         click.echo("Load config")
 
     config = utils.parse_config(config_file)
-
-    # Force setting the config to the modules that need it
-    # TODO(Walt): convert these modules to classes that can
-    # Accept the config as a constructor param, instead of this
-    # hacky global setting
-    email.CONFIG = config
 
     setup_logging(config, loglevel, quiet)
     level, msg = utils._check_version()
@@ -479,26 +458,15 @@ def server(
         trace.setup_tracing(["method", "api"])
     stats.APRSDStats(config)
 
-    email_enabled = config["aprsd"]["email"].get("enabled", False)
-
-    if email_enabled:
-        # TODO(walt): Make email processing/checking optional?
-        # Maybe someone only wants this to process messages with plugins only.
-        valid = email.validate_email_config(config, disable_validation)
-        if not valid:
-            LOG.error("Failed to validate email config options")
-            sys.exit(-1)
-    else:
-        LOG.info("Email services not enabled.")
-
-    # Create the initial PM singleton and Register plugins
-    plugin_manager = plugin.PluginManager(config)
-    plugin_manager.setup_plugins()
     try:
         cl = client.Client(config)
         cl.client
     except LoginError:
         sys.exit(-1)
+
+    # Create the initial PM singleton and Register plugins
+    plugin_manager = plugin.PluginManager(config)
+    plugin_manager.setup_plugins()
 
     # Now load the msgTrack from disk if any
     if flush:
@@ -509,38 +477,24 @@ def server(
         LOG.debug("Loading saved MsgTrack object.")
         messaging.MsgTrack().load()
 
-    rx_notify_queue = queue.Queue(maxsize=20)
-    rx_msg_queue = queue.Queue(maxsize=20)
-    tx_msg_queue = queue.Queue(maxsize=20)
-    msg_queues = {
-        "rx": rx_msg_queue,
-        "tx": tx_msg_queue,
-        "notify": rx_notify_queue,
-    }
+    packets.PacketList(config=config)
 
-    rx_thread = threads.APRSDRXThread(msg_queues=msg_queues, config=config)
-    tx_thread = threads.APRSDTXThread(msg_queues=msg_queues, config=config)
+    rx_thread = threads.APRSDRXThread(
+        msg_queues=threads.msg_queues,
+        config=config,
+    )
+
+    rx_thread.start()
+
     if "watch_list" in config["aprsd"] and config["aprsd"]["watch_list"].get(
         "enabled",
         True,
     ):
-        packets.PacketList(config)
-        notify_thread = threads.APRSDNotifyThread(
-            msg_queues=msg_queues,
-            config=config,
-        )
-        notify_thread.start()
-
-    if email_enabled:
-        email_thread = email.APRSDEmailThread(msg_queues=msg_queues, config=config)
-        email_thread.start()
-
-    rx_thread.start()
-    tx_thread.start()
+        packets.WatchList(config=config)
 
     messaging.MsgTrack().restart()
 
-    keepalive = threads.KeepAliveThread()
+    keepalive = threads.KeepAliveThread(config=config)
     keepalive.start()
 
     try:

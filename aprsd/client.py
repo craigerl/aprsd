@@ -84,7 +84,7 @@ class Aprsdis(aprslib.IS):
     thread_stop = False
 
     # timeout in seconds
-    select_timeout = 10
+    select_timeout = 1
 
     def stop(self):
         self.thread_stop = True

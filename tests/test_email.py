@@ -1,6 +1,6 @@
 import unittest
 
-from aprsd import email
+from aprsd.plugins import email
 
 
 class TestEmail(unittest.TestCase):

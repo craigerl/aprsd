@@ -58,6 +58,23 @@ function update_watchlist_from_packet(callsign, val) {
     //console.log(watchlist)
 }
 
+function update_plugins( data ) {
+    var plugindiv = $("#pluginDiv");
+    var html_str = '<table class="ui celled striped table"><thead><tr><th>Plugin Name</th><th>Processed Packets</th><th>Sent Packets</th></tr></thead><tbody>'
+    plugindiv.html('')
+
+    var plugins = data["stats"]["plugins"];
+    var keys = Object.keys(plugins);
+    keys.sort();
+    for (var i=0; i<keys.length; i++) { // now lets iterate in sort order
+        var key = keys[i];
+        var val = plugins[key];
+        html_str += '<tr><td class="collapsing">' + key + '</td><td>' + val["rx"] + '</td><td>' + val["tx"] + '</td></tr>';
+    }
+    html_str += "</tbody></table>";
+    plugindiv.append(html_str);
+}
+
 function update_packets( data ) {
     var packetsdiv = $("#packetsDiv");
     //nuke the contents first, then add to it.
@@ -120,6 +137,7 @@ function start_update() {
                 success: function(data) {
                     update_stats(data);
                     update_watchlist(data);
+                    update_plugins(data);
                 },
                 complete: function() {
                     setTimeout(statsworker, 10000);

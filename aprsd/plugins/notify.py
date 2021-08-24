@@ -6,7 +6,7 @@ from aprsd import messaging, packets, plugin
 LOG = logging.getLogger("APRSD")
 
 
-class NotifySeenPlugin(plugin.APRSDNotificationPluginBase):
+class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
     """Notification plugin to send seen message for callsign.
 
 
@@ -21,7 +21,7 @@ class NotifySeenPlugin(plugin.APRSDNotificationPluginBase):
         """The aprsd config object is stored."""
         super().__init__(config)
 
-    def notify(self, packet):
+    def process(self, packet):
         LOG.info("BaseNotifyPlugin")
 
         notify_callsign = self.config["aprsd"]["watch_list"]["alert_callsign"]
