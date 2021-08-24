@@ -5,7 +5,7 @@ APRSD - Ham radio APRS-IS Message plugin server
 KM6LYW and WB4BOR
 ____________________
 
-|pypi| |pytest| |versions| |slack| |issues| |commit| |black| |imports| |down|
+|pypi| |pytest| |versions| |slack| |issues| |commit| |imports| |down|
 
 
 `APRSD <http://github.com/craigerl/aprsd>`_ is a Ham radio `APRS <http://aprs.org>`_ message command gateway built on python.
@@ -461,9 +461,6 @@ The plugin file should be copied to /plugins for loading by aprsd
 
 .. |slack| image:: https://img.shields.io/badge/slack-@hemna/aprsd-blue.svg?logo=slack
     :target: https://hemna.slack.com/app_redirect?channel=C01KQSCP5RP
-
-.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://black.readthedocs.io/en/stable/
 
 .. |imports| image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
     :target: https://timothycrosley.github.io/isort/
