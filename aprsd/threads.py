@@ -14,14 +14,11 @@ from aprsd import client, messaging, packets, plugin, stats, utils
 LOG = logging.getLogger("APRSD")
 
 RX_THREAD = "RX"
-TX_THREAD = "TX"
 EMAIL_THREAD = "Email"
 
 rx_msg_queue = queue.Queue(maxsize=20)
-tx_msg_queue = queue.Queue(maxsize=20)
 msg_queues = {
     "rx": rx_msg_queue,
-    "tx": tx_msg_queue,
 }
 
 
@@ -54,6 +51,10 @@ class APRSDThreadList:
             for th in self.threads_list:
                 LOG.debug(f"Stopping Thread {th.name}")
                 th.stop()
+
+    def __len__(self):
+        with self.lock:
+            return len(self.threads_list)
 
 
 class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
@@ -93,6 +94,7 @@ class KeepAliveThread(APRSDThread):
             tracker = messaging.MsgTrack()
             stats_obj = stats.APRSDStats()
             pl = packets.PacketList()
+            thread_list = APRSDThreadList()
             now = datetime.datetime.now()
             last_email = stats_obj.email_thread_time
             if last_email:
@@ -107,7 +109,7 @@ class KeepAliveThread(APRSDThread):
             stats_obj.set_memory_peak(peak)
             keepalive = (
                 "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
-                "Last:{} Email: {} - RAM Current:{} Peak:{}"
+                "Last:{} Email: {} - RAM Current:{} Peak:{} Threads:{}"
             ).format(
                 self.config["aprs"]["login"],
                 utils.strfdelta(stats_obj.uptime),
@@ -120,6 +122,7 @@ class KeepAliveThread(APRSDThread):
                 email_thread_time,
                 utils.human_size(current),
                 utils.human_size(peak),
+                len(thread_list),
             )
             LOG.info(keepalive)
             # Check version every hour
@@ -170,6 +173,19 @@ class APRSDRXThread(APRSDThread):
         # Continue to loop
         return True
 
+    def process_packet(self, packet):
+        thread = APRSDProcessPacketThread(packet=packet, config=self.config)
+        thread.start()
+
+
+class APRSDProcessPacketThread(APRSDThread):
+
+    def __init__(self, packet, config):
+        self.packet = packet
+        self.config = config
+        name = self.packet["raw"][:10]
+        super().__init__(f"RX_PACKET-{name}")
+
     def process_ack_packet(self, packet):
         ack_num = packet.get("msgNo")
         LOG.info(f"Got ack for message {ack_num}")
@@ -185,8 +201,9 @@ class APRSDRXThread(APRSDThread):
         stats.APRSDStats().ack_rx_inc()
         return
 
-    def process_packet(self, packet):
+    def loop(self):
         """Process a packet recieved from aprs-is server."""
+        packet = self.packet
         packets.PacketList().add(packet)
 
         fromcall = packet["from"]
@@ -221,7 +238,7 @@ class APRSDRXThread(APRSDThread):
                     fromcall,
                     msg_id=msg_id,
                 )
-                self.msg_queues["tx"].put(ack)
+                ack.send()
 
             pm = plugin.PluginManager()
             try:
@@ -239,7 +256,7 @@ class APRSDRXThread(APRSDThread):
                                 fromcall,
                                 subreply,
                             )
-                            self.msg_queues["tx"].put(msg)
+                            msg.send()
 
                     else:
                         replied = True
@@ -255,7 +272,7 @@ class APRSDRXThread(APRSDThread):
                                 fromcall,
                                 reply,
                             )
-                            self.msg_queues["tx"].put(msg)
+                            msg.send()
 
                 # If the message was for us and we didn't have a
                 # response, then we send a usage statement.
@@ -267,7 +284,7 @@ class APRSDRXThread(APRSDThread):
                         fromcall,
                         reply,
                     )
-                    self.msg_queues["tx"].put(msg)
+                    msg.send()
             except Exception as ex:
                 LOG.exception("Plugin failed!!!", ex)
                 # Do we need to send a reply?
@@ -278,7 +295,7 @@ class APRSDRXThread(APRSDThread):
                         fromcall,
                         reply,
                     )
-                    self.msg_queues["tx"].put(msg)
+                    msg.send()
 
         LOG.debug("Packet processing complete")
 

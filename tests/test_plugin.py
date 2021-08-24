@@ -265,7 +265,7 @@ class TestPingPlugin(TestPlugin):
 class TestVersionPlugin(TestPlugin):
     @mock.patch("aprsd.plugin.PluginManager.get_plugins")
     def test_version(self, mock_get_plugins):
-        expected = f"APRSD ver:{aprsd.__version__} uptime:0:0:0"
+        expected = f"APRSD ver:{aprsd.__version__} uptime:00:00:00"
         version = version_plugin.VersionPlugin(self.config)
 
         packet = fake.fake_packet(

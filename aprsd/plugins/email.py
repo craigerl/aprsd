@@ -648,7 +648,7 @@ class APRSDEmailThread(threads.APRSDThread):
                         self.config["ham"]["callsign"],
                         reply,
                     )
-                    self.msg_queues["tx"].put(msg)
+                    msg.send()
                     # flag message as sent via aprs
                     try:
                         server.add_flags(msgid, ["APRS"])

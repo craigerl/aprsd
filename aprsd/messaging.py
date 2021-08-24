@@ -468,8 +468,6 @@ class AckMessage(Message):
         thread = SendAckThread(self)
         thread.start()
 
-    # end send_ack()
-
     def send_direct(self):
         """Send an ack message without a separate thread."""
         cl = client.get_client()

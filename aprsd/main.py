@@ -483,13 +483,8 @@ def server(
         msg_queues=threads.msg_queues,
         config=config,
     )
-    tx_thread = threads.APRSDTXThread(
-        msg_queues=threads.msg_queues,
-        config=config,
-    )
 
     rx_thread.start()
-    tx_thread.start()
 
     if "watch_list" in config["aprsd"] and config["aprsd"]["watch_list"].get(
         "enabled",

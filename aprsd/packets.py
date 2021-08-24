@@ -56,10 +56,12 @@ class PacketList:
             return self.packet_list.get()
 
     def total_received(self):
-        return self.total_recv
+        with self.lock:
+            return self.total_recv
 
     def total_sent(self):
-        return self.total_tx
+        with self.lock:
+            return self.total_tx
 
 
 class WatchList:
