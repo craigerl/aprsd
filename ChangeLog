@@ -1,9 +1,15 @@
 CHANGES
 =======
 
+v2.2.1
+------
+
+* Silence some log noise
+
 v2.2.0
 ------
 
+* Updated Changelog for v2.2.0
 * Updated overview image
 * Removed Black code style reference
 * Removed TXThread
