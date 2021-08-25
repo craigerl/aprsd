@@ -537,8 +537,6 @@ class APRSDEmailThread(threads.APRSDThread):
     def loop(self):
         global check_email_delay
 
-        LOG.debug("Starting Loop")
-
         check_email_delay = 60
         time.sleep(5)
         stats.APRSDStats().email_thread_update()

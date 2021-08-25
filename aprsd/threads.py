@@ -90,7 +90,7 @@ class KeepAliveThread(APRSDThread):
         self.config = config
 
     def loop(self):
-        if self.cntr % 6 == 0:
+        if self.cntr % 60 == 0:
             tracker = messaging.MsgTrack()
             stats_obj = stats.APRSDStats()
             pl = packets.PacketList()
