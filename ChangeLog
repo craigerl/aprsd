@@ -1,9 +1,29 @@
 CHANGES
 =======
 
+v2.2.0
+------
+
+* Updated overview image
+* Removed Black code style reference
+* Removed TXThread
+* Added days to uptime string formatting
+* Updated select timeouts
+* Rebase from master and run gray
+* Added tracking plugin processing
+* Added threads functions to APRSDPluginBase
+* Refactor Message processing and MORE
+* Use Gray instead of Black for code formatting
+* Updated tox.ini
+* Fixed LOG.debug issue in weather plugin
+* Updated slack channel link
+* Cleanup of the README.rst
+* Fixed aprsd-dev
+
 v2.1.0
 ------
 
+* Prep for v2.1.0
 * Enable multiple replies for plugins
 * Put in a fix for aprslib parse exceptions
 * Fixed time plugin
