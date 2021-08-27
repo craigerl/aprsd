@@ -130,8 +130,12 @@ class Aprsdis(aprslib.IS):
 
                 # sock.recv returns empty if the connection drops
                 if not short_buf:
-                    self.logger.error("socket.recv(): returned empty")
-                    raise aprslib.ConnectionDrop("connection dropped")
+                    if not blocking:
+                        # We could just not be blocking, so empty is expected
+                        continue
+                    else:
+                        self.logger.error("socket.recv(): returned empty")
+                        raise aprslib.ConnectionDrop("connection dropped")
             except OSError as e:
                 # self.logger.error("socket error on recv(): %s" % str(e))
                 if "Resource temporarily unavailable" in str(e):

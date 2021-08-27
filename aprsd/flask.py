@@ -4,8 +4,10 @@ import logging
 from logging import NullHandler
 from logging.handlers import RotatingFileHandler
 import sys
+import threading
 import time
 
+import aprslib
 from aprslib.exceptions import LoginError
 import flask
 from flask import request
@@ -14,13 +16,79 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import aprsd
-from aprsd import client, kissclient, messaging, packets, plugin, stats, utils
+from aprsd import client, kissclient, messaging, packets, plugin, stats, threads, utils
 
 
 LOG = logging.getLogger("APRSD")
 
 auth = HTTPBasicAuth()
 users = None
+
+class SentMessages:
+    _instance = None
+    lock = None
+
+    msgs = {}
+
+    def __new__(cls, *args, **kwargs):
+        """This magic turns this into a singleton."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            # Put any initialization here.
+            cls.lock = threading.Lock()
+        return cls._instance
+
+    def add(self, msg):
+        with self.lock:
+            self.msgs[msg.id] = self._create(msg.id)
+            self.msgs[msg.id]["from"] = msg.fromcall
+            self.msgs[msg.id]["to"] = msg.tocall
+            self.msgs[msg.id]["message"] = msg.message.rstrip("\n")
+            self.msgs[msg.id]["raw"] = str(msg).rstrip("\n")
+
+
+    def _create(self, id):
+        return {
+            "id": id,
+            "ts": time.time(),
+            "ack": False,
+            "from": None,
+            "to": None,
+            "raw": None,
+            "message": None,
+            "status": None,
+            "last_update": None,
+            "reply": None,
+        }
+
+    def __len__(self):
+        with self.lock:
+            return len(self.msgs.keys())
+
+    def get(self, id):
+        with self.lock:
+            if id in self.msgs:
+                return self.msgs[id]
+
+    def get_all(self):
+        with self.lock:
+            return self.msgs
+
+    def set_status(self, id, status):
+        with self.lock:
+            self.msgs[id]["last_update"] = str(datetime.datetime.now())
+            self.msgs[id]["status"] = status
+
+    def ack(self, id):
+        """The message got an ack!"""
+        with self.lock:
+            self.msgs[id]["last_update"] = str(datetime.datetime.now())
+            self.msgs[id]["ack"] = True
+
+    def reply(self, id, packet):
+        """We got a packet back from the sent message."""
+        with self.lock:
+            self.msgs[id]["reply"] = packet
 
 
 # HTTPBasicAuth doesn't work on a class method.
@@ -32,6 +100,161 @@ def verify_password(username, password):
 
     if username in users and check_password_hash(users.get(username), password):
         return username
+
+
+class SendMessageThread(threads.APRSDThread):
+    """Thread for sending a message from web."""
+
+    aprsis_client = None
+    request = None
+    got_ack = False
+
+    def __init__(self, config, info, msg):
+        self.config = config
+        self.request = info
+        self.msg = msg
+        msg = "({} -> {}) : {}".format(
+            info["from"],
+            info["to"],
+            info["message"],
+        )
+        super().__init__(f"WEB_SEND_MSG-{msg}")
+
+    def setup_connection(self):
+        user = self.request["from"]
+        password = self.request["password"]
+        host = self.config["aprs"].get("host", "rotate.aprs.net")
+        port = self.config["aprs"].get("port", 14580)
+        connected = False
+        backoff = 1
+        while not connected:
+            try:
+                LOG.info("Creating aprslib client")
+                aprs_client = client.Aprsdis(
+                    user,
+                    passwd=password,
+                    host=host,
+                    port=port,
+                )
+                # Force the logging to be the same
+                aprs_client.logger = LOG
+                aprs_client.connect()
+                connected = True
+                backoff = 1
+            except LoginError as e:
+                LOG.error(f"Failed to login to APRS-IS Server '{e}'")
+                connected = False
+                raise e
+            except Exception as e:
+                LOG.error(f"Unable to connect to APRS-IS server. '{e}' ")
+                time.sleep(backoff)
+                backoff = backoff * 2
+                continue
+        LOG.debug(f"Logging in to APRS-IS with user '{user}'")
+        return aprs_client
+
+    def run(self):
+        LOG.debug("Starting")
+        from_call = self.request["from"]
+        self.request["password"]
+        to_call = self.request["to"]
+        message = self.request["message"]
+        LOG.info(
+            "From: '{}' To: '{}'  Send '{}'".format(
+                from_call,
+                to_call,
+                message,
+            ),
+        )
+
+        try:
+            self.aprs_client = self.setup_connection()
+        except LoginError as e:
+            f"Failed to setup Connection {e}"
+
+        self.msg.send_direct(aprsis_client=self.aprs_client)
+        SentMessages().set_status(self.msg.id, "Sent")
+
+        while not self.thread_stop:
+            can_loop = self.loop()
+            if not can_loop:
+                self.stop()
+        threads.APRSDThreadList().remove(self)
+        LOG.debug("Exiting")
+
+    def rx_packet(self, packet):
+        global got_ack, got_response
+        # LOG.debug("Got packet back {}".format(packet))
+        resp = packet.get("response", None)
+        if resp == "ack":
+            ack_num = packet.get("msgNo")
+            LOG.info(f"We got ack for our sent message {ack_num}")
+            messaging.log_packet(packet)
+            SentMessages().ack(self.msg.id)
+            stats.APRSDStats().ack_rx_inc()
+            self.got_ack = True
+            if self.request["wait_reply"] == "0":
+                # We aren't waiting for a reply, so we can bail
+                self.thread_stop = self.aprs_client.thread_stop = True
+        else:
+            packets.PacketList().add(packet)
+            stats.APRSDStats().msgs_rx_inc()
+            message = packet.get("message_text", None)
+            fromcall = packet["from"]
+            msg_number = packet.get("msgNo", "0")
+            messaging.log_message(
+                "Received Message",
+                packet["raw"],
+                message,
+                fromcall=fromcall,
+                ack=msg_number,
+            )
+            got_response = True
+            SentMessages().reply(self.msg.id, packet)
+            SentMessages().set_status(self.msg.id, "Got Reply")
+
+            # Send the ack back?
+            ack = messaging.AckMessage(
+                self.request["from"],
+                fromcall,
+                msg_id=msg_number,
+            )
+            ack.send_direct()
+            SentMessages().set_status(self.msg.id, "Ack Sent")
+
+            # Now we can exit, since we are done.
+            if self.got_ack:
+                self.thread_stop = self.aprs_client.thread_stop = True
+
+    def loop(self):
+        LOG.debug("LOOP Start")
+        try:
+            # This will register a packet consumer with aprslib
+            # When new packets come in the consumer will process
+            # the packet
+            self.aprs_client.consumer(self.rx_packet, raw=False, blocking=False)
+        except aprslib.exceptions.ConnectionDrop:
+            LOG.error("Connection dropped, reconnecting")
+            time.sleep(5)
+            # Force the deletion of the client object connected to aprs
+            # This will cause a reconnect, next time client.get_client()
+            # is called
+            del self.aprs_client
+            connecting = True
+            counter = 0;
+            while connecting:
+                try:
+                    self.aprs_client = self.setup_connection()
+                    connecting = False
+                except Exception:
+                    LOG.error("Couldn't connect")
+                    counter += 1
+                    if counter >= 3:
+                        LOG.error("Reached reconnect limit.")
+                        return False
+
+        LOG.debug("LOOP END")
+        return True
 
 
 class APRSDFlask(flask_classful.FlaskView):
@@ -118,69 +341,53 @@ class APRSDFlask(flask_classful.FlaskView):
 
         return flask.render_template("messages.html", messages=json.dumps(msgs))
 
-    def setup_connection(self):
-        user = self.config["aprs"]["login"]
-        password = self.config["aprs"]["password"]
-        host = self.config["aprs"].get("host", "rotate.aprs.net")
-        port = self.config["aprs"].get("port", 14580)
-        connected = False
-        backoff = 1
-        while not connected:
-            try:
-                LOG.info("Creating aprslib client")
-                aprs_client = client.Aprsdis(
-                    user,
-                    passwd=password,
-                    host=host,
-                    port=port,
-                )
-                # Force the logging to be the same
-                aprs_client.logger = LOG
-                aprs_client.connect()
-                connected = True
-                backoff = 1
-            except LoginError as e:
-                LOG.error("Failed to login to APRS-IS Server '{}'".format(e))
-                connected = False
-                raise e
-            except Exception as e:
-                LOG.error("Unable to connect to APRS-IS server. '{}' ".format(e))
-                time.sleep(backoff)
-                backoff = backoff * 2
-                continue
-        LOG.debug("Logging in to APRS-IS with user '%s'" % user)
-        return aprs_client
+    @auth.login_required
+    def send_message_status(self):
+        LOG.debug(request)
+        msgs = SentMessages()
+        info = msgs.get_all()
+        return json.dumps(info)
 
+    @auth.login_required
     def send_message(self):
+        LOG.debug(request)
         if request.method == "POST":
-            from_call = request.form["from_call"]
-            to_call = request.form["to_call"]
-            message = request.form["message"]
-            LOG.info(
-                "From: '{}' To: '{}'  Send '{}'".format(
-                    from_call,
-                    to_call,
-                    message,
-                ),
+            info = {
+                "from": request.form["from_call"],
+                "to": request.form["to_call"],
+                "password": request.form["from_call_password"],
+                "message": request.form["message"],
+                "wait_reply": request.form["wait_reply"],
+            }
+            LOG.debug(info)
+            msg = messaging.TextMessage(
+                info["from"], info["to"],
+                info["message"],
             )
+            msgs = SentMessages()
+            msgs.add(msg)
+            msgs.set_status(msg.id, "Sending")
 
-            try:
-                aprsis_client = self.setup_connection()
-            except LoginError as e:
-                result = "Failed to setup Connection {}".format(e)
+            send_message_t = SendMessageThread(self.config, info, msg)
+            send_message_t.start()
 
-            msg = messaging.TextMessage(from_call, to_call, message)
-            msg.send_direct(aprsis_client=aprsis_client)
-            result = "Message sent"
+
+            info["from"]
+            result = "sending"
+            msg_id = msg.id
+            result = {
+                "msg_id": msg_id,
+                "status": "sending",
+            }
+            return json.dumps(result)
         else:
-            from_call = self.config["aprs"]["login"]
-            result = ""
+            result = "fail"
 
-        return flask.render_template(
-            "send-message.html",
-            from_call=from_call,
-            result=result,
-        )
+            return flask.render_template(
+                "send-message.html",
+                callsign=self.config["aprs"]["login"],
+                version=aprsd.__version__,
+            )
 
     @auth.login_required
     def packets(self):
@@ -292,6 +499,7 @@ def init_flask(config, loglevel, quiet):
     flask_app.route("/messages", methods=["GET"])(server.messages)
     flask_app.route("/packets", methods=["GET"])(server.packets)
     flask_app.route("/send-message", methods=["GET", "POST"])(server.send_message)
+    flask_app.route("/send-message-status", methods=["GET"])(server.send_message_status)
     flask_app.route("/save", methods=["GET"])(server.save)
     flask_app.route("/plugins", methods=["GET"])(server.plugins)
     return flask_app

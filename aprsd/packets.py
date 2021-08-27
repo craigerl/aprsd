@@ -69,6 +69,7 @@ class WatchList:
 
     _instance = None
     callsigns = {}
+    config = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -97,7 +98,7 @@ class WatchList:
                 }
 
     def is_enabled(self):
-        if "watch_list" in self.config["aprsd"]:
+        if self.config and "watch_list" in self.config["aprsd"]:
             return self.config["aprsd"]["watch_list"].get("enabled", False)
         else:
             return False

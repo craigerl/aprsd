@@ -391,6 +391,7 @@ class TextMessage(Message):
         )
         cl.send(self)
         stats.APRSDStats().msgs_tx_inc()
+        packets.PacketList().add(self.dict())
 
 
 class SendMessageThread(threads.APRSDThread):
