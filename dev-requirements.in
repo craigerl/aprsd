@@ -1,12 +1,12 @@
 flake8
 isort
 mypy
-pytest
-pytest-cov
 pep8-naming
 Sphinx
 tox
 twine
 pre-commit
 pip-tools
+#pytest
+#pytest-cov
 gray

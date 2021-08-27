@@ -13,6 +13,7 @@ import flask
 from flask import request
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
+from flask_socketio import Namespace, SocketIO
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import aprsd
@@ -108,11 +109,14 @@ class SendMessageThread(threads.APRSDThread):
     aprsis_client = None
     request = None
     got_ack = False
+    got_reply = False
 
-    def __init__(self, config, info, msg):
+    def __init__(self, config, info, msg, namespace):
         self.config = config
         self.request = info
         self.msg = msg
+        self.namespace = namespace
+        self.start_time = datetime.datetime.now()
         msg = "({} -> {}) : {}".format(
             info["from"],
             info["to"],
@@ -183,7 +187,7 @@ class SendMessageThread(threads.APRSDThread):
         LOG.debug("Exiting")
 
     def rx_packet(self, packet):
-        global got_ack, got_response
+        global socketio
         # LOG.debug("Got packet back {}".format(packet))
         resp = packet.get("response", None)
         if resp == "ack":
@@ -191,10 +195,15 @@ class SendMessageThread(threads.APRSDThread):
             LOG.info(f"We got ack for our sent message {ack_num}")
             messaging.log_packet(packet)
             SentMessages().ack(self.msg.id)
+            socketio.emit(
+                "ack", SentMessages().get(self.msg.id),
+                namespace="/ws",
+            )
             stats.APRSDStats().ack_rx_inc()
             self.got_ack = True
-            if self.request["wait_reply"] == "0":
+            if self.request["wait_reply"] == "0" or self.got_reply:
                 # We aren't waiting for a reply, so we can bail
+                self.stop()
                 self.thread_stop = self.aprs_client.thread_stop = True
         else:
             packets.PacketList().add(packet)
@@ -209,9 +218,12 @@ class SendMessageThread(threads.APRSDThread):
                 fromcall=fromcall,
                 ack=msg_number,
             )
-            got_response = True
             SentMessages().reply(self.msg.id, packet)
             SentMessages().set_status(self.msg.id, "Got Reply")
+            socketio.emit(
+                "reply", SentMessages().get(self.msg.id),
+                namespace="/ws",
+            )
 
             # Send the ack back?
             ack = messaging.AckMessage(
@@ -223,37 +235,37 @@ class SendMessageThread(threads.APRSDThread):
             SentMessages().set_status(self.msg.id, "Ack Sent")
 
             # Now we can exit, since we are done.
+            self.got_reply = True
             if self.got_ack:
+                self.stop()
                 self.thread_stop = self.aprs_client.thread_stop = True
 
     def loop(self):
-        LOG.debug("LOOP Start")
+        # we have a general time limit expecting results of
+        # around 120 seconds before we exit
+        now = datetime.datetime.now()
+        start_delta = str(now - self.start_time)
+        delta = utils.parse_delta_str(start_delta)
+        d = datetime.timedelta(**delta)
+        max_timeout = {"hours": 0.0, "minutes": 1, "seconds": 0}
+        max_delta = datetime.timedelta(**max_timeout)
+        if d > max_delta:
+            LOG.error("XXXXXX Haven't completed everything in 60 seconds.  BAIL!")
+            return False
+
+        if self.got_ack and self.got_reply:
+            LOG.warning("We got everything already. BAIL")
+            return False
+
         try:
             # This will register a packet consumer with aprslib
             # When new packets come in the consumer will process
             # the packet
             self.aprs_client.consumer(self.rx_packet, raw=False, blocking=False)
         except aprslib.exceptions.ConnectionDrop:
-            LOG.error("Connection dropped, reconnecting")
-            time.sleep(5)
-            # Force the deletion of the client object connected to aprs
-            # This will cause a reconnect, next time client.get_client()
-            # is called
-            del self.aprs_client
-            connecting = True
-            counter = 0;
-            while connecting:
-                try:
-                    self.aprs_client = self.setup_connection()
-                    connecting = False
-                except Exception:
-                    LOG.error("Couldn't connect")
-                    counter += 1
-                    if counter >= 3:
-                        LOG.error("Reached reconnect limit.")
-                        return False
+            LOG.error("Connection dropped.")
+            return False
 
-        LOG.debug("LOOP END")
         return True
 
 
@@ -351,38 +363,7 @@ class APRSDFlask(flask_classful.FlaskView):
     @auth.login_required
     def send_message(self):
         LOG.debug(request)
-        if request.method == "POST":
-            info = {
-                "from": request.form["from_call"],
-                "to": request.form["to_call"],
-                "password": request.form["from_call_password"],
-                "message": request.form["message"],
-                "wait_reply": request.form["wait_reply"],
-            }
-            LOG.debug(info)
-            msg = messaging.TextMessage(
-                info["from"], info["to"],
-                info["message"],
-            )
-            msgs = SentMessages()
-            msgs.add(msg)
-            msgs.set_status(msg.id, "Sending")
-
-            send_message_t = SendMessageThread(self.config, info, msg)
-            send_message_t.start()
-
-
-            info["from"]
-            result = "sending"
-            msg_id = msg.id
-            result = {
-                "msg_id": msg_id,
-                "status": "sending",
-            }
-            return json.dumps(result)
-        else:
-            result = "fail"
-
+        if request.method == "GET":
             return flask.render_template(
                 "send-message.html",
                 callsign=self.config["aprs"]["login"],
@@ -451,6 +432,60 @@ class APRSDFlask(flask_classful.FlaskView):
         return json.dumps(self._stats())
 
 
+class SendMessageNamespace(Namespace):
+    _config = None
+    got_ack = False
+    reply_sent = False
+    msg = None
+    request = None
+
+    def __init__(self, namespace=None, config=None):
+        self._config = config
+        super().__init__(namespace)
+
+    def on_connect(self):
+        global socketio
+        LOG.debug("Web socket connected")
+        socketio.emit(
+            "connected", {"data": "Lets dance"},
+            namespace="/ws",
+        )
+
+    def on_disconnect(self):
+        LOG.debug("WS Disconnected")
+
+    def on_send(self, data):
+        global socketio
+        LOG.debug(f"WS: on_send {data}")
+        self.request = data
+        msg = messaging.TextMessage(
+            data["from"], data["to"],
+            data["message"],
+        )
+        self.msg = msg
+        msgs = SentMessages()
+        msgs.add(msg)
+        msgs.set_status(msg.id, "Sending")
+        socketio.emit(
+            "sent", SentMessages().get(self.msg.id),
+            namespace="/ws",
+        )
+
+        socketio.start_background_task(self._start, self._config, data, msg, self)
+        LOG.warning("WS: on_send: exit")
+
+    def _start(self, config, data, msg, namespace):
+        msg_thread = SendMessageThread(self._config, data, msg, self)
+        msg_thread.start()
+
+    def handle_message(self, data):
+        LOG.debug(f"WS Data {data}")
+
+    def handle_json(self, data):
+        LOG.debug(f"WS json {data}")
+
+
+
 def setup_logging(config, flask_app, loglevel, quiet):
     flask_log = logging.getLogger("werkzeug")
 
@@ -485,6 +520,8 @@ def setup_logging(config, flask_app, loglevel, quiet):
 
 
 def init_flask(config, loglevel, quiet):
+    global socketio
+
     flask_app = flask.Flask(
         "aprsd",
         static_url_path="/static",
@@ -498,8 +535,17 @@ def init_flask(config, loglevel, quiet):
     flask_app.route("/stats", methods=["GET"])(server.stats)
     flask_app.route("/messages", methods=["GET"])(server.messages)
     flask_app.route("/packets", methods=["GET"])(server.packets)
-    flask_app.route("/send-message", methods=["GET", "POST"])(server.send_message)
+    flask_app.route("/send-message", methods=["GET"])(server.send_message)
     flask_app.route("/send-message-status", methods=["GET"])(server.send_message_status)
     flask_app.route("/save", methods=["GET"])(server.save)
     flask_app.route("/plugins", methods=["GET"])(server.plugins)
-    return flask_app
+
+    socketio = SocketIO(
+        flask_app, logger=False, engineio_logger=False,
+        async_mode="threading",
+    )
+    #    import eventlet
+    #    eventlet.monkey_patch()
+
+    socketio.on_namespace(SendMessageNamespace("/ws", config=config))
+    return socketio, flask_app

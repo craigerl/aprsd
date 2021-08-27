@@ -123,7 +123,12 @@ class Aprsdis(aprslib.IS):
                 self.select_timeout,
             )
             if not readable:
-                continue
+                if not blocking:
+                    #self.logger.warning("not fucking readable, not blocking, break!")
+                    break
+                else:
+                    #self.logger.warning("not fucking readable, continue")
+                    continue
 
             try:
                 short_buf = self.sock.recv(4096)
@@ -224,7 +229,7 @@ class Aprsdis(aprslib.IS):
 
         line = b""
 
-        while True:
+        while True and not self.thread_stop:
             try:
                 for line in self._socket_readlines(blocking):
                     if line[0:1] != b"#":
@@ -270,7 +275,9 @@ class Aprsdis(aprslib.IS):
                 raise
 
             if not blocking:
+                #self.logger.error("Not blocking, bail bitch")
                 break
+        #self.logger.error("Consumer exiting")
 
 
 def get_client():

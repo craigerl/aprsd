@@ -3,6 +3,9 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/jquery-simple-websocket@1.1.4/src/jquery.simple.websocket.min.js"></script>
+        <script src="https://cdn.socket.io/4.1.2/socket.io.min.js" integrity="sha384-toS6mmwu70G0fw54EGlWWeA4z3dyJ+dlXBtSURSKN4vyRFOcxd3Bzjj/AoOwY+Rg" crossorigin="anonymous"></script>
+
 
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/prism.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-json.js"></script>
@@ -17,51 +20,7 @@
 
         <script language="JavaScript">
            $(document).ready(function() {
-
-               $("#sendform").submit(function(event) {
-                   event.preventDefault();
-
-                   var $checkboxes = $(this).find('input[type=checkbox]');
-
-                   //loop through the checkboxes and change to hidden fields
-                   $checkboxes.each(function() {
-                       if ($(this)[0].checked) {
-                           $(this).attr('type', 'hidden');
-                           $(this).val(1);
-                       } else {
-                           $(this).attr('type', 'hidden');
-                           $(this).val(0);
-                       }
-                   });
-
-                   var posting = $.post("/send-message", $("#sendform").serialize());
-
-                   posting.done(function(data, status){
-                       console.log("Data: " + data + "\nStatus: " + status);
-                   });
-
-                   //loop through the checkboxes and change to hidden fields
-                   $checkboxes.each(function() {
-                       $(this).attr('type', 'checkbox');
-                   });
-
-
-               });
-
-               (function sent_msg_worker() {
-                $.ajax({
-                    url: "/send-message-status",
-                    type: 'GET',
-                    dataType: 'json',
-                    success: function(data) {
-                        update_messages(data);
-                    },
-                    complete: function() {
-                        setTimeout(sent_msg_worker, 1000);
-                    }
-                });
-            })();
-
+               init_messages();
            });
         </script>
 
@@ -87,12 +46,12 @@
         <h3 class="ui dividing header">Send Message Form</h3>
         <form id="sendform" name="sendmsg" action="">
             <p><label for="from_call">From Callsign:</label>
-            <input type="text" name="from_call" id="fcall" value="WB4BOR"></p>
+            <input type="text" name="from_call" id="from" value="WB4BOR"></p>
             <p><label for="from_call_password">Password:</label>
-            <input type="text" name="from_call_password" value="24496"></p>
+            <input type="password" name="from_call_password" id='password' value="24496"></p>
 
             <p><label for="to_call">To Callsign:</label>
-            <input type="text" name="to_call" id="tcall" value="WB4BOR-11"></p>
+            <input type="text" name="to_call" id="to" value="WB4BOR-11"></p>
 
             <p><label for="message">Message:</label>
             <input type="text" name="message" id="message" value="ping"></p>
