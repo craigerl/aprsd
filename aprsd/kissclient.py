@@ -5,7 +5,9 @@ from aioax25 import frame as axframe
 from aioax25 import interface
 from aioax25 import kiss as kiss
 from aioax25.aprs import APRSInterface
+
 from aprsd import trace
+
 
 LOG = logging.getLogger("APRSD")
 

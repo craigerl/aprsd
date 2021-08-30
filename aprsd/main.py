@@ -37,7 +37,8 @@ import click_completion
 # local imports here
 import aprsd
 from aprsd import (
-    client, flask, kissclient,  messaging, packets, plugin, stats, threads, trace, utils,
+    client, flask, kissclient, messaging, packets, plugin, stats, threads,
+    trace, utils,
 )
 
 
@@ -500,11 +501,11 @@ def server(
 
     if kissclient.KISSClient.kiss_enabled(config):
         kcl = kissclient.KISSClient(config=config)
+        # This initializes the client object.
         kcl.client
 
-        kissrx_thread = threads.KISSRXThread(msg_queues=msg_queues, config=config)
+        kissrx_thread = threads.KISSRXThread(msg_queues=threads.msg_queues, config=config)
         kissrx_thread.start()
-
 
     messaging.MsgTrack().restart()
 

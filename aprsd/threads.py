@@ -8,7 +8,9 @@ import tracemalloc
 
 import aprslib
 
-from aprsd import client, kissclient, messaging, packets, plugin, stats, utils
+from aprsd import (
+    client, kissclient, messaging, packets, plugin, stats, trace, utils,
+)
 
 
 LOG = logging.getLogger("APRSD")
@@ -363,10 +365,10 @@ class KISSRXThread(APRSDThread):
     def process_packet(self, interface, frame, match):
         """Process a packet recieved from aprs-is server."""
 
-        LOG.debug("Got an APRS Frame '{}'".format(frame))
+        LOG.debug(f"Got an APRS Frame '{frame}'")
 
         payload = str(frame.payload.decode())
-        msg = "{}:{}".format(str(frame.header), payload)
+        msg = f"{str(frame.header)}:{payload}"
 
         packet = aprslib.parse(msg)
         LOG.debug(packet)
@@ -418,7 +420,7 @@ class KISSRXThread(APRSDThread):
                 # us that they processed the message correctly, but have
                 # nothing to reply with, so we avoid replying with a usage string
                 if reply is not messaging.NULL_MESSAGE:
-                    LOG.debug("Sending '{}'".format(reply))
+                    LOG.debug(f"Sending '{reply}'")
 
                     msg = messaging.TextMessage(
                         self.config["aprs"]["login"],
@@ -469,7 +471,7 @@ class KISSRXThread(APRSDThread):
 
     def process_ack_packet(self, packet):
         ack_num = packet.get("msgNo")
-        LOG.info("Got ack for message {}".format(ack_num))
+        LOG.info(f"Got ack for message {ack_num}")
         messaging.log_message(
             "ACK",
             packet["raw"],
