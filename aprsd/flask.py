@@ -25,6 +25,7 @@ LOG = logging.getLogger("APRSD")
 auth = HTTPBasicAuth()
 users = None
 
+
 class SentMessages:
     _instance = None
     lock = None
@@ -46,7 +47,6 @@ class SentMessages:
             self.msgs[msg.id]["to"] = msg.tocall
             self.msgs[msg.id]["message"] = msg.message.rstrip("\n")
             self.msgs[msg.id]["raw"] = str(msg).rstrip("\n")
-
 
     def _create(self, id):
         return {
@@ -483,7 +483,6 @@ class SendMessageNamespace(Namespace):
 
     def handle_json(self, data):
         LOG.debug(f"WS json {data}")
-
 
 
 def setup_logging(config, flask_app, loglevel, quiet):

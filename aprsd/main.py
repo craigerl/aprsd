@@ -516,8 +516,8 @@ def server(
         (socketio, app) = flask.init_flask(config, loglevel, quiet)
         socketio.run(
             app,
-                host=config["aprsd"]["web"]["host"],
-                port=config["aprsd"]["web"]["port"],
+            host=config["aprsd"]["web"]["host"],
+            port=config["aprsd"]["web"]["port"],
         )
 
     # If there are items in the msgTracker, then save them

@@ -124,10 +124,8 @@ class Aprsdis(aprslib.IS):
             )
             if not readable:
                 if not blocking:
-                    #self.logger.warning("not fucking readable, not blocking, break!")
                     break
                 else:
-                    #self.logger.warning("not fucking readable, continue")
                     continue
 
             try:
@@ -275,9 +273,7 @@ class Aprsdis(aprslib.IS):
                 raise
 
             if not blocking:
-                #self.logger.error("Not blocking, bail bitch")
                 break
-        #self.logger.error("Consumer exiting")
 
 
 def get_client():

@@ -7,6 +7,6 @@ tox
 twine
 pre-commit
 pip-tools
-#pytest
-#pytest-cov
+pytest
+pytest-cov
 gray
