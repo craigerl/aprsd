@@ -38,6 +38,11 @@ class Client:
         if config:
             self.config = config
 
+    def new(self):
+        obj = super().__new__(Client)
+        obj.config = self.config
+        return obj
+
     @property
     def client(self):
         if not self.aprs_client:
@@ -118,15 +123,22 @@ class Aprsdis(aprslib.IS):
                 self.select_timeout,
             )
             if not readable:
-                continue
+                if not blocking:
+                    break
+                else:
+                    continue
 
             try:
                 short_buf = self.sock.recv(4096)
 
                 # sock.recv returns empty if the connection drops
                 if not short_buf:
-                    self.logger.error("socket.recv(): returned empty")
-                    raise aprslib.ConnectionDrop("connection dropped")
+                    if not blocking:
+                        # We could just not be blocking, so empty is expected
+                        continue
+                    else:
+                        self.logger.error("socket.recv(): returned empty")
+                        raise aprslib.ConnectionDrop("connection dropped")
             except OSError as e:
                 # self.logger.error("socket error on recv(): %s" % str(e))
                 if "Resource temporarily unavailable" in str(e):
@@ -215,7 +227,7 @@ class Aprsdis(aprslib.IS):
 
         line = b""
 
-        while True:
+        while True and not self.thread_stop:
             try:
                 for line in self._socket_readlines(blocking):
                     if line[0:1] != b"#":

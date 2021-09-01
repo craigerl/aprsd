@@ -513,8 +513,9 @@ def server(
 
     if web_enabled:
         flask_enabled = True
-        app = flask.init_flask(config, loglevel, quiet)
-        app.run(
+        (socketio, app) = flask.init_flask(config, loglevel, quiet)
+        socketio.run(
+            app,
             host=config["aprsd"]["web"]["host"],
             port=config["aprsd"]["web"]["port"],
         )
