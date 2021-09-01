@@ -1,7 +1,6 @@
 import asyncio
 import logging
 
-from aioax25 import frame as axframe
 from aioax25 import interface
 from aioax25 import kiss as kiss
 from aioax25.aprs import APRSInterface
@@ -38,7 +37,7 @@ class KISSClient:
                 return True
 
         if "tcp" in config["kiss"]:
-            if config["kiss"]["serial"].get("enabled", False):
+            if config["kiss"]["tcp"].get("enabled", False):
                 return True
 
     @property
@@ -88,14 +87,15 @@ class Aioax25Client:
         ):
             LOG.debug(
                 "Setting up KISSTCP Connection to {}:{}".format(
-                    self.config["kiss"]["host"],
-                    self.config["kiss"]["port"],
+                    self.config["kiss"]["tcp"]["host"],
+                    self.config["kiss"]["tcp"]["port"],
                 ),
             )
             self.kissdev = kiss.TCPKISSDevice(
-                self.config["kiss"]["host"],
-                self.config["kiss"]["port"],
+                self.config["kiss"]["tcp"]["host"],
+                self.config["kiss"]["tcp"]["port"],
                 loop=self.loop,
+                log=LOG,
             )
 
         self.kissdev.open()
@@ -107,7 +107,7 @@ class Aioax25Client:
         LOG.debug("Creating APRSInterface")
         self.aprsint = APRSInterface(
             ax25int=self.ax25int,
-            mycall=self.config["ham"]["callsign"],
+            mycall=self.config["kiss"]["callsign"],
             log=LOG,
         )
 
@@ -119,20 +119,17 @@ class Aioax25Client:
     def consumer(self, callback, callsign=None):
         if not callsign:
             callsign = self.config["ham"]["callsign"]
-        self.aprsint.bind(callback=callback, callsign=callsign, regex=True)
+        self.aprsint.bind(callback=callback, callsign="WB4BOR", ssid=12, regex=False)
 
     def send(self, msg):
         """Send an APRS Message object."""
-        payload = msg._filter_for_send()
-        frame = axframe.AX25UnnumberedInformationFrame(
-            msg.tocall,
-            msg.fromcall.encode("UTF-8"),
-            pid=0xF0,
-            repeaters=b"WIDE2-1",
-            payload=payload,
+        payload = f"{msg._filter_for_send()}"
+        self.aprsint.send_message(
+            addressee=msg.tocall,
+            message=payload,
+            path=["WIDE1-1", "WIDE2-1"],
+            oneshot=True,
         )
-        LOG.debug(frame)
-        self.ax25int.transmit(frame)
 
 
 def get_client():

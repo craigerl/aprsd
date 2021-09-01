@@ -489,6 +489,9 @@ class AckMessage(Message):
             self.id,
         )
 
+    def _filter_for_send(self):
+        return f"ack{self.id}"
+
     def send(self):
         LOG.debug(f"Send ACK({self.tocall}:{self.id}) to radio.")
         thread = SendAckThread(self)

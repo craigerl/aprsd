@@ -1,4 +1,4 @@
-aioax25
+aioax25>=0.0.10
 aprslib
 click
 click-completion

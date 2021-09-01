@@ -469,6 +469,12 @@ def server(
             cl.client
         except LoginError:
             sys.exit(-1)
+
+        rx_thread = threads.APRSDRXThread(
+            msg_queues=threads.msg_queues,
+            config=config,
+        )
+        rx_thread.start()
     else:
         LOG.info(
             "APRS network connection Not Enabled in config.  This is"
@@ -485,13 +491,6 @@ def server(
         messaging.MsgTrack().load()
 
     packets.PacketList(config=config)
-
-    rx_thread = threads.APRSDRXThread(
-        msg_queues=threads.msg_queues,
-        config=config,
-    )
-
-    rx_thread.start()
 
     if "watch_list" in config["aprsd"] and config["aprsd"]["watch_list"].get(
         "enabled",
