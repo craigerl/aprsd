@@ -9,7 +9,7 @@ import re
 import threading
 import time
 
-from aprsd import client, packets, stats, threads, trace, utils
+from aprsd import client, kissclient, packets, stats, threads, trace, utils
 
 
 LOG = logging.getLogger("APRSD")
@@ -17,6 +17,10 @@ LOG = logging.getLogger("APRSD")
 # What to return from a plugin if we have processed the message
 # and it's ok, but don't send a usage string back
 NULL_MESSAGE = -1
+
+MESSAGE_TRANSPORT_TCPKISS = "tcpkiss"
+MESSAGE_TRANSPORT_SERIALKISS = "serialkiss"
+MESSAGE_TRANSPORT_APRSIS = "aprsis"
 
 
 class MsgTrack:
@@ -228,7 +232,15 @@ class Message(metaclass=abc.ABCMeta):
     last_send_time = 0
     last_send_attempt = 0
 
-    def __init__(self, fromcall, tocall, msg_id=None):
+    transport = None
+
+    def __init__(
+        self,
+        fromcall,
+        tocall,
+        msg_id=None,
+        transport=MESSAGE_TRANSPORT_APRSIS,
+    ):
         self.fromcall = fromcall
         self.tocall = tocall
         if not msg_id:
@@ -236,10 +248,17 @@ class Message(metaclass=abc.ABCMeta):
             c.increment()
             msg_id = c.value
         self.id = msg_id
+        self.transport = transport
 
     @abc.abstractmethod
     def send(self):
         """Child class must declare."""
+
+    def get_transport(self):
+        if self.transport == MESSAGE_TRANSPORT_APRSIS:
+            return client.get_client()
+        elif self.transport == MESSAGE_TRANSPORT_TCPKISS:
+            return kissclient.get_client()
 
 
 class RawMessage(Message):
@@ -252,8 +271,8 @@ class RawMessage(Message):
 
     message = None
 
-    def __init__(self, message):
-        super().__init__(None, None, msg_id=None)
+    def __init__(self, message, transport=MESSAGE_TRANSPORT_APRSIS):
+        super().__init__(None, None, msg_id=None, transport=transport)
         self.message = message
 
     def dict(self):
@@ -282,7 +301,7 @@ class RawMessage(Message):
 
     def send_direct(self):
         """Send a message without a separate thread."""
-        cl = client.get_client()
+        cl = self.get_transport()
         log_message(
             "Sending Message Direct",
             str(self).rstrip("\n"),
@@ -290,7 +309,7 @@ class RawMessage(Message):
             tocall=self.tocall,
             fromcall=self.fromcall,
         )
-        cl.sendall(str(self))
+        cl.send(self)
         stats.APRSDStats().msgs_sent_inc()
 
 
@@ -299,8 +318,16 @@ class TextMessage(Message):
 
     message = None
 
-    def __init__(self, fromcall, tocall, message, msg_id=None, allow_delay=True):
-        super().__init__(fromcall, tocall, msg_id)
+    def __init__(
+        self,
+        fromcall,
+        tocall,
+        message,
+        msg_id=None,
+        allow_delay=True,
+        transport=MESSAGE_TRANSPORT_APRSIS,
+    ):
+        super().__init__(fromcall, tocall, msg_id, transport=transport)
         self.message = message
         # do we try and save this message for later if we don't get
         # an ack?  Some messages we don't want to do this ever.
@@ -354,7 +381,7 @@ class TextMessage(Message):
 
     def send_direct(self):
         """Send a message without a separate thread."""
-        cl = client.get_client()
+        cl = self.get_transport()
         log_message(
             "Sending Message Direct",
             str(self).rstrip("\n"),
@@ -362,7 +389,7 @@ class TextMessage(Message):
             tocall=self.tocall,
             fromcall=self.fromcall,
         )
-        cl.sendall(str(self))
+        cl.send(self)
         stats.APRSDStats().msgs_tx_inc()
 
 
@@ -382,7 +409,6 @@ class SendMessageThread(threads.APRSDThread):
         last send attempt is old enough.
 
         """
-        cl = client.get_client()
         tracker = MsgTrack()
         # lets see if the message is still in the tracking queue
         msg = tracker.get(self.msg.id)
@@ -392,6 +418,7 @@ class SendMessageThread(threads.APRSDThread):
             LOG.info("Message Send Complete via Ack.")
             return False
         else:
+            cl = msg.get_transport()
             send_now = False
             if msg.last_send_attempt == msg.retry_count:
                 # we reached the send limit, don't send again
@@ -422,7 +449,7 @@ class SendMessageThread(threads.APRSDThread):
                     retry_number=msg.last_send_attempt,
                     msg_num=msg.id,
                 )
-                cl.sendall(str(msg))
+                cl.send(msg)
                 stats.APRSDStats().msgs_tx_inc()
                 packets.PacketList().add(msg.dict())
                 msg.last_send_time = datetime.datetime.now()
@@ -436,8 +463,8 @@ class SendMessageThread(threads.APRSDThread):
 class AckMessage(Message):
     """Class for building Acks and sending them."""
 
-    def __init__(self, fromcall, tocall, msg_id):
-        super().__init__(fromcall, tocall, msg_id=msg_id)
+    def __init__(self, fromcall, tocall, msg_id, transport=MESSAGE_TRANSPORT_APRSIS):
+        super().__init__(fromcall, tocall, msg_id=msg_id, transport=transport)
 
     def dict(self):
         now = datetime.datetime.now()
@@ -463,6 +490,9 @@ class AckMessage(Message):
             self.id,
         )
 
+    def _filter_for_send(self):
+        return f"ack{self.id}"
+
     def send(self):
         LOG.debug(f"Send ACK({self.tocall}:{self.id}) to radio.")
         thread = SendAckThread(self)
@@ -470,7 +500,7 @@ class AckMessage(Message):
 
     def send_direct(self):
         """Send an ack message without a separate thread."""
-        cl = client.get_client()
+        cl = self.get_transport()
         log_message(
             "Sending ack",
             str(self).rstrip("\n"),
@@ -479,7 +509,7 @@ class AckMessage(Message):
             tocall=self.tocall,
             fromcall=self.fromcall,
         )
-        cl.sendall(str(self))
+        cl.send(self)
 
 
 class SendAckThread(threads.APRSDThread):
@@ -515,7 +545,7 @@ class SendAckThread(threads.APRSDThread):
             send_now = True
 
         if send_now:
-            cl = client.get_client()
+            cl = self.ack.get_transport()
             log_message(
                 "Sending ack",
                 str(self.ack).rstrip("\n"),
@@ -524,7 +554,7 @@ class SendAckThread(threads.APRSDThread):
                 tocall=self.ack.tocall,
                 retry_number=self.ack.last_send_attempt,
             )
-            cl.sendall(str(self.ack))
+            cl.send(self.ack)
             stats.APRSDStats().ack_tx_inc()
             packets.PacketList().add(self.ack.dict())
             self.ack.last_send_attempt += 1

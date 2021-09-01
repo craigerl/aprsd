@@ -90,6 +90,11 @@ class Aprsdis(aprslib.IS):
         self.thread_stop = True
         LOG.info("Shutdown Aprsdis client.")
 
+    def send(self, msg):
+        """Send an APRS Message object."""
+        line = str(msg)
+        self.sendall(line)
+
     def _socket_readlines(self, blocking=False):
         """
         Generator for complete lines, received from the server

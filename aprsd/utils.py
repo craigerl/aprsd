@@ -37,10 +37,23 @@ DEFAULT_DATE_FORMAT = "%m/%d/%Y %I:%M:%S %p"
 DEFAULT_CONFIG_DICT = {
     "ham": {"callsign": "NOCALL"},
     "aprs": {
-        "login": "NOCALL",
+        "enabled": True,
+        "login": "CALLSIGN",
         "password": "00000",
         "host": "rotate.aprs2.net",
         "port": 14580,
+    },
+    "kiss": {
+        "tcp": {
+            "enabled": False,
+            "host": "direwolf.ip.address",
+            "port": "8001",
+        },
+        "serial": {
+            "enabled": False,
+            "device": "/dev/ttyS0",
+            "baudrate": 9600,
+        },
     },
     "aprsd": {
         "logfile": "/tmp/aprsd.log",
@@ -172,6 +185,9 @@ def add_config_comments(raw_yaml):
         # lets insert a comment
         raw_yaml = insert_str(
             raw_yaml,
+            "\n    # Set enabled to False if there is no internet connectivity."
+            "\n    # This is useful for a direwolf KISS aprs connection only. "
+            "\n"
             "\n    # Get the passcode for your callsign here: "
             "\n    # https://apps.magicbug.co.uk/passcode",
             end_idx,
