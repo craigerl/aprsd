@@ -491,12 +491,7 @@ def server(
         messaging.MsgTrack().load()
 
     packets.PacketList(config=config)
-
-    if "watch_list" in config["aprsd"] and config["aprsd"]["watch_list"].get(
-        "enabled",
-        True,
-    ):
-        packets.WatchList(config=config)
+    packets.WatchList(config=config)
 
     if kissclient.KISSClient.kiss_enabled(config):
         kcl = kissclient.KISSClient(config=config)

@@ -220,7 +220,7 @@ function updateQuadData(chart, label, first, second, third, fourth) {
 
 function update_stats( data ) {
     $("#version").text( data["stats"]["aprsd"]["version"] );
-    $("#aprsis").html( "APRS-IS Server: <a href='http://status.aprs2.net' >" + data["stats"]["aprs-is"]["server"] + "</a>" );
+    $("#aprs_connection").html( data["aprs_connection"] );
     $("#uptime").text( "uptime: " + data["stats"]["aprsd"]["uptime"] );
     const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
     $("#jsonstats").html(html_pretty);

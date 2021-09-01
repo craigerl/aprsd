@@ -19,6 +19,7 @@ LOG = logging.getLogger("APRSD")
 NULL_MESSAGE = -1
 
 MESSAGE_TRANSPORT_TCPKISS = "tcpkiss"
+MESSAGE_TRANSPORT_SERIALKISS = "serialkiss"
 MESSAGE_TRANSPORT_APRSIS = "aprsis"
 
 

@@ -8,6 +8,8 @@ from aioax25.aprs import APRSInterface
 from aprsd import trace
 
 
+TRANSPORT_TCPKISS = "tcpkiss"
+TRANSPORT_SERIALKISS = "serialkiss"
 LOG = logging.getLogger("APRSD")
 
 
@@ -32,6 +34,9 @@ class KISSClient:
     @staticmethod
     def kiss_enabled(config):
         """Return if tcp or serial KISS is enabled."""
+        if "kiss" not in config:
+            return False
+
         if "serial" in config["kiss"]:
             if config["kiss"]["serial"].get("enabled", False):
                 return True
@@ -39,6 +44,16 @@ class KISSClient:
         if "tcp" in config["kiss"]:
             if config["kiss"]["tcp"].get("enabled", False):
                 return True
+
+    @staticmethod
+    def transport(config):
+        if "serial" in config["kiss"]:
+            if config["kiss"]["serial"].get("enabled", False):
+                return TRANSPORT_SERIALKISS
+
+        if "tcp" in config["kiss"]:
+            if config["kiss"]["tcp"].get("enabled", False):
+                return TRANSPORT_TCPKISS
 
     @property
     def client(self):

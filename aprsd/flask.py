@@ -11,7 +11,7 @@ from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import aprsd
-from aprsd import messaging, packets, plugin, stats, utils
+from aprsd import kissclient, messaging, packets, plugin, stats, utils
 
 
 LOG = logging.getLogger("APRSD")
@@ -65,9 +65,38 @@ class APRSDFlask(flask_classful.FlaskView):
         plugins = pm.get_plugins()
         plugin_count = len(plugins)
 
+        if self.config["aprs"].get("enabled", True):
+            transport = "aprs-is"
+            aprs_connection = (
+                "APRS-IS Server: <a href='http://status.aprs2.net' >"
+                "{}</a>".format(stats["stats"]["aprs-is"]["server"])
+            )
+        else:
+            # We might be connected to a KISS socket?
+            if kissclient.KISSClient.kiss_enabled(self.config):
+                transport = kissclient.KISSClient.transport(self.config)
+                if transport == kissclient.TRANSPORT_TCPKISS:
+                    aprs_connection = (
+                        "TCPKISS://{}:{}".format(
+                            self.config["kiss"]["tcp"]["host"],
+                            self.config["kiss"]["tcp"]["port"],
+                        )
+                    )
+                elif transport == kissclient.TRANSPORT_SERIALKISS:
+                    aprs_connection = (
+                        "SerialKISS://{}@{} baud".format(
+                            self.config["kiss"]["serial"]["device"],
+                            self.config["kiss"]["serial"]["baudrate"],
+                        )
+                    )
+
+        stats["transport"] = transport
+        stats["aprs_connection"] = aprs_connection
+
         return flask.render_template(
             "index.html",
             initial_stats=stats,
+            aprs_connection=aprs_connection,
             callsign=self.config["aprs"]["login"],
             version=aprsd.__version__,
             config_json=json.dumps(self.config),
