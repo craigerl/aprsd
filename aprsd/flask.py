@@ -17,7 +17,9 @@ from flask_socketio import Namespace, SocketIO
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import aprsd
-from aprsd import client, kissclient, messaging, packets, plugin, stats, threads, utils
+from aprsd import (
+    client, kissclient, messaging, packets, plugin, stats, threads, utils,
+)
 
 
 LOG = logging.getLogger("APRSD")

@@ -123,7 +123,7 @@ pkginfo==1.7.1
     # via twine
 platformdirs==2.2.0
     # via virtualenv
-pluggy==0.13.1
+pluggy==1.0.0
     # via
     #   pytest
     #   tox
@@ -149,7 +149,7 @@ pyparsing==2.4.7
     # via packaging
 pyrsistent==0.18.0
     # via jsonschema
-pytest==6.2.4
+pytest==6.2.5
     # via
     #   -r dev-requirements.in
     #   pytest-cov
