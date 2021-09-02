@@ -162,7 +162,6 @@ class SendMessageThread(threads.APRSDThread):
     def run(self):
         LOG.debug("Starting")
         from_call = self.request["from"]
-        self.request["password"]
         to_call = self.request["to"]
         message = self.request["message"]
         LOG.info(

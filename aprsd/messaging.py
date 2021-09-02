@@ -381,7 +381,10 @@ class TextMessage(Message):
 
     def send_direct(self, aprsis_client=None):
         """Send a message without a separate thread."""
-        cl = self.get_transport()
+        if aprsis_client:
+            cl = aprsis_client
+        else:
+            cl = self.get_transport()
         log_message(
             "Sending Message Direct",
             str(self).rstrip("\n"),
@@ -501,7 +504,10 @@ class AckMessage(Message):
 
     def send_direct(self, aprsis_client=None):
         """Send an ack message without a separate thread."""
-        cl = self.get_transport()
+        if aprsis_client:
+            cl = aprsis_client
+        else:
+            cl = self.get_transport()
         log_message(
             "Sending ack",
             str(self).rstrip("\n"),
