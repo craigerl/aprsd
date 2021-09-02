@@ -143,7 +143,6 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
         return reply
 
 
-@trace.trace
 def _imap_connect():
     global CONFIG
     imap_port = CONFIG["aprsd"]["email"]["imap"].get("port", 143)
@@ -184,7 +183,6 @@ def _imap_connect():
     return server
 
 
-@trace.trace
 def _smtp_connect():
     host = CONFIG["aprsd"]["email"]["smtp"]["host"]
     smtp_port = CONFIG["aprsd"]["email"]["smtp"]["port"]
