@@ -248,14 +248,14 @@ def validate_shortcuts(config):
         LOG.info(f"Validating {key}:{shortcuts[key]}")
         is_valid = validate_email(
             email_address=shortcuts[key],
-            check_regex=True,
-            check_mx=False,
-            from_address=config["aprsd"]["email"]["smtp"]["login"],
-            helo_host=config["aprsd"]["email"]["smtp"]["host"],
+            check_format=True,
+            check_dns=True,
+            check_smtp=True,
+            smtp_from_address=config["aprsd"]["email"]["smtp"]["login"],
+            smtp_helo_host=config["aprsd"]["email"]["smtp"]["host"],
             smtp_timeout=10,
             dns_timeout=10,
-            use_blacklist=True,
-            debug=False,
+            smtp_debug=False,
         )
         if not is_valid:
             LOG.error(
