@@ -459,10 +459,6 @@ def server(
         trace.setup_tracing(["method", "api"])
     stats.APRSDStats(config)
 
-    # Create the initial PM singleton and Register plugins
-    plugin_manager = plugin.PluginManager(config)
-    plugin_manager.setup_plugins()
-
     if config["aprs"].get("enabled", True):
         try:
             cl = client.Client(config)
@@ -480,6 +476,10 @@ def server(
             "APRS network connection Not Enabled in config.  This is"
             " for setups without internet connectivity.",
         )
+
+    # Create the initial PM singleton and Register plugins
+    plugin_manager = plugin.PluginManager(config)
+    plugin_manager.setup_plugins()
 
     # Now load the msgTrack from disk if any
     if flush:
