@@ -306,7 +306,7 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     """
 
     version = "1.0"
-    command_regex = "^[metar]"
+    command_regex = "^[mM]"
     command_name = "Weather"
 
     @trace.trace
@@ -314,7 +314,7 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         fromcall = packet.get("from")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
-        LOG.info(f"OWMWeather Plugin '{message}'")
+        LOG.info(f"AVWXWeather Plugin '{message}'")
         a = re.search(r"^.*\s+(.*)", message)
         if a is not None:
             searchcall = a.group(1)
