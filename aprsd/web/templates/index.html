@@ -3,6 +3,8 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+        <script src="https://cdn.socket.io/4.1.2/socket.io.min.js" integrity="sha384-toS6mmwu70G0fw54EGlWWeA4z3dyJ+dlXBtSURSKN4vyRFOcxd3Bzjj/AoOwY+Rg" crossorigin="anonymous"></script>
+
 
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/prism.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-json.js"></script>
@@ -17,6 +19,8 @@
         <script src="/static/js/main.js"></script>
         <script src="/static/js/charts.js"></script>
         <script src="/static/js/tabs.js"></script>
+        <script src="/static/js/send-message.js"></script>
+        <script src="/static/js/packets.js"></script>
 
 
         <script type="text/javascript"">
@@ -30,6 +34,7 @@
                 console.log(initial_stats);
                 start_update();
                 start_charts();
+                init_messages();
 
                 $("#toggleStats").click(function() {
                     $("#jsonstats").fadeToggle(1000);
@@ -73,6 +78,7 @@
             <div class="item" data-tab="watch-tab">Watch List</div>
             <div class="item" data-tab="plugin-tab">Plugins</div>
             <div class="item" data-tab="config-tab">Config</div>
+            <div class="item" data-tab="send-tab">Send Message</div>
             <div class="item" data-tab="raw-tab">Raw JSON</div>
         </div>
 
@@ -140,6 +146,29 @@
         <div class="ui bottom attached tab segment" data-tab="config-tab">
           <h3 class="ui dividing header">Config</h3>
           <pre id="configjson" class="language-json">{{ config_json|safe }}</pre>
+        </div>
+
+        <div class="ui bottom attached tab segment" data-tab="send-tab">
+            <h3 class="ui dividing header">Send Message</h3>
+            <div id="sendMsgDiv" class="ui mini text">
+                <form id="sendform" name="sendmsg" action="">
+                    <p><label for="from_call">From Callsign:</label>
+                        <input type="text" name="from_call" id="from" value="WB4BOR"></p>
+                    <p><label for="from_call_password">Password:</label>
+                        <input type="password" name="from_call_password" id='password' value="24496"></p>
+                    <p><label for="to_call">To Callsign:</label>
+                        <input type="text" name="to_call" id="to" value="WB4BOR-11"></p>
+                    <p><label for="message">Message:</label>
+                        <input type="text" name="message" id="message" value="ping"></p>
+                    <p><label for="wait">Wait for Reply?</label>
+                        <input type="checkbox" name="wait_reply" id="wait_reply" value="off" checked>
+                    </p>
+                    <input type="submit" name="submit" class="button" id="send_msg" value="Send" />
+                </form>
+                <div class="ui styled fluid accordion" id="accordion">
+                    <div id="sendMsgsDiv" class="ui mini text">Messages</div>
+                </div>
+            </div>
         </div>
 
         <div class="ui bottom attached tab segment" data-tab="raw-tab">

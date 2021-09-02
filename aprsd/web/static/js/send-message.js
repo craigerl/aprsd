@@ -1,10 +1,9 @@
-msgs_list = {};
 var cleared = false;
 
 function size_dict(d){c=0; for (i in d) ++c; return c}
 
 function init_messages() {
-   const socket = io("/ws");
+   const socket = io("/sendmsg");
    socket.on('connect', function () {
        console.log("Connected to socketio");
    });
@@ -62,7 +61,7 @@ function init_messages() {
 }
 
 function add_msg(msg) {
-    var msgsdiv = $("#msgsDiv");
+    var msgsdiv = $("#sendMsgsDiv");
 
     ts_str = msg["ts"].toString();
     ts = ts_str.split(".")[0]*1000;
@@ -96,7 +95,7 @@ function add_msg(msg) {
 }
 
 function update_msg(msg) {
-   var msgsdiv = $("#msgsDiv");
+   var msgsdiv = $("#sendMsgsDiv");
     // We have an existing entry
     ts_str = msg["ts"].toString();
     id = ts_str.split('.')[0]

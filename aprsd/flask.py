@@ -199,7 +199,7 @@ class SendMessageThread(threads.APRSDThread):
             SentMessages().ack(self.msg.id)
             socketio.emit(
                 "ack", SentMessages().get(self.msg.id),
-                namespace="/ws",
+                namespace="/sendmsg",
             )
             stats.APRSDStats().ack_rx_inc()
             self.got_ack = True
@@ -224,7 +224,7 @@ class SendMessageThread(threads.APRSDThread):
             SentMessages().set_status(self.msg.id, "Got Reply")
             socketio.emit(
                 "reply", SentMessages().get(self.msg.id),
-                namespace="/ws",
+                namespace="/sendmsg",
             )
 
             # Send the ack back?
@@ -449,8 +449,8 @@ class SendMessageNamespace(Namespace):
         global socketio
         LOG.debug("Web socket connected")
         socketio.emit(
-            "connected", {"data": "Lets dance"},
-            namespace="/ws",
+            "connected", {"data": "/sendmsg Connected"},
+            namespace="/sendmsg",
         )
 
     def on_disconnect(self):
@@ -470,7 +470,7 @@ class SendMessageNamespace(Namespace):
         msgs.set_status(msg.id, "Sending")
         socketio.emit(
             "sent", SentMessages().get(self.msg.id),
-            namespace="/ws",
+            namespace="/sendmsg",
         )
 
         socketio.start_background_task(self._start, self._config, data, msg, self)
@@ -548,5 +548,5 @@ def init_flask(config, loglevel, quiet):
     #    import eventlet
     #    eventlet.monkey_patch()
 
-    socketio.on_namespace(SendMessageNamespace("/ws", config=config))
+    socketio.on_namespace(SendMessageNamespace("/sendmsg", config=config))
     return socketio, flask_app
