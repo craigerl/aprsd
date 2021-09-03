@@ -189,8 +189,14 @@ def test_plugin(
 
     pm = plugin.PluginManager(config)
     obj = pm._create_class(plugin_path, plugin.APRSDPluginBase, config=config)
+    login = config["aprs"]["login"]
 
-    packet = {"from": fromcall, "message_text": message, "msgNo": 1}
+    packet = {
+        "from": fromcall, "addresse": login,
+        "message_text": message,
+        "format": "message",
+        "msgNo": 1,
+    }
 
     reply = obj.filter(packet)
     # Plugin might have threads, so lets stop them so we can exit.
