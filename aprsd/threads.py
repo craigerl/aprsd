@@ -17,7 +17,7 @@ RX_THREAD = "RX"
 EMAIL_THREAD = "Email"
 
 rx_msg_queue = queue.Queue(maxsize=20)
-logging_queue = queue.Queue(maxsize=50)
+logging_queue = queue.Queue()
 msg_queues = {
     "rx": rx_msg_queue,
 }
@@ -374,6 +374,7 @@ class KISSRXThread(APRSDThread):
         frame.header._source._ch = False
         payload = str(frame.payload.decode())
         msg = f"{str(frame.header)}:{payload}"
+        # msg = frame.tnc2
         LOG.debug(f"Decoding {msg}")
 
         packet = aprslib.parse(msg)
