@@ -5,10 +5,6 @@
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
         <script src="https://cdn.socket.io/4.1.2/socket.io.min.js" integrity="sha384-toS6mmwu70G0fw54EGlWWeA4z3dyJ+dlXBtSURSKN4vyRFOcxd3Bzjj/AoOwY+Rg" crossorigin="anonymous"></script>
 
-
-        <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/prism.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/components/prism-json.js"></script>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.23.0/themes/prism-tomorrow.css">
         <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.bundle.js"></script>
 
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
@@ -16,14 +12,17 @@
 
         <link rel="stylesheet" href="/static/css/index.css">
         <link rel="stylesheet" href="/static/css/tabs.css">
+        <link rel="stylesheet" href="/static/css/prism.css">
+        <script src="/static/js/prism.js"></script>
         <script src="/static/js/main.js"></script>
         <script src="/static/js/charts.js"></script>
         <script src="/static/js/tabs.js"></script>
         <script src="/static/js/send-message.js"></script>
         <script src="/static/js/packets.js"></script>
+        <script src="/static/js/logs.js"></script>
 
 
-        <script type="text/javascript"">
+        <script type="text/javascript">
             var initial_stats = {{ initial_stats|tojson|safe }};
 
             var memory_chart = null
@@ -35,6 +34,7 @@
                 start_update();
                 start_charts();
                 init_messages();
+                init_logs();
 
                 $("#toggleStats").click(function() {
                     $("#jsonstats").fadeToggle(1000);
@@ -47,6 +47,10 @@
                 const html_pretty = Prism.highlight( cfg_pretty, Prism.languages.json, 'json');
                 $("#configjson").html(html_pretty);
                 $("#jsonstats").fadeToggle(1000);
+
+                //var log_text_pretty = $('#logtext').text();
+                //const log_pretty = Prism.highlight( log_text_pretty, Prism.languages.log, 'log');
+                //$('#logtext').html(log_pretty);
 
                 $('.ui.accordion').accordion({exclusive: false});
                 $('.menu .item').tab('change tab', 'charts-tab');
@@ -79,6 +83,7 @@
             <div class="item" data-tab="plugin-tab">Plugins</div>
             <div class="item" data-tab="config-tab">Config</div>
             <div class="item" data-tab="send-tab">Send Message</div>
+            <div class="item" data-tab="log-tab">LogFile</div>
             <div class="item" data-tab="raw-tab">Raw JSON</div>
         </div>
 
@@ -169,6 +174,11 @@
                     <div id="sendMsgsDiv" class="ui mini text">Messages</div>
                 </div>
             </div>
+        </div>
+
+        <div class="ui bottom attached tab segment" data-tab="log-tab">
+            <h3 class="ui dividing header">LOGFILE</h3>
+            <pre id="logContainer" style="height: 600px;overflow-y:auto;overflow-x:auto;"><code id="logtext" class="language-log" ></code></pre>
         </div>
 
         <div class="ui bottom attached tab segment" data-tab="raw-tab">

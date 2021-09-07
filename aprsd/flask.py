@@ -486,6 +486,64 @@ class SendMessageNamespace(Namespace):
         LOG.debug(f"WS json {data}")
 
 
+class LogMonitorThread(threads.APRSDThread):
+
+    def __init__(self):
+        super().__init__("LogMonitorThread")
+
+    def loop(self):
+        global socketio
+        try:
+            record = threads.logging_queue.get(block=True, timeout=5)
+            json_record = self.json_record(record)
+            socketio.emit(
+                "log_entry", json_record,
+                namespace="/logs",
+            )
+        except Exception:
+            # Just ignore thi
+            pass
+
+        return True
+
+    def json_record(self, record):
+        entry = {}
+        entry["filename"] = record.filename
+        entry["funcName"] = record.funcName
+        entry["levelname"] = record.levelname
+        entry["lineno"] = record.lineno
+        entry["module"] = record.module
+        entry["name"] = record.name
+        entry["pathname"] = record.pathname
+        entry["process"] = record.process
+        entry["processName"] = record.processName
+        if hasattr(record, "stack_info"):
+            entry["stack_info"] = record.stack_info
+        else:
+            entry["stack_info"] = None
+        entry["thread"] = record.thread
+        entry["threadName"] = record.threadName
+        entry["message"] = record.getMessage()
+        return entry
+
+
+class LoggingNamespace(Namespace):
+
+    def on_connect(self):
+        global socketio
+        LOG.debug("Web socket connected")
+        socketio.emit(
+            "connected", {"data": "/logs Connected"},
+            namespace="/logs",
+        )
+        self.log_thread = LogMonitorThread()
+        self.log_thread.start()
+
+    def on_disconnect(self):
+        LOG.debug("WS Disconnected")
+        self.log_thread.stop()
+
+
 def setup_logging(config, flask_app, loglevel, quiet):
     flask_log = logging.getLogger("werkzeug")
 
@@ -548,4 +606,5 @@ def init_flask(config, loglevel, quiet):
     #    eventlet.monkey_patch()
 
     socketio.on_namespace(SendMessageNamespace("/sendmsg", config=config))
+    socketio.on_namespace(LoggingNamespace("/logs"))
     return socketio, flask_app

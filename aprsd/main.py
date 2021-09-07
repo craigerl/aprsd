@@ -195,6 +195,20 @@ def setup_logging(config, loglevel, quiet):
         imap_logger.setLevel(log_level)
         imap_logger.addHandler(fh)
 
+    if (
+        utils.check_config_option(
+            config, ["aprsd", "web", "enabled"],
+            default_fail=False,
+        )
+    ):
+        qh = logging.handlers.QueueHandler(threads.logging_queue)
+        q_log_formatter = logging.Formatter(
+            fmt=utils.QUEUE_LOG_FORMAT,
+            datefmt=utils.QUEUE_DATE_FORMAT,
+        )
+        qh.setFormatter(q_log_formatter)
+        LOG.addHandler(qh)
+
     if not quiet:
         sh = logging.StreamHandler(sys.stdout)
         sh.setFormatter(log_formatter)
@@ -506,10 +520,7 @@ def server(
     keepalive = threads.KeepAliveThread(config=config)
     keepalive.start()
 
-    try:
-        web_enabled = utils.check_config_option(config, ["aprsd", "web", "enabled"])
-    except Exception:
-        web_enabled = False
+    web_enabled = utils.check_config_option(config, ["aprsd", "web", "enabled"], default_fail=False)
 
     if web_enabled:
         flask_enabled = True

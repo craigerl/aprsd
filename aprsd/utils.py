@@ -26,12 +26,17 @@ LOG_LEVELS = {
     "DEBUG": logging.DEBUG,
 }
 
+DEFAULT_DATE_FORMAT = "%m/%d/%Y %I:%M:%S %p"
 DEFAULT_LOG_FORMAT = (
-    "[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s]"
+    "[%(asctime)s] [%(threadName)-20.20s] [%(levelname)-5.5s]"
     " %(message)s - [%(pathname)s:%(lineno)d]"
 )
 
-DEFAULT_DATE_FORMAT = "%m/%d/%Y %I:%M:%S %p"
+QUEUE_DATE_FORMAT = "[%m/%d/%Y] [%I:%M:%S %p]"
+QUEUE_LOG_FORMAT = (
+    "%(asctime)s [%(threadName)-20.20s] [%(levelname)-5.5s]"
+    " %(message)s - [%(pathname)s:%(lineno)d]"
+)
 
 # an example of what should be in the ~/.aprsd/config.yml
 DEFAULT_CONFIG_DICT = {
@@ -288,7 +293,7 @@ def conf_option_exists(conf, chain):
 
 def check_config_option(config, chain, default_fail=None):
     result = conf_option_exists(config, chain.copy())
-    if not result:
+    if result is None:
         raise Exception(
             "'{}' was not in config file".format(
                 chain,
