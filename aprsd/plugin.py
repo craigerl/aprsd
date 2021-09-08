@@ -60,7 +60,9 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         self.config = config
         self.message_counter = 0
         self.setup()
-        self.threads = self.create_threads()
+        threads = self.create_threads()
+        if threads:
+            self.threads = threads
         if self.threads:
             self.start_threads()
 
