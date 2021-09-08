@@ -194,6 +194,7 @@ class APRSDStats:
 
         for p in plugins:
             plugin_stats[full_name_with_qualname(p)] = {
+                "enabled": p.enabled,
                 "rx": p.rx_count,
                 "tx": p.tx_count,
             }

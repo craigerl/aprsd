@@ -30,6 +30,9 @@ def fake_packet(
 class FakeBaseNoThreadsPlugin(plugin.APRSDPluginBase):
     version = "1.0"
 
+    def setup(self):
+        self.enabled = True
+
     def filter(self, packet):
         return None
 
@@ -47,6 +50,9 @@ class FakeThread(threads.APRSDThread):
 
 class FakeBaseThreadsPlugin(plugin.APRSDPluginBase):
     version = "1.0"
+
+    def setup(self):
+        self.enabled = True
 
     def filter(self, packet):
         return None

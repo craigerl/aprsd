@@ -60,7 +60,10 @@ function update_watchlist_from_packet(callsign, val) {
 
 function update_plugins( data ) {
     var plugindiv = $("#pluginDiv");
-    var html_str = '<table class="ui celled striped table"><thead><tr><th>Plugin Name</th><th>Processed Packets</th><th>Sent Packets</th></tr></thead><tbody>'
+    var html_str = '<table class="ui celled striped table"><thead><tr>'
+    html_str +=      '<th>Plugin Name</th><th>Plugin Enabled?</th>'
+    html_str +=      '<th>Processed Packets</th><th>Sent Packets</th>'
+    html_str +=    '</tr></thead><tbody>'
     plugindiv.html('')
 
     var plugins = data["stats"]["plugins"];
@@ -69,7 +72,7 @@ function update_plugins( data ) {
     for (var i=0; i<keys.length; i++) { // now lets iterate in sort order
         var key = keys[i];
         var val = plugins[key];
-        html_str += '<tr><td class="collapsing">' + key + '</td><td>' + val["rx"] + '</td><td>' + val["tx"] + '</td></tr>';
+        html_str += '<tr><td class="collapsing">' + key + '</td><td>' + val["enabled"] + '</td><td>' + val["rx"] + '</td><td>' + val["tx"] + '</td></tr>';
     }
     html_str += "</tbody></table>";
     plugindiv.append(html_str);

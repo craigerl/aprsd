@@ -55,6 +55,8 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
 
     # Holds the list of APRSDThreads that the plugin creates
     threads = []
+    # Set this in setup()
+    enabled = False
 
     def __init__(self, config):
         self.config = config
@@ -67,7 +69,7 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
             self.start_threads()
 
     def start_threads(self):
-        if self.threads:
+        if self.enabled and self.threads:
             if not isinstance(self.threads, list):
                 self.threads = [self.threads]
 
@@ -99,8 +101,10 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         """Version"""
         raise NotImplementedError
 
+    @abc.abstractmethod
     def setup(self):
         """Do any plugin setup here."""
+        self.enabled = True
 
     def create_threads(self):
         """Gives the plugin writer the ability start a background thread."""
@@ -139,7 +143,6 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
     by a particular HAM callsign, write a plugin based off of
     this class.
     """
-    enabled = False
 
     def setup(self):
         # if we have a watch list enabled, we need to add filtering
@@ -162,15 +165,18 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 LOG.warning("Watch list enabled, but no callsigns set.")
 
     def filter(self, packet):
-        wl = packets.WatchList()
-        result = messaging.NULL_MESSAGE
-        if wl.callsign_in_watchlist(packet["from"]):
-            # packet is from a callsign in the watch list
-            self.rx_inc()
-            result = self.process()
-            if result:
-                self.tx_inc()
-            wl.update_seen(packet)
+        if self.enabled:
+            wl = packets.WatchList()
+            result = messaging.NULL_MESSAGE
+            if wl.callsign_in_watchlist(packet["from"]):
+                # packet is from a callsign in the watch list
+                self.rx_inc()
+                result = self.process()
+                if result:
+                    self.tx_inc()
+                wl.update_seen(packet)
+        else:
+            LOG.warning(f"{self.__class__} plugin is not enabled")
 
         return result
 
@@ -193,26 +199,33 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         """The regex to match from the caller"""
         raise NotImplementedError
 
+    def setup(self):
+        """Do any plugin setup here."""
+        self.enabled = True
+
     @hookimpl
     def filter(self, packet):
-        result = None
+        if self.enabled:
+            result = None
 
-        message = packet.get("message_text", None)
-        msg_format = packet.get("format", None)
-        tocall = packet.get("addresse", None)
+            message = packet.get("message_text", None)
+            msg_format = packet.get("format", None)
+            tocall = packet.get("addresse", None)
 
-        # Only process messages destined for us
-        # and is an APRS message format and has a message.
-        if (
-            tocall == self.config["aprs"]["login"]
-            and msg_format == "message"
-            and message
-        ):
-            if re.search(self.command_regex, message):
-                self.rx_inc()
-                result = self.process(packet)
-                if result:
-                    self.tx_inc()
+            # Only process messages destined for us
+            # and is an APRS message format and has a message.
+            if (
+                tocall == self.config["aprs"]["login"]
+                and msg_format == "message"
+                and message
+            ):
+                if re.search(self.command_regex, message):
+                    self.rx_inc()
+                    result = self.process(packet)
+                    if result:
+                        self.tx_inc()
+        else:
+            LOG.warning(f"{self.__class__} is not enabled.")
 
         return result
 
