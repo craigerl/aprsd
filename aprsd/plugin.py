@@ -205,27 +205,27 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
 
     @hookimpl
     def filter(self, packet):
-        if self.enabled:
-            result = None
+        result = None
 
-            message = packet.get("message_text", None)
-            msg_format = packet.get("format", None)
-            tocall = packet.get("addresse", None)
+        message = packet.get("message_text", None)
+        msg_format = packet.get("format", None)
+        tocall = packet.get("addresse", None)
 
-            # Only process messages destined for us
-            # and is an APRS message format and has a message.
-            if (
-                tocall == self.config["aprs"]["login"]
-                and msg_format == "message"
-                and message
-            ):
-                if re.search(self.command_regex, message):
-                    self.rx_inc()
+        # Only process messages destined for us
+        # and is an APRS message format and has a message.
+        if (
+            tocall == self.config["aprs"]["login"]
+            and msg_format == "message"
+            and message
+        ):
+            if re.search(self.command_regex, message):
+                self.rx_inc()
+                if self.enabled:
                     result = self.process(packet)
                     if result:
                         self.tx_inc()
-        else:
-            LOG.warning(f"{self.__class__} is not enabled.")
+                else:
+                    LOG.warning(f"{self.__class__} isn't enabled.")
 
         return result
 

@@ -253,15 +253,21 @@ class APRSDProcessPacketThread(APRSDThread):
                         replied = True
                         for subreply in reply:
                             LOG.debug(f"Sending '{subreply}'")
-
-                            msg = messaging.TextMessage(
-                                self.config["aprs"]["login"],
-                                fromcall,
-                                subreply,
-                                transport=self.transport,
-                            )
-                            msg.send()
-
+                            if isinstance(subreply, messaging.Message):
+                                subreply.send()
+                            else:
+                                msg = messaging.TextMessage(
+                                    self.config["aprs"]["login"],
+                                    fromcall,
+                                    subreply,
+                                    transport=self.transport,
+                                )
+                                msg.send()
+                    elif isinstance(reply, messaging.Message):
+                        # We have a message based object.
+                        LOG.debug(f"Sending '{reply}'")
+                        reply.send()
+                        replied = True
                     else:
                         replied = True
                         # A plugin can return a null message flag which signals
