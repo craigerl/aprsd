@@ -1,9 +1,40 @@
 CHANGES
 =======
 
+v2.3.0
+------
+
+* Enable plugins to return message object
+* Added enabled flag for every plugin object
+* Ensure plugin threads are valid
+* Updated Dockerfile to use v2.3.0
+* Removed fixed size on logging queue
+* Added Logfile tab in Admin ui
+* Updated Makefile clean target
+* Added self creating Makefile help target
+* Update dev.py
+* Allow passing in aprsis\_client
+* Fixed a problem with the AVWX plugin not working
+* Remove some noisy trace in email plugin
+* Fixed issue at startup with notify plugin
+* Fixed email validation
+* Removed values from forms
+* Added send-message to the main admin UI
+* Updated requirements
+* Cleaned up some pep8 failures
+* Upgraded the send-message POC to use websockets
+* New Admin ui send message page working
+* Send Message via admin Web interface
+* Updated Admin UI to show KISS connections
+* Got TX/RX working with aioax25+direwolf over TCP
+* Rebased from master
+* Added the ability to use direwolf KISS socket
+* Update Dockerfile to use 2.2.1
+
 v2.2.1
 ------
 
+* Update Changelog for 2.2.1
 * Silence some log noise
 
 v2.2.0

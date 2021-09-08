@@ -28,14 +28,6 @@ aprsd.dev module
    :undoc-members:
    :show-inheritance:
 
-aprsd.email module
-------------------
-
-.. automodule:: aprsd.email
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 aprsd.fake\_aprs module
 -----------------------
 
@@ -64,6 +56,14 @@ aprsd.healthcheck module
 ------------------------
 
 .. automodule:: aprsd.healthcheck
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.kissclient module
+-----------------------
+
+.. automodule:: aprsd.kissclient
    :members:
    :undoc-members:
    :show-inheritance:
