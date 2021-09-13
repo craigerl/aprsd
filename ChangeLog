@@ -1,9 +1,16 @@
 CHANGES
 =======
 
+v2.3.1
+------
+
+* Fixed issue of aprs-is missing keepalive
+* Fixed packet processing issue with aprsd send-message
+
 v2.3.0
 ------
 
+* Prep 2.3.0
 * Enable plugins to return message object
 * Added enabled flag for every plugin object
 * Ensure plugin threads are valid
