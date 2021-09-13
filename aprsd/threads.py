@@ -89,6 +89,8 @@ class KeepAliveThread(APRSDThread):
         tracemalloc.start()
         super().__init__("KeepAlive")
         self.config = config
+        max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
+        self.max_delta = datetime.timedelta(**max_timeout)
 
     def loop(self):
         if self.cntr % 60 == 0:
@@ -126,6 +128,19 @@ class KeepAliveThread(APRSDThread):
                 len(thread_list),
             )
             LOG.info(keepalive)
+
+            # See if we should reset the aprs-is client
+            # Due to losing a keepalive from them
+            delta_dict = utils.parse_delta_str(last_msg_time)
+            delta = datetime.timedelta(**delta_dict)
+
+            if delta > self.max_delta:
+                #  We haven't gotten a keepalive from aprs-is in a while
+                # reset the connection.a
+                if not kissclient.KISSClient.kiss_enabled(self.config):
+                    LOG.warning("Resetting connection to APRS-IS.")
+                    client.Client().reset()
+
             # Check version every hour
             delta = now - self.checker_time
             if delta > datetime.timedelta(hours=1):
