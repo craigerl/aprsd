@@ -36,7 +36,7 @@ do
     esac
 done
 
-VERSION="2.2.1"
+VERSION="2.3.1"
 
 if [ $ALL_PLATFORMS -eq 1 ]
 then

@@ -37,9 +37,10 @@ import click_completion
 # local imports here
 import aprsd
 from aprsd import (
-    client, flask, kissclient, messaging, packets, plugin, stats, threads,
-    trace, utils,
+    flask, kissclient, messaging, packets, plugin, stats, threads, trace, utils,
 )
+from aprsd import client
+from aprsd import config as aprsd_config
 
 
 # setup the global logger
@@ -48,21 +49,7 @@ LOG = logging.getLogger("APRSD")
 
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
-
 flask_enabled = False
-
-# server_event = threading.Event()
-
-# localization, please edit:
-# HOST = "noam.aprs2.net"     # north america tier2 servers round robin
-# USER = "KM6XXX-9"           # callsign of this aprs client with SSID
-# PASS = "99999"              # google how to generate this
-# BASECALLSIGN = "KM6XXX"     # callsign of radio in the field to send email
-# shortcuts = {
-#   "aa" : "5551239999@vtext.com",
-#   "cl" : "craiglamparter@somedomain.org",
-#   "wb" : "5553909472@vtext.com"
-# }
 
 
 def custom_startswith(string, incomplete):
@@ -172,10 +159,10 @@ def signal_handler(sig, frame):
 # to disable logging to stdout, but still log to file
 # use the --quiet option on the cmdln
 def setup_logging(config, loglevel, quiet):
-    log_level = utils.LOG_LEVELS[loglevel]
+    log_level = aprsd_config.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    log_format = config["aprsd"].get("logformat", utils.DEFAULT_LOG_FORMAT)
-    date_format = config["aprsd"].get("dateformat", utils.DEFAULT_DATE_FORMAT)
+    log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
+    date_format = config["aprsd"].get("dateformat", aprsd_config.DEFAULT_DATE_FORMAT)
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
     log_file = config["aprsd"].get("logfile", None)
     if log_file:
@@ -196,15 +183,15 @@ def setup_logging(config, loglevel, quiet):
         imap_logger.addHandler(fh)
 
     if (
-        utils.check_config_option(
+        aprsd_config.check_config_option(
             config, ["aprsd", "web", "enabled"],
             default_fail=False,
         )
     ):
         qh = logging.handlers.QueueHandler(threads.logging_queue)
         q_log_formatter = logging.Formatter(
-            fmt=utils.QUEUE_LOG_FORMAT,
-            datefmt=utils.QUEUE_DATE_FORMAT,
+            fmt=aprsd_config.QUEUE_LOG_FORMAT,
+            datefmt=aprsd_config.QUEUE_DATE_FORMAT,
         )
         qh.setFormatter(q_log_formatter)
         LOG.addHandler(qh)
@@ -234,11 +221,11 @@ def setup_logging(config, loglevel, quiet):
     "--config",
     "config_file",
     show_default=True,
-    default=utils.DEFAULT_CONFIG_FILE,
+    default=aprsd_config.DEFAULT_CONFIG_FILE,
     help="The aprsd config file to use for options.",
 )
 def check_version(loglevel, config_file):
-    config = utils.parse_config(config_file)
+    config = aprsd_config.parse_config(config_file)
 
     setup_logging(config, loglevel, False)
     level, msg = utils._check_version()
@@ -251,7 +238,7 @@ def check_version(loglevel, config_file):
 @main.command()
 def sample_config():
     """This dumps the config to stdout."""
-    click.echo(utils.dump_default_cfg())
+    click.echo(aprsd_config.dump_default_cfg())
 
 
 @main.command()
@@ -272,7 +259,7 @@ def sample_config():
     "--config",
     "config_file",
     show_default=True,
-    default=utils.DEFAULT_CONFIG_FILE,
+    default=aprsd_config.DEFAULT_CONFIG_FILE,
     help="The aprsd config file to use for options.",
 )
 @click.option(
@@ -312,7 +299,7 @@ def send_message(
     """Send a message to a callsign via APRS_IS."""
     global got_ack, got_response
 
-    config = utils.parse_config(config_file)
+    config = aprsd_config.parse_config(config_file)
     if not aprs_login:
         click.echo("Must set --aprs_login or APRS_LOGIN")
         return
@@ -429,7 +416,7 @@ def send_message(
     "--config",
     "config_file",
     show_default=True,
-    default=utils.DEFAULT_CONFIG_FILE,
+    default=aprsd_config.DEFAULT_CONFIG_FILE,
     help="The aprsd config file to use for options.",
 )
 @click.option(
@@ -454,7 +441,7 @@ def server(
     if not quiet:
         click.echo("Load config")
 
-    config = utils.parse_config(config_file)
+    config = aprsd_config.parse_config(config_file)
 
     setup_logging(config, loglevel, quiet)
     level, msg = utils._check_version()
@@ -523,7 +510,7 @@ def server(
     keepalive = threads.KeepAliveThread(config=config)
     keepalive.start()
 
-    web_enabled = utils.check_config_option(config, ["aprsd", "web", "enabled"], default_fail=False)
+    web_enabled = aprsd_config.check_config_option(config, ["aprsd", "web", "enabled"], default_fail=False)
 
     if web_enabled:
         flask_enabled = True

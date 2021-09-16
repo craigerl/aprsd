@@ -19,7 +19,7 @@ import requests
 
 # local imports here
 import aprsd
-from aprsd import utils
+from aprsd import config as aprsd_config
 
 
 # setup the global logger
@@ -172,7 +172,7 @@ def parse_delta_str(s):
     "--config",
     "config_file",
     show_default=True,
-    default=utils.DEFAULT_CONFIG_FILE,
+    default=aprsd_config.DEFAULT_CONFIG_FILE,
     help="The aprsd config file to use for options.",
 )
 @click.option(
@@ -191,7 +191,7 @@ def parse_delta_str(s):
 def check(loglevel, config_file, health_url, timeout):
     """APRSD Plugin test app."""
 
-    config = utils.parse_config(config_file)
+    config = aprsd_config.parse_config(config_file)
 
     setup_logging(config, loglevel, False)
     LOG.debug(f"APRSD HealthCheck version: {aprsd.__version__}")

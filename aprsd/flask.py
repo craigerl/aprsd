@@ -17,9 +17,9 @@ from flask_socketio import Namespace, SocketIO
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import aprsd
-from aprsd import (
-    client, kissclient, messaging, packets, plugin, stats, threads, utils,
-)
+from aprsd import client
+from aprsd import config as aprsd_config
+from aprsd import kissclient, messaging, packets, plugin, stats, threads, utils
 
 
 LOG = logging.getLogger("APRSD")
@@ -553,10 +553,10 @@ def setup_logging(config, flask_app, loglevel, quiet):
         flask_app.logger.disabled = True
         return
 
-    log_level = utils.LOG_LEVELS[loglevel]
+    log_level = aprsd_config.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    log_format = config["aprsd"].get("logformat", utils.DEFAULT_LOG_FORMAT)
-    date_format = config["aprsd"].get("dateformat", utils.DEFAULT_DATE_FORMAT)
+    log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
+    date_format = config["aprsd"].get("dateformat", aprsd_config.DEFAULT_DATE_FORMAT)
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
     log_file = config["aprsd"].get("logfile", None)
     if log_file:

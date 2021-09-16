@@ -36,7 +36,9 @@ import click_completion
 
 # local imports here
 import aprsd
-from aprsd import client, messaging, stats, threads, trace, utils
+from aprsd import client
+from aprsd import config as aprsd_config
+from aprsd import messaging, stats, threads, trace, utils
 
 
 # setup the global logger
@@ -169,10 +171,10 @@ def signal_handler(sig, frame):
 # to disable logging to stdout, but still log to file
 # use the --quiet option on the cmdln
 def setup_logging(config, loglevel, quiet):
-    log_level = utils.LOG_LEVELS[loglevel]
+    log_level = aprsd_config.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    log_format = config["aprsd"].get("logformat", utils.DEFAULT_LOG_FORMAT)
-    date_format = config["aprsd"].get("dateformat", utils.DEFAULT_DATE_FORMAT)
+    log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
+    date_format = config["aprsd"].get("dateformat", aprsd_config.DEFAULT_DATE_FORMAT)
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
     log_file = config["aprsd"].get("logfile", None)
     if log_file:
@@ -218,7 +220,7 @@ def setup_logging(config, loglevel, quiet):
     "--config",
     "config_file",
     show_default=True,
-    default=utils.DEFAULT_CONFIG_FILE,
+    default=aprsd_config.DEFAULT_CONFIG_FILE,
     help="The aprsd config file to use for options.",
 )
 @click.option(
@@ -258,7 +260,7 @@ def listen(
     """Send a message to a callsign via APRS_IS."""
     global got_ack, got_response
 
-    config = utils.parse_config(config_file)
+    config = aprsd_config.parse_config(config_file)
     if not aprs_login:
         click.echo("Must set --aprs_login or APRS_LOGIN")
         return

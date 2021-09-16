@@ -9,7 +9,9 @@ import re
 import threading
 import time
 
-from aprsd import client, kissclient, packets, stats, threads, trace, utils
+from aprsd import client
+from aprsd import config as aprsd_config
+from aprsd import kissclient, packets, stats, threads, trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -113,11 +115,11 @@ class MsgTrack:
         LOG.debug(f"Save tracker to disk? {len(self)}")
         if len(self) > 0:
             LOG.info(f"Saving {len(self)} tracking messages to disk")
-            pickle.dump(self.dump(), open(utils.DEFAULT_SAVE_FILE, "wb+"))
+            pickle.dump(self.dump(), open(aprsd_config.DEFAULT_SAVE_FILE, "wb+"))
         else:
             LOG.debug(
                 "Nothing to save, flushing old save file '{}'".format(
-                    utils.DEFAULT_SAVE_FILE,
+                    aprsd_config.DEFAULT_SAVE_FILE,
                 ),
             )
             self.flush()
@@ -131,8 +133,8 @@ class MsgTrack:
         return dump
 
     def load(self):
-        if os.path.exists(utils.DEFAULT_SAVE_FILE):
-            raw = pickle.load(open(utils.DEFAULT_SAVE_FILE, "rb"))
+        if os.path.exists(aprsd_config.DEFAULT_SAVE_FILE):
+            raw = pickle.load(open(aprsd_config.DEFAULT_SAVE_FILE, "rb"))
             if raw:
                 self.track = raw
                 LOG.debug("Loaded MsgTrack dict from disk.")
@@ -171,8 +173,8 @@ class MsgTrack:
 
     def flush(self):
         """Nuke the old pickle file that stored the old results from last aprsd run."""
-        if os.path.exists(utils.DEFAULT_SAVE_FILE):
-            pathlib.Path(utils.DEFAULT_SAVE_FILE).unlink()
+        if os.path.exists(aprsd_config.DEFAULT_SAVE_FILE):
+            pathlib.Path(aprsd_config.DEFAULT_SAVE_FILE).unlink()
         with self.lock:
             self.track = {}
 

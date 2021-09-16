@@ -4,7 +4,7 @@ from unittest import mock
 import pytz
 
 import aprsd
-from aprsd import messaging, packets, stats, utils
+from aprsd import config, messaging, packets, stats
 from aprsd.fuzzyclock import fuzzy
 from aprsd.plugins import fortune as fortune_plugin
 from aprsd.plugins import ping as ping_plugin
@@ -19,7 +19,7 @@ class TestPlugin(unittest.TestCase):
     def setUp(self):
         self.fromcall = fake.FAKE_FROM_CALLSIGN
         self.ack = 1
-        self.config = utils.DEFAULT_CONFIG_DICT
+        self.config = config.DEFAULT_CONFIG_DICT
         self.config["ham"]["callsign"] = self.fromcall
         self.config["aprs"]["login"] = fake.FAKE_TO_CALLSIGN
         # Inintialize the stats object with the config
