@@ -37,7 +37,7 @@ import click_completion
 # local imports here
 import aprsd
 from aprsd import (
-    flask, kissclient, messaging, packets, plugin, stats, threads, trace, utils,
+    flask, messaging, packets, plugin, stats, threads, trace, utils,
 )
 from aprsd import client
 from aprsd import config as aprsd_config
@@ -463,23 +463,13 @@ def server(
         trace.setup_tracing(["method", "api"])
     stats.APRSDStats(config)
 
-    if config["aprs"].get("enabled", True):
-        try:
-            cl = client.Client(config)
-            cl.client
-        except LoginError:
-            sys.exit(-1)
-
-        rx_thread = threads.APRSDRXThread(
-            msg_queues=threads.msg_queues,
-            config=config,
-        )
-        rx_thread.start()
-    else:
-        LOG.info(
-            "APRS network connection Not Enabled in config.  This is"
-            " for setups without internet connectivity.",
-        )
+    # Initialize the client factory and create
+    # The correct client object ready for use
+    client.ClientFactory.setup(config)
+    # Make sure we have 1 client transport enabled
+    if not client.factory.is_client_enabled():
+        LOG.error("No Clients are enabled in config.")
+        sys.exit(-1)
 
     # Create the initial PM singleton and Register plugins
     plugin_manager = plugin.PluginManager(config)
@@ -497,13 +487,11 @@ def server(
     packets.PacketList(config=config)
     packets.WatchList(config=config)
 
-    if kissclient.KISSClient.kiss_enabled(config):
-        kcl = kissclient.KISSClient(config=config)
-        # This initializes the client object.
-        kcl.client
-
-        kissrx_thread = threads.KISSRXThread(msg_queues=threads.msg_queues, config=config)
-        kissrx_thread.start()
+    rx_thread = threads.APRSDRXThread(
+        msg_queues=threads.msg_queues,
+        config=config,
+    )
+    rx_thread.start()
 
     messaging.MsgTrack().restart()
 

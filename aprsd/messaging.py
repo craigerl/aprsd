@@ -11,7 +11,7 @@ import time
 
 from aprsd import client
 from aprsd import config as aprsd_config
-from aprsd import kissclient, packets, stats, threads, trace
+from aprsd import packets, stats, threads
 
 
 LOG = logging.getLogger("APRSD")
@@ -19,10 +19,6 @@ LOG = logging.getLogger("APRSD")
 # What to return from a plugin if we have processed the message
 # and it's ok, but don't send a usage string back
 NULL_MESSAGE = -1
-
-MESSAGE_TRANSPORT_TCPKISS = "tcpkiss"
-MESSAGE_TRANSPORT_SERIALKISS = "serialkiss"
-MESSAGE_TRANSPORT_APRSIS = "aprsis"
 
 
 class MsgTrack:
@@ -36,13 +32,6 @@ class MsgTrack:
     automatically adds itself to this class.  When the ack is
     recieved from the radio, the message object is removed from
     this class.
-
-    # TODO(hemna)
-    When aprsd is asked to quit this class should be serialized and
-    saved to disk/db to keep track of the state of outstanding messages.
-    When aprsd is started, it should try and fetch the saved state,
-    and reloaded to a live state.
-
     """
 
     _instance = None
@@ -241,7 +230,6 @@ class Message(metaclass=abc.ABCMeta):
         fromcall,
         tocall,
         msg_id=None,
-        transport=MESSAGE_TRANSPORT_APRSIS,
     ):
         self.fromcall = fromcall
         self.tocall = tocall
@@ -250,17 +238,10 @@ class Message(metaclass=abc.ABCMeta):
             c.increment()
             msg_id = c.value
         self.id = msg_id
-        self.transport = transport
 
     @abc.abstractmethod
     def send(self):
         """Child class must declare."""
-
-    def get_transport(self):
-        if self.transport == MESSAGE_TRANSPORT_APRSIS:
-            return client.get_client()
-        elif self.transport == MESSAGE_TRANSPORT_TCPKISS:
-            return kissclient.get_client()
 
 
 class RawMessage(Message):
@@ -273,8 +254,8 @@ class RawMessage(Message):
 
     message = None
 
-    def __init__(self, message, transport=MESSAGE_TRANSPORT_APRSIS):
-        super().__init__(None, None, msg_id=None, transport=transport)
+    def __init__(self, message):
+        super().__init__(None, None, msg_id=None)
         self.message = message
 
     def dict(self):
@@ -303,7 +284,7 @@ class RawMessage(Message):
 
     def send_direct(self, aprsis_client=None):
         """Send a message without a separate thread."""
-        cl = self.get_transport()
+        cl = client.factory.create().client
         log_message(
             "Sending Message Direct",
             str(self).rstrip("\n"),
@@ -312,7 +293,7 @@ class RawMessage(Message):
             fromcall=self.fromcall,
         )
         cl.send(self)
-        stats.APRSDStats().msgs_sent_inc()
+        stats.APRSDStats().msgs_tx_inc()
 
 
 class TextMessage(Message):
@@ -327,9 +308,8 @@ class TextMessage(Message):
         message,
         msg_id=None,
         allow_delay=True,
-        transport=MESSAGE_TRANSPORT_APRSIS,
     ):
-        super().__init__(fromcall, tocall, msg_id, transport=transport)
+        super().__init__(fromcall, tocall, msg_id)
         self.message = message
         # do we try and save this message for later if we don't get
         # an ack?  Some messages we don't want to do this ever.
@@ -386,7 +366,7 @@ class TextMessage(Message):
         if aprsis_client:
             cl = aprsis_client
         else:
-            cl = self.get_transport()
+            cl = client.factory.create().client
         log_message(
             "Sending Message Direct",
             str(self).rstrip("\n"),
@@ -424,7 +404,6 @@ class SendMessageThread(threads.APRSDThread):
             LOG.info("Message Send Complete via Ack.")
             return False
         else:
-            cl = msg.get_transport()
             send_now = False
             if msg.last_send_attempt == msg.retry_count:
                 # we reached the send limit, don't send again
@@ -455,6 +434,7 @@ class SendMessageThread(threads.APRSDThread):
                     retry_number=msg.last_send_attempt,
                     msg_num=msg.id,
                 )
+                cl = client.factory.create().client
                 cl.send(msg)
                 stats.APRSDStats().msgs_tx_inc()
                 packets.PacketList().add(msg.dict())
@@ -469,8 +449,8 @@ class SendMessageThread(threads.APRSDThread):
 class AckMessage(Message):
     """Class for building Acks and sending them."""
 
-    def __init__(self, fromcall, tocall, msg_id, transport=MESSAGE_TRANSPORT_APRSIS):
-        super().__init__(fromcall, tocall, msg_id=msg_id, transport=transport)
+    def __init__(self, fromcall, tocall, msg_id):
+        super().__init__(fromcall, tocall, msg_id=msg_id)
 
     def dict(self):
         now = datetime.datetime.now()
@@ -509,7 +489,7 @@ class AckMessage(Message):
         if aprsis_client:
             cl = aprsis_client
         else:
-            cl = self.get_transport()
+            cl = client.factory.create().client
         log_message(
             "Sending ack",
             str(self).rstrip("\n"),
@@ -526,10 +506,8 @@ class SendAckThread(threads.APRSDThread):
         self.ack = ack
         super().__init__(f"SendAck-{self.ack.id}")
 
-    @trace.trace
     def loop(self):
         """Separate thread to send acks with retries."""
-        LOG.debug("SendAckThread loop start")
         send_now = False
         if self.ack.last_send_attempt == self.ack.retry_count:
             # we reached the send limit, don't send again
@@ -554,7 +532,7 @@ class SendAckThread(threads.APRSDThread):
             send_now = True
 
         if send_now:
-            cl = self.ack.get_transport()
+            cl = client.factory.create().client
             log_message(
                 "Sending ack",
                 str(self.ack).rstrip("\n"),

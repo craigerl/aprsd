@@ -5,83 +5,20 @@ from aioax25 import interface
 from aioax25 import kiss as kiss
 from aioax25.aprs import APRSInterface
 
-from aprsd import trace
 
-
-TRANSPORT_TCPKISS = "tcpkiss"
-TRANSPORT_SERIALKISS = "serialkiss"
 LOG = logging.getLogger("APRSD")
-
-
-class KISSClient:
-
-    _instance = None
-    config = None
-    ax25client = None
-    loop = None
-
-    def __new__(cls, *args, **kwargs):
-        """Singleton for this class."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            # initialize shit here
-        return cls._instance
-
-    def __init__(self, config=None):
-        if config:
-            self.config = config
-
-    @staticmethod
-    def kiss_enabled(config):
-        """Return if tcp or serial KISS is enabled."""
-        if "kiss" not in config:
-            return False
-
-        if "serial" in config["kiss"]:
-            if config["kiss"]["serial"].get("enabled", False):
-                return True
-
-        if "tcp" in config["kiss"]:
-            if config["kiss"]["tcp"].get("enabled", False):
-                return True
-
-    @staticmethod
-    def transport(config):
-        if "serial" in config["kiss"]:
-            if config["kiss"]["serial"].get("enabled", False):
-                return TRANSPORT_SERIALKISS
-
-        if "tcp" in config["kiss"]:
-            if config["kiss"]["tcp"].get("enabled", False):
-                return TRANSPORT_TCPKISS
-
-    @property
-    def client(self):
-        if not self.ax25client:
-            self.ax25client = self.setup_connection()
-        return self.ax25client
-
-    def reset(self):
-        """Call this to fore a rebuild/reconnect."""
-        self.ax25client.stop()
-        del self.ax25client
-
-    @trace.trace
-    def setup_connection(self):
-        ax25client = Aioax25Client(self.config)
-        LOG.debug("Complete")
-        return ax25client
 
 
 class Aioax25Client:
     def __init__(self, config):
         self.config = config
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        self.loop = asyncio.get_event_loop()
         self.setup()
 
     def setup(self):
         # we can be TCP kiss or Serial kiss
-
-        self.loop = asyncio.get_event_loop()
         if "serial" in self.config["kiss"] and self.config["kiss"]["serial"].get(
             "enabled",
             False,
@@ -131,10 +68,20 @@ class Aioax25Client:
         self.kissdev._close()
         self.loop.stop()
 
-    def consumer(self, callback, callsign=None):
-        if not callsign:
-            callsign = self.config["ham"]["callsign"]
-        self.aprsint.bind(callback=callback, callsign="WB4BOR", ssid=12, regex=False)
+    def set_filter(self, filter):
+        # This does nothing right now.
+        pass
+
+    def consumer(self, callback, blocking=True, immortal=False, raw=False):
+        callsign = self.config["kiss"]["callsign"]
+        call = callsign.split("-")
+        if len(call) > 1:
+            callsign = call[0]
+            ssid = int(call[1])
+        else:
+            ssid = 0
+        self.aprsint.bind(callback=callback, callsign=callsign, ssid=ssid, regex=False)
+        self.loop.run_forever()
 
     def send(self, msg):
         """Send an APRS Message object."""
@@ -145,8 +92,3 @@ class Aioax25Client:
             path=["WIDE1-1", "WIDE2-1"],
             oneshot=True,
         )
-
-
-def get_client():
-    cl = KISSClient()
-    return cl.client

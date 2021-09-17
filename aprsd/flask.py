@@ -19,7 +19,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import aprsd
 from aprsd import client
 from aprsd import config as aprsd_config
-from aprsd import kissclient, messaging, packets, plugin, stats, threads, utils
+from aprsd import messaging, packets, plugin, stats, threads, utils
+from aprsd.clients import aprsis
 
 
 LOG = logging.getLogger("APRSD")
@@ -136,7 +137,8 @@ class SendMessageThread(threads.APRSDThread):
         while not connected:
             try:
                 LOG.info("Creating aprslib client")
-                aprs_client = client.Aprsdis(
+
+                aprs_client = aprsis.Aprsdis(
                     user,
                     passwd=password,
                     host=host,
@@ -312,16 +314,16 @@ class APRSDFlask(flask_classful.FlaskView):
             )
         else:
             # We might be connected to a KISS socket?
-            if kissclient.KISSClient.kiss_enabled(self.config):
-                transport = kissclient.KISSClient.transport(self.config)
-                if transport == kissclient.TRANSPORT_TCPKISS:
+            if client.KISSClient.kiss_enabled(self.config):
+                transport = client.KISSClient.transport(self.config)
+                if transport == client.TRANSPORT_TCPKISS:
                     aprs_connection = (
                         "TCPKISS://{}:{}".format(
                             self.config["kiss"]["tcp"]["host"],
                             self.config["kiss"]["tcp"]["port"],
                         )
                     )
-                elif transport == kissclient.TRANSPORT_SERIALKISS:
+                elif transport == client.TRANSPORT_SERIALKISS:
                     aprs_connection = (
                         "SerialKISS://{}@{} baud".format(
                             self.config["kiss"]["serial"]["device"],

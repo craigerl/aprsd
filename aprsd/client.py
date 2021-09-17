@@ -1,26 +1,30 @@
+import abc
 import logging
-import select
 import time
 
 import aprslib
-from aprslib import is_py3
-from aprslib.exceptions import (
-    ConnectionDrop, ConnectionError, GenericError, LoginError, ParseError,
-    UnknownFormat,
-)
+from aprslib.exceptions import LoginError
 
-import aprsd
-from aprsd import stats
+from aprsd import trace
+from aprsd.clients import aprsis, kiss
 
 
 LOG = logging.getLogger("APRSD")
+TRANSPORT_APRSIS = "aprsis"
+TRANSPORT_TCPKISS = "tcpkiss"
+TRANSPORT_SERIALKISS = "serialkiss"
+
+# Main must create this from the ClientFactory
+# object such that it's populated with the
+# Correct config
+factory = None
 
 
 class Client:
     """Singleton client class that constructs the aprslib connection."""
 
     _instance = None
-    aprs_client = None
+    _client = None
     config = None
 
     connected = False
@@ -40,14 +44,49 @@ class Client:
 
     @property
     def client(self):
-        if not self.aprs_client:
-            self.aprs_client = self.setup_connection()
-        return self.aprs_client
+        if not self._client:
+            self._client = self.setup_connection()
+        return self._client
 
     def reset(self):
         """Call this to force a rebuild/reconnect."""
-        del self.aprs_client
+        del self._client
 
+    @abc.abstractmethod
+    def setup_connection(self):
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def is_enabled(config):
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def transport(config):
+        pass
+
+    @abc.abstractmethod
+    def decode_packet(self, *args, **kwargs):
+        pass
+
+
+class APRSISClient(Client):
+
+    @staticmethod
+    def is_enabled(config):
+        # Defaults to True if the enabled flag is non existent
+        return config["aprs"].get("enabled", True)
+
+    @staticmethod
+    def transport(config):
+        return TRANSPORT_APRSIS
+
+    def decode_packet(self, *args, **kwargs):
+        """APRS lib already decodes this."""
+        return args[0]
+
+    @trace.trace
     def setup_connection(self):
         user = self.config["aprs"]["login"]
         password = self.config["aprs"]["password"]
@@ -55,10 +94,11 @@ class Client:
         port = self.config["aprs"].get("port", 14580)
         connected = False
         backoff = 1
+        aprs_client = None
         while not connected:
             try:
                 LOG.info("Creating aprslib client")
-                aprs_client = Aprsdis(user, passwd=password, host=host, port=port)
+                aprs_client = aprsis.Aprsdis(user, passwd=password, host=host, port=port)
                 # Force the logging to be the same
                 aprs_client.logger = LOG
                 aprs_client.connect()
@@ -77,200 +117,96 @@ class Client:
         return aprs_client
 
 
-class Aprsdis(aprslib.IS):
-    """Extend the aprslib class so we can exit properly."""
+class KISSClient(Client):
 
-    # flag to tell us to stop
-    thread_stop = False
+    @staticmethod
+    def is_enabled(config):
+        """Return if tcp or serial KISS is enabled."""
+        if "kiss" not in config:
+            return False
 
-    # timeout in seconds
-    select_timeout = 1
+        if "serial" in config["kiss"]:
+            if config["kiss"]["serial"].get("enabled", False):
+                return True
 
-    def stop(self):
-        self.thread_stop = True
-        LOG.info("Shutdown Aprsdis client.")
+        if "tcp" in config["kiss"]:
+            if config["kiss"]["tcp"].get("enabled", False):
+                return True
 
-    def send(self, msg):
-        """Send an APRS Message object."""
-        line = str(msg)
-        self.sendall(line)
+    @staticmethod
+    def transport(config):
+        if "serial" in config["kiss"]:
+            if config["kiss"]["serial"].get("enabled", False):
+                return TRANSPORT_SERIALKISS
 
-    def _socket_readlines(self, blocking=False):
-        """
-        Generator for complete lines, received from the server
-        """
-        try:
-            self.sock.setblocking(0)
-        except OSError as e:
-            self.logger.error(f"socket error when setblocking(0): {str(e)}")
-            raise aprslib.ConnectionDrop("connection dropped")
+        if "tcp" in config["kiss"]:
+            if config["kiss"]["tcp"].get("enabled", False):
+                return TRANSPORT_TCPKISS
 
-        while not self.thread_stop:
-            short_buf = b""
-            newline = b"\r\n"
+    def decode_packet(self, *args, **kwargs):
+        """We get a frame, which has to be decoded."""
+        frame = kwargs["frame"]
+        LOG.debug(f"Got an APRS Frame '{frame}'")
+        # try and nuke the * from the fromcall sign.
+        frame.header._source._ch = False
+        payload = str(frame.payload.decode())
+        msg = f"{str(frame.header)}:{payload}"
+        # msg = frame.tnc2
+        LOG.debug(f"Decoding {msg}")
 
-            # set a select timeout, so we get a chance to exit
-            # when user hits CTRL-C
-            readable, writable, exceptional = select.select(
-                [self.sock],
-                [],
-                [],
-                self.select_timeout,
-            )
-            if not readable:
-                if not blocking:
-                    break
-                else:
-                    continue
+        packet = aprslib.parse(msg)
+        return packet
 
-            try:
-                short_buf = self.sock.recv(4096)
-
-                # sock.recv returns empty if the connection drops
-                if not short_buf:
-                    if not blocking:
-                        # We could just not be blocking, so empty is expected
-                        continue
-                    else:
-                        self.logger.error("socket.recv(): returned empty")
-                        raise aprslib.ConnectionDrop("connection dropped")
-            except OSError as e:
-                # self.logger.error("socket error on recv(): %s" % str(e))
-                if "Resource temporarily unavailable" in str(e):
-                    if not blocking:
-                        if len(self.buf) == 0:
-                            break
-
-            self.buf += short_buf
-
-            while newline in self.buf:
-                line, self.buf = self.buf.split(newline, 1)
-
-                yield line
-
-    def _send_login(self):
-        """
-        Sends login string to server
-        """
-        login_str = "user {0} pass {1} vers github.com/craigerl/aprsd {3}{2}\r\n"
-        login_str = login_str.format(
-            self.callsign,
-            self.passwd,
-            (" filter " + self.filter) if self.filter != "" else "",
-            aprsd.__version__,
-        )
-
-        self.logger.info("Sending login information")
-
-        try:
-            self._sendall(login_str)
-            self.sock.settimeout(5)
-            test = self.sock.recv(len(login_str) + 100)
-            if is_py3:
-                test = test.decode("latin-1")
-            test = test.rstrip()
-
-            self.logger.debug("Server: %s", test)
-
-            a, b, callsign, status, e = test.split(" ", 4)
-            s = e.split(",")
-            if len(s):
-                server_string = s[0].replace("server ", "")
-            else:
-                server_string = e.replace("server ", "")
-
-            self.logger.info(f"Connected to {server_string}")
-            self.server_string = server_string
-            stats.APRSDStats().set_aprsis_server(server_string)
-
-            if callsign == "":
-                raise LoginError("Server responded with empty callsign???")
-            if callsign != self.callsign:
-                raise LoginError(f"Server: {test}")
-            if status != "verified," and self.passwd != "-1":
-                raise LoginError("Password is incorrect")
-
-            if self.passwd == "-1":
-                self.logger.info("Login successful (receive only)")
-            else:
-                self.logger.info("Login successful")
-
-        except LoginError as e:
-            self.logger.error(str(e))
-            self.close()
-            raise
-        except Exception as e:
-            self.close()
-            self.logger.error(f"Failed to login '{e}'")
-            raise LoginError("Failed to login")
-
-    def consumer(self, callback, blocking=True, immortal=False, raw=False):
-        """
-        When a position sentence is received, it will be passed to the callback function
-
-        blocking: if true (default), runs forever, otherwise will return after one sentence
-                  You can still exit the loop, by raising StopIteration in the callback function
-
-        immortal: When true, consumer will try to reconnect and stop propagation of Parse exceptions
-                  if false (default), consumer will return
-
-        raw: when true, raw packet is passed to callback, otherwise the result from aprs.parse()
-        """
-
-        if not self._connected:
-            raise ConnectionError("not connected to a server")
-
-        line = b""
-
-        while True and not self.thread_stop:
-            try:
-                for line in self._socket_readlines(blocking):
-                    if line[0:1] != b"#":
-                        if raw:
-                            callback(line)
-                        else:
-                            callback(self._parse(line))
-                    else:
-                        self.logger.debug("Server: %s", line.decode("utf8"))
-                        stats.APRSDStats().set_aprsis_keepalive()
-            except ParseError as exp:
-                self.logger.log(
-                    11,
-                    "%s\n    Packet: %s",
-                    exp,
-                    exp.packet,
-                )
-            except UnknownFormat as exp:
-                self.logger.log(
-                    9,
-                    "%s\n    Packet: %s",
-                    exp,
-                    exp.packet,
-                )
-            except LoginError as exp:
-                self.logger.error("%s: %s", exp.__class__.__name__, exp)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except (ConnectionDrop, ConnectionError):
-                self.close()
-
-                if not immortal:
-                    raise
-                else:
-                    self.connect(blocking=blocking)
-                    continue
-            except GenericError:
-                pass
-            except StopIteration:
-                break
-            except Exception:
-                self.logger.error("APRS Packet: %s", line)
-                raise
-
-            if not blocking:
-                break
+    @trace.trace
+    def setup_connection(self):
+        ax25client = kiss.Aioax25Client(self.config)
+        return ax25client
 
 
-def get_client():
-    cl = Client()
-    return cl.client
+class ClientFactory:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        """This magic turns this into a singleton."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            # Put any initialization here.
+        return cls._instance
+
+    def __init__(self, config):
+        self.config = config
+        self._builders = {}
+
+    def register(self, key, builder):
+        self._builders[key] = builder
+
+    def create(self, key=None):
+        if not key:
+            if APRSISClient.is_enabled(self.config):
+                key = TRANSPORT_APRSIS
+            elif KISSClient.is_enabled(self.config):
+                key = KISSClient.transport(self.config)
+
+        LOG.debug(f"GET client {key}")
+        builder = self._builders.get(key)
+        if not builder:
+            raise ValueError(key)
+        return builder(self.config)
+
+    def is_client_enabled(self):
+        """Make sure at least one client is enabled."""
+        enabled = False
+        for key in self._builders.keys():
+            enabled |= self._builders[key].is_enabled(self.config)
+
+        return enabled
+
+    @staticmethod
+    def setup(config):
+        """Create and register all possible client objects."""
+        global factory
+
+        factory = ClientFactory(config)
+        factory.register(TRANSPORT_APRSIS, APRSISClient)
+        factory.register(TRANSPORT_TCPKISS, KISSClient)
+        factory.register(TRANSPORT_SERIALKISS, KISSClient)
