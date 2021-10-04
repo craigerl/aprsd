@@ -174,20 +174,13 @@ def setup_logging(config, loglevel, quiet):
     LOG.addHandler(fh)
 
     imap_logger = None
-    if config["aprsd"]["email"].get("enabled", False) and config["aprsd"]["email"][
-        "imap"
-    ].get("debug", False):
+    if config.get("aprsd.email.enabled", default=False) and config.get("aprsd.email.imap.debug", default=False):
 
         imap_logger = logging.getLogger("imapclient.imaplib")
         imap_logger.setLevel(log_level)
         imap_logger.addHandler(fh)
 
-    if (
-        aprsd_config.check_config_option(
-            config, ["aprsd", "web", "enabled"],
-            default_fail=False,
-        )
-    ):
+    if config.get("aprsd.web.enabled", default=False):
         qh = logging.handlers.QueueHandler(threads.logging_queue)
         q_log_formatter = logging.Formatter(
             fmt=aprsd_config.QUEUE_LOG_FORMAT,
@@ -498,7 +491,7 @@ def server(
     keepalive = threads.KeepAliveThread(config=config)
     keepalive.start()
 
-    web_enabled = aprsd_config.check_config_option(config, ["aprsd", "web", "enabled"], default_fail=False)
+    web_enabled = config.get("aprsd.web.enabled", default=False)
 
     if web_enabled:
         flask_enabled = True

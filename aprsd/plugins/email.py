@@ -56,7 +56,6 @@ class EmailInfo:
             self._delay = val
 
 
-
 class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
     """Email Plugin."""
 

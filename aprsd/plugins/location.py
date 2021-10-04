@@ -2,7 +2,7 @@ import logging
 import re
 import time
 
-from aprsd import config, plugin, plugin_utils, trace
+from aprsd import plugin, plugin_utils, trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -24,7 +24,7 @@ class LocationPlugin(plugin.APRSDRegexCommandPluginBase):
 
         # get last location of a callsign, get descriptive name from weather service
         try:
-            config.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+            self.config.check_option(["services", "aprs.fi", "apiKey"])
         except Exception as ex:
             LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
             return "No aprs.fi apikey found"

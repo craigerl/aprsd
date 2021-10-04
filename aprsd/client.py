@@ -125,23 +125,19 @@ class KISSClient(Client):
         if "kiss" not in config:
             return False
 
-        if "serial" in config["kiss"]:
-            if config["kiss"]["serial"].get("enabled", False):
-                return True
+        if config.get("kiss.serial.enabled", default=False):
+            return True
 
-        if "tcp" in config["kiss"]:
-            if config["kiss"]["tcp"].get("enabled", False):
-                return True
+        if config.get("kiss.tcp.enabled", default=False):
+            return True
 
     @staticmethod
     def transport(config):
-        if "serial" in config["kiss"]:
-            if config["kiss"]["serial"].get("enabled", False):
-                return TRANSPORT_SERIALKISS
+        if config.get("kiss.serial.enabled", default=False):
+            return TRANSPORT_SERIALKISS
 
-        if "tcp" in config["kiss"]:
-            if config["kiss"]["tcp"].get("enabled", False):
-                return TRANSPORT_TCPKISS
+        if config.get("kiss.tcp.enabled", default=False):
+            return TRANSPORT_TCPKISS
 
     def decode_packet(self, *args, **kwargs):
         """We get a frame, which has to be decoded."""

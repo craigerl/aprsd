@@ -1,3 +1,4 @@
+import collections
 import logging
 import os
 from pathlib import Path
@@ -134,6 +135,60 @@ DEFAULT_SAVE_FILE = f"{home}/.config/aprsd/aprsd.p"
 DEFAULT_CONFIG_FILE = f"{home}/.config/aprsd/aprsd.yml"
 
 
+class Config(collections.UserDict):
+    def _get(self, d, keys, default=None):
+        """
+        Example:
+            d = {'meta': {'status': 'OK', 'status_code': 200}}
+            deep_get(d, ['meta', 'status_code'])          # => 200
+            deep_get(d, ['garbage', 'status_code'])       # => None
+            deep_get(d, ['meta', 'garbage'], default='-') # => '-'
+
+        """
+        if type(keys) is str and "." in keys:
+            keys = keys.split(".")
+
+        assert type(keys) is list
+        if d is None:
+            return default
+
+        if not keys:
+            return d
+
+        if type(d) is str:
+            return default
+
+        return self._get(d.get(keys[0]), keys[1:], default)
+
+    def get(self, path, default=None):
+        return self._get(self.data, path, default=default)
+
+    def exists(self, path):
+        """See if a conf value exists."""
+        test = "-3.14TEST41.3-"
+        return (self.get(path, default=test) != test)
+
+    def check_option(self, path, default_fail=None):
+        """Make sure the config option doesn't have default value."""
+        if not self.exists(path):
+            raise Exception(
+                "Option '{}' was not in config file".format(
+                    path,
+                ),
+            )
+
+        val = self.get(path)
+        if val == default_fail:
+            # We have to fail and bail if the user hasn't edited
+            # this config option.
+            raise Exception(
+                "Config file needs to be changed from provided"
+                " defaults for '{}'".format(
+                    path,
+                ),
+            )
+
+
 def add_config_comments(raw_yaml):
     end_idx = utils.end_substr(raw_yaml, "aprs:")
     if end_idx != -1:
@@ -223,7 +278,7 @@ def get_config(config_file):
     if os.path.exists(config_file_expanded):
         with open(config_file_expanded) as stream:
             config = yaml.load(stream, Loader=yaml.FullLoader)
-            return config
+            return Config(config)
     else:
         if config_file == DEFAULT_CONFIG_FILE:
             click.echo(
@@ -249,33 +304,28 @@ def get_config(config_file):
 # If the required params don't exist,
 # it will look in the environment
 def parse_config(config_file):
-    # for now we still use globals....ugh
-    global CONFIG
+    config = get_config(config_file)
 
     def fail(msg):
         click.echo(msg)
         sys.exit(-1)
 
-    def check_option(config, chain, default_fail=None):
+    def check_option(config, path, default_fail=None):
         try:
-            config = check_config_option(config, chain, default_fail=default_fail)
+            config.check_option(path, default_fail=default_fail)
         except Exception as ex:
             fail(repr(ex))
         else:
             return config
 
-    config = get_config(config_file)
-
     # special check here to make sure user has edited the config file
     # and changed the ham callsign
     check_option(
         config,
-        [
-            "ham",
-            "callsign",
-        ],
+        "ham.callsign",
         default_fail=DEFAULT_CONFIG_DICT["ham"]["callsign"],
     )
+
     check_option(
         config,
         ["services", "aprs.fi", "apiKey"],
@@ -283,7 +333,7 @@ def parse_config(config_file):
     )
     check_option(
         config,
-        ["aprs", "login"],
+        "aprs.login",
         default_fail=DEFAULT_CONFIG_DICT["aprs"]["login"],
     )
     check_option(
@@ -293,21 +343,21 @@ def parse_config(config_file):
     )
 
     # Ensure they change the admin password
-    if config["aprsd"]["web"]["enabled"] is True:
+    if config.get("aprsd.web.enabled") is True:
         check_option(
             config,
             ["aprsd", "web", "users", "admin"],
             default_fail=DEFAULT_CONFIG_DICT["aprsd"]["web"]["users"]["admin"],
         )
 
-    if config["aprsd"]["watch_list"]["enabled"] is True:
+    if config.get("aprsd.watch_list.enabled") is True:
         check_option(
             config,
             ["aprsd", "watch_list", "alert_callsign"],
             default_fail=DEFAULT_CONFIG_DICT["aprsd"]["watch_list"]["alert_callsign"],
         )
 
-    if config["aprsd"]["email"]["enabled"] is True:
+    if config.get("aprsd.email.enabled") is True:
         # Check IMAP server settings
         check_option(config, ["aprsd", "email", "imap", "host"])
         check_option(config, ["aprsd", "email", "imap", "port"])
@@ -337,31 +387,3 @@ def parse_config(config_file):
         )
 
     return config
-
-
-def conf_option_exists(conf, chain):
-    _key = chain.pop(0)
-    if _key in conf:
-        return conf_option_exists(conf[_key], chain) if chain else conf[_key]
-
-
-def check_config_option(config, chain, default_fail=None):
-    result = conf_option_exists(config, chain.copy())
-    if result is None:
-        raise Exception(
-            "'{}' was not in config file".format(
-                chain,
-            ),
-        )
-    else:
-        if default_fail:
-            if result == default_fail:
-                # We have to fail and bail if the user hasn't edited
-                # this config option.
-                raise Exception(
-                    "Config file needs to be edited from provided defaults for {}.".format(
-                        chain,
-                    ),
-                )
-        else:
-            return config
