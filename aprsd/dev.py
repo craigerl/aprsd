@@ -190,7 +190,9 @@ def test_plugin(
     client.Client(config)
 
     pm = plugin.PluginManager(config)
+    pm._init()
     obj = pm._create_class(plugin_path, plugin.APRSDPluginBase, config=config)
+    pm._pluggy_pm.register(obj)
     login = config["aprs"]["login"]
 
     packet = {
@@ -200,7 +202,7 @@ def test_plugin(
         "msgNo": 1,
     }
 
-    reply = obj.filter(packet)
+    reply = pm.run(packet)
     # Plugin might have threads, so lets stop them so we can exit.
     obj.stop_threads()
     LOG.info(f"Result = '{reply}'")

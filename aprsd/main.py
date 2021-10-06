@@ -464,6 +464,9 @@ def server(
         LOG.error("No Clients are enabled in config.")
         sys.exit(-1)
 
+    # Creates the client object
+    client.factory.create().client
+
     # Create the initial PM singleton and Register plugins
     plugin_manager = plugin.PluginManager(config)
     plugin_manager.setup_plugins()
