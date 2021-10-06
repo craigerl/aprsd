@@ -465,9 +465,11 @@ def server(
         sys.exit(-1)
 
     # Creates the client object
+    LOG.info("Creating client connection")
     client.factory.create().client
 
     # Create the initial PM singleton and Register plugins
+    LOG.info("Loading Plugin Manager and registering plugins")
     plugin_manager = plugin.PluginManager(config)
     plugin_manager.setup_plugins()
 
