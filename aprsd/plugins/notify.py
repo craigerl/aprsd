@@ -17,12 +17,8 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
 
     version = "1.0"
 
-    def __init__(self, config):
-        """The aprsd config object is stored."""
-        super().__init__(config)
-
     def process(self, packet):
-        LOG.info("BaseNotifyPlugin")
+        LOG.info("NotifySeenPlugin")
 
         notify_callsign = self.config["aprsd"]["watch_list"]["alert_callsign"]
         fromcall = packet.get("from")
