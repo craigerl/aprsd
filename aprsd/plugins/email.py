@@ -575,7 +575,7 @@ class APRSDEmailThread(threads.APRSDThread):
             # slowly increase delay every iteration, max out at 300 seconds
             # any send/receive/resend activity will reset this to 60 seconds
             if EmailInfo().delay < 300:
-                EmailInfo().delay += 1
+                EmailInfo().delay += 10
             LOG.debug(
                 f"check_email_delay is {EmailInfo().delay} seconds ",
             )
