@@ -340,7 +340,7 @@ class APRSDFlask(flask_classful.FlaskView):
             aprs_connection=aprs_connection,
             callsign=self.config["aprs"]["login"],
             version=aprsd.__version__,
-            config_json=json.dumps(self.config),
+            config_json=json.dumps(self.config.data),
             watch_count=watch_count,
             watch_age=watch_age,
             plugin_count=plugin_count,
