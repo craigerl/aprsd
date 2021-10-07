@@ -351,8 +351,8 @@ def send_message(
             sys.exit(0)
 
     try:
-        cl = client.Client(config)
-        cl.setup_connection()
+        client.ClientFactory.setup(config)
+        client.factory.create().client
     except LoginError:
         sys.exit(-1)
 
@@ -379,7 +379,7 @@ def send_message(
         # This will register a packet consumer with aprslib
         # When new packets come in the consumer will process
         # the packet
-        aprs_client = client.get_client()
+        aprs_client = client.factory.create().client
         aprs_client.consumer(rx_packet, raw=False)
     except aprslib.exceptions.ConnectionDrop:
         LOG.error("Connection dropped, reconnecting")
@@ -387,7 +387,7 @@ def send_message(
         # Force the deletion of the client object connected to aprs
         # This will cause a reconnect, next time client.get_client()
         # is called
-        cl.reset()
+        aprs_client.reset()
 
 
 # main() ###
