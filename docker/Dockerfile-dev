@@ -1,14 +1,14 @@
 FROM python:3.8-slim as aprsd
 
 # Dockerfile for building a container during aprsd development.
-ARG BRANCH
+ARG branch
 ARG UID
 ARG GID
 
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
 ENV APRSD=http://github.com/craigerl/aprsd.git
-ENV APRSD_BRANCH=${BRANCH:-master}
+ENV APRSD_BRANCH=${branch:-master}
 ENV VIRTUAL_ENV=$HOME/.venv3
 ENV UID=${UID:-1000}
 ENV GID=${GID:-1000}
