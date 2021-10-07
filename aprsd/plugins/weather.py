@@ -4,7 +4,7 @@ import re
 
 import requests
 
-from aprsd import config, plugin, plugin_utils, trace
+from aprsd import plugin, plugin_utils, trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -34,7 +34,7 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         # message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
         try:
-            config.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+            self.config.exists(["services", "aprs.fi", "apiKey"])
         except Exception as ex:
             LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
             return "No aprs.fi apikey found"
@@ -115,10 +115,7 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase):
             fromcall = fromcall
 
             try:
-                config.check_config_option(
-                    self.config,
-                    ["services", "aprs.fi", "apiKey"],
-                )
+                self.config.exists(["services", "aprs.fi", "apiKey"])
             except Exception as ex:
                 LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
                 return "No aprs.fi apikey found"
@@ -199,7 +196,7 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
             searchcall = fromcall
 
         try:
-            config.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+            self.config.exists(["services", "aprs.fi", "apiKey"])
         except Exception as ex:
             LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
             return "No aprs.fi apikey found"
@@ -220,16 +217,13 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         lon = aprs_data["entries"][0]["lng"]
 
         try:
-            config.check_config_option(
-                self.config,
-                ["services", "openweathermap", "apiKey"],
-            )
+            self.config.exists(["services", "openweathermap", "apiKey"])
         except Exception as ex:
             LOG.error(f"Failed to find config openweathermap:apiKey {ex}")
             return "No openweathermap apiKey found"
 
         try:
-            config.check_config_option(self.config, ["aprsd", "units"])
+            self.config.exists(["aprsd", "units"])
         except Exception:
             LOG.debug("Couldn't find untis in aprsd:services:units")
             units = "metric"
@@ -323,7 +317,7 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
             searchcall = fromcall
 
         try:
-            config.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+            self.config.exists(["services", "aprs.fi", "apiKey"])
         except Exception as ex:
             LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
             return "No aprs.fi apikey found"
@@ -344,13 +338,13 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         lon = aprs_data["entries"][0]["lng"]
 
         try:
-            config.check_config_option(self.config, ["services", "avwx", "apiKey"])
+            self.config.exists(["services", "avwx", "apiKey"])
         except Exception as ex:
             LOG.error(f"Failed to find config avwx:apiKey {ex}")
             return "No avwx apiKey found"
 
         try:
-            config.check_config_option(self.config, ["services", "avwx", "base_url"])
+            self.config.exists(self.config, ["services", "avwx", "base_url"])
         except Exception as ex:
             LOG.debug(f"Didn't find avwx:base_url {ex}")
             base_url = "https://avwx.rest"
