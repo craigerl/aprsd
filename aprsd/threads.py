@@ -8,7 +8,7 @@ import tracemalloc
 
 import aprslib
 
-from aprsd import client, kissclient, messaging, packets, plugin, stats, utils
+from aprsd import client, messaging, packets, plugin, stats, utils
 
 
 LOG = logging.getLogger("APRSD")
@@ -137,9 +137,9 @@ class KeepAliveThread(APRSDThread):
             if delta > self.max_delta:
                 #  We haven't gotten a keepalive from aprs-is in a while
                 # reset the connection.a
-                if not kissclient.KISSClient.kiss_enabled(self.config):
+                if not client.KISSClient.is_enabled(self.config):
                     LOG.warning("Resetting connection to APRS-IS.")
-                    client.Client().reset()
+                    client.factory.create().reset()
 
             # Check version every hour
             delta = now - self.checker_time
@@ -158,13 +158,13 @@ class APRSDRXThread(APRSDThread):
         super().__init__("RX_MSG")
         self.msg_queues = msg_queues
         self.config = config
+        self._client = client.factory.create()
 
     def stop(self):
         self.thread_stop = True
-        client.get_client().stop()
+        client.factory.create().client.stop()
 
     def loop(self):
-        aprs_client = client.get_client()
 
         # setup the consumer of messages and block until a messages
         try:
@@ -177,7 +177,9 @@ class APRSDRXThread(APRSDThread):
             # and the aprslib developer didn't want to allow a PR to add
             # kwargs.  :(
             # https://github.com/rossengeorgiev/aprs-python/pull/56
-            aprs_client.consumer(self.process_packet, raw=False, blocking=False)
+            self._client.client.consumer(
+                self.process_packet, raw=False, blocking=False,
+            )
 
         except aprslib.exceptions.ConnectionDrop:
             LOG.error("Connection dropped, reconnecting")
@@ -185,21 +187,21 @@ class APRSDRXThread(APRSDThread):
             # Force the deletion of the client object connected to aprs
             # This will cause a reconnect, next time client.get_client()
             # is called
-            client.Client().reset()
+            self._client.reset()
         # Continue to loop
         return True
 
-    def process_packet(self, packet):
+    def process_packet(self, *args, **kwargs):
+        packet = self._client.decode_packet(*args, **kwargs)
         thread = APRSDProcessPacketThread(packet=packet, config=self.config)
         thread.start()
 
 
 class APRSDProcessPacketThread(APRSDThread):
 
-    def __init__(self, packet, config, transport="aprsis"):
+    def __init__(self, packet, config):
         self.packet = packet
         self.config = config
-        self.transport = transport
         name = self.packet["raw"][:10]
         super().__init__(f"RX_PACKET-{name}")
 
@@ -254,7 +256,6 @@ class APRSDProcessPacketThread(APRSDThread):
                     self.config["aprs"]["login"],
                     fromcall,
                     msg_id=msg_id,
-                    transport=self.transport,
                 )
                 ack.send()
 
@@ -275,7 +276,6 @@ class APRSDProcessPacketThread(APRSDThread):
                                     self.config["aprs"]["login"],
                                     fromcall,
                                     subreply,
-                                    transport=self.transport,
                                 )
                                 msg.send()
                     elif isinstance(reply, messaging.Message):
@@ -296,7 +296,6 @@ class APRSDProcessPacketThread(APRSDThread):
                                 self.config["aprs"]["login"],
                                 fromcall,
                                 reply,
-                                transport=self.transport,
                             )
                             msg.send()
 
@@ -309,7 +308,6 @@ class APRSDProcessPacketThread(APRSDThread):
                         self.config["aprs"]["login"],
                         fromcall,
                         reply,
-                        transport=self.transport,
                     )
                     msg.send()
             except Exception as ex:
@@ -321,88 +319,7 @@ class APRSDProcessPacketThread(APRSDThread):
                         self.config["aprs"]["login"],
                         fromcall,
                         reply,
-                        transport=self.transport,
                     )
                     msg.send()
 
         LOG.debug("Packet processing complete")
-
-
-class APRSDTXThread(APRSDThread):
-    def __init__(self, msg_queues, config):
-        super().__init__("TX_MSG")
-        self.msg_queues = msg_queues
-        self.config = config
-
-    def loop(self):
-        try:
-            msg = self.msg_queues["tx"].get(timeout=1)
-            msg.send()
-        except queue.Empty:
-            pass
-        # Continue to loop
-        return True
-
-
-class KISSRXThread(APRSDThread):
-    """Thread that connects to direwolf's TCPKISS interface.
-
-    All Packets are processed and sent back out the direwolf
-    interface instead of the aprs-is server.
-
-    """
-
-    def __init__(self, msg_queues, config):
-        super().__init__("KISSRX_MSG")
-        self.msg_queues = msg_queues
-        self.config = config
-
-    def stop(self):
-        self.thread_stop = True
-        kissclient.get_client().stop()
-
-    def loop(self):
-        kiss_client = kissclient.get_client()
-
-        # setup the consumer of messages and block until a messages
-        try:
-            # This will register a packet consumer with aprslib
-            # When new packets come in the consumer will process
-            # the packet
-
-            # Do a partial here because the consumer signature doesn't allow
-            # For kwargs to be passed in to the consumer func we declare
-            # and the aprslib developer didn't want to allow a PR to add
-            # kwargs.  :(
-            # https://github.com/rossengeorgiev/aprs-python/pull/56
-            kiss_client.consumer(self.process_packet, callsign=self.config["kiss"]["callsign"])
-            kiss_client.loop.run_forever()
-
-        except aprslib.exceptions.ConnectionDrop:
-            LOG.error("Connection dropped, reconnecting")
-            time.sleep(5)
-            # Force the deletion of the client object connected to aprs
-            # This will cause a reconnect, next time client.get_client()
-            # is called
-            client.Client().reset()
-        # Continue to loop
-
-    def process_packet(self, interface, frame):
-        """Process a packet recieved from aprs-is server."""
-
-        LOG.debug(f"Got an APRS Frame '{frame}'")
-        # try and nuke the * from the fromcall sign.
-        frame.header._source._ch = False
-        payload = str(frame.payload.decode())
-        msg = f"{str(frame.header)}:{payload}"
-        # msg = frame.tnc2
-        LOG.debug(f"Decoding {msg}")
-
-        packet = aprslib.parse(msg)
-        LOG.debug(packet)
-        thread = APRSDProcessPacketThread(
-            packet=packet, config=self.config,
-            transport=messaging.MESSAGE_TRANSPORT_TCPKISS,
-        )
-        thread.start()
-        return

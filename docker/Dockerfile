@@ -28,7 +28,7 @@ RUN addgroup --gid $GID $APRS_USER
 RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
 
 # Install aprsd
-RUN /usr/local/bin/pip3 install aprsd==2.3.0
+RUN /usr/local/bin/pip3 install aprsd==2.3.1
 
 # Ensure /config is there with a default config file
 USER root

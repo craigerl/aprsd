@@ -5,6 +5,7 @@ import imaplib
 import logging
 import re
 import smtplib
+import threading
 import time
 
 import imapclient
@@ -15,9 +16,44 @@ from aprsd import messaging, plugin, stats, threads, trace
 
 LOG = logging.getLogger("APRSD")
 
-# This gets forced set from main.py prior to being used internally
-CONFIG = {}
-check_email_delay = 60
+
+class EmailInfo:
+    """A singleton thread safe mechanism for the global check_email_delay.
+
+    This has to be done because we have 2 separate threads that access
+    the delay value.
+    1) when EmailPlugin runs from a user message and
+    2) when the background EmailThread runs to check email.
+
+    Access the check email delay with
+    EmailInfo().delay
+
+    Set it with
+    EmailInfo().delay = 100
+    or
+    EmailInfo().delay += 10
+
+    """
+
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        """This magic turns this into a singleton."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.lock = threading.Lock()
+            cls._instance._delay = 60
+        return cls._instance
+
+    @property
+    def delay(self):
+        with self.lock:
+            return self._delay
+
+    @delay.setter
+    def delay(self, val):
+        with self.lock:
+            self._delay = val
 
 
 class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
@@ -34,8 +70,6 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
 
     def setup(self):
         """Ensure that email is enabled and start the thread."""
-        global CONFIG
-        CONFIG = self.config
 
         email_enabled = self.config["aprsd"]["email"].get("enabled", False)
         validation = self.config["aprsd"]["email"].get("validate", False)
@@ -81,7 +115,7 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
             r = re.search("^-([0-9])[0-9]*$", message)
             if r is not None:
                 LOG.debug("RESEND EMAIL")
-                resend_email(r.group(1), fromcall)
+                resend_email(self.config, r.group(1), fromcall)
                 reply = messaging.NULL_MESSAGE
             # -user@address.com body of email
             elif re.search(r"^-([A-Za-z0-9_\-\.@]+) (.*)", message):
@@ -91,7 +125,7 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
                     to_addr = a.group(1)
                     content = a.group(2)
 
-                    email_address = get_email_from_shortcut(to_addr)
+                    email_address = get_email_from_shortcut(self.config, to_addr)
                     if not email_address:
                         reply = "Bad email address"
                         return reply
@@ -114,7 +148,7 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
                             too_soon = 1
                     if not too_soon or ack == 0:
                         LOG.info(f"Send email '{content}'")
-                        send_result = email.send_email(to_addr, content)
+                        send_result = send_email(self.config, to_addr, content)
                         reply = messaging.NULL_MESSAGE
                         if send_result != 0:
                             reply = f"-{to_addr} failed"
@@ -143,10 +177,9 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
         return reply
 
 
-def _imap_connect():
-    global CONFIG
-    imap_port = CONFIG["aprsd"]["email"]["imap"].get("port", 143)
-    use_ssl = CONFIG["aprsd"]["email"]["imap"].get("use_ssl", False)
+def _imap_connect(config):
+    imap_port = config["aprsd"]["email"]["imap"].get("port", 143)
+    use_ssl = config["aprsd"]["email"]["imap"].get("use_ssl", False)
     # host = CONFIG["aprsd"]["email"]["imap"]["host"]
     # msg = "{}{}:{}".format("TLS " if use_ssl else "", host, imap_port)
     #    LOG.debug("Connect to IMAP host {} with user '{}'".
@@ -154,7 +187,7 @@ def _imap_connect():
 
     try:
         server = imapclient.IMAPClient(
-            CONFIG["aprsd"]["email"]["imap"]["host"],
+            config["aprsd"]["email"]["imap"]["host"],
             port=imap_port,
             use_uid=True,
             ssl=use_ssl,
@@ -166,8 +199,8 @@ def _imap_connect():
 
     try:
         server.login(
-            CONFIG["aprsd"]["email"]["imap"]["login"],
-            CONFIG["aprsd"]["email"]["imap"]["password"],
+            config["aprsd"]["email"]["imap"]["login"],
+            config["aprsd"]["email"]["imap"]["password"],
         )
     except (imaplib.IMAP4.error, Exception) as e:
         msg = getattr(e, "message", repr(e))
@@ -183,15 +216,15 @@ def _imap_connect():
     return server
 
 
-def _smtp_connect():
-    host = CONFIG["aprsd"]["email"]["smtp"]["host"]
-    smtp_port = CONFIG["aprsd"]["email"]["smtp"]["port"]
-    use_ssl = CONFIG["aprsd"]["email"]["smtp"].get("use_ssl", False)
+def _smtp_connect(config):
+    host = config["aprsd"]["email"]["smtp"]["host"]
+    smtp_port = config["aprsd"]["email"]["smtp"]["port"]
+    use_ssl = config["aprsd"]["email"]["smtp"].get("use_ssl", False)
     msg = "{}{}:{}".format("SSL " if use_ssl else "", host, smtp_port)
     LOG.debug(
         "Connect to SMTP host {} with user '{}'".format(
             msg,
-            CONFIG["aprsd"]["email"]["imap"]["login"],
+            config["aprsd"]["email"]["imap"]["login"],
         ),
     )
 
@@ -214,15 +247,15 @@ def _smtp_connect():
 
     LOG.debug(f"Connected to smtp host {msg}")
 
-    debug = CONFIG["aprsd"]["email"]["smtp"].get("debug", False)
+    debug = config["aprsd"]["email"]["smtp"].get("debug", False)
     if debug:
         server.set_debuglevel(5)
         server.sendmail = trace.trace(server.sendmail)
 
     try:
         server.login(
-            CONFIG["aprsd"]["email"]["smtp"]["login"],
-            CONFIG["aprsd"]["email"]["smtp"]["password"],
+            config["aprsd"]["email"]["smtp"]["login"],
+            config["aprsd"]["email"]["smtp"]["password"],
         )
     except Exception:
         LOG.error("Couldn't connect to SMTP Server")
@@ -273,9 +306,9 @@ def validate_shortcuts(config):
     )
 
 
-def get_email_from_shortcut(addr):
-    if CONFIG["aprsd"]["email"].get("shortcuts", False):
-        return CONFIG["aprsd"]["email"]["shortcuts"].get(addr, addr)
+def get_email_from_shortcut(config, addr):
+    if config["aprsd"]["email"].get("shortcuts", False):
+        return config["aprsd"]["email"]["shortcuts"].get(addr, addr)
     else:
         return addr
 
@@ -286,9 +319,9 @@ def validate_email_config(config, disable_validation=False):
     This helps with failing early during startup.
     """
     LOG.info("Checking IMAP configuration")
-    imap_server = _imap_connect()
+    imap_server = _imap_connect(config)
     LOG.info("Checking SMTP configuration")
-    smtp_server = _smtp_connect()
+    smtp_server = _smtp_connect(config)
 
     # Now validate and flag any shortcuts as invalid
     if not disable_validation:
@@ -398,34 +431,32 @@ def parse_email(msgid, data, server):
 
 
 @trace.trace
-def send_email(to_addr, content):
-    global check_email_delay
-
-    shortcuts = CONFIG["aprsd"]["email"]["shortcuts"]
-    email_address = get_email_from_shortcut(to_addr)
+def send_email(config, to_addr, content):
+    shortcuts = config["aprsd"]["email"]["shortcuts"]
+    email_address = get_email_from_shortcut(config, to_addr)
     LOG.info("Sending Email_________________")
 
     if to_addr in shortcuts:
         LOG.info("To          : " + to_addr)
         to_addr = email_address
         LOG.info(" (" + to_addr + ")")
-    subject = CONFIG["ham"]["callsign"]
+    subject = config["ham"]["callsign"]
     # content = content + "\n\n(NOTE: reply with one line)"
     LOG.info("Subject     : " + subject)
     LOG.info("Body        : " + content)
 
     # check email more often since there's activity right now
-    check_email_delay = 60
+    EmailInfo().delay = 60
 
     msg = MIMEText(content)
     msg["Subject"] = subject
-    msg["From"] = CONFIG["aprsd"]["email"]["smtp"]["login"]
+    msg["From"] = config["aprsd"]["email"]["smtp"]["login"]
     msg["To"] = to_addr
     server = _smtp_connect()
     if server:
         try:
             server.sendmail(
-                CONFIG["aprsd"]["email"]["smtp"]["login"],
+                config["aprsd"]["email"]["smtp"]["login"],
                 [to_addr],
                 msg.as_string(),
             )
@@ -440,20 +471,19 @@ def send_email(to_addr, content):
 
 
 @trace.trace
-def resend_email(count, fromcall):
-    global check_email_delay
+def resend_email(config, count, fromcall):
     date = datetime.datetime.now()
     month = date.strftime("%B")[:3]  # Nov, Mar, Apr
     day = date.day
     year = date.year
     today = f"{day}-{month}-{year}"
 
-    shortcuts = CONFIG["aprsd"]["email"]["shortcuts"]
+    shortcuts = config["aprsd"]["email"]["shortcuts"]
     # swap key/value
     shortcuts_inverted = {v: k for k, v in shortcuts.items()}
 
     try:
-        server = _imap_connect()
+        server = _imap_connect(config)
     except Exception as e:
         LOG.exception("Failed to Connect to IMAP. Cannot resend email ", e)
         return
@@ -493,7 +523,7 @@ def resend_email(count, fromcall):
             reply = "-" + from_addr + " * " + body.decode(errors="ignore")
             # messaging.send_message(fromcall, reply)
             msg = messaging.TextMessage(
-                CONFIG["aprs"]["login"],
+                config["aprs"]["login"],
                 fromcall,
                 reply,
             )
@@ -515,11 +545,11 @@ def resend_email(count, fromcall):
             str(s).zfill(2),
         )
         # messaging.send_message(fromcall, reply)
-        msg = messaging.TextMessage(CONFIG["aprs"]["login"], fromcall, reply)
+        msg = messaging.TextMessage(config["aprs"]["login"], fromcall, reply)
         msg.send()
 
     # check email more often since we're resending one now
-    check_email_delay = 60
+    EmailInfo().delay = 60
 
     server.logout()
     # end resend_email()
@@ -533,27 +563,24 @@ class APRSDEmailThread(threads.APRSDThread):
         self.past = datetime.datetime.now()
 
     def loop(self):
-        global check_email_delay
-
-        check_email_delay = 60
         time.sleep(5)
         stats.APRSDStats().email_thread_update()
         # always sleep for 5 seconds and see if we need to check email
         # This allows CTRL-C to stop the execution of this loop sooner
         # than check_email_delay time
         now = datetime.datetime.now()
-        if now - self.past > datetime.timedelta(seconds=check_email_delay):
+        if now - self.past > datetime.timedelta(seconds=EmailInfo().delay):
             # It's time to check email
 
             # slowly increase delay every iteration, max out at 300 seconds
             # any send/receive/resend activity will reset this to 60 seconds
-            if check_email_delay < 300:
-                check_email_delay += 1
+            if EmailInfo().delay < 300:
+                EmailInfo().delay += 10
             LOG.debug(
-                "check_email_delay is " + str(check_email_delay) + " seconds",
+                f"check_email_delay is {EmailInfo().delay} seconds ",
             )
 
-            shortcuts = CONFIG["aprsd"]["email"]["shortcuts"]
+            shortcuts = self.config["aprsd"]["email"]["shortcuts"]
             # swap key/value
             shortcuts_inverted = {v: k for k, v in shortcuts.items()}
 
@@ -564,7 +591,7 @@ class APRSDEmailThread(threads.APRSDThread):
             today = f"{day}-{month}-{year}"
 
             try:
-                server = _imap_connect()
+                server = _imap_connect(self.config)
             except Exception as e:
                 LOG.exception("IMAP failed to connect.", e)
                 return True
@@ -658,7 +685,7 @@ class APRSDEmailThread(threads.APRSDThread):
                         LOG.exception("Couldn't remove seen flag from email", e)
 
                     # check email more often since we just received an email
-                    check_email_delay = 60
+                    EmailInfo().delay = 60
 
             # reset clock
             LOG.debug("Done looping over Server.fetch, logging out.")

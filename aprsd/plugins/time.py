@@ -5,7 +5,7 @@ import time
 from opencage.geocoder import OpenCageGeocode
 import pytz
 
-from aprsd import fuzzyclock, plugin, plugin_utils, trace, utils
+from aprsd import fuzzyclock, plugin, plugin_utils, trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -64,7 +64,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
 
         # get last location of a callsign, get descriptive name from weather service
         try:
-            utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+            self.config.exists(["services", "aprs.fi", "apiKey"])
         except Exception as ex:
             LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
             return "No aprs.fi apikey found"
@@ -95,7 +95,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
         lon = aprs_data["entries"][0]["lng"]
 
         try:
-            utils.check_config_option(self.config, "opencagedata", "apiKey")
+            self.config.exists("opencagedata.apiKey")
         except Exception as ex:
             LOG.error(f"Failed to find config opencage:apiKey {ex}")
             return "No opencage apiKey found"
@@ -130,7 +130,7 @@ class TimeOWMPlugin(TimePlugin):
 
         # get last location of a callsign, get descriptive name from weather service
         try:
-            utils.check_config_option(self.config, ["services", "aprs.fi", "apiKey"])
+            self.config.exists(["services", "aprs.fi", "apiKey"])
         except Exception as ex:
             LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
             return "No aprs.fi apikey found"
@@ -160,8 +160,7 @@ class TimeOWMPlugin(TimePlugin):
         lon = aprs_data["entries"][0]["lng"]
 
         try:
-            utils.check_config_option(
-                self.config,
+            self.config.exists(
                 ["services", "openweathermap", "apiKey"],
             )
         except Exception as ex:

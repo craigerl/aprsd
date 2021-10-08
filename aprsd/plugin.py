@@ -17,9 +17,6 @@ from aprsd import client, messaging, packets, threads
 # setup the global logger
 LOG = logging.getLogger("APRSD")
 
-hookspec = pluggy.HookspecMarker("aprsd")
-hookimpl = pluggy.HookimplMarker("aprsd")
-
 CORE_MESSAGE_PLUGINS = [
     "aprsd.plugins.email.EmailPlugin",
     "aprsd.plugins.fortune.FortunePlugin",
@@ -36,8 +33,11 @@ CORE_NOTIFY_PLUGINS = [
     "aprsd.plugins.notify.NotifySeenPlugin",
 ]
 
+hookspec = pluggy.HookspecMarker("aprsd")
+hookimpl = pluggy.HookimplMarker("aprsd")
 
-class APRSDCommandSpec:
+
+class APRSDPluginSpec:
     """A hook specification namespace."""
 
     @hookspec
@@ -62,11 +62,8 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         self.config = config
         self.message_counter = 0
         self.setup()
-        threads = self.create_threads()
-        if threads:
-            self.threads = threads
-        if self.threads:
-            self.start_threads()
+        self.threads = self.create_threads()
+        self.start_threads()
 
     def start_threads(self):
         if self.enabled and self.threads:
@@ -96,11 +93,6 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     def message_count(self):
         return self.message_counter
 
-    @property
-    def version(self):
-        """Version"""
-        raise NotImplementedError
-
     @abc.abstractmethod
     def setup(self):
         """Do any plugin setup here."""
@@ -122,7 +114,6 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
             if isinstance(thread, threads.APRSDThread):
                 thread.stop()
 
-    @hookimpl
     @abc.abstractmethod
     def filter(self, packet):
         pass
@@ -158,20 +149,28 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
             )
             # make sure the timeout is set or this doesn't work
             if watch_list:
-                aprs_client = client.get_client()
+                aprs_client = client.factory.create().client
                 filter_str = "b/{}".format("/".join(watch_list))
                 aprs_client.set_filter(filter_str)
             else:
                 LOG.warning("Watch list enabled, but no callsigns set.")
 
+    @hookimpl
     def filter(self, packet):
+        result = messaging.NULL_MESSAGE
         if self.enabled:
             wl = packets.WatchList()
-            result = messaging.NULL_MESSAGE
             if wl.callsign_in_watchlist(packet["from"]):
                 # packet is from a callsign in the watch list
                 self.rx_inc()
-                result = self.process()
+                try:
+                    result = self.process(packet)
+                except Exception as ex:
+                    LOG.error(
+                        "Plugin {} failed to process packet {}".format(
+                            self.__class__, ex,
+                        ),
+                    )
                 if result:
                     self.tx_inc()
                 wl.update_seen(packet)
@@ -221,7 +220,14 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
             if re.search(self.command_regex, message):
                 self.rx_inc()
                 if self.enabled:
-                    result = self.process(packet)
+                    try:
+                        result = self.process(packet)
+                    except Exception as ex:
+                        LOG.error(
+                            "Plugin {} failed to process packet {}".format(
+                                self.__class__, ex,
+                            ),
+                        )
                     if result:
                         self.tx_inc()
                 else:
@@ -254,6 +260,10 @@ class PluginManager:
         self.obj_list = []
         if config:
             self.config = config
+
+    def _init(self):
+        self._pluggy_pm = pluggy.PluginManager("aprsd")
+        self._pluggy_pm.add_hookspecs(APRSDPluginSpec)
 
     def load_plugins_from_path(self, module_path):
         if not os.path.exists(module_path):
@@ -356,8 +366,7 @@ class PluginManager:
 
         LOG.info("Loading APRSD Plugins")
         enabled_plugins = self.config["aprsd"].get("enabled_plugins", None)
-        self._pluggy_pm = pluggy.PluginManager("aprsd")
-        self._pluggy_pm.add_hookspecs(APRSDCommandSpec)
+        self._init()
         if enabled_plugins:
             for p_name in enabled_plugins:
                 self._load_plugin(p_name)

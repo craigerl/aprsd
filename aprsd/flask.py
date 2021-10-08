@@ -17,9 +17,10 @@ from flask_socketio import Namespace, SocketIO
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import aprsd
-from aprsd import (
-    client, kissclient, messaging, packets, plugin, stats, threads, utils,
-)
+from aprsd import client
+from aprsd import config as aprsd_config
+from aprsd import messaging, packets, plugin, stats, threads, utils
+from aprsd.clients import aprsis
 
 
 LOG = logging.getLogger("APRSD")
@@ -136,7 +137,8 @@ class SendMessageThread(threads.APRSDThread):
         while not connected:
             try:
                 LOG.info("Creating aprslib client")
-                aprs_client = client.Aprsdis(
+
+                aprs_client = aprsis.Aprsdis(
                     user,
                     passwd=password,
                     host=host,
@@ -312,16 +314,16 @@ class APRSDFlask(flask_classful.FlaskView):
             )
         else:
             # We might be connected to a KISS socket?
-            if kissclient.KISSClient.kiss_enabled(self.config):
-                transport = kissclient.KISSClient.transport(self.config)
-                if transport == kissclient.TRANSPORT_TCPKISS:
+            if client.KISSClient.kiss_enabled(self.config):
+                transport = client.KISSClient.transport(self.config)
+                if transport == client.TRANSPORT_TCPKISS:
                     aprs_connection = (
                         "TCPKISS://{}:{}".format(
                             self.config["kiss"]["tcp"]["host"],
                             self.config["kiss"]["tcp"]["port"],
                         )
                     )
-                elif transport == kissclient.TRANSPORT_SERIALKISS:
+                elif transport == client.TRANSPORT_SERIALKISS:
                     aprs_connection = (
                         "SerialKISS://{}@{} baud".format(
                             self.config["kiss"]["serial"]["device"],
@@ -338,7 +340,7 @@ class APRSDFlask(flask_classful.FlaskView):
             aprs_connection=aprs_connection,
             callsign=self.config["aprs"]["login"],
             version=aprsd.__version__,
-            config_json=json.dumps(self.config),
+            config_json=json.dumps(self.config.data),
             watch_count=watch_count,
             watch_age=watch_age,
             plugin_count=plugin_count,
@@ -553,10 +555,10 @@ def setup_logging(config, flask_app, loglevel, quiet):
         flask_app.logger.disabled = True
         return
 
-    log_level = utils.LOG_LEVELS[loglevel]
+    log_level = aprsd_config.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    log_format = config["aprsd"].get("logformat", utils.DEFAULT_LOG_FORMAT)
-    date_format = config["aprsd"].get("dateformat", utils.DEFAULT_DATE_FORMAT)
+    log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
+    date_format = config["aprsd"].get("dateformat", aprsd_config.DEFAULT_DATE_FORMAT)
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
     log_file = config["aprsd"].get("logfile", None)
     if log_file:
