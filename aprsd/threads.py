@@ -302,12 +302,11 @@ class APRSDProcessPacketThread(APRSDThread):
                 # If the message was for us and we didn't have a
                 # response, then we send a usage statement.
                 if tocall == self.config["aprs"]["login"] and not replied:
-                    reply = "Usage: weather, locate [call], time, fortune, ping"
-
+                    LOG.warning("Sending help!")
                     msg = messaging.TextMessage(
                         self.config["aprs"]["login"],
                         fromcall,
-                        reply,
+                        "Unknown command! Send 'help' message for help",
                     )
                     msg.send()
             except Exception as ex:

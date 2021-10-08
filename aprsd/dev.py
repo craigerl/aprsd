@@ -178,12 +178,22 @@ def setup_logging(config, loglevel, quiet):
     default="aprsd.plugins.wx.WxPlugin",
     help="The plugin to run",
 )
+@click.option(
+    "-a",
+    "--all",
+    "load_all",
+    show_default=True,
+    is_flag=True,
+    default=False,
+    help="Load all the plugins in config?",
+)
 @click.argument("fromcall")
 @click.argument("message", nargs=-1, required=True)
 def test_plugin(
     loglevel,
     config_file,
     plugin_path,
+    load_all,
     fromcall,
     message,
 ):
@@ -199,8 +209,12 @@ def test_plugin(
     client.Client(config)
 
     pm = plugin.PluginManager(config)
-    pm._init()
+    if load_all:
+        pm.setup_plugins()
+    else:
+        pm._init()
     obj = pm._create_class(plugin_path, plugin.APRSDPluginBase, config=config)
+    # Register the plugin they wanted tested.
     pm._pluggy_pm.register(obj)
     login = config["aprs"]["login"]
 
@@ -212,8 +226,9 @@ def test_plugin(
     }
 
     reply = pm.run(packet)
+    pm.stop()
     # Plugin might have threads, so lets stop them so we can exit.
-    obj.stop_threads()
+    # obj.stop_threads()
     LOG.info(f"Result = '{reply}'")
 
 

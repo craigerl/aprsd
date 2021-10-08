@@ -54,7 +54,7 @@ class TimeOpenCageDataPlugin(TimePlugin):
 
     version = "1.0"
     command_regex = "^[tT]"
-    command_name = "Time"
+    command_name = "time"
 
     @trace.trace
     def process(self, packet):
@@ -120,7 +120,7 @@ class TimeOWMPlugin(TimePlugin):
 
     version = "1.0"
     command_regex = "^[tT]"
-    command_name = "Time"
+    command_name = "time"
 
     @trace.trace
     def process(self, packet):

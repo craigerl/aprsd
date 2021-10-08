@@ -6,6 +6,7 @@ import inspect
 import logging
 import os
 import re
+import textwrap
 import threading
 
 import pluggy
@@ -62,7 +63,7 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         self.config = config
         self.message_counter = 0
         self.setup()
-        self.threads = self.create_threads()
+        self.threads = self.create_threads() or []
         self.start_threads()
 
     def start_threads(self):
@@ -92,6 +93,9 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     @property
     def message_count(self):
         return self.message_counter
+
+    def help(self):
+        return "Help!"
 
     @abc.abstractmethod
     def setup(self):
@@ -198,6 +202,12 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         """The regex to match from the caller"""
         raise NotImplementedError
 
+    def help(self):
+        return "{}: {}".format(
+            self.command_name.lower(),
+            self.command_regex,
+        )
+
     def setup(self):
         """Do any plugin setup here."""
         self.enabled = True
@@ -228,12 +238,73 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                                 self.__class__, ex,
                             ),
                         )
+                        LOG.exception(ex)
                     if result:
                         self.tx_inc()
                 else:
                     LOG.warning(f"{self.__class__} isn't enabled.")
 
         return result
+
+
+class HelpPlugin(APRSDRegexCommandPluginBase):
+    """Help Plugin that is always enabled.
+
+    This plugin is in this file to prevent a circular import.
+    """
+
+    version = "1.0"
+    command_regex = "^[hH]"
+    command_name = "help"
+
+    def help(self):
+        return "Help: send APRS help or help <plugin>"
+
+    def process(self, packet):
+        LOG.info("HelpPlugin")
+        # fromcall = packet.get("from")
+        message = packet.get("message_text", None)
+        # ack = packet.get("msgNo", "0")
+        a = re.search(r"^.*\s+(.*)", message)
+        command_name = None
+        if a is not None:
+            command_name = a.group(1).lower()
+
+        pm = PluginManager()
+
+        if command_name and "?" not in command_name:
+            # user wants help for a specific plugin
+            reply = None
+            for p in pm.get_plugins():
+                if (
+                    p.enabled and isinstance(p, APRSDRegexCommandPluginBase)
+                    and p.command_name.lower() == command_name
+                ):
+                    reply = p.help()
+
+            if reply:
+                return reply
+
+        list = []
+        for p in pm.get_plugins():
+            LOG.debug(p)
+            if p.enabled and isinstance(p, APRSDRegexCommandPluginBase):
+                name = p.command_name.lower()
+                if name not in list and "help" not in name:
+                    list.append(name)
+
+        list.sort()
+        reply = " ".join(list)
+        lines = textwrap.wrap(reply, 60)
+        replies = ["Send APRS MSG of 'help' or 'help <plugin>'"]
+        for line in lines:
+            replies.append(f"plugins: {line}")
+
+        for entry in replies:
+            LOG.debug(f"{len(entry)} {entry}")
+
+        LOG.debug(f"{replies}")
+        return replies
 
 
 class PluginManager:
@@ -365,8 +436,12 @@ class PluginManager:
         """Create the plugin manager and register plugins."""
 
         LOG.info("Loading APRSD Plugins")
-        enabled_plugins = self.config["aprsd"].get("enabled_plugins", None)
         self._init()
+        # Help plugin is always enabled.
+        _help = HelpPlugin(self.config)
+        self._pluggy_pm.register(_help)
+
+        enabled_plugins = self.config["aprsd"].get("enabled_plugins", None)
         if enabled_plugins:
             for p_name in enabled_plugins:
                 self._load_plugin(p_name)
@@ -391,6 +466,12 @@ class PluginManager:
         """Execute all the pluguns run method."""
         with self.lock:
             return self._pluggy_pm.hook.filter(packet=packet)
+
+    def stop(self):
+        """Stop all threads created by all plugins."""
+        with self.lock:
+            for p in self.get_plugins():
+                p.stop_threads()
 
     def register_msg(self, obj):
         """Register the plugin."""

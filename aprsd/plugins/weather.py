@@ -25,7 +25,7 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     version = "1.0"
     command_regex = "^[wW]"
-    command_name = "weather"
+    command_name = "USWeather"
 
     @trace.trace
     def process(self, packet):
@@ -88,7 +88,7 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase):
 
     version = "1.0"
     command_regex = "^[metar]"
-    command_name = "Metar"
+    command_name = "USMetar"
 
     @trace.trace
     def process(self, packet):
@@ -180,7 +180,16 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     version = "1.0"
     command_regex = "^[wW]"
-    command_name = "Weather"
+    command_name = "OpenWeatherMap"
+
+    def help(self):
+        _help = [
+            "openweathermap: Send {} to get weather "
+            "from your location".format(self.command_regex),
+            "openweathermap: Send {} <callsign> to get "
+            "weather from <callsign>".format(self.command_regex),
+        ]
+        return _help
 
     @trace.trace
     def process(self, packet):
@@ -301,7 +310,16 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     version = "1.0"
     command_regex = "^[mM]"
-    command_name = "Weather"
+    command_name = "AVWXWeather"
+
+    def help(self):
+        _help = [
+            "avwxweather: Send {} to get weather "
+            "from your location".format(self.command_regex),
+            "avwxweather: Send {} <callsign> to get "
+            "weather from <callsign>".format(self.command_regex),
+        ]
+        return _help
 
     @trace.trace
     def process(self, packet):

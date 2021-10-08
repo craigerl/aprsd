@@ -1,6 +1,6 @@
 import logging
 
-from aprsd import messaging, packets, plugin
+from aprsd import packets, plugin
 
 
 LOG = logging.getLogger("APRSD")
@@ -46,4 +46,3 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                     wl.max_delta(),
                 ),
             )
-            return messaging.NULL_MESSAGE
