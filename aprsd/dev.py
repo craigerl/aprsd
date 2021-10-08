@@ -121,14 +121,23 @@ def install(append, case_insensitive, shell, path):
 # to disable logging to stdout, but still log to file
 # use the --quiet option on the cmdln
 def setup_logging(config, loglevel, quiet):
-    log_level = LOG_LEVELS[loglevel]
+    log_level = aprsd_config.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    log_format = "[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s]" " %(message)s"
-    date_format = "%m/%d/%Y %I:%M:%S %p"
+    log_format = config["aprsd"].get(
+        "logformat",
+        aprsd_config.DEFAULT_LOG_FORMAT,
+    )
+    date_format = config["aprsd"].get(
+        "dateformat",
+        aprsd_config.DEFAULT_DATE_FORMAT,
+    )
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
-    log_file = config["aprs"].get("logfile", None)
+    log_file = config["aprsd"].get("logfile", None)
     if log_file:
-        fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
+        fh = RotatingFileHandler(
+            log_file, maxBytes=(10248576 * 5),
+            backupCount=4,
+        )
     else:
         fh = NullHandler()
 
@@ -181,8 +190,8 @@ def test_plugin(
     """APRSD Plugin test app."""
 
     config = aprsd_config.parse_config(config_file)
-
     setup_logging(config, loglevel, False)
+
     LOG.info(f"Test APRSD PLugin version: {aprsd.__version__}")
     if type(message) is tuple:
         message = " ".join(message)
