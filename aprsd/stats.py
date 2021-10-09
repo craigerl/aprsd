@@ -197,6 +197,7 @@ class APRSDStats:
                 "enabled": p.enabled,
                 "rx": p.rx_count,
                 "tx": p.tx_count,
+                "version": p.version,
             }
 
         wl = packets.WatchList()
