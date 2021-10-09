@@ -58,11 +58,31 @@ function update_watchlist_from_packet(callsign, val) {
     //console.log(watchlist)
 }
 
+function update_seenlist( data ) {
+    var seendiv = $("#seenDiv");
+    var html_str = '<table class="ui celled striped table">'
+    html_str    += '<thead><tr><th>HAM Callsign</th><th>Age since last seen by APRSD</th>'
+    html_str    += '<th>Number of packets RX</th></tr></thead><tbody>'
+    seendiv.html('')
+    var seen_list = data["stats"]["aprsd"]["seen_list"]
+    var len = Object.keys(seen_list).length
+    $('#seen_count').html(len)
+    jQuery.each(seen_list, function(i, val) {
+        html_str += '<tr><td class="collapsing">'
+        html_str += '<img id="callsign_'+i+'" class="aprsd_1"></img>' + i + '</td>'
+        html_str += '<td>' + val["last"] + '</td>'
+        html_str += '<td>' + val["count"] + '</td></tr>'
+    });
+    html_str += "</tbody></table>";
+    seendiv.append(html_str);
+}
+
 function update_plugins( data ) {
     var plugindiv = $("#pluginDiv");
     var html_str = '<table class="ui celled striped table"><thead><tr>'
     html_str +=      '<th>Plugin Name</th><th>Plugin Enabled?</th>'
     html_str +=      '<th>Processed Packets</th><th>Sent Packets</th>'
+    html_str +=      '<th>Version</th>'
     html_str +=    '</tr></thead><tbody>'
     plugindiv.html('')
 
@@ -72,7 +92,9 @@ function update_plugins( data ) {
     for (var i=0; i<keys.length; i++) { // now lets iterate in sort order
         var key = keys[i];
         var val = plugins[key];
-        html_str += '<tr><td class="collapsing">' + key + '</td><td>' + val["enabled"] + '</td><td>' + val["rx"] + '</td><td>' + val["tx"] + '</td></tr>';
+        html_str += '<tr><td class="collapsing">' + key + '</td>';
+        html_str += '<td>' + val["enabled"] + '</td><td>' + val["rx"] + '</td>';
+        html_str += '<td>' + val["tx"] + '</td><td>' + val["version"] +'</td></tr>';
     }
     html_str += "</tbody></table>";
     plugindiv.append(html_str);
@@ -140,6 +162,7 @@ function start_update() {
                 success: function(data) {
                     update_stats(data);
                     update_watchlist(data);
+                    update_seenlist(data);
                     update_plugins(data);
                 },
                 complete: function() {

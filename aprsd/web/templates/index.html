@@ -18,7 +18,6 @@
         <script src="/static/js/charts.js"></script>
         <script src="/static/js/tabs.js"></script>
         <script src="/static/js/send-message.js"></script>
-        <script src="/static/js/packets.js"></script>
         <script src="/static/js/logs.js"></script>
 
 
@@ -79,6 +78,7 @@
         <div class="ui top attached tabular menu">
             <div class="active item" data-tab="charts-tab">Charts</div>
             <div class="item" data-tab="msgs-tab">Messages</div>
+            <div class="item" data-tab="seen-tab">Seen List</div>
             <div class="item" data-tab="watch-tab">Watch List</div>
             <div class="item" data-tab="plugin-tab">Plugins</div>
             <div class="item" data-tab="config-tab">Config</div>
@@ -130,6 +130,13 @@
           <div class="ui styled fluid accordion" id="accordion">
               <div id="packetsDiv" class="ui mini text">Loading</div>
           </div>
+        </div>
+
+        <div class="ui bottom attached tab segment" data-tab="seen-tab">
+            <h3 class="ui dividing header">
+                Callsign Seen List (<span id="seen_count">{{ seen_count }}</span>)
+            </h3>
+            <div id="seenDiv" class="ui mini text">Loading</div>
         </div>
 
         <div class="ui bottom attached tab segment" data-tab="watch-tab">

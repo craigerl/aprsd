@@ -50,6 +50,7 @@ class PacketList:
             else:
                 self.total_recv += 1
             self.packet_list.append(packet)
+            SeenList().update_seen(packet)
 
     def get(self):
         with self.lock:
@@ -147,6 +148,35 @@ class WatchList:
             return True
         else:
             return False
+
+
+class SeenList:
+    """Global callsign seen list."""
+
+    _instance = None
+    callsigns = {}
+    config = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.lock = threading.Lock()
+            cls.callsigns = {}
+        return cls._instance
+
+    def update_seen(self, packet):
+        callsign = None
+        if "fromcall" in packet:
+            callsign = packet["fromcall"]
+        elif "from" in packet:
+            callsign = packet["from"]
+        if callsign not in self.callsigns:
+            self.callsigns[callsign] = {
+                "last": None,
+                "count": 0,
+            }
+        self.callsigns[callsign]["last"] = str(datetime.datetime.now())
+        self.callsigns[callsign]["count"] += 1
 
 
 def get_packet_type(packet):

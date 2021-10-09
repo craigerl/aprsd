@@ -201,6 +201,7 @@ class APRSDStats:
             }
 
         wl = packets.WatchList()
+        sl = packets.SeenList()
 
         stats = {
             "aprsd": {
@@ -211,6 +212,7 @@ class APRSDStats:
                 "memory_peak": self.memory_peak,
                 "memory_peak_str": utils.human_size(self.memory_peak),
                 "watch_list": wl.callsigns,
+                "seen_list": sl.callsigns,
             },
             "aprs-is": {
                 "server": self.aprsis_server,

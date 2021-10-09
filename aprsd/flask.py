@@ -302,6 +302,9 @@ class APRSDFlask(flask_classful.FlaskView):
             watch_count = 0
             watch_age = 0
 
+        sl = packets.SeenList()
+        seen_count = len(sl.callsigns)
+
         pm = plugin.PluginManager()
         plugins = pm.get_plugins()
         plugin_count = len(plugins)
@@ -343,6 +346,7 @@ class APRSDFlask(flask_classful.FlaskView):
             config_json=json.dumps(self.config.data),
             watch_count=watch_count,
             watch_age=watch_age,
+            seen_count=seen_count,
             plugin_count=plugin_count,
         )
 
