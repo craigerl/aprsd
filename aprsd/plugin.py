@@ -471,7 +471,8 @@ class PluginManager:
         """Stop all threads created by all plugins."""
         with self.lock:
             for p in self.get_plugins():
-                p.stop_threads()
+                if hasattr(p, "stop_threads"):
+                    p.stop_threads()
 
     def register_msg(self, obj):
         """Register the plugin."""
