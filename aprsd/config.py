@@ -10,6 +10,12 @@ import yaml
 from aprsd import utils
 
 
+home = str(Path.home())
+DEFAULT_CONFIG_DIR = f"{home}/.config/aprsd/"
+DEFAULT_SAVE_FILE = f"{home}/.config/aprsd/aprsd.p"
+DEFAULT_CONFIG_FILE = f"{home}/.config/aprsd/aprsd.yml"
+
+
 LOG_LEVELS = {
     "CRITICAL": logging.CRITICAL,
     "ERROR": logging.ERROR,
@@ -72,6 +78,7 @@ DEFAULT_CONFIG_DICT = {
         "logfile": "/tmp/aprsd.log",
         "logformat": DEFAULT_LOG_FORMAT,
         "dateformat": DEFAULT_DATE_FORMAT,
+        "save_location": DEFAULT_CONFIG_DIR,
         "trace": False,
         "enabled_plugins": CORE_MESSAGE_PLUGINS,
         "units": "imperial",
@@ -128,11 +135,6 @@ DEFAULT_CONFIG_DICT = {
         "avwx": {"base_url": "http://host:port", "apiKey": "APIKEYVALUE"},
     },
 }
-
-home = str(Path.home())
-DEFAULT_CONFIG_DIR = f"{home}/.config/aprsd/"
-DEFAULT_SAVE_FILE = f"{home}/.config/aprsd/aprsd.p"
-DEFAULT_CONFIG_FILE = f"{home}/.config/aprsd/aprsd.yml"
 
 
 class Config(collections.UserDict):

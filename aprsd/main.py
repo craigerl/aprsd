@@ -479,15 +479,14 @@ def server(
     if flush:
         LOG.debug("Deleting saved MsgTrack.")
         messaging.MsgTrack().flush()
+        packets.PacketList(config=config)
+        packets.WatchList(config=config)
     else:
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
         messaging.MsgTrack().load()
-        packets.WatchList().load()
-        packets.SeenList().load()
-
-    packets.PacketList(config=config)
-    packets.WatchList(config=config)
+        packets.WatchList(config=config).load()
+        packets.SeenList(config=config).load()
 
     rx_thread = threads.APRSDRXThread(
         msg_queues=threads.msg_queues,

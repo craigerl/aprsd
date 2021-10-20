@@ -35,9 +35,27 @@ class ObjectStoreMixin:
         with self.lock:
             return self.data[id]
 
+    def _init_store(self):
+        sl = self._save_location()
+        if not os.path.exists(sl):
+            LOG.warning(f"Save location {sl} doesn't exist")
+            try:
+                os.makedirs(sl)
+            except Exception as ex:
+                LOG.exception(ex)
+
+    def _save_location(self):
+        save_location = self.config.get("aprsd.save_location", None)
+        if not save_location:
+            save_location = aprsd_config.DEFAULT_CONFIG_DIR
+        return save_location
+
     def _save_filename(self):
+        save_location = self._save_location()
+
+        LOG.debug(f"{self.__class__.__name__}::Using save location {save_location}")
         return "{}/{}.p".format(
-            aprsd_config.DEFAULT_CONFIG_DIR,
+            save_location,
             self.__class__.__name__.lower(),
         )
 
