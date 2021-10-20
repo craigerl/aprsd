@@ -29,6 +29,7 @@ class PacketList:
             cls._instance = super().__new__(cls)
             cls._instance.packet_list = utils.RingBuffer(1000)
             cls._instance.lock = threading.Lock()
+            cls._instance.config = kwargs["config"]
         return cls._instance
 
     def __init__(self, config=None):

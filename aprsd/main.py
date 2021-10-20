@@ -477,10 +477,10 @@ def server(
     plugin_manager.setup_plugins()
 
     # Now load the msgTrack from disk if any
+    packets.PacketList(config=config)
     if flush:
         LOG.debug("Deleting saved MsgTrack.")
         messaging.MsgTrack().flush()
-        packets.PacketList(config=config)
         packets.WatchList(config=config)
         packets.SeenList(config=config)
     else:
