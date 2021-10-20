@@ -66,7 +66,6 @@ class ObjectStoreMixin:
             )
             self.flush()
 
-
     def load(self):
         if os.path.exists(self._save_filename()):
             raw = pickle.load(open(self._save_filename(), "rb"))

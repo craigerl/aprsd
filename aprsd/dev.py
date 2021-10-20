@@ -240,10 +240,10 @@ def test_plugin(
     LOG.info(f"P'{plugin_path}'  F'{fromcall}'   C'{message}'")
 
     for x in range(number):
-       reply = pm.run(packet)
-       # Plugin might have threads, so lets stop them so we can exit.
-       # obj.stop_threads()
-       LOG.info(f"Result{x} = '{reply}'")
+        reply = pm.run(packet)
+        # Plugin might have threads, so lets stop them so we can exit.
+        # obj.stop_threads()
+        LOG.info(f"Result{x} = '{reply}'")
     pm.stop()
 
 
