@@ -76,7 +76,9 @@ class WatchList(objectstore.ObjectStoreMixin):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.lock = threading.Lock()
-            cls.data = {}
+            cls._instance.config = kwargs["config"]
+            cls._instance.data = {}
+            cls._instance._init_store()
         return cls._instance
 
     def __init__(self, config=None):
@@ -97,7 +99,6 @@ class WatchList(objectstore.ObjectStoreMixin):
                         ring_size,
                     ),
                 }
-            self._init_store()
 
     def is_enabled(self):
         if self.config and "watch_list" in self.config["aprsd"]:
@@ -163,13 +164,10 @@ class SeenList(objectstore.ObjectStoreMixin):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.lock = threading.Lock()
-            cls.data = {}
+            cls._instance.config = kwargs["config"]
+            cls._instance.data = {}
+            cls._instance._init_store()
         return cls._instance
-
-    def __init__(self, config=None):
-        if config:
-            self.config = config
-            self._init_store()
 
     def update_seen(self, packet):
         callsign = None

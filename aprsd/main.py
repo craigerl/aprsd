@@ -432,6 +432,7 @@ def server(
     """Start the aprsd server process."""
     global flask_enabled
     signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     if not quiet:
         click.echo("Load config")
@@ -481,6 +482,7 @@ def server(
         messaging.MsgTrack().flush()
         packets.PacketList(config=config)
         packets.WatchList(config=config)
+        packets.SeenList(config=config)
     else:
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
