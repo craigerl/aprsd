@@ -140,9 +140,9 @@ class Config(collections.UserDict):
         """
         Example:
             d = {'meta': {'status': 'OK', 'status_code': 200}}
-            deep_get(d, ['meta', 'status_code'])          # => 200
-            deep_get(d, ['garbage', 'status_code'])       # => None
-            deep_get(d, ['meta', 'garbage'], default='-') # => '-'
+            _get(d, ['meta', 'status_code'])          # => 200
+            _get(d, ['garbage', 'status_code'])       # => None
+            _get(d, ['meta', 'garbage'], default='-') # => '-'
 
         """
         if type(keys) is str and "." in keys:
@@ -166,7 +166,7 @@ class Config(collections.UserDict):
     def exists(self, path):
         """See if a conf value exists."""
         test = "-3.14TEST41.3-"
-        return (self.get(path, default=test) != test)
+        return self.get(path, default=test) != test
 
     def check_option(self, path, default_fail=None):
         """Make sure the config option doesn't have default value."""

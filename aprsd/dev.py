@@ -211,10 +211,9 @@ def test_plugin(
     config = aprsd_config.parse_config(config_file)
     setup_logging(config, loglevel, False)
 
-    LOG.info(f"Test APRSD PLugin version: {aprsd.__version__}")
+    LOG.info(f"Test APRSD Plgin version: {aprsd.__version__}")
     if type(message) is tuple:
         message = " ".join(message)
-    LOG.info(f"P'{plugin_path}'  F'{fromcall}'   C'{message}'")
     client.Client(config)
 
     pm = plugin.PluginManager(config)
@@ -224,6 +223,11 @@ def test_plugin(
         pm._init()
     obj = pm._create_class(plugin_path, plugin.APRSDPluginBase, config=config)
     # Register the plugin they wanted tested.
+    LOG.info(
+        "Testing plugin {} Version {}".format(
+            obj.__class__, obj.version,
+        ),
+    )
     pm._pluggy_pm.register(obj)
     login = config["aprs"]["login"]
 
@@ -233,6 +237,7 @@ def test_plugin(
         "format": "message",
         "msgNo": 1,
     }
+    LOG.info(f"P'{plugin_path}'  F'{fromcall}'   C'{message}'")
 
     for x in range(number):
        reply = pm.run(packet)

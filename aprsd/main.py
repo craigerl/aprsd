@@ -148,6 +148,8 @@ def signal_handler(sig, frame):
         time.sleep(1.5)
         tracker = messaging.MsgTrack()
         tracker.save()
+        packets.WatchList().save()
+        packets.SeenList().save()
         LOG.info(stats.APRSDStats())
         # signal.signal(signal.SIGTERM, sys.exit(0))
         # sys.exit(0)
@@ -481,6 +483,8 @@ def server(
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
         messaging.MsgTrack().load()
+        packets.WatchList().load()
+        packets.SeenList().load()
 
     packets.PacketList(config=config)
     packets.WatchList(config=config)

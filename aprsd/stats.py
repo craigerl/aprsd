@@ -211,8 +211,8 @@ class APRSDStats:
                 "memory_current_str": utils.human_size(self.memory),
                 "memory_peak": self.memory_peak,
                 "memory_peak_str": utils.human_size(self.memory_peak),
-                "watch_list": wl.callsigns,
-                "seen_list": sl.callsigns,
+                "watch_list": wl.get_all(),
+                "seen_list": sl.get_all(),
             },
             "aprs-is": {
                 "server": self.aprsis_server,

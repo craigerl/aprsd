@@ -3,7 +3,7 @@ import logging
 import threading
 import time
 
-from aprsd import utils
+from aprsd import objectstore, utils
 
 
 LOG = logging.getLogger("APRSD")
@@ -65,18 +65,18 @@ class PacketList:
             return self.total_tx
 
 
-class WatchList:
+class WatchList(objectstore.ObjectStoreMixin):
     """Global watch list and info for callsigns."""
 
     _instance = None
-    callsigns = {}
+    data = {}
     config = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.lock = threading.Lock()
-            cls.callsigns = {}
+            cls.data = {}
         return cls._instance
 
     def __init__(self, config=None):
@@ -91,7 +91,7 @@ class WatchList:
                 # a beacon from a callsign or some other mechanism to find
                 # last time a message was seen by aprs-is.  For now this
                 # is all we can do.
-                self.callsigns[call] = {
+                self.data[call] = {
                     "last": datetime.datetime.now(),
                     "packets": utils.RingBuffer(
                         ring_size,
@@ -105,17 +105,18 @@ class WatchList:
             return False
 
     def callsign_in_watchlist(self, callsign):
-        return callsign in self.callsigns
+        return callsign in self.data
 
     def update_seen(self, packet):
-        callsign = packet["from"]
-        if self.callsign_in_watchlist(callsign):
-            self.callsigns[callsign]["last"] = datetime.datetime.now()
-            self.callsigns[callsign]["packets"].append(packet)
+        with self.lock:
+            callsign = packet["from"]
+            if self.callsign_in_watchlist(callsign):
+                self.data[callsign]["last"] = datetime.datetime.now()
+                self.data[callsign]["packets"].append(packet)
 
     def last_seen(self, callsign):
         if self.callsign_in_watchlist(callsign):
-            return self.callsigns[callsign]["last"]
+            return self.data[callsign]["last"]
 
     def age(self, callsign):
         now = datetime.datetime.now()
@@ -150,18 +151,18 @@ class WatchList:
             return False
 
 
-class SeenList:
+class SeenList(objectstore.ObjectStoreMixin):
     """Global callsign seen list."""
 
     _instance = None
-    callsigns = {}
+    data = {}
     config = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.lock = threading.Lock()
-            cls.callsigns = {}
+            cls.data = {}
         return cls._instance
 
     def update_seen(self, packet):
@@ -170,13 +171,13 @@ class SeenList:
             callsign = packet["fromcall"]
         elif "from" in packet:
             callsign = packet["from"]
-        if callsign not in self.callsigns:
-            self.callsigns[callsign] = {
+        if callsign not in self.data:
+            self.data[callsign] = {
                 "last": None,
                 "count": 0,
             }
-        self.callsigns[callsign]["last"] = str(datetime.datetime.now())
-        self.callsigns[callsign]["count"] += 1
+        self.data[callsign]["last"] = str(datetime.datetime.now())
+        self.data[callsign]["count"] += 1
 
 
 def get_packet_type(packet):
