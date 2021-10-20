@@ -187,6 +187,14 @@ def setup_logging(config, loglevel, quiet):
     default=False,
     help="Load all the plugins in config?",
 )
+@click.option(
+    "-n",
+    "--num",
+    "number",
+    show_default=True,
+    default=1,
+    help="Number of times to call the plugin",
+)
 @click.argument("fromcall")
 @click.argument("message", nargs=-1, required=True)
 def test_plugin(
@@ -194,6 +202,7 @@ def test_plugin(
     config_file,
     plugin_path,
     load_all,
+    number,
     fromcall,
     message,
 ):
@@ -225,11 +234,12 @@ def test_plugin(
         "msgNo": 1,
     }
 
-    reply = pm.run(packet)
+    for x in range(number):
+       reply = pm.run(packet)
+       # Plugin might have threads, so lets stop them so we can exit.
+       # obj.stop_threads()
+       LOG.info(f"Result{x} = '{reply}'")
     pm.stop()
-    # Plugin might have threads, so lets stop them so we can exit.
-    # obj.stop_threads()
-    LOG.info(f"Result = '{reply}'")
 
 
 if __name__ == "__main__":
