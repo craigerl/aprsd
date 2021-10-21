@@ -24,6 +24,8 @@ class TestPlugin(unittest.TestCase):
         self.config["aprs"]["login"] = fake.FAKE_TO_CALLSIGN
         # Inintialize the stats object with the config
         stats.APRSDStats(self.config)
+        packets.WatchList(config=self.config)
+        packets.SeenList(config=self.config)
 
     @mock.patch.object(fake.FakeBaseNoThreadsPlugin, "process")
     def test_base_plugin_no_threads(self, mock_process):
