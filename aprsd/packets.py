@@ -176,6 +176,9 @@ class SeenList(objectstore.ObjectStoreMixin):
             callsign = packet["fromcall"]
         elif "from" in packet:
             callsign = packet["from"]
+        else:
+            LOG.warning(f"Can't find FROM in packet {packet}")
+            return
         if callsign not in self.data:
             self.data[callsign] = {
                 "last": None,
