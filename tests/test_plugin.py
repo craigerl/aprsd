@@ -26,6 +26,7 @@ class TestPlugin(unittest.TestCase):
         stats.APRSDStats(self.config)
         packets.WatchList(config=self.config)
         packets.SeenList(config=self.config)
+        messaging.MsgTrack(config=self.config)
 
     @mock.patch.object(fake.FakeBaseNoThreadsPlugin, "process")
     def test_base_plugin_no_threads(self, mock_process):
@@ -161,7 +162,7 @@ class TestQueryPlugin(TestPlugin):
     @mock.patch("aprsd.messaging.MsgTrack.restart_delayed")
     def test_query_restart_delayed(self, mock_restart):
         track = messaging.MsgTrack()
-        track.track = {}
+        track.data = {}
         packet = fake.fake_packet(message="!4")
         query = query_plugin.QueryPlugin(self.config)
 

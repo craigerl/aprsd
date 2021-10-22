@@ -2,16 +2,11 @@ import abc
 import datetime
 import logging
 from multiprocessing import RawValue
-import os
-import pathlib
-import pickle
 import re
 import threading
 import time
 
-from aprsd import client
-from aprsd import config as aprsd_config
-from aprsd import packets, stats, threads
+from aprsd import client, objectstore, packets, stats, threads
 
 
 LOG = logging.getLogger("APRSD")
@@ -21,7 +16,7 @@ LOG = logging.getLogger("APRSD")
 NULL_MESSAGE = -1
 
 
-class MsgTrack:
+class MsgTrack(objectstore.ObjectStoreMixin):
     """Class to keep track of outstanding text messages.
 
     This is a thread safe class that keeps track of active
@@ -38,7 +33,7 @@ class MsgTrack:
     _start_time = None
     lock = None
 
-    track = {}
+    data = {}
     total_messages_tracked = 0
 
     def __new__(cls, *args, **kwargs):
@@ -47,93 +42,65 @@ class MsgTrack:
             cls._instance.track = {}
             cls._instance._start_time = datetime.datetime.now()
             cls._instance.lock = threading.Lock()
+            cls._instance.config = kwargs["config"]
+            cls._instance._init_store()
         return cls._instance
 
     def __getitem__(self, name):
         with self.lock:
-            return self.track[name]
+            return self.data[name]
 
     def __iter__(self):
         with self.lock:
-            return iter(self.track)
+            return iter(self.data)
 
     def keys(self):
         with self.lock:
-            return self.track.keys()
+            return self.data.keys()
 
     def items(self):
         with self.lock:
-            return self.track.items()
+            return self.data.items()
 
     def values(self):
         with self.lock:
-            return self.track.values()
+            return self.data.values()
 
     def __len__(self):
         with self.lock:
-            return len(self.track)
+            return len(self.data)
 
     def __str__(self):
         with self.lock:
             result = "{"
-            for key in self.track.keys():
-                result += f"{key}: {str(self.track[key])}, "
+            for key in self.data.keys():
+                result += f"{key}: {str(self.data[key])}, "
             result += "}"
             return result
 
     def add(self, msg):
         with self.lock:
             key = int(msg.id)
-            self.track[key] = msg
+            self.data[key] = msg
             stats.APRSDStats().msgs_tracked_inc()
             self.total_messages_tracked += 1
 
     def get(self, id):
         with self.lock:
-            if id in self.track:
-                return self.track[id]
+            if id in self.data:
+                return self.data[id]
 
     def remove(self, id):
         with self.lock:
             key = int(id)
-            if key in self.track.keys():
-                del self.track[key]
-
-    def save(self):
-        """Save any queued to disk?"""
-        LOG.debug(f"Save tracker to disk? {len(self)}")
-        if len(self) > 0:
-            LOG.info(f"Saving {len(self)} tracking messages to disk")
-            pickle.dump(self.dump(), open(aprsd_config.DEFAULT_SAVE_FILE, "wb+"))
-        else:
-            LOG.debug(
-                "Nothing to save, flushing old save file '{}'".format(
-                    aprsd_config.DEFAULT_SAVE_FILE,
-                ),
-            )
-            self.flush()
-
-    def dump(self):
-        dump = {}
-        with self.lock:
-            for key in self.track.keys():
-                dump[key] = self.track[key]
-
-        return dump
-
-    def load(self):
-        if os.path.exists(aprsd_config.DEFAULT_SAVE_FILE):
-            raw = pickle.load(open(aprsd_config.DEFAULT_SAVE_FILE, "rb"))
-            if raw:
-                self.track = raw
-                LOG.debug("Loaded MsgTrack dict from disk.")
-                LOG.debug(self)
+            if key in self.data.keys():
+                del self.data[key]
 
     def restart(self):
         """Walk the list of messages and restart them if any."""
 
-        for key in self.track.keys():
-            msg = self.track[key]
+        for key in self.data.keys():
+            msg = self.data[key]
             if msg.last_send_attempt < msg.retry_count:
                 msg.send()
 
@@ -145,27 +112,20 @@ class MsgTrack:
         """Walk the list of delayed messages and restart them if any."""
         if not count:
             # Send all the delayed messages
-            for key in self.track.keys():
-                msg = self.track[key]
+            for key in self.data.keys():
+                msg = self.data[key]
                 if msg.last_send_attempt == msg.retry_count:
                     self._resend(msg)
         else:
             # They want to resend <count> delayed messages
             tmp = sorted(
-                self.track.items(),
+                self.data.items(),
                 reverse=most_recent,
                 key=lambda x: x[1].last_send_time,
             )
             msg_list = tmp[:count]
             for (_key, msg) in msg_list:
                 self._resend(msg)
-
-    def flush(self):
-        """Nuke the old pickle file that stored the old results from last aprsd run."""
-        if os.path.exists(aprsd_config.DEFAULT_SAVE_FILE):
-            pathlib.Path(aprsd_config.DEFAULT_SAVE_FILE).unlink()
-        with self.lock:
-            self.track = {}
 
 
 class MessageCounter:

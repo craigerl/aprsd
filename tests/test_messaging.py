@@ -6,9 +6,14 @@ from aprsd import messaging
 
 
 class TestMessageTrack(unittest.TestCase):
+
+    def setUp(self) -> None:
+        config = {}
+        messaging.MsgTrack(config=config)
+
     def _clean_track(self):
         track = messaging.MsgTrack()
-        track.track = {}
+        track.data = {}
         track.total_messages_tracked = 0
         return track
 

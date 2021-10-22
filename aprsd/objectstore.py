@@ -53,7 +53,6 @@ class ObjectStoreMixin:
     def _save_filename(self):
         save_location = self._save_location()
 
-        LOG.debug(f"{self.__class__.__name__}::Using save location {save_location}")
         return "{}/{}.p".format(
             save_location,
             self.__class__.__name__.lower(),
@@ -65,15 +64,12 @@ class ObjectStoreMixin:
             for key in self.data.keys():
                 dump[key] = self.data[key]
 
-        LOG.debug(f"{self.__class__.__name__}:: DUMP")
-        LOG.debug(dump)
-
         return dump
 
     def save(self):
         """Save any queued to disk?"""
         if len(self) > 0:
-            LOG.info(f"{self.__class__.__name__}::Saving {len(self)} entries to disk")
+            LOG.info(f"{self.__class__.__name__}::Saving {len(self)} entries to disk at {self._save_location()}")
             pickle.dump(self._dump(), open(self._save_filename(), "wb+"))
         else:
             LOG.debug(

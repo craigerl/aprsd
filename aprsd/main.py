@@ -146,8 +146,7 @@ def signal_handler(sig, frame):
             ),
         )
         time.sleep(1.5)
-        tracker = messaging.MsgTrack()
-        tracker.save()
+        messaging.MsgTrack().save()
         packets.WatchList().save()
         packets.SeenList().save()
         LOG.info(stats.APRSDStats())
@@ -480,13 +479,13 @@ def server(
     packets.PacketList(config=config)
     if flush:
         LOG.debug("Deleting saved MsgTrack.")
-        messaging.MsgTrack().flush()
+        messaging.MsgTrack(config=config).flush()
         packets.WatchList(config=config)
         packets.SeenList(config=config)
     else:
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
-        messaging.MsgTrack().load()
+        messaging.MsgTrack(config=config).load()
         packets.WatchList(config=config).load()
         packets.SeenList(config=config).load()
 
