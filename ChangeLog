@@ -1,6 +1,37 @@
 CHANGES
 =======
 
+v2.4.0
+------
+
+* Converted MsgTrack to ObjectStoreMixin
+* Fixed unit tests
+* Make sure SeenList update has a from in packet
+* Ensure PacketList is initialized
+* Added SIGTERM to signal\_handler
+* Enable configuring where to save the objectstore data
+* PEP8 cleanup
+* Added objectstore Mixin
+* Added -num option to aprsd-dev test-plugin
+* Only call stop\_threads if it exists
+* Added new SeenList
+* Added plugin version to stats reporting
+* Added new HelpPlugin
+* Updated aprsd-dev to use config for logfile format
+* Updated build.sh
+* removed usage of config.check\_config\_option
+* Fixed send-message after config/client rework
+* Fixed issue with flask config
+* Added some server startup info logs
+* Increase email delay to +10
+* Updated dev to use plugin manager
+* Fixed notify plugins
+* Added new Config object
+* Fixed email plugin's use of globals
+* Refactored client classes
+* Refactor utils usage
+* 2.3.1 Changelog
+
 v2.3.1
 ------
 
