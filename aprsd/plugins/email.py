@@ -452,7 +452,7 @@ def send_email(config, to_addr, content):
     msg["Subject"] = subject
     msg["From"] = config["aprsd"]["email"]["smtp"]["login"]
     msg["To"] = to_addr
-    server = _smtp_connect()
+    server = _smtp_connect(config)
     if server:
         try:
             server.sendmail(
