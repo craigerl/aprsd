@@ -470,11 +470,6 @@ def server(
     LOG.info("Creating client connection")
     client.factory.create().client
 
-    # Create the initial PM singleton and Register plugins
-    LOG.info("Loading Plugin Manager and registering plugins")
-    plugin_manager = plugin.PluginManager(config)
-    plugin_manager.setup_plugins()
-
     # Now load the msgTrack from disk if any
     packets.PacketList(config=config)
     if flush:
@@ -488,6 +483,11 @@ def server(
         messaging.MsgTrack(config=config).load()
         packets.WatchList(config=config).load()
         packets.SeenList(config=config).load()
+
+    # Create the initial PM singleton and Register plugins
+    LOG.info("Loading Plugin Manager and registering plugins")
+    plugin_manager = plugin.PluginManager(config)
+    plugin_manager.setup_plugins()
 
     rx_thread = threads.APRSDRXThread(
         msg_queues=threads.msg_queues,
