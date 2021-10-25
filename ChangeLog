@@ -1,9 +1,16 @@
 CHANGES
 =======
 
+v2.4.1
+------
+
+* Ensure plugins are last to be loaded
+* Fixed email connecting to smtp server
+
 v2.4.0
 ------
 
+* Updated Changelog for 2.4.0 release
 * Converted MsgTrack to ObjectStoreMixin
 * Fixed unit tests
 * Make sure SeenList update has a from in packet
@@ -31,11 +38,11 @@ v2.4.0
 * Refactored client classes
 * Refactor utils usage
 * 2.3.1 Changelog
+* Fixed issue of aprs-is missing keepalive
 
 v2.3.1
 ------
 
-* Fixed issue of aprs-is missing keepalive
 * Fixed packet processing issue with aprsd send-message
 
 v2.3.0
