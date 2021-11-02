@@ -70,7 +70,8 @@ class ObjectStoreMixin:
         """Save any queued to disk?"""
         if len(self) > 0:
             LOG.info(f"{self.__class__.__name__}::Saving {len(self)} entries to disk at {self._save_location()}")
-            pickle.dump(self._dump(), open(self._save_filename(), "wb+"))
+            with open(self._save_filename(), "wb+") as fp:
+                pickle.dump(self._dump(), fp)
         else:
             LOG.debug(
                 "{} Nothing to save, flushing old save file '{}'".format(
@@ -82,11 +83,19 @@ class ObjectStoreMixin:
 
     def load(self):
         if os.path.exists(self._save_filename()):
-            raw = pickle.load(open(self._save_filename(), "rb"))
-            if raw:
-                self.data = raw
-                LOG.debug(f"{self.__class__.__name__}::Loaded {len(self)} entries from disk.")
-                LOG.debug(f"{self.data}")
+            try:
+                with open(self._save_filename(), "rb") as fp:
+                    raw = pickle.load(fp)
+                    if raw:
+                        self.data = raw
+                        LOG.debug(
+                            f"{self.__class__.__name__}::Loaded {len(self)} entries from disk.",
+                        )
+                        LOG.debug(f"{self.data}")
+            except pickle.UnpicklingError as ex:
+                LOG.error(f"Failed to UnPickle {self._save_filename()}")
+                LOG.error(ex)
+                self.data = {}
 
     def flush(self):
         """Nuke the old pickle file that stored the old results from last aprsd run."""
