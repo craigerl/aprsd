@@ -276,6 +276,14 @@ def sample_config():
     default=False,
     help="Don't wait for an ack, just sent it to APRS-IS and bail.",
 )
+@click.option(
+    "--wait-response",
+    "-w",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Wait for a response to the message?",
+)
 @click.option("--raw", default=None, help="Send a raw message.  Implies --no-ack")
 @click.argument("tocallsign", required=False)
 @click.argument("command", nargs=-1, required=False)
@@ -286,6 +294,7 @@ def send_message(
     aprs_login,
     aprs_password,
     no_ack,
+    wait_response,
     raw,
     tocallsign,
     command,
@@ -315,6 +324,9 @@ def send_message(
             LOG.info(f"L'{aprs_login}' R'{raw}'")
         else:
             LOG.info(f"L'{aprs_login}' To'{tocallsign}' C'{command}'")
+
+    packets.WatchList(config=config)
+    packets.SeenList(config=config)
 
     got_ack = False
     got_response = False
@@ -348,8 +360,12 @@ def send_message(
             )
             ack.send_direct()
 
-        if got_ack and got_response:
-            sys.exit(0)
+        if got_ack:
+            if wait_response:
+                if got_response:
+                    sys.exit(0)
+            else:
+                sys.exit(0)
 
     try:
         client.ClientFactory.setup(config)
