@@ -83,6 +83,10 @@ def send_message(
         else:
             LOG.info(f"L'{aprs_login}' To'{tocallsign}' C'{command}'")
 
+    packets.PacketList(config=config)
+    packets.WatchList(config=config)
+    packets.SeenList(config=config)
+
     got_ack = False
     got_response = False
 
@@ -128,8 +132,6 @@ def send_message(
     except LoginError:
         sys.exit(-1)
 
-    packets.PacketList(config=config)
-    packets.WatchList(config=config)
 
     # Send a message
     # then we setup a consumer to rx messages

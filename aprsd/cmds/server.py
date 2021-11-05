@@ -29,7 +29,7 @@ LOG = logging.getLogger("APRSD")
 )
 @click.pass_context
 def server(ctx, flush):
-    """Start the aprsd server process."""
+    """Start the aprsd server gateway process."""
     ctx.obj["config_file"]
     loglevel = ctx.obj["loglevel"]
     quiet = ctx.obj["quiet"]

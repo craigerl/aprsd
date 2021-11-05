@@ -62,7 +62,12 @@ def listen(
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
 
-    FILTER is the APRS Filter to use. see http://www.aprs-is.net/javAPRSFilter.aspx
+    FILTER is the APRS Filter to use.\n
+     see http://www.aprs-is.net/javAPRSFilter.aspx\n
+    r/lat/lon/dist - Range Filter Pass posits and objects within dist km from lat/lon.\n
+    p/aa/bb/cc... - Prefix Filter Pass traffic with fromCall that start with aa or bb or cc.\n
+    b/call1/call2... - Budlist Filter Pass all traffic from exact call: call1, call2, ... (* wild card allowed) \n
+    o/obj1/obj2... - Object Filter Pass all objects with the exact name of obj1, obj2, ... (* wild card allowed)\n
 
     """
     config = ctx.obj["config"]

@@ -25,6 +25,12 @@ def dev(ctx):
 
 @dev.command()
 @click.option(
+    "--aprs-login",
+    envvar="APRS_LOGIN",
+    show_envvar=True,
+    help="What callsign to send the message from.",
+)
+@click.option(
     "-p",
     "--plugin",
     "plugin_path",
@@ -49,19 +55,19 @@ def dev(ctx):
     default=1,
     help="Number of times to call the plugin",
 )
-@click.argument("fromcall")
 @click.argument("message", nargs=-1, required=True)
 @click.pass_context
 def test_plugin(
     ctx,
+    aprs_login,
     plugin_path,
     load_all,
     number,
-    fromcall,
     message,
 ):
     """APRSD Plugin test app."""
     config = ctx.obj["config"]
+    fromcall = aprs_login
 
     if not plugin_path:
         click.echo(ctx.get_help())
@@ -79,6 +85,12 @@ def test_plugin(
     else:
         pm._init()
     obj = pm._create_class(plugin_path, plugin.APRSDPluginBase, config=config)
+    if not obj:
+        click.echo(ctx.get_help())
+        click.echo("")
+        ctx.fail(f"Failed to create object from plugin path '{plugin_path}'")
+        ctx.exit()
+
     # Register the plugin they wanted tested.
     LOG.info(
         "Testing plugin {} Version {}".format(
