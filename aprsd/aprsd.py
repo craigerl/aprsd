@@ -96,7 +96,9 @@ def cli(ctx, loglevel, config_file, quiet):
 
 
 def main():
-    from .cmds import completion, dev, listen, send_message, server  # noqa
+    from .cmds import (  # noqa
+        completion, dev, healthcheck, listen, send_message, server,
+    )
     cli()
 
 
