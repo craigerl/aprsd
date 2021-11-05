@@ -94,6 +94,7 @@ def cli(ctx, loglevel, config_file, quiet):
     ctx.obj["config"] = aprsd_config.parse_config(config_file)
     setup_logging(ctx.obj["config"], loglevel, quiet)
 
+
 def main():
     from .cmds import completion, dev, listen, send_message, server  # noqa
     cli()

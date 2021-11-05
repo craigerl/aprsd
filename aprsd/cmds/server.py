@@ -116,4 +116,3 @@ def server(ctx, flush):
     # If there are items in the msgTracker, then save them
     LOG.info("APRSD Exiting.")
     return 0
-import logging

@@ -6,6 +6,7 @@ from ..aprsd import cli
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
+
 @cli.group(help="Click Completion subcommands", context_settings=CONTEXT_SETTINGS)
 @click.pass_context
 def completion(ctx):
