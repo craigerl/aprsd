@@ -23,6 +23,7 @@ from ..aprsd import cli
 # logging.basicConfig(level=logging.DEBUG) # level=10
 LOG = logging.getLogger("APRSD")
 
+
 @cli.command()
 @click.option(
     "--url",

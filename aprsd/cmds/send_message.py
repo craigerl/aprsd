@@ -132,7 +132,6 @@ def send_message(
     except LoginError:
         sys.exit(-1)
 
-
     # Send a message
     # then we setup a consumer to rx messages
     # We should get an ack back as well as a new message
