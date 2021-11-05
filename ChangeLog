@@ -1,9 +1,15 @@
 CHANGES
 =======
 
+v4.2.3
+------
+
+* Fixed a problem with send-message command
+
 v2.4.2
 ------
 
+* Updated Changelog
 * Be more careful picking data to/from disk
 * Updated Changelog
 
