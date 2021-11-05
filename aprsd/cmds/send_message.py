@@ -45,8 +45,8 @@ LOG = logging.getLogger("APRSD")
     help="Wait for a response to the message?",
 )
 @click.option("--raw", default=None, help="Send a raw message.  Implies --no-ack")
-@click.argument("tocallsign", required=False)
-@click.argument("command", nargs=-1, required=False)
+@click.argument("tocallsign", required=True)
+@click.argument("command", nargs=-1, required=True)
 @click.pass_context
 def send_message(
     ctx,
