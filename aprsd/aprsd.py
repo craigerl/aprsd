@@ -34,9 +34,9 @@ import click_completion
 
 # local imports here
 import aprsd
+from aprsd import cli_helper
 from aprsd import config as aprsd_config
 from aprsd import messaging, packets, stats, threads, utils
-from aprsd.cli_helper import AliasedGroup
 
 
 # setup the global logger
@@ -56,9 +56,10 @@ def custom_startswith(string, incomplete):
 
 click_completion.core.startswith = custom_startswith
 click_completion.init()
+cli_initialized = 0
 
 
-@click.group(cls=AliasedGroup, context_settings=CONTEXT_SETTINGS)
+@click.group(cls=cli_helper.GroupWithCommandOptions, context_settings=CONTEXT_SETTINGS)
 @click.option(
     "--loglevel",
     default="INFO",
@@ -87,12 +88,17 @@ click_completion.init()
 @click.version_option()
 @click.pass_context
 def cli(ctx, loglevel, config_file, quiet):
+    global cli_initialized
+    # Have to do the global crap because the cli_helper GroupWithCommandOptions
+    # ends up calling this twice.
     ctx.ensure_object(dict)
     ctx.obj["loglevel"] = loglevel
     ctx.obj["config_file"] = config_file
     ctx.obj["quiet"] = quiet
     ctx.obj["config"] = aprsd_config.parse_config(config_file)
-    setup_logging(ctx.obj["config"], loglevel, quiet)
+    if not cli_initialized:
+        setup_logging(ctx.obj["config"], loglevel, quiet)
+    cli_initialized = 1
 
 
 def main():
