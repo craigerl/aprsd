@@ -34,7 +34,7 @@ import click_completion
 import aprsd
 from aprsd import cli_helper
 from aprsd import config as aprsd_config
-from aprsd import log, messaging, packets, stats, threads, utils
+from aprsd import messaging, packets, stats, threads, utils
 
 
 # setup the global logger
@@ -65,6 +65,7 @@ def cli(ctx):
 
 def main():
     # First import all the possible commands for the CLI
+    # The commands themselves live in the cmds directory
     from .cmds import (  # noqa
         completion, dev, healthcheck, listen, send_message, server,
     )
@@ -99,16 +100,11 @@ def signal_handler(sig, frame):
 @cli_helper.process_standard_options
 def check_version(ctx):
     """Check this version against the latest in pypi.org."""
-    config_file = ctx.obj["config_file"]
-    loglevel = ctx.obj["loglevel"]
-    config = aprsd_config.parse_config(config_file)
-
-    log.setup_logging(config, loglevel, False)
     level, msg = utils._check_version()
     if level:
-        LOG.warning(msg)
+        click.secho(msg, fg="yellow")
     else:
-        LOG.info(msg)
+        click.secho(msg, fg="green")
 
 
 @cli.command()
@@ -122,7 +118,8 @@ def sample_config(ctx):
 @click.pass_context
 def version(ctx):
     """Show the APRSD version."""
-    click.echo(f"APRSD Version : {aprsd.__version__}")
+    click.echo(click.style("APRSD Version : ", fg="white"), nl=False)
+    click.secho(f"{aprsd.__version__}", fg="yellow", bold=True)
 
 
 if __name__ == "__main__":
