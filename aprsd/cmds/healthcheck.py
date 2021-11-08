@@ -13,7 +13,7 @@ import click
 import requests
 
 import aprsd
-from aprsd import utils
+from aprsd import cli_helper, utils
 
 # local imports here
 from ..aprsd import cli
@@ -25,6 +25,7 @@ LOG = logging.getLogger("APRSD")
 
 
 @cli.command()
+@cli_helper.add_options(cli_helper.common_options)
 @click.option(
     "--url",
     "health_url",
@@ -39,6 +40,7 @@ LOG = logging.getLogger("APRSD")
     help="How long to wait for healtcheck url to come back",
 )
 @click.pass_context
+@cli_helper.process_standard_options
 def healthcheck(ctx, health_url, timeout):
     """Check the health of the running aprsd server."""
     ctx.obj["config"]

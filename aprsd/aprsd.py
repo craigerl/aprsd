@@ -22,8 +22,6 @@
 # python included libs
 import datetime
 import logging
-from logging import NullHandler
-from logging.handlers import RotatingFileHandler
 import os
 import signal
 import sys
@@ -36,7 +34,7 @@ import click_completion
 import aprsd
 from aprsd import cli_helper
 from aprsd import config as aprsd_config
-from aprsd import messaging, packets, stats, threads, utils
+from aprsd import log, messaging, packets, stats, threads, utils
 
 
 # setup the global logger
@@ -56,52 +54,17 @@ def custom_startswith(string, incomplete):
 
 click_completion.core.startswith = custom_startswith
 click_completion.init()
-cli_initialized = 0
 
 
-@click.group(cls=cli_helper.GroupWithCommandOptions, context_settings=CONTEXT_SETTINGS)
-@click.option(
-    "--loglevel",
-    default="INFO",
-    show_default=True,
-    type=click.Choice(
-        ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
-        case_sensitive=False,
-    ),
-    show_choices=True,
-    help="The log level to use for aprsd.log",
-)
-@click.option(
-    "-c",
-    "--config",
-    "config_file",
-    show_default=True,
-    default=aprsd_config.DEFAULT_CONFIG_FILE,
-    help="The aprsd config file to use for options.",
-)
-@click.option(
-    "--quiet",
-    is_flag=True,
-    default=False,
-    help="Don't log to stdout",
-)
+@click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option()
 @click.pass_context
-def cli(ctx, loglevel, config_file, quiet):
-    global cli_initialized
-    # Have to do the global crap because the cli_helper GroupWithCommandOptions
-    # ends up calling this twice.
-    ctx.ensure_object(dict)
-    ctx.obj["loglevel"] = loglevel
-    ctx.obj["config_file"] = config_file
-    ctx.obj["quiet"] = quiet
-    ctx.obj["config"] = aprsd_config.parse_config(config_file)
-    if not cli_initialized:
-        setup_logging(ctx.obj["config"], loglevel, quiet)
-    cli_initialized = 1
+def cli(ctx):
+    pass
 
 
 def main():
+    # First import all the possible commands for the CLI
     from .cmds import (  # noqa
         completion, dev, healthcheck, listen, send_message, server,
     )
@@ -130,57 +93,17 @@ def signal_handler(sig, frame):
         signal.signal(signal.SIGTERM, sys.exit(0))
 
 
-# Setup the logging faciility
-# to disable logging to stdout, but still log to file
-# use the --quiet option on the cmdln
-def setup_logging(config, loglevel, quiet):
-    log_level = aprsd_config.LOG_LEVELS[loglevel]
-    LOG.setLevel(log_level)
-    log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
-    date_format = config["aprsd"].get("dateformat", aprsd_config.DEFAULT_DATE_FORMAT)
-    log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
-    log_file = config["aprsd"].get("logfile", None)
-    if log_file:
-        fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
-    else:
-        fh = NullHandler()
-
-    fh.setFormatter(log_formatter)
-    LOG.addHandler(fh)
-
-    imap_logger = None
-    if config.get("aprsd.email.enabled", default=False) and config.get("aprsd.email.imap.debug", default=False):
-
-        imap_logger = logging.getLogger("imapclient.imaplib")
-        imap_logger.setLevel(log_level)
-        imap_logger.addHandler(fh)
-
-    if config.get("aprsd.web.enabled", default=False):
-        qh = logging.handlers.QueueHandler(threads.logging_queue)
-        q_log_formatter = logging.Formatter(
-            fmt=aprsd_config.QUEUE_LOG_FORMAT,
-            datefmt=aprsd_config.QUEUE_DATE_FORMAT,
-        )
-        qh.setFormatter(q_log_formatter)
-        LOG.addHandler(qh)
-
-    if not quiet:
-        sh = logging.StreamHandler(sys.stdout)
-        sh.setFormatter(log_formatter)
-        LOG.addHandler(sh)
-        if imap_logger:
-            imap_logger.addHandler(sh)
-
-
 @cli.command()
+@cli_helper.add_options(cli_helper.common_options)
 @click.pass_context
+@cli_helper.process_standard_options
 def check_version(ctx):
     """Check this version against the latest in pypi.org."""
     config_file = ctx.obj["config_file"]
     loglevel = ctx.obj["loglevel"]
     config = aprsd_config.parse_config(config_file)
 
-    setup_logging(config, loglevel, False)
+    log.setup_logging(config, loglevel, False)
     level, msg = utils._check_version()
     if level:
         LOG.warning(msg)

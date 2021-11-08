@@ -14,7 +14,7 @@ def completion(ctx):
 
 
 # show dumps out the completion code for a particular shell
-@completion.command(help="Show completion code for shell")
+@completion.command(help="Show completion code for shell", name="show")
 @click.option("-i", "--case-insensitive/--no-case-insensitive", help="Case insensitive completion")
 @click.argument("shell", required=False, type=click_completion.DocumentedChoice(click_completion.core.shells))
 def show(shell, case_insensitive):
@@ -24,7 +24,7 @@ def show(shell, case_insensitive):
 
 
 # install will install the completion code for a particular shell
-@completion.command(help="Install completion code for a shell")
+@completion.command(help="Install completion code for a shell", name="install")
 @click.option("--append/--overwrite", help="Append the completion code to the file", default=None)
 @click.option("-i", "--case-insensitive/--no-case-insensitive", help="Case insensitive completion")
 @click.argument("shell", required=False, type=click_completion.DocumentedChoice(click_completion.core.shells))

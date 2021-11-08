@@ -6,7 +6,8 @@ import click
 
 import aprsd
 from aprsd import (
-    client, flask, messaging, packets, plugin, stats, threads, trace, utils,
+    cli_helper, client, flask, messaging, packets, plugin, stats, threads,
+    trace, utils,
 )
 from aprsd import aprsd as aprsd_main
 
@@ -18,6 +19,7 @@ LOG = logging.getLogger("APRSD")
 
 # main() ###
 @cli.command()
+@cli_helper.add_options(cli_helper.common_options)
 @click.option(
     "-f",
     "--flush",
@@ -28,6 +30,7 @@ LOG = logging.getLogger("APRSD")
     help="Flush out all old aged messages on disk.",
 )
 @click.pass_context
+@cli_helper.process_standard_options
 def server(ctx, flush):
     """Start the aprsd server gateway process."""
     ctx.obj["config_file"]

@@ -7,7 +7,7 @@ from aprslib.exceptions import LoginError
 import click
 
 import aprsd
-from aprsd import client, messaging, packets
+from aprsd import cli_helper, client, messaging, packets
 
 from ..aprsd import cli
 
@@ -16,6 +16,7 @@ LOG = logging.getLogger("APRSD")
 
 
 @cli.command()
+@cli_helper.add_options(cli_helper.common_options)
 @click.option(
     "--aprs-login",
     envvar="APRS_LOGIN",
@@ -48,6 +49,7 @@ LOG = logging.getLogger("APRSD")
 @click.argument("tocallsign", required=True)
 @click.argument("command", nargs=-1, required=True)
 @click.pass_context
+@cli_helper.process_standard_options
 def send_message(
     ctx,
     aprs_login,

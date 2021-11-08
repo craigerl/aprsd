@@ -13,7 +13,9 @@ import click
 
 # local imports here
 import aprsd
-from aprsd import client, messaging, packets, stats, threads, trace, utils
+from aprsd import (
+    cli_helper, client, messaging, packets, stats, threads, trace, utils,
+)
 
 from ..aprsd import cli
 
@@ -36,6 +38,7 @@ def signal_handler(sig, frame):
 
 
 @cli.command()
+@cli_helper.add_options(cli_helper.common_options)
 @click.option(
     "--aprs-login",
     envvar="APRS_LOGIN",
@@ -54,6 +57,7 @@ def signal_handler(sig, frame):
     required=True,
 )
 @click.pass_context
+@cli_helper.process_standard_options
 def listen(
     ctx,
     aprs_login,

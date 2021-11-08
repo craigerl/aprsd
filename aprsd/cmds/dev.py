@@ -8,7 +8,7 @@ import logging
 import click
 
 # local imports here
-from aprsd import client, plugin
+from aprsd import cli_helper, client, plugin
 
 from ..aprsd import cli
 
@@ -17,7 +17,14 @@ LOG = logging.getLogger("APRSD")
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-@cli.command()
+@cli.group(help="Development type subcommands", context_settings=CONTEXT_SETTINGS)
+@click.pass_context
+def dev(ctx):
+    pass
+
+
+@dev.command()
+@cli_helper.add_options(cli_helper.common_options)
 @click.option(
     "--aprs-login",
     envvar="APRS_LOGIN",
@@ -51,6 +58,7 @@ CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 )
 @click.argument("message", nargs=-1, required=True)
 @click.pass_context
+@cli_helper.process_standard_options
 def test_plugin(
     ctx,
     aprs_login,
@@ -59,12 +67,7 @@ def test_plugin(
     number,
     message,
 ):
-    """Test an APRSD plugin
-
-    This allows you to develop a plugin and send a 'command' string
-    directly to the plugin during development/testing.  Use this before
-    releasing as a plugin for aprsd.
-    """
+    """Test an individual APRSD plugin given a python path."""
     config = ctx.obj["config"]
     fromcall = aprs_login
 
