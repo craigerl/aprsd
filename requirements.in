@@ -17,7 +17,6 @@ pytz
 requests
 six
 thesmuggler
-yfinance
 update_checker
 flask-socketio
 eventlet
