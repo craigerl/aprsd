@@ -24,7 +24,6 @@ CORE_MESSAGE_PLUGINS = [
     "aprsd.plugins.location.LocationPlugin",
     "aprsd.plugins.ping.PingPlugin",
     "aprsd.plugins.query.QueryPlugin",
-    "aprsd.plugins.stock.StockPlugin",
     "aprsd.plugins.time.TimePlugin",
     "aprsd.plugins.weather.USWeatherPlugin",
     "aprsd.plugins.version.VersionPlugin",
