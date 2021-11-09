@@ -1,4 +1,5 @@
-FROM python:3-bullseye as aprsd
+#FROM python:3-bullseye as aprsd
+FROM ubuntu:focal as aprsd
 
 # Dockerfile for building a container during aprsd development.
 
@@ -13,22 +14,17 @@ ENV GID=${GID:-1000}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update
 RUN apt install -y git build-essential
-RUN apt install -y libffi-dev python3-dev libssl-dev
-#RUN apt-get install -y apt-utils
-#RUN apt-get install -y pkg-config
-#RUN apt upgrade -y
-#RUN apk add --update git wget bash
-#RUN apk add --update gcc linux-headers musl-dev libffi-dev libc-dev
-#RUN apk add --update openssl-dev
-#RUN add cmd:pip3 lsb-release
+RUN apt install -y libffi-dev python3-dev libssl-dev libxml2-dev libxslt-dev
+RUN apt install -y python3 python3-pip python3-dev python3-lxml
 
 RUN addgroup --gid $GID $APRS_USER
 RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
 
 # Install aprsd
-RUN /usr/local/bin/pip3 install aprsd==2.3.1
+RUN pip install aprsd
 
 # Ensure /config is there with a default config file
 USER root
@@ -43,3 +39,6 @@ VOLUME ["/config", "/plugins"]
 USER $APRS_USER
 ADD bin/run.sh /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/run.sh"]
+
+HEALTHCHECK --interval=5m --timeout=12s --start-period=30s \
+    CMD aprsd healthcheck --config /config/aprsd.yml --url http://localhost:8001/stats

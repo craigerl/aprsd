@@ -1,6 +1,10 @@
 #!/bin/bash
 # Official docker image build script.
 
+# docker buildx create --name multiarch \
+# --platform linux/arm/v7,linux/arm/v6,linux/arm64,linux/amd64 \
+# --config ./buildkit.toml --use --driver-opt image=moby/buildkit:master
+
 
 usage() {
 cat << EOF
@@ -40,11 +44,12 @@ do
     esac
 done
 
-VERSION="2.3.1"
+VERSION="2.4.2"
 
 if [ $ALL_PLATFORMS -eq 1 ]
 then
-    PLATFORMS="linux/arm/v7,linux/arm/v6,linux/arm64,linux/amd64"
+    PLATFORMS="linux/arm/v7,linux/arm64,linux/amd64"
+    #PLATFORMS="linux/arm/v7,linux/arm/v6,linux/amd64"
 else
     PLATFORMS="linux/amd64"
 fi
@@ -54,8 +59,10 @@ echo "Build with tag=${TAG} BRANCH=${BRANCH} dev?=${DEV} platforms?=${PLATFORMS}
 
 echo "Destroying old multiarch build container"
 docker buildx rm multiarch
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 echo "Creating new buildx container"
-docker buildx create --name multiarch --platform linux/arm/v7,linux/arm/v6,linux/arm64,linux/amd64 --config ./buildkit.toml --use --driver-opt image=moby/buildkit:master
+docker buildx create --name multiarch --driver docker-container --use --platform linux/arm/v7,linux/arm/v6,linux/arm64,linux/amd64 --config ./buildkit.toml --use --driver-opt image=moby/buildkit:master
+docker buildx inspect --bootstrap
 
 if [ $DEV -eq 1 ]
 then
@@ -68,6 +75,7 @@ else
     # Use this script to locally build the docker image
     echo "Build with tag=${TAG} BRANCH=${BRANCH} platforms?=${PLATFORMS}"
     docker buildx build --push --platform $PLATFORMS \
+        --allow security.insecure \
         -t hemna6969/aprsd:$VERSION \
         -t hemna6969/aprsd:$TAG \
         -t harbor.hemna.com/hemna6969/aprsd:$TAG \

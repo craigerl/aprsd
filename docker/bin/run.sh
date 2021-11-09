@@ -20,4 +20,4 @@ if [ ! -e "$APRSD_CONFIG" ]; then
     aprsd sample-config > $APRSD_CONFIG
 fi
 
-/usr/local/bin/aprsd server -c $APRSD_CONFIG --loglevel DEBUG
+exec aprsd server -c $APRSD_CONFIG --loglevel DEBUG
