@@ -1,9 +1,16 @@
 CHANGES
 =======
 
+v2.5.1
+------
+
+* Removed stock plugin
+* Removed the stock plugin
+
 v2.5.0
 ------
 
+* Updated for v2.5.0
 * Updated Dockerfile's and build script for docker
 * Cleaned up some verbose output & colorized output
 * Reworked all the common arguments
