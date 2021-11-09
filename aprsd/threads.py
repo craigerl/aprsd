@@ -17,7 +17,6 @@ RX_THREAD = "RX"
 EMAIL_THREAD = "Email"
 
 rx_msg_queue = queue.Queue(maxsize=20)
-logging_queue = queue.Queue()
 msg_queues = {
     "rx": rx_msg_queue,
 }
