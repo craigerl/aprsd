@@ -65,3 +65,24 @@ def process_standard_options(f: F) -> F:
         return f(*args, **kwargs)
 
     return update_wrapper(t.cast(F, new_func), f)
+
+
+def process_standard_options_no_config(f: F) -> F:
+    """Use this as a decorator when config isn't needed."""
+    def new_func(*args, **kwargs):
+        ctx = args[0]
+        ctx.ensure_object(dict)
+        ctx.obj["loglevel"] = kwargs["loglevel"]
+        ctx.obj["config_file"] = kwargs["config_file"]
+        ctx.obj["quiet"] = kwargs["quiet"]
+        log.setup_logging_no_config(
+            ctx.obj["loglevel"],
+            ctx.obj["quiet"],
+        )
+
+        del kwargs["loglevel"]
+        del kwargs["config_file"]
+        del kwargs["quiet"]
+        return f(*args, **kwargs)
+
+    return update_wrapper(t.cast(F, new_func), f)

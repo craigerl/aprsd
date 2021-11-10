@@ -40,10 +40,9 @@ LOG = logging.getLogger("APRSD")
     help="How long to wait for healtcheck url to come back",
 )
 @click.pass_context
-@cli_helper.process_standard_options
+@cli_helper.process_standard_options_no_config
 def healthcheck(ctx, health_url, timeout):
     """Check the health of the running aprsd server."""
-    ctx.obj["config"]
     LOG.debug(f"APRSD HealthCheck version: {aprsd.__version__}")
 
     try:

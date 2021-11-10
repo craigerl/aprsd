@@ -51,3 +51,20 @@ def setup_logging(config, loglevel, quiet):
         LOG.addHandler(sh)
         if imap_logger:
             imap_logger.addHandler(sh)
+
+
+def setup_logging_no_config(loglevel, quiet):
+    log_level = aprsd_config.LOG_LEVELS[loglevel]
+    LOG.setLevel(log_level)
+    log_format = aprsd_config.DEFAULT_LOG_FORMAT
+    date_format = aprsd_config.DEFAULT_DATE_FORMAT
+    log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
+    fh = NullHandler()
+
+    fh.setFormatter(log_formatter)
+    LOG.addHandler(fh)
+
+    if not quiet:
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setFormatter(log_formatter)
+        LOG.addHandler(sh)
