@@ -15,6 +15,13 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
     command_regex = "^[fF]"
     command_name = "fortune"
 
+    fortune_path = None
+
+    def setup(self):
+        self.fortune_path = shutil.which("fortune")
+        if not self.fortune_path:
+            self.enabled = False
+
     @trace.trace
     def process(self, packet):
         LOG.info("FortunePlugin")
@@ -25,13 +32,8 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
 
         reply = None
 
-        fortune_path = shutil.which("fortune")
-        if not fortune_path:
-            reply = "Fortune command not installed"
-            return reply
-
         try:
-            cmnd = [fortune_path, "-s", "-n 60"]
+            cmnd = [self.fortune_path, "-s", "-n 60"]
             command = " ".join(cmnd)
             output = subprocess.check_output(
                 command,

@@ -241,9 +241,22 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                     if result:
                         self.tx_inc()
                 else:
-                    LOG.warning(f"{self.__class__} isn't enabled.")
+                    result = f"{self.__class__.__name__} isn't enabled"
+                    LOG.warning(result)
 
         return result
+
+
+class APRSFIKEYMixin:
+    """Mixin class to enable checking the existence of the aprs.fi apiKey."""
+
+    def ensure_aprs_fi_key(self):
+        try:
+            self.config.check_option(["services", "aprs.fi", "apiKey"])
+            self.enabled = True
+        except Exception as ex:
+            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
+            self.enabled = False
 
 
 class HelpPlugin(APRSDRegexCommandPluginBase):

@@ -49,25 +49,21 @@ class TimePlugin(plugin.APRSDRegexCommandPluginBase):
         return self.build_date_str(localzone)
 
 
-class TimeOpenCageDataPlugin(TimePlugin):
+class TimeOpenCageDataPlugin(TimePlugin, plugin.APRSFIKEYMixin):
     """geocage based timezone fetching."""
 
     version = "1.0"
     command_regex = "^[tT]"
     command_name = "time"
 
+    def setup(self):
+        self.ensure_aprs_fi_key()
+
     @trace.trace
     def process(self, packet):
         fromcall = packet.get("from")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
-
-        # get last location of a callsign, get descriptive name from weather service
-        try:
-            self.config.exists(["services", "aprs.fi", "apiKey"])
-        except Exception as ex:
-            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
-            return "No aprs.fi apikey found"
 
         api_key = self.config["services"]["aprs.fi"]["apiKey"]
 
@@ -115,25 +111,21 @@ class TimeOpenCageDataPlugin(TimePlugin):
         return self.build_date_str(localzone)
 
 
-class TimeOWMPlugin(TimePlugin):
+class TimeOWMPlugin(TimePlugin, plugin.APRSFIKEYMixin):
     """OpenWeatherMap based timezone fetching."""
 
     version = "1.0"
     command_regex = "^[tT]"
     command_name = "time"
 
+    def setup(self):
+        self.ensure_aprs_fi_key()
+
     @trace.trace
     def process(self, packet):
         fromcall = packet.get("from")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
-
-        # get last location of a callsign, get descriptive name from weather service
-        try:
-            self.config.exists(["services", "aprs.fi", "apiKey"])
-        except Exception as ex:
-            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
-            return "No aprs.fi apikey found"
 
         # optional second argument is a callsign to search
         a = re.search(r"^.*\s+(.*)", message)

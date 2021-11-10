@@ -327,12 +327,6 @@ def parse_config(config_file):
         "ham.callsign",
         default_fail=DEFAULT_CONFIG_DICT["ham"]["callsign"],
     )
-
-    check_option(
-        config,
-        ["services", "aprs.fi", "apiKey"],
-        default_fail=DEFAULT_CONFIG_DICT["services"]["aprs.fi"]["apiKey"],
-    )
     check_option(
         config,
         "aprs.login",
