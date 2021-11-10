@@ -22,6 +22,7 @@ class TestPlugin(unittest.TestCase):
         self.config = config.DEFAULT_CONFIG_DICT
         self.config["ham"]["callsign"] = self.fromcall
         self.config["aprs"]["login"] = fake.FAKE_TO_CALLSIGN
+        self.config["services"]["aprs.fi"]["apiKey"] = "something"
         # Inintialize the stats object with the config
         stats.APRSDStats(self.config)
         packets.WatchList(config=self.config)
@@ -127,9 +128,9 @@ class TestPlugin(unittest.TestCase):
 class TestFortunePlugin(TestPlugin):
     @mock.patch("shutil.which")
     def test_fortune_fail(self, mock_which):
-        fortune = fortune_plugin.FortunePlugin(self.config)
         mock_which.return_value = None
-        expected = "Fortune command not installed"
+        fortune = fortune_plugin.FortunePlugin(self.config)
+        expected = "FortunePlugin isn't enabled"
         packet = fake.fake_packet(message="fortune")
         actual = fortune.filter(packet)
         self.assertEqual(expected, actual)
@@ -137,10 +138,9 @@ class TestFortunePlugin(TestPlugin):
     @mock.patch("subprocess.check_output")
     @mock.patch("shutil.which")
     def test_fortune_success(self, mock_which, mock_output):
-        fortune = fortune_plugin.FortunePlugin(self.config)
-        mock_which.return_value = "/usr/bin/games"
-
+        mock_which.return_value = "/usr/bin/games/fortune"
         mock_output.return_value = "Funny fortune"
+        fortune = fortune_plugin.FortunePlugin(self.config)
 
         expected = "Funny fortune"
         packet = fake.fake_packet(message="fortune")

@@ -21,6 +21,8 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
         self.fortune_path = shutil.which("fortune")
         if not self.fortune_path:
             self.enabled = False
+        else:
+            self.enabled = True
 
     @trace.trace
     def process(self, packet):
