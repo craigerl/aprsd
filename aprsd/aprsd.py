@@ -97,7 +97,7 @@ def signal_handler(sig, frame):
 @cli.command()
 @cli_helper.add_options(cli_helper.common_options)
 @click.pass_context
-@cli_helper.process_standard_options
+@cli_helper.process_standard_options_no_config
 def check_version(ctx):
     """Check this version against the latest in pypi.org."""
     level, msg = utils._check_version()
