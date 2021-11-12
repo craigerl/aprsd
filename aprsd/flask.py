@@ -19,7 +19,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import aprsd
 from aprsd import client
 from aprsd import config as aprsd_config
-from aprsd import messaging, packets, plugin, stats, threads, utils
+from aprsd import log, messaging, packets, plugin, stats, threads, utils
 from aprsd.clients import aprsis
 
 
@@ -500,7 +500,7 @@ class LogMonitorThread(threads.APRSDThread):
     def loop(self):
         global socketio
         try:
-            record = threads.logging_queue.get(block=True, timeout=5)
+            record = log.logging_queue.get(block=True, timeout=5)
             json_record = self.json_record(record)
             socketio.emit(
                 "log_entry", json_record,

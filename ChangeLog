@@ -1,6 +1,16 @@
 CHANGES
 =======
 
+v2.5.2
+------
+
+* Added new list-plugins command
+* Don't require check-version command to have a config
+* Healthcheck command doesn't need the aprsd.yml config
+* Fix test failures
+* Removed requirement for aprs.fi key
+* Updated Changelog
+
 v2.5.1
 ------
 
