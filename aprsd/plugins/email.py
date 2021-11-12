@@ -59,9 +59,9 @@ class EmailInfo:
 class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
     """Email Plugin."""
 
-    version = "1.0"
     command_regex = "^-.*"
     command_name = "email"
+    short_description = "Send and Receive email"
 
     # message_number:time combos so we don't resend the same email in
     # five mins {int:int}

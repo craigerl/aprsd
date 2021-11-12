@@ -10,9 +10,9 @@ LOG = logging.getLogger("APRSD")
 class PingPlugin(plugin.APRSDRegexCommandPluginBase):
     """Ping."""
 
-    version = "1.0"
     command_regex = "^[pP]"
     command_name = "ping"
+    short_description = "reply with a Pong!"
 
     @trace.trace
     def process(self, packet):

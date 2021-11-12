@@ -15,7 +15,7 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
     seen was older than the configured age limit.
     """
 
-    version = "1.0"
+    short_description = "Notify me when a CALLSIGN is recently seen on APRS-IS"
 
     def process(self, packet):
         LOG.info("NotifySeenPlugin")

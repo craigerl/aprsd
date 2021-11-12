@@ -11,9 +11,9 @@ LOG = logging.getLogger("APRSD")
 class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
     """Location!"""
 
-    version = "1.0"
     command_regex = "^[lL]"
     command_name = "location"
+    short_description = "Where in the world is a CALLSIGN's last GPS beacon?"
 
     def setup(self):
         self.ensure_aprs_fi_key()

@@ -67,7 +67,8 @@ def main():
     # First import all the possible commands for the CLI
     # The commands themselves live in the cmds directory
     from .cmds import (  # noqa
-        completion, dev, healthcheck, listen, send_message, server,
+        completion, dev, healthcheck, list_plugins, listen, send_message,
+        server,
     )
     cli()
 

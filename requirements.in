@@ -20,3 +20,4 @@ thesmuggler
 update_checker
 flask-socketio
 eventlet
+tabulate

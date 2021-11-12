@@ -104,6 +104,8 @@ six==1.16.0
     #   imapclient
     #   pyopenssl
     #   signalslot
+tabulate==0.8.9
+    # via -r requirements.in
 thesmuggler==1.0.1
     # via -r requirements.in
 update-checker==0.18.0

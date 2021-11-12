@@ -23,9 +23,9 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     "weather" - returns weather near the calling callsign
     """
 
-    version = "1.0"
     command_regex = "^[wW]"
     command_name = "USWeather"
+    short_description = "Provide USA only weather of GPS Beacon location"
 
     @trace.trace
     def process(self, packet):
@@ -86,9 +86,9 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase):
 
     """
 
-    version = "1.0"
     command_regex = "^[metar]"
     command_name = "USMetar"
+    short_description = "USA only METAR of GPS Beacon location"
 
     @trace.trace
     def process(self, packet):
@@ -178,9 +178,9 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     """
 
-    version = "1.0"
     command_regex = "^[wW]"
     command_name = "OpenWeatherMap"
+    short_description = "OpenWeatherMap weather of GPS Beacon location"
 
     def help(self):
         _help = [
@@ -308,9 +308,9 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     docker build -f Dockerfile -t avwx-api:master .
     """
 
-    version = "1.0"
     command_regex = "^[mM]"
     command_name = "AVWXWeather"
+    short_description = "AVWX weather of GPS Beacon location"
 
     def help(self):
         _help = [

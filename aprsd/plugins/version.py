@@ -10,9 +10,9 @@ LOG = logging.getLogger("APRSD")
 class VersionPlugin(plugin.APRSDRegexCommandPluginBase):
     """Version of APRSD Plugin."""
 
-    version = "1.0"
     command_regex = "^[vV]"
     command_name = "version"
+    short_description = "What is the APRSD Version"
 
     # message_number:time combos so we don't resend the same email in
     # five mins {int:int}

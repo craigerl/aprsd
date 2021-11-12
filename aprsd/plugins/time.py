@@ -14,9 +14,9 @@ LOG = logging.getLogger("APRSD")
 class TimePlugin(plugin.APRSDRegexCommandPluginBase):
     """Time command."""
 
-    version = "1.0"
     command_regex = "^[tT]"
     command_name = "time"
+    short_description = "What is the current local time."
 
     def _get_local_tz(self):
         return pytz.timezone(time.strftime("%Z"))
@@ -52,9 +52,9 @@ class TimePlugin(plugin.APRSDRegexCommandPluginBase):
 class TimeOpenCageDataPlugin(TimePlugin, plugin.APRSFIKEYMixin):
     """geocage based timezone fetching."""
 
-    version = "1.0"
     command_regex = "^[tT]"
     command_name = "time"
+    short_description = "Current time of GPS beacon timezone. Uses OpenCage"
 
     def setup(self):
         self.ensure_aprs_fi_key()
@@ -114,9 +114,9 @@ class TimeOpenCageDataPlugin(TimePlugin, plugin.APRSFIKEYMixin):
 class TimeOWMPlugin(TimePlugin, plugin.APRSFIKEYMixin):
     """OpenWeatherMap based timezone fetching."""
 
-    version = "1.0"
     command_regex = "^[tT]"
     command_name = "time"
+    short_description = "Current time of GPS beacon's timezone. Uses OpenWeatherMap"
 
     def setup(self):
         self.ensure_aprs_fi_key()

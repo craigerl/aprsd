@@ -12,6 +12,7 @@ import threading
 import pluggy
 from thesmuggler import smuggle
 
+import aprsd
 from aprsd import client, messaging, packets, threads
 
 
@@ -51,7 +52,7 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     config = None
     rx_count = 0
     tx_count = 0
-    version = "1.0"
+    version = aprsd.__version__
 
     # Holds the list of APRSDThreads that the plugin creates
     threads = []

@@ -11,9 +11,9 @@ LOG = logging.getLogger("APRSD")
 class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
     """Fortune."""
 
-    version = "1.0"
     command_regex = "^[fF]"
     command_name = "fortune"
+    short_description = "Give me a fortune"
 
     fortune_path = None
 

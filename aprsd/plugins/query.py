@@ -11,9 +11,9 @@ LOG = logging.getLogger("APRSD")
 class QueryPlugin(plugin.APRSDRegexCommandPluginBase):
     """Query command."""
 
-    version = "1.0"
     command_regex = r"^\!.*"
     command_name = "query"
+    short_description = "APRSD Owner command to query messages in the MsgTrack"
 
     @trace.trace
     def process(self, packet):
