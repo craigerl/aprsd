@@ -1,6 +1,11 @@
 CHANGES
 =======
 
+v2.5.4
+------
+
+* Fixed dev command missing initialization
+
 v2.5.3
 ------
 
