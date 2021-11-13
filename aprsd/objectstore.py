@@ -92,7 +92,7 @@ class ObjectStoreMixin:
                             f"{self.__class__.__name__}::Loaded {len(self)} entries from disk.",
                         )
                         LOG.debug(f"{self.data}")
-            except pickle.UnpicklingError as ex:
+            except (pickle.UnpicklingError, Exception) as ex:
                 LOG.error(f"Failed to UnPickle {self._save_filename()}")
                 LOG.error(ex)
                 self.data = {}
