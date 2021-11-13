@@ -8,7 +8,7 @@ import logging
 import click
 
 # local imports here
-from aprsd import cli_helper, client, plugin
+from aprsd import cli_helper, client, messaging, packets, plugin, stats
 
 from ..aprsd import cli
 
@@ -80,6 +80,10 @@ def test_plugin(
     if type(message) is tuple:
         message = " ".join(message)
     client.Client(config)
+    stats.APRSDStats(config)
+    messaging.MsgTrack(config=config)
+    packets.WatchList(config=config)
+    packets.SeenList(config=config)
 
     pm = plugin.PluginManager(config)
     if load_all:
