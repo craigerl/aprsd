@@ -6,7 +6,7 @@
 #
 aioax25==0.0.10
     # via -r requirements.in
-aprslib==0.6.47
+aprslib==0.7.0
     # via -r requirements.in
 backoff==1.11.1
     # via opencage
