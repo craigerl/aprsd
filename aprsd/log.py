@@ -5,6 +5,7 @@ import queue
 import sys
 
 from aprsd import config as aprsd_config
+from aprsd.logging import logging as aprsd_logging
 
 
 LOG = logging.getLogger("APRSD")
@@ -17,10 +18,24 @@ logging_queue = queue.Queue()
 def setup_logging(config, loglevel, quiet):
     log_level = aprsd_config.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
+    if config["aprsd"].get("rich_logging", False):
+        log_format = "%(message)s"
+    else:
+        log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
     date_format = config["aprsd"].get("dateformat", aprsd_config.DEFAULT_DATE_FORMAT)
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
     log_file = config["aprsd"].get("logfile", None)
+
+    rich_logging = False
+    if config["aprsd"].get("rich_logging", False):
+        rh = aprsd_logging.APRSDRichHandler(
+            show_thread=True, thread_width=15,
+            rich_tracebacks=True, omit_repeated_times=False,
+        )
+        rh.setFormatter(log_formatter)
+        LOG.addHandler(rh)
+        rich_logging = True
+
     if log_file:
         fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
     else:
@@ -45,7 +60,7 @@ def setup_logging(config, loglevel, quiet):
         qh.setFormatter(q_log_formatter)
         LOG.addHandler(qh)
 
-    if not quiet:
+    if not quiet and not rich_logging:
         sh = logging.StreamHandler(sys.stdout)
         sh.setFormatter(log_formatter)
         LOG.addHandler(sh)

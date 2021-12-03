@@ -79,6 +79,7 @@ DEFAULT_CONFIG_DICT = {
         "logformat": DEFAULT_LOG_FORMAT,
         "dateformat": DEFAULT_DATE_FORMAT,
         "save_location": DEFAULT_CONFIG_DIR,
+        "rich_logging": False,
         "trace": False,
         "enabled_plugins": CORE_MESSAGE_PLUGINS,
         "units": "imperial",
