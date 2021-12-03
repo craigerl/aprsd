@@ -1,9 +1,17 @@
 CHANGES
 =======
 
+v2.5.5
+------
+
+* Update requirements to use aprslib 0.7.0
+* fixed the failure during loading for objectstore
+* updated docker build
+
 v2.5.4
 ------
 
+* Updated Changelog
 * Fixed dev command missing initialization
 
 v2.5.3

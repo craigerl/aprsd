@@ -60,6 +60,17 @@ def end_substr(original, substr):
     return idx
 
 
+def rgb_from_name(name):
+    """Create an rgb tuple from a string."""
+    hash = 0
+    for char in name:
+        hash = ord(char) + ((hash << 5) - hash)
+    red = hash & 255
+    green = (hash >> 8) & 255
+    blue = (hash >> 16) & 255
+    return red, green, blue
+
+
 def human_size(bytes, units=None):
     """Returns a human readable string representation of bytes"""
     if not units:
