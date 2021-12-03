@@ -51,7 +51,7 @@ class APRSDRichLogRender(LogRender):
         if self.show_time:
             output.add_column(style="log.time")
         if self.show_thread:
-            rgb = str(utils.rgb_from_name(thread_name)).replace(" ","")
+            rgb = str(utils.rgb_from_name(thread_name)).replace(" ", "")
             output.add_column(style=f"rgb{rgb}", width=self.thread_width)
         if self.show_level:
             output.add_column(style="log.level", width=self.level_width)
@@ -123,40 +123,38 @@ class APRSDRichHandler(RichHandler):
         )
 
     def render(
-                self,
-                *,
-                record: LogRecord,
-                traceback: Optional[Traceback],
-                message_renderable: "ConsoleRenderable",
+        self, *, record: LogRecord,
+        traceback: Optional[Traceback],
+        message_renderable: "ConsoleRenderable",
     ) -> "ConsoleRenderable":
-            """Render log for display.
+        """Render log for display.
 
-            Args:
-                record (LogRecord): logging Record.
-                traceback (Optional[Traceback]): Traceback instance or None for no Traceback.
-                message_renderable (ConsoleRenderable): Renderable (typically Text) containing log message contents.
+        Args:
+            record (LogRecord): logging Record.
+            traceback (Optional[Traceback]): Traceback instance or None for no Traceback.
+            message_renderable (ConsoleRenderable): Renderable (typically Text) containing log message contents.
 
-            Returns:
-                ConsoleRenderable: Renderable to display log.
-            """
-            path = Path(record.pathname).name
-            level = self.get_level_text(record)
-            time_format = None if self.formatter is None else self.formatter.datefmt
-            log_time = datetime.fromtimestamp(record.created)
-            thread_name = record.threadName
+        Returns:
+            ConsoleRenderable: Renderable to display log.
+        """
+        path = Path(record.pathname).name
+        level = self.get_level_text(record)
+        time_format = None if self.formatter is None else self.formatter.datefmt
+        log_time = datetime.fromtimestamp(record.created)
+        thread_name = record.threadName
 
-            log_renderable = self._log_render(
-                self.console,
-                [message_renderable] if not traceback else [
-                    message_renderable,
-                    traceback,
-                ],
-                log_time=log_time,
-                time_format=time_format,
-                level=level,
-                path=path,
-                line_no=record.lineno,
-                link_path=record.pathname if self.enable_link_path else None,
-                thread_name=thread_name,
-            )
-            return log_renderable
+        log_renderable = self._log_render(
+            self.console,
+            [message_renderable] if not traceback else [
+                message_renderable,
+                traceback,
+            ],
+            log_time=log_time,
+            time_format=time_format,
+            level=level,
+            path=path,
+            line_no=record.lineno,
+            link_path=record.pathname if self.enable_link_path else None,
+            thread_name=thread_name,
+        )
+        return log_renderable
