@@ -13,6 +13,12 @@ if [ ! -z "${APRSD_PLUGINS}" ]; then
     done
 fi
 
+if [ -z "${LOG_LEVEL}" ] || [[ ! "${LOG_LEVEL}" =~ ^(CRITICAL|ERROR|WARNING|INFO)$ ]]; then
+    LOG_LEVEL="DEBUG"
+fi
+
+echo "Log level is set to ${LOG_LEVEL}";
+
 # check to see if there is a config file
 APRSD_CONFIG="/config/aprsd.yml"
 if [ ! -e "$APRSD_CONFIG" ]; then
@@ -20,4 +26,4 @@ if [ ! -e "$APRSD_CONFIG" ]; then
     aprsd sample-config > $APRSD_CONFIG
 fi
 
-exec aprsd server -c $APRSD_CONFIG --loglevel DEBUG
+exec aprsd server -c $APRSD_CONFIG --loglevel ${LOG_LEVEL}
