@@ -9,3 +9,4 @@ services:
     environment:
         - TZ=America/New_York
         - APRS_PLUGINS=aprsd-slack-plugin>=1.0.2
+        - LOG_LEVEL=ERROR
