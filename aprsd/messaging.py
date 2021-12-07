@@ -542,37 +542,27 @@ def log_message(
 
     log_list = [""]
     if retry_number:
-        # LOG.info("    {} _______________(TX:{})".format(header, retry_number))
-        log_list.append(f"    {header} _______________(TX:{retry_number})")
+        log_list.append(f"{header} _______________(TX:{retry_number})")
     else:
-        # LOG.info("    {} _______________".format(header))
-        log_list.append(f"    {header} _______________")
+        log_list.append(f"{header} _______________")
 
-    # LOG.info("    Raw         : {}".format(raw))
-    log_list.append(f"    Raw         : {raw}")
+    log_list.append(f"  Raw         : {raw}")
 
     if packet_type:
-        # LOG.info("    Packet      : {}".format(packet_type))
-        log_list.append(f"    Packet      : {packet_type}")
+        log_list.append(f"  Packet      : {packet_type}")
     if tocall:
-        # LOG.info("    To          : {}".format(tocall))
-        log_list.append(f"    To          : {tocall}")
+        log_list.append(f"  To          : {tocall}")
     if fromcall:
-        # LOG.info("    From        : {}".format(fromcall))
-        log_list.append(f"    From        : {fromcall}")
+        log_list.append(f"  From        : {fromcall}")
 
     if ack:
-        # LOG.info("    Ack         : {}".format(ack))
-        log_list.append(f"    Ack         : {ack}")
+        log_list.append(f"  Ack         : {ack}")
     else:
-        # LOG.info("    Message     : {}".format(message))
-        log_list.append(f"    Message     : {message}")
+        log_list.append(f"  Message     : {message}")
     if msg_num:
-        # LOG.info("    Msg number  : {}".format(msg_num))
-        log_list.append(f"    Msg number  : {msg_num}")
+        log_list.append(f"  Msg number  : {msg_num}")
     if uuid:
-        log_list.append(f"    UUID        : {uuid}")
-    # LOG.info("    {} _______________ Complete".format(header))
-    log_list.append(f"    {header} _______________ Complete")
+        log_list.append(f"  UUID        : {uuid}")
+    log_list.append(f"{header} _______________ Complete")
 
     LOG.info("\n".join(log_list))

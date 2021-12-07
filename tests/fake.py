@@ -2,7 +2,7 @@ from aprsd import packets, plugin, threads
 
 
 FAKE_MESSAGE_TEXT = "fake MeSSage"
-FAKE_FROM_CALLSIGN = "KFART"
+FAKE_FROM_CALLSIGN = "KFAKE"
 FAKE_TO_CALLSIGN = "KMINE"
 
 
@@ -45,7 +45,7 @@ class FakeThread(threads.APRSDThread):
         super().__init__("FakeThread")
 
     def loop(self):
-        return True
+        return False
 
 
 class FakeBaseThreadsPlugin(plugin.APRSDPluginBase):
@@ -68,6 +68,12 @@ class FakeRegexCommandPlugin(plugin.APRSDRegexCommandPluginBase):
     version = "1.0"
     command_regex = "^[fF]"
     command_name = "fake"
+
+    def process(self, packet):
+        return FAKE_MESSAGE_TEXT
+
+
+class FakeWatchListPlugin(plugin.APRSDWatchListPluginBase):
 
     def process(self, packet):
         return FAKE_MESSAGE_TEXT

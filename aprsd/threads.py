@@ -88,7 +88,7 @@ class KeepAliveThread(APRSDThread):
         tracemalloc.start()
         super().__init__("KeepAlive")
         self.config = config
-        max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
+        max_timeout = {"hours": 0.0, "minutes": 2, "seconds": 0}
         self.max_delta = datetime.timedelta(**max_timeout)
 
     def loop(self):
