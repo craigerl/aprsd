@@ -112,20 +112,21 @@ Help
     └─[$] > aprsd -h
     Usage: aprsd [OPTIONS] COMMAND [ARGS]...
 
-      Shell completion for click-completion-command Available shell types:
-      bash         Bourne again shell   fish         Friendly interactive shell
-      powershell   Windows PowerShell   zsh          Z shell Default type: auto
-
     Options:
       --version   Show the version and exit.
       -h, --help  Show this message and exit.
 
     Commands:
-      install        Install the click-completion-command completion
+      check-version  Check this version against the latest in pypi.org.
+      completion     Click Completion subcommands
+      dev            Development type subcommands
+      healthcheck    Check the health of the running aprsd server.
+      list-plugins   List the built in plugins available to APRSD.
+      listen         Listen to packets on the APRS-IS Network based on FILTER.
       sample-config  This dumps the config to stdout.
       send-message   Send a message to a callsign via APRS_IS.
-      server         Start the aprsd server process.
-      show           Show the click-completion-command completion code
+      server         Start the aprsd server gateway process.
+      version        Show the APRSD version.
 
 
 
@@ -145,8 +146,12 @@ Output
 
     └─> aprsd sample-config
     aprs:
+        # Set enabled to False if there is no internet connectivity.
+        # This is useful for a direwolf KISS aprs connection only.
+
         # Get the passcode for your callsign here:
         # https://apps.magicbug.co.uk/passcode
+        enabled: true
         host: rotate.aprs2.net
         login: CALLSIGN
         password: '00000'
@@ -184,18 +189,38 @@ Output
         - aprsd.plugins.weather.USWeatherPlugin
         - aprsd.plugins.version.VersionPlugin
         logfile: /tmp/aprsd.log
-        logformat: '[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s] %(message)s - [%(pathname)s:%(lineno)d]'
+        logformat: '[%(asctime)s] [%(threadName)-20.20s] [%(levelname)-5.5s] %(message)s
+            - [%(pathname)s:%(lineno)d]'
+        rich_logging: false
+        save_location: /Users/i530566/.config/aprsd/
         trace: false
         units: imperial
+        watch_list:
+            alert_callsign: NOCALL
+            alert_time_seconds: 43200
+            callsigns: []
+            enabled: false
+            enabled_plugins:
+            - aprsd.plugins.notify.NotifySeenPlugin
+            packet_keep_count: 10
         web:
             enabled: true
             host: 0.0.0.0
             logging_enabled: true
             port: 8001
             users:
-                admin: aprsd
+                admin: password-here
     ham:
-        callsign: CALLSIGN
+        callsign: NOCALL
+    kiss:
+        serial:
+            baudrate: 9600
+            device: /dev/ttyS0
+            enabled: false
+        tcp:
+            enabled: false
+            host: direwolf.ip.address
+            port: '8001'
     services:
         aprs.fi:
             # Get the apiKey from your aprs.fi account here:
@@ -229,35 +254,35 @@ look for incomming commands to the callsign configured in the config file
 ::
 
     └─[$] > aprsd server --help
-    Usage: aprsd server [OPTIONS]
+        Usage: aprsd server [OPTIONS]
 
-      Start the aprsd server process.
+          Start the aprsd server gateway process.
 
-    Options:
-      --loglevel [CRITICAL|ERROR|WARNING|INFO|DEBUG]
-                                      The log level to use for aprsd.log
-                                      [default: INFO]
+        Options:
+          --loglevel [CRITICAL|ERROR|WARNING|INFO|DEBUG]
+                                          The log level to use for aprsd.log
+                                          [default: INFO]
+          -c, --config TEXT               The aprsd config file to use for options.
+                                          [default:
+                                          /Users/i530566/.config/aprsd/aprsd.yml]
+          --quiet                         Don't log to stdout
+          -f, --flush                     Flush out all old aged messages on disk.
+                                          [default: False]
+          -h, --help                      Show this message and exit.
 
-      --quiet                         Don't log to stdout
-      --disable-validation            Disable email shortcut validation.  Bad
-                                      email addresses can result in broken email
-                                      responses!!
-
-      -c, --config TEXT               The aprsd config file to use for options.
-                                      [default:
-                                      /home/waboring/.config/aprsd/aprsd.yml]
-
-      -f, --flush                     Flush out all old aged messages on disk.
-                                      [default: False]
-
-      -h, --help                      Show this message and exit.
-
-      $ aprsd server
+    └─> aprsd server
     Load config
-    [02/13/2021 09:22:09 AM] [MainThread  ] [INFO ] APRSD Started version: 1.6.0
-    [02/13/2021 09:22:09 AM] [MainThread  ] [INFO ] Checking IMAP configuration
-    [02/13/2021 09:22:09 AM] [MainThread  ] [INFO ] Checking SMTP configuration
-    [02/13/2021 09:22:10 AM] [MainThread  ] [INFO ] Validating 2 Email shortcuts. This can take up to 10 seconds per shortcut
+    12/07/2021 03:16:17 PM MainThread      INFO     APRSD is up to date                                                                   server.py:51
+    12/07/2021 03:16:17 PM MainThread      INFO     APRSD Started version: 2.5.6                                                          server.py:52
+    12/07/2021 03:16:17 PM MainThread      INFO     Using CONFIG values:                                                                  server.py:55
+    12/07/2021 03:16:17 PM MainThread      INFO     ham.callsign = WB4BOR                                                                 server.py:60
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.login = WB4BOR-12                                                                server.py:60
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.password = XXXXXXXXXXXXXXXXXXX                                                   server.py:58
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.host = noam.aprs2.net                                                            server.py:60
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.port = 14580                                                                     server.py:60
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.logfile = /tmp/aprsd.log                                                         server.py:60
+
+
 
 
 send-message
@@ -269,25 +294,27 @@ test messages
 ::
 
     └─[$] > aprsd send-message -h
-    Usage: aprsd send-message [OPTIONS] TOCALLSIGN [COMMAND]...
+    Usage: aprsd send-message [OPTIONS] TOCALLSIGN COMMAND...
 
       Send a message to a callsign via APRS_IS.
 
     Options:
       --loglevel [CRITICAL|ERROR|WARNING|INFO|DEBUG]
                                       The log level to use for aprsd.log
-                                      [default: DEBUG]
-
-      --quiet                         Don't log to stdout
+                                      [default: INFO]
       -c, --config TEXT               The aprsd config file to use for options.
-                                      [default: ~/.config/aprsd/aprsd.yml]
-
+                                      [default:
+                                      /Users/i530566/.config/aprsd/aprsd.yml]
+      --quiet                         Don't log to stdout
       --aprs-login TEXT               What callsign to send the message from.
                                       [env var: APRS_LOGIN]
-
       --aprs-password TEXT            the APRS-IS password for APRS_LOGIN  [env
                                       var: APRS_PASSWORD]
-
+      -n, --no-ack                    Don't wait for an ack, just sent it to APRS-
+                                      IS and bail.  [default: False]
+      -w, --wait-response             Wait for a response to the message?
+                                      [default: False]
+      --raw TEXT                      Send a raw message.  Implies --no-ack
       -h, --help                      Show this message and exit.
 
 
