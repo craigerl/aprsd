@@ -45,6 +45,8 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                     allow_delay=False,
                 )
                 return msg
+            else:
+                return messaging.NULL_MESSAGE
         else:
             LOG.debug(
                 "Not old enough to notify callsign '{}' : {} < {}".format(
@@ -53,3 +55,4 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                     wl.max_delta(),
                 ),
             )
+            return messaging.NULL_MESSAGE
