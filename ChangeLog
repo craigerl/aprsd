@@ -1,6 +1,23 @@
 CHANGES
 =======
 
+v2.5.6
+------
+
+* Tightened up the packet logging
+* Added unit tests for USWeatherPlugin, USMetarPlugin
+* Added test\_location to test LocationPlugin
+* Updated pytest output
+* Added py39 to tox for tests
+* Added NotifyPlugin unit tests and more
+* Small cleanup on packet logging
+* Reduced the APRSIS connection reset to 2 minutes
+* Fixed the NotifyPlugin
+* Fixed some pep8 errors
+* Add tracing for dev command
+* Added python rich library based logging
+* Added LOG\_LEVEL env variable for the docker
+
 v2.5.5
 ------
 
