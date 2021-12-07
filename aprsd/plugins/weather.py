@@ -10,7 +10,7 @@ from aprsd import plugin, plugin_utils, trace
 LOG = logging.getLogger("APRSD")
 
 
-class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
+class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
     """USWeather Command
 
     Returns a weather report for the calling weather station
@@ -27,26 +27,27 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     command_name = "USWeather"
     short_description = "Provide USA only weather of GPS Beacon location"
 
+    def setup(self):
+        self.ensure_aprs_fi_key()
+
     @trace.trace
     def process(self, packet):
         LOG.info("Weather Plugin")
         fromcall = packet.get("from")
         # message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
-        try:
-            self.config.exists(["services", "aprs.fi", "apiKey"])
-        except Exception as ex:
-            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
-            return "No aprs.fi apikey found"
-
         api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
         except Exception as ex:
             LOG.error(f"Failed to fetch aprs.fi data {ex}")
-            return "Failed to fetch location"
+            return "Failed to fetch aprs.fi location"
 
-        # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
+        LOG.debug(f"LocationPlugin: aprs_data = {aprs_data}")
+        if not len(aprs_data["entries"]):
+            LOG.error("Didn't get any entries from aprs.fi")
+            return "Failed to fetch aprs.fi location"
+
         lat = aprs_data["entries"][0]["lat"]
         lon = aprs_data["entries"][0]["lng"]
 
@@ -71,7 +72,7 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         return reply
 
 
-class USMetarPlugin(plugin.APRSDRegexCommandPluginBase):
+class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
     """METAR Command
 
     This provides a METAR weather report from a station near the caller
@@ -89,6 +90,9 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase):
     command_regex = "^[metar]"
     command_name = "USMetar"
     short_description = "USA only METAR of GPS Beacon location"
+
+    def setup(self):
+        self.ensure_aprs_fi_key()
 
     @trace.trace
     def process(self, packet):
@@ -126,12 +130,12 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase):
                 aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
             except Exception as ex:
                 LOG.error(f"Failed to fetch aprs.fi data {ex}")
-                return "Failed to fetch location"
+                return "Failed to fetch aprs.fi location"
 
             # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
             if not len(aprs_data["entries"]):
                 LOG.error("Found no entries from aprs.fi!")
-                return "Failed to fetch location"
+                return "Failed to fetch aprs.fi location"
 
             lat = aprs_data["entries"][0]["lat"]
             lon = aprs_data["entries"][0]["lng"]
