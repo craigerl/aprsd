@@ -24,7 +24,7 @@ class TestWatchListPlugin(test_plugin.TestPlugin):
         watchlist_packet_keep_count=None,
         watchlist_callsigns=DEFAULT_WATCHLIST_CALLSIGNS,
     ):
-        _config = aprsd_config.DEFAULT_CONFIG_DICT
+        _config = aprsd_config.Config(aprsd_config.DEFAULT_CONFIG_DICT)
         default_wl = aprsd_config.DEFAULT_CONFIG_DICT["aprsd"]["watch_list"]
 
         _config["ham"]["callsign"] = self.fromcall

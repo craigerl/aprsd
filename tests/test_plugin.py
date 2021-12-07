@@ -23,7 +23,7 @@ class TestPlugin(unittest.TestCase):
 
     def config_and_init(self, config=None):
         if not config:
-            self.config = aprsd_config.DEFAULT_CONFIG_DICT
+            self.config = aprsd_config.Config(aprsd_config.DEFAULT_CONFIG_DICT)
             self.config["ham"]["callsign"] = self.fromcall
             self.config["aprs"]["login"] = fake.FAKE_TO_CALLSIGN
             self.config["services"]["aprs.fi"]["apiKey"] = "something"
