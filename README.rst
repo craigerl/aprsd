@@ -46,56 +46,31 @@ callsigns to look out for.  The watch list can notify you when a HAM callsign
 in the list is seen and now available to message on the APRS network.
 
 
-List of core server plugins
-===========================
-
-Plugins function by specifying a regex that is searched for in the APRS message.
-If it matches, the plugin runs.  IF the regex doesn't match, the plugin is skipped.
-
-* EmailPlugin - Check email and reply with contents.  Have to configure IMAP and SMTP settings in aprs.yml
-* FortunePlugin - Replies with old unix fortune random fortune!
-* LocationPlugin - Checks location of ham operator
-* PingPlugin - Sends pong with timestamp
-* QueryPlugin - Allows querying the list of delayed messages that were not ACK'd by radio
-* TimePlugin - Current time of day
-* WeatherPlugin - Get weather conditions for current location of HAM callsign
-* VersionPlugin - Reports the version information for aprsd
-* NotifySeenPlugin - Send a message when a message is seen from a callsign in
-                     the watch list.  This is helpful when you want to know
-                     when a friend is online in the ARPS network, but haven't
-                     been seen in a while.
-
-
-Current messages this will respond to:
+Current List of built-in plugins:
 ======================================
 
 ::
 
-  APRS messages:
-   l(ocation) [callsign]  = descriptive current location of your radio
-                            8 Miles E Auburn CA 1673' 39.92150,-120.93950 0.1h ago
-   w(eather)              = weather forecast for your radio's current position
-                            58F(58F/46F) Partly Cloudy. Tonight, Heavy Rain.
-   t(ime)                 = respond with the current time
-   f(ortune)              = respond with a short fortune
-   -email_addr email text = send an email, say "mapme" to send a current position/map
-   -2                     = resend the last 2 emails from your imap inbox to this radio
-   p(ing)                 = respond with Pong!/time
-   v(ersion)              = Respond with current APRSD Version string
-   anything else          = respond with usage
+   └─> aprsd list-plugins
+ Plugin Name             Plugin Path                                Type          Info
+ ----------------------  -----------------------------------------  ------------  ----------------------------------------------------------
+ EmailPlugin             aprsd.plugins.email.EmailPlugin            RegexCommand  Send and Receive email
+ FortunePlugin           aprsd.plugins.fortune.FortunePlugin        RegexCommand  Give me a fortune
+ LocationPlugin          aprsd.plugins.location.LocationPlugin      RegexCommand  Where in the world is a CALLSIGN's last GPS beacon?
+ NotifySeenPlugin        aprsd.plugins.notify.NotifySeenPlugin      WatchList     Notify me when a CALLSIGN is recently seen on APRS-IS
+ PingPlugin              aprsd.plugins.ping.PingPlugin              RegexCommand  reply with a Pong!
+ QueryPlugin             aprsd.plugins.query.QueryPlugin            RegexCommand  APRSD Owner command to query messages in the MsgTrack
+ TimeOWMPlugin           aprsd.plugins.time.TimeOWMPlugin           RegexCommand  Current time of GPS beacon's timezone. Uses OpenWeatherMap
+ TimeOpenCageDataPlugin  aprsd.plugins.time.TimeOpenCageDataPlugin  RegexCommand  Current time of GPS beacon timezone. Uses OpenCage
+ TimePlugin              aprsd.plugins.time.TimePlugin              RegexCommand  What is the current local time.
+ VersionPlugin           aprsd.plugins.version.VersionPlugin        RegexCommand  What is the APRSD Version
+ AVWXWeatherPlugin       aprsd.plugins.weather.AVWXWeatherPlugin    RegexCommand  AVWX weather of GPS Beacon location
+ OWMWeatherPlugin        aprsd.plugins.weather.OWMWeatherPlugin     RegexCommand  OpenWeatherMap weather of GPS Beacon location
+ USMetarPlugin           aprsd.plugins.weather.USMetarPlugin        RegexCommand  USA only METAR of GPS Beacon location
+ USWeatherPlugin         aprsd.plugins.weather.USWeatherPlugin      RegexCommand  Provide USA only weather of GPS Beacon location
 
 
-Meanwhile this code will monitor a single imap mailbox and forward email
-to your BASECALLSIGN over the air.  Only radios using the BASECALLSIGN are allowed
-to send email, so consider this security risk before using this (or Amatuer radio in
-general).  Email is single user at this time.
-
-There are additional parameters in the code (sorry), so be sure to set your
-email server, and associated logins, passwords.  search for "yourdomain",
-"password".  Search for "shortcuts" to setup email aliases as well.
-
-
-Installation:
+installation:
 =============
 
   pip install aprsd
