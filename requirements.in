@@ -22,3 +22,5 @@ flask-socketio
 eventlet
 tabulate
 rich
+# For the list-plugins pypi.org search scraping
+beautifulsoup4

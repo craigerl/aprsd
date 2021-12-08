@@ -10,6 +10,8 @@ aprslib==0.7.0
     # via -r requirements.in
 backoff==1.11.1
     # via opencage
+beautifulsoup4==4.10.0
+    # via -r requirements.in
 bidict==0.21.2
     # via python-socketio
 certifi==2021.5.30
@@ -112,6 +114,8 @@ six==1.16.0
     #   imapclient
     #   pyopenssl
     #   signalslot
+soupsieve==2.3.1
+    # via beautifulsoup4
 tabulate==0.8.9
     # via -r requirements.in
 thesmuggler==1.0.1

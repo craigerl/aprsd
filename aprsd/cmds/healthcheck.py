@@ -14,9 +14,8 @@ import requests
 
 import aprsd
 from aprsd import cli_helper, utils
-
 # local imports here
-from ..aprsd import cli
+from aprsd.aprsd import cli
 
 
 # setup the global logger

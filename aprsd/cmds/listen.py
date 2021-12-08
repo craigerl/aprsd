@@ -16,8 +16,7 @@ import aprsd
 from aprsd import (
     cli_helper, client, messaging, packets, stats, threads, trace, utils,
 )
-
-from ..aprsd import cli
+from aprsd.aprsd import cli
 
 
 # setup the global logger

@@ -8,8 +8,7 @@ import click
 
 import aprsd
 from aprsd import cli_helper, client, messaging, packets
-
-from ..aprsd import cli
+from aprsd.aprsd import cli
 
 
 LOG = logging.getLogger("APRSD")

@@ -10,8 +10,7 @@ from aprsd import (
     trace, utils,
 )
 from aprsd import aprsd as aprsd_main
-
-from ..aprsd import cli
+from aprsd.aprsd import cli
 
 
 LOG = logging.getLogger("APRSD")
