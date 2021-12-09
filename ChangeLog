@@ -4,6 +4,7 @@ CHANGES
 v2.5.6
 ------
 
+* Changelog
 * Tightened up the packet logging
 * Added unit tests for USWeatherPlugin, USMetarPlugin
 * Added test\_location to test LocationPlugin
