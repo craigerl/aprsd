@@ -86,7 +86,7 @@ class WatchList(objectstore.ObjectStoreMixin):
         if config:
             self.config = config
 
-            ring_size = config["aprsd"]["watch_list"]["packet_keep_count"]
+            ring_size = config["aprsd"]["watch_list"].get("packet_keep_count", 10)
 
             for callsign in config["aprsd"]["watch_list"].get("callsigns", []):
                 call = callsign.replace("*", "")

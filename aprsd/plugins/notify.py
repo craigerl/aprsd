@@ -1,6 +1,6 @@
 import logging
 
-from aprsd import messaging, packets, plugin
+from aprsd import messaging, packets, plugin, trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -17,6 +17,7 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
 
     short_description = "Notify me when a CALLSIGN is recently seen on APRS-IS"
 
+    @trace.trace
     def process(self, packet):
         LOG.info("NotifySeenPlugin")
 
@@ -46,10 +47,11 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                 )
                 return msg
             else:
+                LOG.debug("fromcall and notify_callsign are the same, not notifying")
                 return messaging.NULL_MESSAGE
         else:
             LOG.debug(
-                "Not old enough to notify callsign '{}' : {} < {}".format(
+                "Not old enough to notify on callsign '{}' : {} < {}".format(
                     fromcall,
                     age,
                     wl.max_delta(),

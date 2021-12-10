@@ -190,6 +190,7 @@ class Message(metaclass=abc.ABCMeta):
         fromcall,
         tocall,
         msg_id=None,
+        allow_delay=True,
     ):
         self.fromcall = fromcall
         self.tocall = tocall
@@ -198,6 +199,10 @@ class Message(metaclass=abc.ABCMeta):
             c.increment()
             msg_id = c.value
         self.id = msg_id
+
+        # do we try and save this message for later if we don't get
+        # an ack?  Some messages we don't want to do this ever.
+        self.allow_delay = allow_delay
 
     @abc.abstractmethod
     def send(self):
@@ -214,8 +219,8 @@ class RawMessage(Message):
 
     message = None
 
-    def __init__(self, message):
-        super().__init__(None, None, msg_id=None)
+    def __init__(self, message, allow_delay=True):
+        super().__init__(fromcall=None, tocall=None, msg_id=None, allow_delay=allow_delay)
         self.message = message
 
     def dict(self):
@@ -269,11 +274,11 @@ class TextMessage(Message):
         msg_id=None,
         allow_delay=True,
     ):
-        super().__init__(fromcall, tocall, msg_id)
+        super().__init__(
+            fromcall=fromcall, tocall=tocall,
+            msg_id=msg_id, allow_delay=allow_delay,
+        )
         self.message = message
-        # do we try and save this message for later if we don't get
-        # an ack?  Some messages we don't want to do this ever.
-        self.allow_delay = allow_delay
 
     def dict(self):
         now = datetime.datetime.now()
@@ -369,6 +374,8 @@ class SendMessageThread(threads.APRSDThread):
                 # we reached the send limit, don't send again
                 # TODO(hemna) - Need to put this in a delayed queue?
                 LOG.info("Message Send Complete. Max attempts reached.")
+                if not msg.allow_delay:
+                    tracker.remove(msg.id)
                 return False
 
             # Message is still outstanding and needs to be acked.

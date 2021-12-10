@@ -25,7 +25,7 @@ def setup_logging(config, loglevel, quiet):
         log_format = "%(message)s"
         log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         rh = aprsd_logging.APRSDRichHandler(
-            show_thread=True, thread_width=15,
+            show_thread=True, thread_width=20,
             rich_tracebacks=True, omit_repeated_times=False,
         )
         rh.setFormatter(log_formatter)

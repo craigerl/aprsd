@@ -202,7 +202,7 @@ class APRSDProcessPacketThread(APRSDThread):
         self.packet = packet
         self.config = config
         name = self.packet["raw"][:10]
-        super().__init__(f"RX_PACKET-{name}")
+        super().__init__(f"RXPKT-{name}")
 
     def process_ack_packet(self, packet):
         ack_num = packet.get("msgNo")
@@ -261,6 +261,8 @@ class APRSDProcessPacketThread(APRSDThread):
             pm = plugin.PluginManager()
             try:
                 results = pm.run(packet)
+                wl = packets.WatchList()
+                wl.update_seen(packet)
                 replied = False
                 for reply in results:
                     if isinstance(reply, list):

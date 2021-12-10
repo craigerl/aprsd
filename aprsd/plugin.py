@@ -177,7 +177,6 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                     )
                 if result:
                     self.tx_inc()
-                wl.update_seen(packet)
         else:
             LOG.warning(f"{self.__class__} plugin is not enabled")
 
