@@ -527,6 +527,7 @@ def log_packet(packet):
 def log_message(
     header, raw, message, tocall=None, fromcall=None, msg_num=None,
     retry_number=None, ack=None, packet_type=None, uuid=None,
+    console=None,
 ):
     """
 
@@ -565,4 +566,7 @@ def log_message(
         log_list.append(f"  UUID    : {uuid}")
     log_list.append(f"{header} _______________ Complete")
 
-    LOG.info("\n".join(log_list))
+    if console:
+        console.log("\n".join(log_list))
+    else:
+        LOG.info("\n".join(log_list))

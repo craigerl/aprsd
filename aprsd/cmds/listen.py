@@ -10,6 +10,7 @@ import time
 
 import aprslib
 import click
+from rich.console import Console
 
 # local imports here
 import aprsd
@@ -22,6 +23,7 @@ from aprsd.aprsd import cli
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
 LOG = logging.getLogger("APRSD")
+console = Console()
 
 
 def signal_handler(sig, frame):
@@ -113,7 +115,7 @@ def listen(
         resp = packet.get("response", None)
         if resp == "ack":
             ack_num = packet.get("msgNo")
-            LOG.info(f"We saw an ACK {ack_num} Ignoring")
+            console.log(f"We saw an ACK {ack_num} Ignoring")
             messaging.log_packet(packet)
         else:
             message = packet.get("message_text", None)
@@ -125,6 +127,7 @@ def listen(
                 message,
                 fromcall=fromcall,
                 ack=msg_number,
+                console=console,
             )
 
     # Initialize the client factory and create
@@ -148,7 +151,8 @@ def listen(
             # This will register a packet consumer with aprslib
             # When new packets come in the consumer will process
             # the packet
-            aprs_client.consumer(rx_packet, raw=False)
+            with console.status("Listening for packets"):
+                aprs_client.consumer(rx_packet, raw=False)
         except aprslib.exceptions.ConnectionDrop:
             LOG.error("Connection dropped, reconnecting")
             time.sleep(5)
