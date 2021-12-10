@@ -227,6 +227,8 @@ def list_plugins(ctx):
 
     # now find any from pypi?
     installed_plugins = get_installed_plugins()
-    show_pypi_plugins(installed_plugins, console)
+    with console.status("Fetching pypi.org plugins"):
+        show_pypi_plugins(installed_plugins, console)
 
-    show_installed_plugins(installed_plugins, console)
+    with console.status("Looking for installed aprsd plugins"):
+        show_installed_plugins(installed_plugins, console)

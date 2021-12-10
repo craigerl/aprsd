@@ -1,9 +1,7 @@
 import datetime
 import json
 import logging
-from logging import NullHandler
 from logging.handlers import RotatingFileHandler
-import sys
 import threading
 import time
 
@@ -11,6 +9,7 @@ import aprslib
 from aprslib.exceptions import LoginError
 import flask
 from flask import request
+from flask.logging import default_handler
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
@@ -21,6 +20,7 @@ from aprsd import client
 from aprsd import config as aprsd_config
 from aprsd import log, messaging, packets, plugin, stats, threads, utils
 from aprsd.clients import aprsis
+from aprsd.logging import logging as aprsd_logging
 
 
 LOG = logging.getLogger("APRSD")
@@ -552,6 +552,15 @@ class LoggingNamespace(Namespace):
 
 def setup_logging(config, flask_app, loglevel, quiet):
     flask_log = logging.getLogger("werkzeug")
+    flask_app.logger.removeHandler(default_handler)
+    flask_log.removeHandler(default_handler)
+
+    log_level = aprsd_config.LOG_LEVELS[loglevel]
+    flask_log.setLevel(log_level)
+    date_format = config["aprsd"].get(
+        "dateformat",
+        aprsd_config.DEFAULT_DATE_FORMAT,
+    )
 
     if not config["aprsd"]["web"].get("logging_enabled", False):
         # disable web logging
@@ -559,28 +568,30 @@ def setup_logging(config, flask_app, loglevel, quiet):
         flask_app.logger.disabled = True
         return
 
-    log_level = aprsd_config.LOG_LEVELS[loglevel]
-    LOG.setLevel(log_level)
-    log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
-    date_format = config["aprsd"].get("dateformat", aprsd_config.DEFAULT_DATE_FORMAT)
-    log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
+    if config["aprsd"].get("rich_logging", False) and not quiet:
+        log_format = "%(message)s"
+        log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
+        rh = aprsd_logging.APRSDRichHandler(
+            show_thread=True, thread_width=15,
+            rich_tracebacks=True, omit_repeated_times=False,
+        )
+        rh.setFormatter(log_formatter)
+        flask_log.addHandler(rh)
+
     log_file = config["aprsd"].get("logfile", None)
+
     if log_file:
-        fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
-    else:
-        fh = NullHandler()
-
-    fh.setFormatter(log_formatter)
-    for handler in flask_app.logger.handlers:
-        handler.setFormatter(log_formatter)
-        print(handler)
-
-    flask_log.addHandler(fh)
-
-    if not quiet:
-        sh = logging.StreamHandler(sys.stdout)
-        sh.setFormatter(log_formatter)
-        flask_log.addHandler(sh)
+        log_format = config["aprsd"].get(
+            "logformat",
+            aprsd_config.DEFAULT_LOG_FORMAT,
+        )
+        log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
+        fh = RotatingFileHandler(
+            log_file, maxBytes=(10248576 * 5),
+            backupCount=4,
+        )
+        fh.setFormatter(log_formatter)
+        flask_log.addHandler(fh)
 
 
 def init_flask(config, loglevel, quiet):

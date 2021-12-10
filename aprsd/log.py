@@ -18,16 +18,12 @@ logging_queue = queue.Queue()
 def setup_logging(config, loglevel, quiet):
     log_level = aprsd_config.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    if config["aprsd"].get("rich_logging", False):
-        log_format = "%(message)s"
-    else:
-        log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
     date_format = config["aprsd"].get("dateformat", aprsd_config.DEFAULT_DATE_FORMAT)
-    log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
-    log_file = config["aprsd"].get("logfile", None)
 
     rich_logging = False
-    if config["aprsd"].get("rich_logging", False):
+    if config["aprsd"].get("rich_logging", False) and not quiet:
+        log_format = "%(message)s"
+        log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         rh = aprsd_logging.APRSDRichHandler(
             show_thread=True, thread_width=15,
             rich_tracebacks=True, omit_repeated_times=False,
@@ -36,17 +32,17 @@ def setup_logging(config, loglevel, quiet):
         LOG.addHandler(rh)
         rich_logging = True
 
-    if log_file:
-        fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
-    else:
-        fh = NullHandler()
+    log_file = config["aprsd"].get("logfile", None)
 
-    fh.setFormatter(log_formatter)
-    LOG.addHandler(fh)
+    if log_file:
+        log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
+        log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
+        fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
+        fh.setFormatter(log_formatter)
+        LOG.addHandler(fh)
 
     imap_logger = None
     if config.get("aprsd.email.enabled", default=False) and config.get("aprsd.email.imap.debug", default=False):
-
         imap_logger = logging.getLogger("imapclient.imaplib")
         imap_logger.setLevel(log_level)
         imap_logger.addHandler(fh)
