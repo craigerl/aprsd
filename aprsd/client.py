@@ -131,6 +131,8 @@ class KISSClient(Client):
         if config.get("kiss.tcp.enabled", default=False):
             return True
 
+        return False
+
     @staticmethod
     def transport(config):
         if config.get("kiss.serial.enabled", default=False):
