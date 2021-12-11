@@ -1,6 +1,16 @@
 CHANGES
 =======
 
+v2.5.7
+------
+
+* Fixed an KISS config disabled issue
+* Fixed a bug with multiple notify plugins enabled
+* Unify the logging to file and stdout
+* Added new feature to list-plugins command
+* more README.rst cleanup
+* Updated README examples
+
 v2.5.6
 ------
 
