@@ -68,13 +68,22 @@ def test_plugin(
 ):
     """Test an individual APRSD plugin given a python path."""
     config = ctx.obj["config"]
-    fromcall = aprs_login
+
+    if not aprs_login:
+        if not config.exists("aprs.login"):
+            click.echo("Must set --aprs_login or APRS_LOGIN")
+            ctx.exit(-1)
+            return
+        else:
+            fromcall = config.get("aprs.login")
+    else:
+        fromcall = aprs_login
 
     if not plugin_path:
         click.echo(ctx.get_help())
         click.echo("")
         ctx.fail("Failed to provide -p option to test a plugin")
-        ctx.exit()
+        return
 
     if type(message) is tuple:
         message = " ".join(message)
