@@ -4,6 +4,7 @@ CHANGES
 v2.5.7
 ------
 
+* Updated Changelog
 * Fixed an KISS config disabled issue
 * Fixed a bug with multiple notify plugins enabled
 * Unify the logging to file and stdout

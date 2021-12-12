@@ -20,13 +20,13 @@ LOG = logging.getLogger("APRSD")
     "--aprs-login",
     envvar="APRS_LOGIN",
     show_envvar=True,
-    help="What callsign to send the message from.",
+    help="What callsign to send the message from. Defaults to config entry.",
 )
 @click.option(
     "--aprs-password",
     envvar="APRS_PASSWORD",
     show_envvar=True,
-    help="the APRS-IS password for APRS_LOGIN",
+    help="the APRS-IS password for APRS_LOGIN. Defaults to config entry.",
 )
 @click.option(
     "--no-ack",
@@ -65,15 +65,20 @@ def send_message(
     quiet = ctx.obj["quiet"]
 
     if not aprs_login:
-        click.echo("Must set --aprs_login or APRS_LOGIN")
-        return
+        if not config.exists("aprs.login"):
+            click.echo("Must set --aprs_login or APRS_LOGIN")
+            ctx.exit(-1)
+            return
+    else:
+        config["aprs"]["login"] = aprs_login
 
     if not aprs_password:
-        click.echo("Must set --aprs-password or APRS_PASSWORD")
-        return
-
-    config["aprs"]["login"] = aprs_login
-    config["aprs"]["password"] = aprs_password
+        if not config.exists("aprs.password"):
+            click.echo("Must set --aprs-password or APRS_PASSWORD")
+            ctx.exit(-1)
+            return
+    else:
+        config["aprs"]["password"] = aprs_password
 
     LOG.info(f"APRSD LISTEN Started version: {aprsd.__version__}")
     if type(command) is tuple:
