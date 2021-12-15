@@ -51,24 +51,40 @@ Current List of built-in plugins:
 
 ::
 
-   └─> aprsd list-plugins
- Plugin Name             Plugin Path                                Type          Info
- ----------------------  -----------------------------------------  ------------  ----------------------------------------------------------
- EmailPlugin             aprsd.plugins.email.EmailPlugin            RegexCommand  Send and Receive email
- FortunePlugin           aprsd.plugins.fortune.FortunePlugin        RegexCommand  Give me a fortune
- LocationPlugin          aprsd.plugins.location.LocationPlugin      RegexCommand  Where in the world is a CALLSIGN's last GPS beacon?
- NotifySeenPlugin        aprsd.plugins.notify.NotifySeenPlugin      WatchList     Notify me when a CALLSIGN is recently seen on APRS-IS
- PingPlugin              aprsd.plugins.ping.PingPlugin              RegexCommand  reply with a Pong!
- QueryPlugin             aprsd.plugins.query.QueryPlugin            RegexCommand  APRSD Owner command to query messages in the MsgTrack
- TimeOWMPlugin           aprsd.plugins.time.TimeOWMPlugin           RegexCommand  Current time of GPS beacon's timezone. Uses OpenWeatherMap
- TimeOpenCageDataPlugin  aprsd.plugins.time.TimeOpenCageDataPlugin  RegexCommand  Current time of GPS beacon timezone. Uses OpenCage
- TimePlugin              aprsd.plugins.time.TimePlugin              RegexCommand  What is the current local time.
- VersionPlugin           aprsd.plugins.version.VersionPlugin        RegexCommand  What is the APRSD Version
- AVWXWeatherPlugin       aprsd.plugins.weather.AVWXWeatherPlugin    RegexCommand  AVWX weather of GPS Beacon location
- OWMWeatherPlugin        aprsd.plugins.weather.OWMWeatherPlugin     RegexCommand  OpenWeatherMap weather of GPS Beacon location
- USMetarPlugin           aprsd.plugins.weather.USMetarPlugin        RegexCommand  USA only METAR of GPS Beacon location
- USWeatherPlugin         aprsd.plugins.weather.USWeatherPlugin      RegexCommand  Provide USA only weather of GPS Beacon location
+    └─> aprsd list-plugins
+                                                               🐍 APRSD Built-in Plugins 🐍
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ Plugin Name            ┃ Info                                                       ┃ Type         ┃ Plugin Path                               ┃
+    ┡━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+    │ AVWXWeatherPlugin      │ AVWX weather of GPS Beacon location                        │ RegexCommand │ aprsd.plugins.weather.AVWXWeatherPlugin   │
+    │ EmailPlugin            │ Send and Receive email                                     │ RegexCommand │ aprsd.plugins.email.EmailPlugin           │
+    │ FortunePlugin          │ Give me a fortune                                          │ RegexCommand │ aprsd.plugins.fortune.FortunePlugin       │
+    │ LocationPlugin         │ Where in the world is a CALLSIGN's last GPS beacon?        │ RegexCommand │ aprsd.plugins.location.LocationPlugin     │
+    │ NotifySeenPlugin       │ Notify me when a CALLSIGN is recently seen on APRS-IS      │ WatchList    │ aprsd.plugins.notify.NotifySeenPlugin     │
+    │ OWMWeatherPlugin       │ OpenWeatherMap weather of GPS Beacon location              │ RegexCommand │ aprsd.plugins.weather.OWMWeatherPlugin    │
+    │ PingPlugin             │ reply with a Pong!                                         │ RegexCommand │ aprsd.plugins.ping.PingPlugin             │
+    │ QueryPlugin            │ APRSD Owner command to query messages in the MsgTrack      │ RegexCommand │ aprsd.plugins.query.QueryPlugin           │
+    │ TimeOWMPlugin          │ Current time of GPS beacon's timezone. Uses OpenWeatherMap │ RegexCommand │ aprsd.plugins.time.TimeOWMPlugin          │
+    │ TimeOpenCageDataPlugin │ Current time of GPS beacon timezone. Uses OpenCage         │ RegexCommand │ aprsd.plugins.time.TimeOpenCageDataPlugin │
+    │ TimePlugin             │ What is the current local time.                            │ RegexCommand │ aprsd.plugins.time.TimePlugin             │
+    │ USMetarPlugin          │ USA only METAR of GPS Beacon location                      │ RegexCommand │ aprsd.plugins.weather.USMetarPlugin       │
+    │ USWeatherPlugin        │ Provide USA only weather of GPS Beacon location            │ RegexCommand │ aprsd.plugins.weather.USWeatherPlugin     │
+    │ VersionPlugin          │ What is the APRSD Version                                  │ RegexCommand │ aprsd.plugins.version.VersionPlugin       │
+    └────────────────────────┴────────────────────────────────────────────────────────────┴──────────────┴───────────────────────────────────────────┘
 
+
+                                                  Pypi.org APRSD Installable Plugin Packages
+
+                                  Install any of the following plugins with pip install <Plugin Package Name>
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
+    ┃ Plugin Package Name      ┃ Description                                                        ┃ Version ┃   Released   ┃ Installed? ┃
+    ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
+    │ 📂 aprsd-stock-plugin    │ Ham Radio APRSD Plugin for fetching stock quotes                   │  0.1.2  │ Nov 9, 2021  │     No     │
+    │ 📂 aprsd-weewx-plugin    │ HAM Radio APRSD that reports weather from a weewx weather station. │  0.1.4  │ Dec 7, 2021  │     No     │
+    │ 📂 aprsd-telegram-plugin │ Ham Radio APRS APRSD plugin for Telegram IM service                │  0.1.2  │ Nov 9, 2021  │     No     │
+    │ 📂 aprsd-twitter-plugin  │ Python APRSD plugin to send tweets                                 │  0.3.0  │ Dec 7, 2021  │     No     │
+    │ 📂 aprsd-slack-plugin    │ Amateur radio APRS daemon which listens for messages and responds  │  1.0.4  │ Jan 15, 2021 │     No     │
+    └──────────────────────────┴────────────────────────────────────────────────────────────────────┴─────────┴──────────────┴────────────┘
 
 installation:
 =============

@@ -103,88 +103,7 @@ def get_installed_plugins():
     return ip
 
 
-def show_pypi_plugins(installed_plugins, console):
-    query = "aprsd"
-    api_url = "https://pypi.org/search/"
-    snippets = []
-    s = requests.Session()
-    for page in range(1, 3):
-        params = {"q": query, "page": page}
-        r = s.get(api_url, params=params)
-        soup = BeautifulSoup(r.text, "html.parser")
-        snippets += soup.select('a[class*="snippet"]')
-        if not hasattr(s, "start_url"):
-            s.start_url = r.url.rsplit("&page", maxsplit=1).pop(0)
-
-    title = Text.assemble(
-        ("Pypi.org APRSD Installable Plugin Packages\n\n", "bold magenta"),
-        ("Install any of the following plugins with ", "bold yellow"),
-        ("pip install ", "bold white"),
-        ("<Plugin Package Name>", "cyan"),
-    )
-
-    table = Table(title=title)
-    table.add_column("Plugin Package Name", style="cyan", no_wrap=True)
-    table.add_column("Description", style="yellow")
-    table.add_column("Version", style="yellow")
-    table.add_column("Released", style="bold green")
-    table.add_column("Installed?", style="red")
-    table.add_column("Version Installed", style="yellow")
-    for snippet in snippets:
-        link = urljoin(api_url, snippet.get("href"))
-        package = re.sub(r"\s+", " ", snippet.select_one('span[class*="name"]').text.strip())
-        version = re.sub(r"\s+", " ", snippet.select_one('span[class*="version"]').text.strip())
-        released = re.sub(r"\s+", " ", snippet.select_one('span[class*="released"]').text.strip())
-        description = re.sub(r"\s+", " ", snippet.select_one('p[class*="description"]').text.strip())
-        emoji = ":open_file_folder:"
-        if "aprsd-" not in package or "-plugin" not in package:
-            continue
-        under = package.replace("-", "_")
-        if under in installed_plugins:
-            installed = "Yes"
-            try:
-                version_installed = installed_plugins[under].__version__
-            except Exception:
-                version_installed = "Unknown"
-        else:
-            installed = "No"
-            version_installed = "Unknown"
-        table.add_row(
-            f"[link={link}]{emoji}[/link] {package}",
-            description, version, released, installed, version_installed,
-        )
-
-    console.print("\n")
-    console.print(table)
-    return
-
-
-def show_installed_plugins(installed_plugins, console):
-    if not installed_plugins:
-        return
-
-    table = Table(
-        title="[not italic]:snake:[/] [bold][magenta]APRSD Installed 3rd party Plugins [not italic]:snake:[/]",
-    )
-    table.add_column("Package Name", style="white", no_wrap=True)
-    table.add_column("Plugin Name", style="cyan", no_wrap=True)
-    table.add_column("Type", style="bold green")
-    table.add_column("Plugin Path", style="bold blue")
-    for name in installed_plugins:
-        for plugin in installed_plugins[name]:
-            table.add_row(name.replace("_", "-"), plugin["name"], plugin_type(plugin["obj"]), plugin["path"])
-
-    console.print("\n")
-    console.print(table)
-
-
-@cli.command()
-@cli_helper.add_options(cli_helper.common_options)
-@click.pass_context
-@cli_helper.process_standard_options_no_config
-def list_plugins(ctx):
-    """List the built in plugins available to APRSD."""
-
+def show_built_in_plugins(console):
     modules = [email, fortune, location, notify, ping, query, time, version, weather]
     plugins = []
 
@@ -222,13 +141,102 @@ def list_plugins(ctx):
     for entry in plugins:
         table.add_row(entry["name"], entry["short_desc"], entry["type"], entry["path"])
 
-    console = Console()
     console.print(table)
 
-    # now find any from pypi?
-    installed_plugins = get_installed_plugins()
-    with console.status("Fetching pypi.org plugins"):
+
+def show_pypi_plugins(installed_plugins, console):
+    query = "aprsd"
+    api_url = "https://pypi.org/search/"
+    snippets = []
+    s = requests.Session()
+    for page in range(1, 3):
+        params = {"q": query, "page": page}
+        r = s.get(api_url, params=params)
+        soup = BeautifulSoup(r.text, "html.parser")
+        snippets += soup.select('a[class*="snippet"]')
+        if not hasattr(s, "start_url"):
+            s.start_url = r.url.rsplit("&page", maxsplit=1).pop(0)
+
+    title = Text.assemble(
+        ("Pypi.org APRSD Installable Plugin Packages\n\n", "bold magenta"),
+        ("Install any of the following plugins with ", "bold yellow"),
+        ("'pip install ", "bold white"),
+        ("<Plugin Package Name>'", "cyan"),
+    )
+
+    table = Table(title=title)
+    table.add_column("Plugin Package Name", style="cyan", no_wrap=True)
+    table.add_column("Description", style="yellow")
+    table.add_column("Version", style="yellow", justify="center")
+    table.add_column("Released", style="bold green", justify="center")
+    table.add_column("Installed?", style="red", justify="center")
+    for snippet in snippets:
+        link = urljoin(api_url, snippet.get("href"))
+        package = re.sub(r"\s+", " ", snippet.select_one('span[class*="name"]').text.strip())
+        version = re.sub(r"\s+", " ", snippet.select_one('span[class*="version"]').text.strip())
+        released = re.sub(r"\s+", " ", snippet.select_one('span[class*="released"]').text.strip())
+        description = re.sub(r"\s+", " ", snippet.select_one('p[class*="description"]').text.strip())
+        emoji = ":open_file_folder:"
+
+        if "aprsd-" not in package or "-plugin" not in package:
+            continue
+
+        under = package.replace("-", "_")
+        if under in installed_plugins:
+            installed = "Yes"
+        else:
+            installed = "No"
+
+        table.add_row(
+            f"[link={link}]{emoji}[/link] {package}",
+            description, version, released, installed,
+        )
+
+    console.print("\n")
+    console.print(table)
+    return
+
+
+def show_installed_plugins(installed_plugins, console):
+    if not installed_plugins:
+        return
+
+    table = Table(
+        title="[not italic]:snake:[/] [bold][magenta]APRSD Installed 3rd party Plugins [not italic]:snake:[/]",
+    )
+    table.add_column("Package Name", style=" bold white", no_wrap=True)
+    table.add_column("Plugin Name", style="cyan", no_wrap=True)
+    table.add_column("Version", style="yellow", justify="center")
+    table.add_column("Type", style="bold green")
+    table.add_column("Plugin Path", style="bold blue")
+    for name in installed_plugins:
+        for plugin in installed_plugins[name]:
+            table.add_row(
+                name.replace("_", "-"),
+                plugin["name"],
+                plugin["version"],
+                plugin_type(plugin["obj"]),
+                plugin["path"],
+            )
+
+    console.print("\n")
+    console.print(table)
+
+
+@cli.command()
+@cli_helper.add_options(cli_helper.common_options)
+@click.pass_context
+@cli_helper.process_standard_options_no_config
+def list_plugins(ctx):
+    """List the built in plugins available to APRSD."""
+    console = Console()
+
+    with console.status("Show Built-in Plugins") as status:
+        show_built_in_plugins(console)
+
+        status.update("Fetching pypi.org plugins")
+        installed_plugins = get_installed_plugins()
         show_pypi_plugins(installed_plugins, console)
 
-    with console.status("Looking for installed aprsd plugins"):
+        status.update("Looking for installed APRSD plugins")
         show_installed_plugins(installed_plugins, console)
