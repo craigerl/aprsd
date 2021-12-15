@@ -1,7 +1,11 @@
 REQUIREMENTS_TXT ?= requirements.txt dev-requirements.txt
+WORKDIR?=.
+VENVDIR ?= $(WORKDIR)/.aprsd-venv
+
 .DEFAULT_GOAL := help
 
 .PHONY: dev docs server test
+
 include Makefile.venv
 Makefile.venv:
 	curl \
