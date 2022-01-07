@@ -1,6 +1,15 @@
 CHANGES
 =======
 
+v2.5.8
+------
+
+* Removed debug code
+* Updated list-plugins
+* Renamed virtualenv dir to .aprsd-venv
+* Added unit tests for dev test-plugin
+* Send Message command defaults to config
+
 v2.5.7
 ------
 
