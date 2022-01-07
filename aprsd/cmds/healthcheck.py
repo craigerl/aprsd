@@ -47,6 +47,7 @@ def healthcheck(ctx, health_url, timeout):
     console.log(f"APRSD HealthCheck version: {aprsd.__version__}")
     with console.status(f"APRSD HealthCheck version: {aprsd.__version__}") as status:
         try:
+            status.update(f"Contacting APRSD on {health_url}")
             url = health_url
             response = requests.get(url, timeout=timeout)
             response.raise_for_status()
@@ -54,11 +55,7 @@ def healthcheck(ctx, health_url, timeout):
             console.log(f"Failed to fetch healthcheck url '{url}' : '{ex}'")
             sys.exit(-1)
         else:
-            import time
-            time.sleep(2)
-            status.update("PISS")
-            time.sleep(2)
-
+            status.update("Contacted APRSD. Parsing results.")
             stats = json.loads(response.text)
             email_thread_last_update = stats["stats"]["email"]["thread_last_update"]
 
