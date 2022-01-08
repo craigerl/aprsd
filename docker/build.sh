@@ -78,7 +78,9 @@ else
         --allow security.insecure \
         -t hemna6969/aprsd:$VERSION \
         -t hemna6969/aprsd:$TAG \
+        -t hemna6969/aprsd:latest \
         -t harbor.hemna.com/hemna6969/aprsd:$TAG \
         -t harbor.hemna.com/hemna6969/aprsd:$VERSION \
+        -t harbor.hemna.com/hemna6969/aprsd:latest \
         -f Dockerfile .
 fi

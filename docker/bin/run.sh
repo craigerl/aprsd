@@ -26,4 +26,6 @@ if [ ! -e "$APRSD_CONFIG" ]; then
     aprsd sample-config > $APRSD_CONFIG
 fi
 
+export COLUMNS=200
+python3 -m rich.diagnose
 exec aprsd server -c $APRSD_CONFIG --loglevel ${LOG_LEVEL}
