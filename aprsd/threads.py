@@ -208,7 +208,7 @@ class APRSDProcessPacketThread(APRSDThread):
         ack_num = packet.get("msgNo")
         LOG.info(f"Got ack for message {ack_num}")
         messaging.log_message(
-            "ACK",
+            "RXACK",
             packet["raw"],
             None,
             ack=ack_num,
@@ -311,7 +311,8 @@ class APRSDProcessPacketThread(APRSDThread):
                     )
                     msg.send()
             except Exception as ex:
-                LOG.exception("Plugin failed!!!", ex)
+                LOG.error("Plugin failed!!!")
+                LOG.exception(ex)
                 # Do we need to send a reply?
                 if tocall == self.config["aprs"]["login"]:
                     reply = "A Plugin failed! try again?"

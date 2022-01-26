@@ -193,8 +193,8 @@ def _imap_connect(config):
             ssl=use_ssl,
             timeout=30,
         )
-    except Exception as e:
-        LOG.error("Failed to connect IMAP server", e)
+    except Exception:
+        LOG.exception("Failed to connect IMAP server")
         return
 
     try:
@@ -348,8 +348,8 @@ def parse_email(msgid, data, server):
     LOG.debug(f"Got a message from '{from_addr}'")
     try:
         m = server.fetch([msgid], ["RFC822"])
-    except Exception as e:
-        LOG.exception("Couldn't fetch email from server in parse_email", e)
+    except Exception:
+        LOG.exception("Couldn't fetch email from server in parse_email")
         return
 
     msg = email.message_from_string(m[msgid][b"RFC822"].decode(errors="ignore"))
@@ -414,9 +414,9 @@ def parse_email(msgid, data, server):
     # it below, also with errors='ignore'
     try:
         body = body.decode(errors="ignore")
-    except Exception as e:
-        LOG.error("Unicode decode failure:  " + str(e))
-        LOG.error("Unidoce decode failed: " + str(body))
+    except Exception:
+        LOG.exception("Unicode decode failure")
+        LOG.error(f"Unidoce decode failed: {str(body)}")
         body = "Unreadable unicode msg"
     # strip all html tags
     body = re.sub("<[^<]+?>", "", body)
@@ -437,13 +437,13 @@ def send_email(config, to_addr, content):
     LOG.info("Sending Email_________________")
 
     if to_addr in shortcuts:
-        LOG.info("To          : " + to_addr)
+        LOG.info(f"To          : {to_addr}")
         to_addr = email_address
-        LOG.info(" (" + to_addr + ")")
+        LOG.info(f" ({to_addr})")
     subject = config["ham"]["callsign"]
     # content = content + "\n\n(NOTE: reply with one line)"
-    LOG.info("Subject     : " + subject)
-    LOG.info("Body        : " + content)
+    LOG.info(f"Subject     : {subject}")
+    LOG.info(f"Body        : {content}")
 
     # check email more often since there's activity right now
     EmailInfo().delay = 60
@@ -461,9 +461,8 @@ def send_email(config, to_addr, content):
                 msg.as_string(),
             )
             stats.APRSDStats().email_tx_inc()
-        except Exception as e:
-            msg = getattr(e, "message", repr(e))
-            LOG.error("Sendmail Error!!!! '{}'", msg)
+        except Exception:
+            LOG.exception("Sendmail Error!!!!")
             server.quit()
             return -1
         server.quit()
@@ -484,14 +483,14 @@ def resend_email(config, count, fromcall):
 
     try:
         server = _imap_connect(config)
-    except Exception as e:
-        LOG.exception("Failed to Connect to IMAP. Cannot resend email ", e)
+    except Exception:
+        LOG.exception("Failed to Connect to IMAP. Cannot resend email ")
         return
 
     try:
         messages = server.search(["SINCE", today])
-    except Exception as e:
-        LOG.exception("Couldn't search for emails in resend_email ", e)
+    except Exception:
+        LOG.exception("Couldn't search for emails in resend_email ")
         return
 
     # LOG.debug("%d messages received today" % len(messages))
@@ -503,8 +502,8 @@ def resend_email(config, count, fromcall):
     for message in messages:
         try:
             parts = server.fetch(message, ["ENVELOPE"]).items()
-        except Exception as e:
-            LOG.exception("Couldn't fetch email parts in resend_email", e)
+        except Exception:
+            LOG.exception("Couldn't fetch email parts in resend_email")
             continue
 
         for msgid, data in list(parts):
@@ -513,8 +512,8 @@ def resend_email(config, count, fromcall):
             # unset seen flag, will stay bold in email client
             try:
                 server.remove_flags(msgid, [imapclient.SEEN])
-            except Exception as e:
-                LOG.exception("Failed to remove SEEN flag in resend_email", e)
+            except Exception:
+                LOG.exception("Failed to remove SEEN flag in resend_email")
 
             if from_addr in shortcuts_inverted:
                 # reverse lookup of a shortcut
@@ -592,24 +591,21 @@ class APRSDEmailThread(threads.APRSDThread):
 
             try:
                 server = _imap_connect(self.config)
-            except Exception as e:
-                LOG.exception("IMAP failed to connect.", e)
+            except Exception:
+                LOG.exception("IMAP Failed to connect")
                 return True
 
             try:
                 messages = server.search(["SINCE", today])
-            except Exception as e:
-                LOG.exception(
-                    "IMAP failed to search for messages since today.",
-                    e,
-                )
+            except Exception:
+                LOG.exception("IMAP failed to search for messages since today.")
                 return True
             LOG.debug(f"{len(messages)} messages received today")
 
             try:
                 _msgs = server.fetch(messages, ["ENVELOPE"])
-            except Exception as e:
-                LOG.exception("IMAP failed to fetch/flag messages: ", e)
+            except Exception:
+                LOG.exception("IMAP failed to fetch/flag messages: ")
                 return True
 
             for msgid, data in _msgs.items():
@@ -637,27 +633,24 @@ class APRSDEmailThread(threads.APRSDThread):
                         x.decode(errors="ignore")
                         for x in server.get_flags(msgid)[msgid]
                     ]
-                except Exception as e:
-                    LOG.exception("Failed to get flags.", e)
+                except Exception:
+                    LOG.error("Failed to get flags.")
                     break
 
                 if "APRS" not in taglist:
                     # if msg not flagged as sent via aprs
                     try:
                         server.fetch([msgid], ["RFC822"])
-                    except Exception as e:
-                        LOG.exception(
-                            "Failed single server fetch for RFC822",
-                            e,
-                        )
+                    except Exception:
+                        LOG.exception("Failed single server fetch for RFC822")
                         break
 
                     (body, from_addr) = parse_email(msgid, data, server)
                     # unset seen flag, will stay bold in email client
                     try:
                         server.remove_flags(msgid, [imapclient.SEEN])
-                    except Exception as e:
-                        LOG.exception("Failed to remove flags SEEN", e)
+                    except Exception:
+                        LOG.exception("Failed to remove flags SEEN")
                         # Not much we can do here, so lets try and
                         # send the aprs message anyway
 
@@ -676,13 +669,13 @@ class APRSDEmailThread(threads.APRSDThread):
                     try:
                         server.add_flags(msgid, ["APRS"])
                         # unset seen flag, will stay bold in email client
-                    except Exception as e:
-                        LOG.exception("Couldn't add APRS flag to email", e)
+                    except Exception:
+                        LOG.exception("Couldn't add APRS flag to email")
 
                     try:
                         server.remove_flags(msgid, [imapclient.SEEN])
-                    except Exception as e:
-                        LOG.exception("Couldn't remove seen flag from email", e)
+                    except Exception:
+                        LOG.exception("Couldn't remove seen flag from email")
 
                     # check email more often since we just received an email
                     EmailInfo().delay = 60
@@ -692,8 +685,8 @@ class APRSDEmailThread(threads.APRSDThread):
             self.past = datetime.datetime.now()
             try:
                 server.logout()
-            except Exception as e:
-                LOG.exception("IMAP failed to logout: ", e)
+            except Exception:
+                LOG.exception("IMAP failed to logout: ")
                 return True
         else:
             # We haven't hit the email delay yet.

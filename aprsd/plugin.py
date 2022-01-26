@@ -437,7 +437,8 @@ class PluginManager:
                 )
                 self._pluggy_pm.register(plugin_obj)
         except Exception as ex:
-            LOG.exception(f"Couldn't load plugin '{plugin_name}'", ex)
+            LOG.error(f"Couldn't load plugin '{plugin_name}'")
+            LOG.exception(ex)
 
     def reload_plugins(self):
         with self.lock:
