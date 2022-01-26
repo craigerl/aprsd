@@ -1,9 +1,17 @@
 CHANGES
 =======
 
+v2.5.9
+------
+
+* FIX: logging exceptions
+* Updated build and run for rich lib
+* update build for 2.5.8
+
 v2.5.8
 ------
 
+* For 2.5.8
 * Removed debug code
 * Updated list-plugins
 * Renamed virtualenv dir to .aprsd-venv
