@@ -184,6 +184,7 @@ class Message(metaclass=abc.ABCMeta):
     last_send_attempt = 0
 
     transport = None
+    _raw_message = None
 
     def __init__(
         self,
@@ -208,6 +209,23 @@ class Message(metaclass=abc.ABCMeta):
     def send(self):
         """Child class must declare."""
 
+    def _filter_for_send(self):
+        """Filter and format message string for FCC."""
+        # max?  ftm400 displays 64, raw msg shows 74
+        # and ftm400-send is max 64.  setting this to
+        # 67 displays 64 on the ftm400. (+3 {01 suffix)
+        # feature req: break long ones into two msgs
+        message = self._raw_message[:67]
+        # We all miss George Carlin
+        return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
+
+    @property
+    def message(self):
+        return self._filter_for_send().rstrip("\n")
+
+    def __str__(self):
+        return self.message
+
 
 class RawMessage(Message):
     """Send a raw message.
@@ -217,11 +235,11 @@ class RawMessage(Message):
 
     """
 
-    message = None
+    last_send_age = last_send_time = None
 
     def __init__(self, message, allow_delay=True):
         super().__init__(fromcall=None, tocall=None, msg_id=None, allow_delay=allow_delay)
-        self.message = message
+        self._raw_message = message
 
     def dict(self):
         now = datetime.datetime.now()
@@ -230,16 +248,13 @@ class RawMessage(Message):
             last_send_age = str(now - self.last_send_time)
         return {
             "type": "raw",
-            "message": self.message.rstrip("\n"),
-            "raw": self.message.rstrip("\n"),
+            "message": self.message,
+            "raw": str(self),
             "retry_count": self.retry_count,
             "last_send_attempt": self.last_send_attempt,
             "last_send_time": str(self.last_send_time),
             "last_send_age": last_send_age,
         }
-
-    def __str__(self):
-        return self.message
 
     def send(self):
         tracker = MsgTrack()
@@ -252,7 +267,7 @@ class RawMessage(Message):
         cl = client.factory.create().client
         log_message(
             "Sending Message Direct",
-            str(self).rstrip("\n"),
+            str(self),
             self.message,
             tocall=self.tocall,
             fromcall=self.fromcall,
@@ -264,7 +279,7 @@ class RawMessage(Message):
 class TextMessage(Message):
     """Send regular ARPS text/command messages/replies."""
 
-    message = None
+    last_send_time = last_send_age = None
 
     def __init__(
         self,
@@ -278,7 +293,7 @@ class TextMessage(Message):
             fromcall=fromcall, tocall=tocall,
             msg_id=msg_id, allow_delay=allow_delay,
         )
-        self.message = message
+        self._raw_message = message
 
     def dict(self):
         now = datetime.datetime.now()
@@ -292,8 +307,8 @@ class TextMessage(Message):
             "type": "text-message",
             "fromcall": self.fromcall,
             "tocall": self.tocall,
-            "message": self.message.rstrip("\n"),
-            "raw": str(self).rstrip("\n"),
+            "message": self.message,
+            "raw": str(self),
             "retry_count": self.retry_count,
             "last_send_attempt": self.last_send_attempt,
             "last_send_time": str(self.last_send_time),
@@ -305,19 +320,9 @@ class TextMessage(Message):
         return "{}>APZ100::{}:{}{{{}\n".format(
             self.fromcall,
             self.tocall.ljust(9),
-            self._filter_for_send(),
+            self.message,
             str(self.id),
         )
-
-    def _filter_for_send(self):
-        """Filter and format message string for FCC."""
-        # max?  ftm400 displays 64, raw msg shows 74
-        # and ftm400-send is max 64.  setting this to
-        # 67 displays 64 on the ftm400. (+3 {01 suffix)
-        # feature req: break long ones into two msgs
-        message = self.message[:67]
-        # We all miss George Carlin
-        return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
 
     def send(self):
         tracker = MsgTrack()
@@ -334,7 +339,7 @@ class TextMessage(Message):
             cl = client.factory.create().client
         log_message(
             "Sending Message Direct",
-            str(self).rstrip("\n"),
+            str(self),
             self.message,
             tocall=self.tocall,
             fromcall=self.fromcall,
@@ -347,8 +352,8 @@ class TextMessage(Message):
 class SendMessageThread(threads.APRSDThread):
     def __init__(self, message):
         self.msg = message
-        name = self.msg.message[:5]
-        super().__init__(f"SendMessage-{self.msg.id}-{name}")
+        name = self.msg._raw_message[:5]
+        super().__init__(f"TXPKT-{self.msg.id}-{name}")
 
     def loop(self):
         """Loop until a message is acked or it gets delayed.
@@ -395,7 +400,7 @@ class SendMessageThread(threads.APRSDThread):
                 # tracking the time.
                 log_message(
                     "Sending Message",
-                    str(msg).rstrip("\n"),
+                    str(msg),
                     msg.message,
                     tocall=self.msg.tocall,
                     retry_number=msg.last_send_attempt,
