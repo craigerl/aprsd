@@ -109,11 +109,17 @@ class KeepAliveThread(APRSDThread):
             current, peak = tracemalloc.get_traced_memory()
             stats_obj.set_memory(current)
             stats_obj.set_memory_peak(peak)
+
+            try:
+                login = self.config["aprs"]["login"]
+            except KeyError:
+                login = self.config["ham"]["callsign"]
+
             keepalive = (
                 "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
                 "Last:{} Email: {} - RAM Current:{} Peak:{} Threads:{}"
             ).format(
-                self.config["aprs"]["login"],
+                login,
                 utils.strfdelta(stats_obj.uptime),
                 pl.total_recv,
                 pl.total_tx,

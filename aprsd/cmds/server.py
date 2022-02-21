@@ -70,6 +70,10 @@ def server(ctx, flush):
         LOG.error("No Clients are enabled in config.")
         sys.exit(-1)
 
+    if not client.factory.is_client_configured():
+        LOG.error("APRS client is not properly configured in config file.")
+        sys.exit(-1)
+
     # Creates the client object
     LOG.info("Creating client connection")
     client.factory.create().client

@@ -5,7 +5,8 @@ import time
 import aprslib
 from aprslib.exceptions import LoginError
 
-from aprsd import trace
+from aprsd import config as aprsd_config
+from aprsd import exception, trace
 from aprsd.clients import aprsis, kiss
 
 
@@ -76,7 +77,21 @@ class APRSISClient(Client):
     @staticmethod
     def is_enabled(config):
         # Defaults to True if the enabled flag is non existent
-        return config["aprs"].get("enabled", True)
+        try:
+            return config["aprs"].get("enabled", True)
+        except KeyError:
+            return False
+
+    @staticmethod
+    def is_configured(config):
+        if APRSISClient.is_enabled(config):
+            # Ensure that the config vars are correctly set
+            config.check_option("aprs.login")
+            config.check_option("aprs.password")
+            config.check_option("aprs.host")
+            return True
+
+        return True
 
     @staticmethod
     def transport(config):
@@ -132,6 +147,26 @@ class KISSClient(Client):
             return True
 
         return False
+
+    @staticmethod
+    def is_configured(config):
+        # Ensure that the config vars are correctly set
+        if KISSClient.is_enabled(config):
+            config.check_option(
+                "kiss.callsign",
+                default_fail=aprsd_config.DEFAULT_CONFIG_DICT["kiss"]["callsign"],
+            )
+            transport = KISSClient.transport(config)
+            if transport == TRANSPORT_SERIALKISS:
+                config.check_option("kiss.serial")
+                config.check_option("kiss.serial.device")
+            elif transport == TRANSPORT_TCPKISS:
+                config.check_option("kiss.tcp")
+                config.check_option("kiss.tcp.host")
+                config.check_option("kiss.tcp.port")
+
+            return True
+        return True
 
     @staticmethod
     def transport(config):
@@ -195,7 +230,26 @@ class ClientFactory:
         """Make sure at least one client is enabled."""
         enabled = False
         for key in self._builders.keys():
-            enabled |= self._builders[key].is_enabled(self.config)
+            try:
+                enabled |= self._builders[key].is_enabled(self.config)
+            except KeyError:
+                pass
+
+        return enabled
+
+    def is_client_configured(self):
+        enabled = False
+        for key in self._builders.keys():
+            try:
+                enabled |= self._builders[key].is_configured(self.config)
+            except KeyError:
+                pass
+            except exception.MissingConfigOptionException as ex:
+                LOG.error(ex.message)
+                return False
+            except exception.ConfigOptionBogusDefaultException as ex:
+                LOG.error(ex.message)
+                return False
 
         return enabled
 

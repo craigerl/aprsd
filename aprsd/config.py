@@ -7,7 +7,7 @@ import sys
 import click
 import yaml
 
-from aprsd import utils
+from aprsd import exception, utils
 
 
 home = str(Path.home())
@@ -63,6 +63,7 @@ DEFAULT_CONFIG_DICT = {
         "port": 14580,
     },
     "kiss": {
+        "callsign": "NOCALL",
         "tcp": {
             "enabled": False,
             "host": "direwolf.ip.address",
@@ -174,22 +175,15 @@ class Config(collections.UserDict):
     def check_option(self, path, default_fail=None):
         """Make sure the config option doesn't have default value."""
         if not self.exists(path):
-            raise Exception(
-                "Option '{}' was not in config file".format(
-                    path,
-                ),
-            )
+            if type(path) is list:
+                path = ".".join(path)
+            raise exception.MissingConfigOption(path)
 
         val = self.get(path)
         if val == default_fail:
             # We have to fail and bail if the user hasn't edited
             # this config option.
-            raise Exception(
-                "Config file needs to be changed from provided"
-                " defaults for '{}'".format(
-                    path,
-                ),
-            )
+            raise exception.ConfigOptionBogusDefault(path, default_fail)
 
 
 def add_config_comments(raw_yaml):
@@ -330,13 +324,7 @@ def parse_config(config_file):
     )
     check_option(
         config,
-        "aprs.login",
-        default_fail=DEFAULT_CONFIG_DICT["aprs"]["login"],
-    )
-    check_option(
-        config,
-        ["aprs", "password"],
-        default_fail=DEFAULT_CONFIG_DICT["aprs"]["password"],
+        ["aprsd"],
     )
 
     # Ensure they change the admin password

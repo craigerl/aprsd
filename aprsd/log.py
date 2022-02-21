@@ -33,10 +33,10 @@ def setup_logging(config, loglevel, quiet):
         rich_logging = True
 
     log_file = config["aprsd"].get("logfile", None)
+    log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
+    log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
 
     if log_file:
-        log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
-        log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         fh = RotatingFileHandler(log_file, maxBytes=(10248576 * 5), backupCount=4)
         fh.setFormatter(log_formatter)
         LOG.addHandler(fh)

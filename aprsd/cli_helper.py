@@ -55,7 +55,8 @@ def process_standard_options(f: F) -> F:
         ctx.obj["quiet"] = kwargs["quiet"]
         ctx.obj["config"] = aprsd_config.parse_config(kwargs["config_file"])
         log.setup_logging(
-            ctx.obj["config"], ctx.obj["loglevel"],
+            ctx.obj["config"],
+            ctx.obj["loglevel"],
             ctx.obj["quiet"],
         )
 
