@@ -39,7 +39,7 @@ dnspython==2.1.0
     # via
     #   eventlet
     #   py3-validate-email
-eventlet==0.32.0
+eventlet==0.33.1
     # via -r requirements.in
 filelock==3.0.12
     # via py3-validate-email
