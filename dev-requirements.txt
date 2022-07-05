@@ -18,7 +18,7 @@ autoflake==1.4
     # via gray
 babel==2.9.1
     # via sphinx
-backports.entry-points-selectable==1.1.0
+backports-entry-points-selectable==1.1.0
     # via virtualenv
 black==21.7b0
     # via gray
@@ -26,6 +26,8 @@ bleach==4.1.0
     # via readme-renderer
 certifi==2021.5.30
     # via requests
+cffi==1.15.1
+    # via cryptography
 cfgv==3.3.1
     # via pre-commit
 charset-normalizer==2.0.4
@@ -42,6 +44,8 @@ configargparse==1.5.2
     # via gray
 coverage==5.5
     # via pytest-cov
+cryptography==37.0.4
+    # via secretstorage
 distlib==0.3.2
     # via virtualenv
 docutils==0.17.1
@@ -84,6 +88,10 @@ isort==5.9.3
     # via
     #   -r dev-requirements.in
     #   gray
+jeepney==0.8.0
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==3.0.1
     # via sphinx
 jsonschema==3.2.0
@@ -137,6 +145,8 @@ py==1.10.0
     #   tox
 pycodestyle==2.7.0
     # via flake8
+pycparser==2.21
+    # via cffi
 pyflakes==2.3.1
     # via
     #   autoflake
@@ -177,6 +187,8 @@ requests-toolbelt==0.9.1
     # via twine
 rfc3986==1.5.0
     # via twine
+secretstorage==3.3.2
+    # via keyring
 six==1.16.0
     # via
     #   bleach
@@ -228,7 +240,7 @@ typing-extensions==3.10.0.0
     #   typing-inspect
 typing-inspect==0.7.1
     # via libcst
-ujson==4.1.0
+ujson==5.4.0
     # via fast-json
 unify==0.5
     # via gray
@@ -245,9 +257,7 @@ webencodings==0.5.1
 wheel==0.37.0
     # via pip-tools
 zipp==3.5.0
-    # via
-    #   importlib-metadata
-    #   importlib-resources
+    # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
 # pip
