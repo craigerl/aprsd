@@ -2,25 +2,17 @@
 
 import collections
 import errno
-import functools
 import os
 import re
-import threading
 
 import update_checker
 
 import aprsd
 
-
-def synchronized(wrapped):
-    lock = threading.Lock()
-
-    @functools.wraps(wrapped)
-    def _wrap(*args, **kwargs):
-        with lock:
-            return wrapped(*args, **kwargs)
-
-    return _wrap
+from .fuzzyclock import fuzzy
+# Make these available by anyone importing
+# aprsd.utils
+from .ring_buffer import RingBuffer
 
 
 def env(*vars, **kwargs):
@@ -129,42 +121,3 @@ def parse_delta_str(s):
     else:
         m = re.match(r"(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)", s)
     return {key: float(val) for key, val in m.groupdict().items()}
-
-
-class RingBuffer:
-    """class that implements a not-yet-full buffer"""
-
-    def __init__(self, size_max):
-        self.max = size_max
-        self.data = []
-
-    class __Full:
-        """class that implements a full buffer"""
-
-        def append(self, x):
-            """Append an element overwriting the oldest one."""
-            self.data[self.cur] = x
-            self.cur = (self.cur + 1) % self.max
-
-        def get(self):
-            """return list of elements in correct order"""
-            return self.data[self.cur :] + self.data[: self.cur]
-
-        def __len__(self):
-            return len(self.data)
-
-    def append(self, x):
-        """append an element at the end of the buffer"""
-
-        self.data.append(x)
-        if len(self.data) == self.max:
-            self.cur = 0
-            # Permanently change self's class from non-full to full
-            self.__class__ = self.__Full
-
-    def get(self):
-        """Return a list of elements from the oldest to the newest."""
-        return self.data
-
-    def __len__(self):
-        return len(self.data)

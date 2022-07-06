@@ -2,8 +2,8 @@ from unittest import mock
 
 import pytz
 
-from aprsd.fuzzyclock import fuzzy
 from aprsd.plugins import time as time_plugin
+from aprsd.utils import fuzzy
 
 from .. import fake, test_plugin
 

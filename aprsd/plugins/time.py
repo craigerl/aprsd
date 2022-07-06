@@ -5,7 +5,8 @@ import time
 from opencage.geocoder import OpenCageGeocode
 import pytz
 
-from aprsd import fuzzyclock, plugin, plugin_utils, trace
+from aprsd import plugin, plugin_utils, trace
+from aprsd.utils import fuzzy
 
 
 LOG = logging.getLogger("APRSD")
@@ -32,7 +33,7 @@ class TimePlugin(plugin.APRSDRegexCommandPluginBase):
         local_short_str = local_t.strftime("%H:%M %Z")
         local_hour = local_t.strftime("%H")
         local_min = local_t.strftime("%M")
-        cur_time = fuzzyclock.fuzzy(int(local_hour), int(local_min), 1)
+        cur_time = fuzzy(int(local_hour), int(local_min), 1)
 
         reply = "{} ({})".format(
             cur_time,
