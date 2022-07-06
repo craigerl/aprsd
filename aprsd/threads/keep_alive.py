@@ -9,6 +9,7 @@ from aprsd.threads import APRSDThread, APRSDThreadList
 
 LOG = logging.getLogger("APRSD")
 
+
 class KeepAliveThread(APRSDThread):
     cntr = 0
     checker_time = datetime.datetime.now()

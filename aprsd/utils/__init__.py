@@ -9,10 +9,10 @@ import update_checker
 
 import aprsd
 
-from .fuzzyclock import fuzzy
+from .fuzzyclock import fuzzy  # noqa: F401
 # Make these available by anyone importing
 # aprsd.utils
-from .ring_buffer import RingBuffer
+from .ring_buffer import RingBuffer  # noqa: F401
 
 
 def env(*vars, **kwargs):

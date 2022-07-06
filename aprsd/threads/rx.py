@@ -10,7 +10,6 @@ from aprsd.threads import APRSDThread
 LOG = logging.getLogger("APRSD")
 
 
-
 class APRSDRXThread(APRSDThread):
     def __init__(self, msg_queues, config):
         super().__init__("RX_MSG")
