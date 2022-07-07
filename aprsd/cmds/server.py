@@ -7,10 +7,11 @@ import click
 import aprsd
 from aprsd import (
     cli_helper, client, flask, messaging, packets, plugin, stats, threads,
-    trace, utils,
+    utils,
 )
 from aprsd import aprsd as aprsd_main
 from aprsd.aprsd import cli
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")

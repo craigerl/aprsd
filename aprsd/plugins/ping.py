@@ -1,7 +1,8 @@
 import logging
 import time
 
-from aprsd import plugin, trace
+from aprsd import plugin
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")

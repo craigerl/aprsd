@@ -11,7 +11,8 @@ import time
 import imapclient
 from validate_email import validate_email
 
-from aprsd import messaging, plugin, stats, threads, trace
+from aprsd import messaging, plugin, stats, threads
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")

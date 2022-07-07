@@ -6,8 +6,9 @@ import aprslib
 from aprslib.exceptions import LoginError
 
 from aprsd import config as aprsd_config
-from aprsd import exception, trace
+from aprsd import exception
 from aprsd.clients import aprsis, kiss
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")

@@ -5,8 +5,8 @@ import time
 from opencage.geocoder import OpenCageGeocode
 import pytz
 
-from aprsd import plugin, plugin_utils, trace
-from aprsd.utils import fuzzy
+from aprsd import plugin, plugin_utils
+from aprsd.utils import fuzzy, trace
 
 
 LOG = logging.getLogger("APRSD")

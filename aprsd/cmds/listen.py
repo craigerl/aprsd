@@ -14,10 +14,9 @@ from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import (
-    cli_helper, client, messaging, packets, stats, threads, trace, utils,
-)
+from aprsd import cli_helper, client, messaging, packets, stats, threads, utils
 from aprsd.aprsd import cli
+from aprsd.utils import trace
 
 
 # setup the global logger

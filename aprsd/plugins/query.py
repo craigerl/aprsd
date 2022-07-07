@@ -2,7 +2,8 @@ import datetime
 import logging
 import re
 
-from aprsd import messaging, plugin, trace
+from aprsd import messaging, plugin
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")

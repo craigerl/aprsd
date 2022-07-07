@@ -8,8 +8,9 @@ import logging
 import click
 
 # local imports here
-from aprsd import cli_helper, client, messaging, packets, plugin, stats, trace
+from aprsd import cli_helper, client, messaging, packets, plugin, stats
 from aprsd.aprsd import cli
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")

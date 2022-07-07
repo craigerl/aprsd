@@ -4,7 +4,8 @@ import re
 
 import requests
 
-from aprsd import plugin, plugin_utils, trace
+from aprsd import plugin, plugin_utils
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")
