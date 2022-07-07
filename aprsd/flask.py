@@ -18,9 +18,10 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import aprsd
 from aprsd import client
 from aprsd import config as aprsd_config
-from aprsd import log, messaging, packets, plugin, stats, threads, utils
+from aprsd import messaging, packets, plugin, stats, threads, utils
 from aprsd.clients import aprsis
-from aprsd.logging import logging as aprsd_logging
+from aprsd.logging import log
+from aprsd.logging import rich as aprsd_logging
 
 
 LOG = logging.getLogger("APRSD")

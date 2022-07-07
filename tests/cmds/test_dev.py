@@ -25,7 +25,7 @@ class TestDevTestPluginCommand(unittest.TestCase):
         return aprsd_config.Config(config)
 
     @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.log.setup_logging")
+    @mock.patch("aprsd.logging.log.setup_logging")
     def test_no_login(self, mock_logging, mock_parse_config):
         """Make sure we get an error if there is no login and config."""
 
@@ -43,7 +43,7 @@ class TestDevTestPluginCommand(unittest.TestCase):
         assert "Must set --aprs_login or APRS_LOGIN" in result.output
 
     @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.log.setup_logging")
+    @mock.patch("aprsd.logging.log.setup_logging")
     def test_no_plugin_arg(self, mock_logging, mock_parse_config):
         """Make sure we get an error if there is no login and config."""
 

@@ -4,7 +4,7 @@ import typing as t
 import click
 
 from aprsd import config as aprsd_config
-from aprsd import log
+from aprsd.logging import log
 
 
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
