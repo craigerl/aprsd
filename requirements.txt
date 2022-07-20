@@ -128,3 +128,5 @@ weakrefmethod==1.0.3
     # via signalslot
 werkzeug==2.0.0
     # via flask
+wrapt==1.14.1
+    # via -r requirements.in

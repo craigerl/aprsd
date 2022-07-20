@@ -73,7 +73,7 @@ class KeepAliveThread(APRSDThread):
                 #  We haven't gotten a keepalive from aprs-is in a while
                 # reset the connection.a
                 if not client.KISSClient.is_enabled(self.config):
-                    LOG.warning("Resetting connection to APRS-IS.")
+                    LOG.warning(f"Resetting connection to APRS-IS {delta}")
                     client.factory.create().reset()
 
             # Check version every hour

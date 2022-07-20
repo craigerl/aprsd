@@ -1,0 +1,86 @@
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+        <script src="https://cdn.socket.io/4.1.2/socket.io.min.js" integrity="sha384-toS6mmwu70G0fw54EGlWWeA4z3dyJ+dlXBtSURSKN4vyRFOcxd3Bzjj/AoOwY+Rg" crossorigin="anonymous"></script>
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+
+        <link rel="stylesheet" href="/static/css/index.css">
+        <link rel="stylesheet" href="/static/css/tabs.css">
+        <script src="/static/js/main.js"></script>
+        <script src="/static/js/send-message.js"></script>
+
+
+        <script type="text/javascript">
+            var initial_stats = {{ initial_stats|tojson|safe }};
+
+            var memory_chart = null
+            var message_chart = null
+
+            $(document).ready(function() {
+                console.log(initial_stats);
+                start_update();
+                init_chat();
+                reset_Tabs();
+            });
+        </script>
+    </head>
+
+    <body>
+        <div class='ui text container'>
+            <h1 class='ui dividing header'>APRSD WebChat {{ version }}</h1>
+        </div>
+
+        <div class='ui grid text container'>
+            <div class='left floated ten wide column'>
+                <span style='color: green'>{{ callsign }}</span>
+                connected to
+                <span style='color: blue' id='aprs_connection'>{{ aprs_connection|safe }}</span>
+            </div>
+
+            <div class='right floated four wide column'>
+                <span id='uptime'>NONE</span>
+            </div>
+        </div>
+
+        <div class="ui container">
+            <h3 class="ui dividing header">Send Message</h3>
+            <div id="sendMsgDiv" class="ui mini text">
+                <form id="sendform" name="sendmsg" action="">
+                    <div class="ui corner labeled input">
+                        <label for="to_call" class="ui label">Callsign</label>
+                        <input type="text" name="to_call" id="to_call" placeholder="To Callsign" size="11" maxlength="9">
+                        <div class="ui corner label">
+                            <i class="asterisk icon"></i>
+                        </div>
+                    </div>
+                    <div class="ui labeled input">
+                        <label for="message" class="ui label">Message</label>
+                        <input type="text" name="message" id="message" size="40" maxlength="40">
+                    </div>
+                    <input type="submit" name="submit" class="ui button" id="send_msg" value="Send" />
+                </form>
+            </div>
+            </div>
+
+            <div class="ui grid">
+                <div class="three wide column">
+                    <div class="tab" id="callsignTabs">
+                    </div>
+                </div>
+                <div class="ten wide column ui raised segment" id="msgsTabsDiv" style="height:450px;padding:0px;">
+                    &nbsp;
+                </div>
+            </div>
+        </div>
+
+        <div class="ui text container" style="padding-top: 40px">
+            <a href="https://badge.fury.io/py/aprsd"><img src="https://badge.fury.io/py/aprsd.svg" alt="PyPI version" height="18"></a>
+            <a href="https://github.com/craigerl/aprsd"><img src="https://img.shields.io/badge/Made%20with-Python-1f425f.svg" height="18"></a>
+        </div>
+    </body>
+</html>

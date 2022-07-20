@@ -601,8 +601,8 @@ def init_flask(config, loglevel, quiet):
     flask_app = flask.Flask(
         "aprsd",
         static_url_path="/static",
-        static_folder="web/static",
-        template_folder="web/templates",
+        static_folder="web/admin/static",
+        template_folder="web/admin/templates",
     )
     setup_logging(config, flask_app, loglevel, quiet)
     server = APRSDFlask()

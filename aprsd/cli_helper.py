@@ -5,6 +5,7 @@ import click
 
 from aprsd import config as aprsd_config
 from aprsd.logging import log
+from aprsd.utils import trace
 
 
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
@@ -59,6 +60,8 @@ def process_standard_options(f: F) -> F:
             ctx.obj["loglevel"],
             ctx.obj["quiet"],
         )
+        if ctx.obj["config"]["aprsd"].get("trace", False):
+            trace.setup_tracing(["method", "api"])
 
         del kwargs["loglevel"]
         del kwargs["config_file"]

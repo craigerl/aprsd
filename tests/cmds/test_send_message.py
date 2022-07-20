@@ -15,7 +15,10 @@ F = t.TypeVar("F", bound=t.Callable[..., t.Any])
 class TestSendMessageCommand(unittest.TestCase):
 
     def _build_config(self, login=None, password=None):
-        config = {"aprs": {}}
+        config = {
+            "aprs": {},
+            "aprsd": {"trace": False},
+        }
         if login:
             config["aprs"]["login"] = login
 

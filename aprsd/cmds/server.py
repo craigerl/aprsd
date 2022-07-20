@@ -11,7 +11,6 @@ from aprsd import (
 )
 from aprsd import aprsd as aprsd_main
 from aprsd.aprsd import cli
-from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -59,8 +58,6 @@ def server(ctx, flush):
         else:
             LOG.info(f"{x} = {flat_config[x]}")
 
-    if config["aprsd"].get("trace", False):
-        trace.setup_tracing(["method", "api"])
     stats.APRSDStats(config)
 
     # Initialize the client factory and create
@@ -98,7 +95,7 @@ def server(ctx, flush):
     plugin_manager = plugin.PluginManager(config)
     plugin_manager.setup_plugins()
 
-    rx_thread = threads.APRSDRXThread(
+    rx_thread = threads.APRSDPluginRXThread(
         msg_queues=threads.msg_queues,
         config=config,
     )

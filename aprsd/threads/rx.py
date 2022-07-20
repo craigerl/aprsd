@@ -1,3 +1,4 @@
+import abc
 import logging
 import time
 
@@ -38,7 +39,10 @@ class APRSDRXThread(APRSDThread):
                 self.process_packet, raw=False, blocking=False,
             )
 
-        except aprslib.exceptions.ConnectionDrop:
+        except (
+            aprslib.exceptions.ConnectionDrop,
+            aprslib.exceptions.ConnectionError,
+        ):
             LOG.error("Connection dropped, reconnecting")
             time.sleep(5)
             # Force the deletion of the client object connected to aprs
@@ -48,6 +52,12 @@ class APRSDRXThread(APRSDThread):
         # Continue to loop
         return True
 
+    @abc.abstractmethod
+    def process_packet(self, *args, **kwargs):
+        pass
+
+
+class APRSDPluginRXThread(APRSDRXThread):
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
         thread = APRSDProcessPacketThread(packet=packet, config=self.config)

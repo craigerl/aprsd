@@ -3,7 +3,8 @@ import logging
 import threading
 import time
 
-from aprsd import objectstore, utils
+from aprsd import utils
+from aprsd.utils import objectstore
 
 
 LOG = logging.getLogger("APRSD")
@@ -77,9 +78,10 @@ class WatchList(objectstore.ObjectStoreMixin):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.lock = threading.Lock()
-            cls._instance.config = kwargs["config"]
+            if "config" in kwargs:
+                cls._instance.config = kwargs["config"]
+                cls._instance._init_store()
             cls._instance.data = {}
-            cls._instance._init_store()
         return cls._instance
 
     def __init__(self, config=None):
@@ -165,9 +167,10 @@ class SeenList(objectstore.ObjectStoreMixin):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.lock = threading.Lock()
-            cls._instance.config = kwargs["config"]
+            if "config" in kwargs:
+                cls._instance.config = kwargs["config"]
+                cls._instance._init_store()
             cls._instance.data = {}
-            cls._instance._init_store()
         return cls._instance
 
     def update_seen(self, packet):

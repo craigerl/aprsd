@@ -6,7 +6,8 @@ import re
 import threading
 import time
 
-from aprsd import client, objectstore, packets, stats, threads
+from aprsd import client, packets, stats, threads
+from aprsd.utils import objectstore
 
 
 LOG = logging.getLogger("APRSD")
@@ -238,7 +239,10 @@ class RawMessage(Message):
     last_send_age = last_send_time = None
 
     def __init__(self, message, allow_delay=True):
-        super().__init__(fromcall=None, tocall=None, msg_id=None, allow_delay=allow_delay)
+        super().__init__(
+            fromcall=None, tocall=None, msg_id=None,
+            allow_delay=allow_delay,
+        )
         self._raw_message = message
 
     def dict(self):
@@ -282,12 +286,8 @@ class TextMessage(Message):
     last_send_time = last_send_age = None
 
     def __init__(
-        self,
-        fromcall,
-        tocall,
-        message,
-        msg_id=None,
-        allow_delay=True,
+        self, fromcall, tocall, message,
+        msg_id=None, allow_delay=True,
     ):
         super().__init__(
             fromcall=fromcall, tocall=tocall,

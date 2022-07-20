@@ -52,7 +52,8 @@ class Client:
 
     def reset(self):
         """Call this to force a rebuild/reconnect."""
-        del self._client
+        if self._client:
+            del self._client
 
     @abc.abstractmethod
     def setup_connection(self):
@@ -130,6 +131,7 @@ class APRSISClient(Client):
                 backoff = backoff * 2
                 continue
         LOG.debug(f"Logging in to APRS-IS with user '{user}'")
+        self._client = aprs_client
         return aprs_client
 
 

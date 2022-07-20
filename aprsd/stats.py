@@ -2,6 +2,8 @@ import datetime
 import logging
 import threading
 
+import wrapt
+
 import aprsd
 from aprsd import packets, plugin, utils
 
@@ -12,7 +14,7 @@ LOG = logging.getLogger("APRSD")
 class APRSDStats:
 
     _instance = None
-    lock = None
+    lock = threading.Lock()
     config = None
 
     start_time = None
@@ -39,7 +41,6 @@ class APRSDStats:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             # any initializetion here
-            cls._instance.lock = threading.Lock()
             cls._instance.start_time = datetime.datetime.now()
             cls._instance._aprsis_keepalive = datetime.datetime.now()
         return cls._instance
@@ -48,128 +49,129 @@ class APRSDStats:
         if config:
             self.config = config
 
+    @wrapt.synchronized(lock)
     @property
     def uptime(self):
-        with self.lock:
-            return datetime.datetime.now() - self.start_time
+        return datetime.datetime.now() - self.start_time
 
+    @wrapt.synchronized(lock)
     @property
     def memory(self):
-        with self.lock:
-            return self._mem_current
+        return self._mem_current
 
+    @wrapt.synchronized(lock)
     def set_memory(self, memory):
-        with self.lock:
-            self._mem_current = memory
+        self._mem_current = memory
 
+    @wrapt.synchronized(lock)
     @property
     def memory_peak(self):
-        with self.lock:
-            return self._mem_peak
+        return self._mem_peak
 
+    @wrapt.synchronized(lock)
     def set_memory_peak(self, memory):
-        with self.lock:
-            self._mem_peak = memory
+        self._mem_peak = memory
 
+    @wrapt.synchronized(lock)
     @property
     def aprsis_server(self):
-        with self.lock:
-            return self._aprsis_server
+        return self._aprsis_server
 
+    @wrapt.synchronized(lock)
     def set_aprsis_server(self, server):
-        with self.lock:
-            self._aprsis_server = server
+        self._aprsis_server = server
 
+    @wrapt.synchronized(lock)
     @property
     def aprsis_keepalive(self):
-        with self.lock:
-            return self._aprsis_keepalive
+        return self._aprsis_keepalive
 
+    @wrapt.synchronized(lock)
     def set_aprsis_keepalive(self):
-        with self.lock:
-            self._aprsis_keepalive = datetime.datetime.now()
+        self._aprsis_keepalive = datetime.datetime.now()
 
+    @wrapt.synchronized(lock)
     @property
     def msgs_tx(self):
-        with self.lock:
-            return self._msgs_tx
+        return self._msgs_tx
 
+    @wrapt.synchronized(lock)
     def msgs_tx_inc(self):
-        with self.lock:
-            self._msgs_tx += 1
+        self._msgs_tx += 1
 
+    @wrapt.synchronized(lock)
     @property
     def msgs_rx(self):
-        with self.lock:
-            return self._msgs_rx
+        return self._msgs_rx
 
+    @wrapt.synchronized(lock)
     def msgs_rx_inc(self):
-        with self.lock:
-            self._msgs_rx += 1
+        self._msgs_rx += 1
 
+    @wrapt.synchronized(lock)
     @property
     def msgs_mice_rx(self):
-        with self.lock:
-            return self._msgs_mice_rx
+        return self._msgs_mice_rx
 
+    @wrapt.synchronized(lock)
     def msgs_mice_inc(self):
-        with self.lock:
-            self._msgs_mice_rx += 1
+        self._msgs_mice_rx += 1
 
+    @wrapt.synchronized(lock)
     @property
     def ack_tx(self):
-        with self.lock:
-            return self._ack_tx
+        return self._ack_tx
 
+    @wrapt.synchronized(lock)
     def ack_tx_inc(self):
-        with self.lock:
-            self._ack_tx += 1
+        self._ack_tx += 1
 
+    @wrapt.synchronized(lock)
     @property
     def ack_rx(self):
-        with self.lock:
-            return self._ack_rx
+        return self._ack_rx
 
+    @wrapt.synchronized(lock)
     def ack_rx_inc(self):
-        with self.lock:
-            self._ack_rx += 1
+        self._ack_rx += 1
 
+    @wrapt.synchronized(lock)
     @property
     def msgs_tracked(self):
-        with self.lock:
-            return self._msgs_tracked
+        return self._msgs_tracked
 
+    @wrapt.synchronized(lock)
     def msgs_tracked_inc(self):
-        with self.lock:
-            self._msgs_tracked += 1
+        self._msgs_tracked += 1
 
+    @wrapt.synchronized(lock)
     @property
     def email_tx(self):
-        with self.lock:
-            return self._email_tx
+        return self._email_tx
 
+    @wrapt.synchronized(lock)
     def email_tx_inc(self):
-        with self.lock:
-            self._email_tx += 1
+        self._email_tx += 1
 
+    @wrapt.synchronized(lock)
     @property
     def email_rx(self):
-        with self.lock:
-            return self._email_rx
+        return self._email_rx
 
+    @wrapt.synchronized(lock)
     def email_rx_inc(self):
-        with self.lock:
-            self._email_rx += 1
+        self._email_rx += 1
 
+    @wrapt.synchronized(lock)
     @property
     def email_thread_time(self):
-        with self.lock:
-            return self._email_thread_last_time
+        return self._email_thread_last_time
 
+    @wrapt.synchronized(lock)
     def email_thread_update(self):
-        with self.lock:
-            self._email_thread_last_time = datetime.datetime.now()
+        self._email_thread_last_time = datetime.datetime.now()
 
+    @wrapt.synchronized(lock)
     def stats(self):
         now = datetime.datetime.now()
         if self._email_thread_last_time:
@@ -185,20 +187,20 @@ class APRSDStats:
         pm = plugin.PluginManager()
         plugins = pm.get_plugins()
         plugin_stats = {}
+        if plugins:
+            def full_name_with_qualname(obj):
+                return "{}.{}".format(
+                    obj.__class__.__module__,
+                    obj.__class__.__qualname__,
+                )
 
-        def full_name_with_qualname(obj):
-            return "{}.{}".format(
-                obj.__class__.__module__,
-                obj.__class__.__qualname__,
-            )
-
-        for p in plugins:
-            plugin_stats[full_name_with_qualname(p)] = {
-                "enabled": p.enabled,
-                "rx": p.rx_count,
-                "tx": p.tx_count,
-                "version": p.version,
-            }
+            for p in plugins:
+                plugin_stats[full_name_with_qualname(p)] = {
+                    "enabled": p.enabled,
+                    "rx": p.rx_count,
+                    "tx": p.tx_count,
+                    "version": p.version,
+                }
 
         wl = packets.WatchList()
         sl = packets.SeenList()
@@ -207,30 +209,30 @@ class APRSDStats:
             "aprsd": {
                 "version": aprsd.__version__,
                 "uptime": utils.strfdelta(self.uptime),
-                "memory_current": self.memory,
+                "memory_current": int(self.memory),
                 "memory_current_str": utils.human_size(self.memory),
-                "memory_peak": self.memory_peak,
+                "memory_peak": int(self.memory_peak),
                 "memory_peak_str": utils.human_size(self.memory_peak),
                 "watch_list": wl.get_all(),
                 "seen_list": sl.get_all(),
             },
             "aprs-is": {
-                "server": self.aprsis_server,
+                "server": str(self.aprsis_server),
                 "callsign": self.config["aprs"]["login"],
                 "last_update": last_aprsis_keepalive,
             },
             "messages": {
-                "tracked": self.msgs_tracked,
-                "sent": self.msgs_tx,
-                "recieved": self.msgs_rx,
-                "ack_sent": self.ack_tx,
-                "ack_recieved": self.ack_rx,
-                "mic-e recieved": self.msgs_mice_rx,
+                "tracked": int(self.msgs_tracked),
+                "sent": int(self.msgs_tx),
+                "recieved": int(self.msgs_rx),
+                "ack_sent": int(self.ack_tx),
+                "ack_recieved": int(self.ack_rx),
+                "mic-e recieved": int(self.msgs_mice_rx),
             },
             "email": {
                 "enabled": self.config["aprsd"]["email"]["enabled"],
-                "sent": self._email_tx,
-                "recieved": self._email_rx,
+                "sent": int(self._email_tx),
+                "recieved": int(self._email_rx),
                 "thread_last_update": last_update,
             },
             "plugins": plugin_stats,
