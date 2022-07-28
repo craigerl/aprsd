@@ -41,7 +41,7 @@ class KeepAliveThread(APRSDThread):
             stats_obj.set_memory_peak(peak)
 
             try:
-                login = self.config["aprs"]["login"]
+                login = self.config["aprsd"]["callsign"]
             except KeyError:
                 login = self.config["ham"]["callsign"]
 

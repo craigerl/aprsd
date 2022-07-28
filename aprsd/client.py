@@ -156,8 +156,8 @@ class KISSClient(Client):
         # Ensure that the config vars are correctly set
         if KISSClient.is_enabled(config):
             config.check_option(
-                "kiss.callsign",
-                default_fail=aprsd_config.DEFAULT_CONFIG_DICT["kiss"]["callsign"],
+                "aprsd.callsign",
+                default_fail=aprsd_config.DEFAULT_CONFIG_DICT["aprsd"]["callsign"],
             )
             transport = KISSClient.transport(config)
             if transport == TRANSPORT_SERIALKISS:

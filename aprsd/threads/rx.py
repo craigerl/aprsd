@@ -101,7 +101,7 @@ class APRSDProcessPacketThread(APRSDThread):
 
         # We don't put ack packets destined for us through the
         # plugins.
-        if tocall == self.config["aprs"]["login"] and msg_response == "ack":
+        if tocall == self.config["aprsd"]["callsign"] and msg_response == "ack":
             self.process_ack_packet(packet)
         else:
             # It's not an ACK for us, so lets run it through
@@ -115,12 +115,12 @@ class APRSDProcessPacketThread(APRSDThread):
             )
 
             # Only ack messages that were sent directly to us
-            if tocall == self.config["aprs"]["login"]:
+            if tocall == self.config["aprsd"]["callsign"]:
                 stats.APRSDStats().msgs_rx_inc()
                 # let any threads do their thing, then ack
                 # send an ack last
                 ack = messaging.AckMessage(
-                    self.config["aprs"]["login"],
+                    self.config["aprsd"]["callsign"],
                     fromcall,
                     msg_id=msg_id,
                 )
@@ -142,7 +142,7 @@ class APRSDProcessPacketThread(APRSDThread):
                                 subreply.send()
                             else:
                                 msg = messaging.TextMessage(
-                                    self.config["aprs"]["login"],
+                                    self.config["aprsd"]["callsign"],
                                     fromcall,
                                     subreply,
                                 )
@@ -162,7 +162,7 @@ class APRSDProcessPacketThread(APRSDThread):
                             LOG.debug(f"Sending '{reply}'")
 
                             msg = messaging.TextMessage(
-                                self.config["aprs"]["login"],
+                                self.config["aprsd"]["callsign"],
                                 fromcall,
                                 reply,
                             )
@@ -170,10 +170,10 @@ class APRSDProcessPacketThread(APRSDThread):
 
                 # If the message was for us and we didn't have a
                 # response, then we send a usage statement.
-                if tocall == self.config["aprs"]["login"] and not replied:
+                if tocall == self.config["aprsd"]["callsign"] and not replied:
                     LOG.warning("Sending help!")
                     msg = messaging.TextMessage(
-                        self.config["aprs"]["login"],
+                        self.config["aprsd"]["callsign"],
                         fromcall,
                         "Unknown command! Send 'help' message for help",
                     )
@@ -182,10 +182,10 @@ class APRSDProcessPacketThread(APRSDThread):
                 LOG.error("Plugin failed!!!")
                 LOG.exception(ex)
                 # Do we need to send a reply?
-                if tocall == self.config["aprs"]["login"]:
+                if tocall == self.config["aprsd"]["callsign"]:
                     reply = "A Plugin failed! try again?"
                     msg = messaging.TextMessage(
-                        self.config["aprs"]["login"],
+                        self.config["aprsd"]["callsign"],
                         fromcall,
                         reply,
                     )

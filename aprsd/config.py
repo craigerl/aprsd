@@ -57,13 +57,13 @@ DEFAULT_CONFIG_DICT = {
     "ham": {"callsign": "NOCALL"},
     "aprs": {
         "enabled": True,
+        # Only used as the login for aprsis.
         "login": "CALLSIGN",
         "password": "00000",
         "host": "rotate.aprs2.net",
         "port": 14580,
     },
     "kiss": {
-        "callsign": "NOCALL",
         "tcp": {
             "enabled": False,
             "host": "direwolf.ip.address",
@@ -76,11 +76,14 @@ DEFAULT_CONFIG_DICT = {
         },
     },
     "aprsd": {
+        # Callsign to use for all packets to/from aprsd instance
+        # regardless of the client (aprsis vs kiss)
+        "callsign": "NOCALL",
         "logfile": "/tmp/aprsd.log",
         "logformat": DEFAULT_LOG_FORMAT,
         "dateformat": DEFAULT_DATE_FORMAT,
         "save_location": DEFAULT_CONFIG_DIR,
-        "rich_logging": False,
+        "rich_logging": True,
         "trace": False,
         "enabled_plugins": CORE_MESSAGE_PLUGINS,
         "units": "imperial",
@@ -177,16 +180,35 @@ class Config(collections.UserDict):
         if not self.exists(path):
             if type(path) is list:
                 path = ".".join(path)
-            raise exception.MissingConfigOption(path)
+            raise exception.MissingConfigOptionException(path)
 
         val = self.get(path)
         if val == default_fail:
             # We have to fail and bail if the user hasn't edited
             # this config option.
-            raise exception.ConfigOptionBogusDefaultException(path, default_fail)
+            raise exception.ConfigOptionBogusDefaultException(
+                path, default_fail,
+            )
 
 
 def add_config_comments(raw_yaml):
+    end_idx = utils.end_substr(raw_yaml, "ham:")
+    if end_idx != -1:
+        # lets insert a comment
+        raw_yaml = utils.insert_str(
+            raw_yaml,
+            "\n    # Callsign that owns this instance of APRSD.",
+            end_idx,
+        )
+    end_idx = utils.end_substr(raw_yaml, "aprsd:")
+    if end_idx != -1:
+        # lets insert a comment
+        raw_yaml = utils.insert_str(
+            raw_yaml,
+            "\n    # Callsign to use for all APRSD Packets as the to/from."
+            "\n    # regardless of client type (aprsis vs tcpkiss vs serial)",
+            end_idx,
+        )
     end_idx = utils.end_substr(raw_yaml, "aprs:")
     if end_idx != -1:
         # lets insert a comment
@@ -325,6 +347,11 @@ def parse_config(config_file):
     check_option(
         config,
         ["aprsd"],
+    )
+    check_option(
+        config,
+        "aprsd.callsign",
+        default_fail=DEFAULT_CONFIG_DICT["aprsd"]["callsign"],
     )
 
     # Ensure they change the admin password

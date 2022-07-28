@@ -32,6 +32,7 @@ class Aioax25Client:
                 device=self.config["kiss"]["serial"]["device"],
                 baudrate=self.config["kiss"]["serial"].get("baudrate", 9600),
                 loop=self.loop,
+                log=LOG,
             )
         elif "tcp" in self.config["kiss"] and self.config["kiss"]["tcp"].get(
             "enabled",
@@ -50,30 +51,32 @@ class Aioax25Client:
                 log=LOG,
             )
 
-        self.kissdev.open()
-        self.kissport0 = self.kissdev[0]
-
         LOG.debug("Creating AX25Interface")
-        self.ax25int = interface.AX25Interface(kissport=self.kissport0, loop=self.loop)
+        self.ax25int = interface.AX25Interface(
+            kissport=self.kissdev[0],
+            loop=self.loop,
+            log=LOG,
+        )
 
         LOG.debug("Creating APRSInterface")
         self.aprsint = APRSInterface(
             ax25int=self.ax25int,
-            mycall=self.config["kiss"]["callsign"],
+            mycall=self.config["aprsd"]["callsign"],
             log=LOG,
         )
+        self.kissdev.open()
 
     def stop(self):
         LOG.debug(self.kissdev)
-        self.kissdev._close()
         self.loop.stop()
+        self.kissdev.close()
 
     def set_filter(self, filter):
         # This does nothing right now.
         pass
 
-    def consumer(self, callback, blocking=True, immortal=False, raw=False):
-        callsign = self.config["kiss"]["callsign"]
+    def consumer(self, callback, blocking=False, immortal=False, raw=False):
+        callsign = self.config["aprsd"]["callsign"]
         call = callsign.split("-")
         if len(call) > 1:
             callsign = call[0]
@@ -81,10 +84,28 @@ class Aioax25Client:
         else:
             ssid = 0
         self.aprsint.bind(callback=callback, callsign=callsign, ssid=ssid, regex=False)
+
+        # async def set_after(fut, delay, value):
+        #     # Sleep for *delay* seconds.
+        #     await asyncio.sleep(delay)
+        #
+        #     # Set *value* as a result of *fut* Future.
+        #     fut.set_result(value)
+        #
+        # async def my_wait(fut):
+        #     await fut
+        #
+        # fut = self.loop.create_future()
+        # self.loop.create_task(
+        #     set_after(fut, 5, "nothing")
+        # )
+        LOG.debug("RUN FOREVER")
         self.loop.run_forever()
+        # my_wait(fut)
 
     def send(self, msg):
         """Send an APRS Message object."""
+        LOG.debug(f"Send {msg} TO KISS")
         payload = f"{msg._filter_for_send()}"
         self.aprsint.send_message(
             addressee=msg.tocall,

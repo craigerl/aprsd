@@ -93,19 +93,22 @@ class SentMessages(objectstore.ObjectStoreMixin):
 
     @wrapt.synchronized(lock)
     def set_status(self, id, status):
-        self.data[id]["last_update"] = str(datetime.datetime.now())
-        self.data[id]["status"] = status
+        if id in self.data:
+            self.data[id]["last_update"] = str(datetime.datetime.now())
+            self.data[id]["status"] = status
 
     @wrapt.synchronized(lock)
     def ack(self, id):
         """The message got an ack!"""
-        self.data[id]["last_update"] = str(datetime.datetime.now())
-        self.data[id]["ack"] = True
+        if id in self.data:
+            self.data[id]["last_update"] = str(datetime.datetime.now())
+            self.data[id]["ack"] = True
 
     @wrapt.synchronized(lock)
     def reply(self, id, packet):
         """We got a packet back from the sent message."""
-        self.data[id]["reply"] = packet
+        if id in self.data:
+            self.data[id]["reply"] = packet
 
 
 # HTTPBasicAuth doesn't work on a class method.
@@ -126,7 +129,6 @@ class WebChatRXThread(rx.APRSDRXThread):
         self.connected = connected
 
     def loop(self):
-
         # setup the consumer of messages and block until a messages
         msg = None
         try:
@@ -227,15 +229,16 @@ class WebChatTXThread(aprsd_thread.APRSDThread):
         self.got_ack = True
 
     def process_packet(self, packet):
+        LOG.info(f"process PACKET {packet}")
         tocall = packet.get("addresse", None)
         fromcall = packet["from"]
         msg = packet.get("message_text", None)
         msg_id = packet.get("msgNo", "0")
         msg_response = packet.get("response", None)
 
-        if tocall == self.config["aprs"]["login"] and msg_response == "ack":
+        if tocall == self.config["aprsd"]["callsign"] and msg_response == "ack":
             self.process_ack_packet(packet)
-        elif tocall == self.config["aprs"]["login"]:
+        elif tocall == self.config["aprsd"]["callsign"]:
             messaging.log_message(
                 "Received Message",
                 packet["raw"],
@@ -246,11 +249,11 @@ class WebChatTXThread(aprsd_thread.APRSDThread):
             # let any threads do their thing, then ack
             # send an ack last
             ack = messaging.AckMessage(
-                self.config["aprs"]["login"],
+                self.config["aprsd"]["callsign"],
                 fromcall,
                 msg_id=msg_id,
             )
-            self.msg_queues["tx"].put(ack)
+            ack.send()
 
             packets.PacketList().add(packet)
             stats.APRSDStats().msgs_rx_inc()
@@ -299,7 +302,7 @@ class WebChatFlask(flask_classful.FlaskView):
             )
         else:
             # We might be connected to a KISS socket?
-            if client.KISSClient.kiss_enabled(self.config):
+            if client.KISSClient.is_enabled(self.config):
                 transport = client.KISSClient.transport(self.config)
                 if transport == client.TRANSPORT_TCPKISS:
                     aprs_connection = (
@@ -324,7 +327,7 @@ class WebChatFlask(flask_classful.FlaskView):
             "index.html",
             initial_stats=stats,
             aprs_connection=aprs_connection,
-            callsign=self.config["aprs"]["login"],
+            callsign=self.config["aprsd"]["callsign"],
             version=aprsd.__version__,
         )
 
@@ -335,7 +338,6 @@ class WebChatFlask(flask_classful.FlaskView):
         info = msgs.get_all()
         return json.dumps(info)
 
-    @trace.trace
     def _stats(self):
         stats_obj = stats.APRSDStats()
         now = datetime.datetime.now()
@@ -406,8 +408,8 @@ class SendMessageNamespace(Namespace):
             "sent", SentMessages().get(self.msg.id),
             namespace="/sendmsg",
         )
-
-        self._msg_queues["tx"].put(msg)
+        msg.send()
+        # self._msg_queues["tx"].put(msg)
 
     def handle_message(self, data):
         LOG.debug(f"WS Data {data}")
