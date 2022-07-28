@@ -11,6 +11,7 @@ from aprsd import (
 )
 from aprsd import aprsd as aprsd_main
 from aprsd.aprsd import cli
+from aprsd.threads import rx
 
 
 LOG = logging.getLogger("APRSD")
@@ -95,7 +96,7 @@ def server(ctx, flush):
     plugin_manager = plugin.PluginManager(config)
     plugin_manager.setup_plugins()
 
-    rx_thread = threads.APRSDPluginRXThread(
+    rx_thread = rx.APRSDPluginRXThread(
         msg_queues=threads.msg_queues,
         config=config,
     )
