@@ -4,6 +4,7 @@ import logging
 from aioax25 import interface
 from aioax25 import kiss as kiss
 from aioax25.aprs import APRSInterface
+from aioax25.aprs.frame import APRSFrame
 
 
 LOG = logging.getLogger("APRSD")
@@ -105,11 +106,33 @@ class Aioax25Client:
 
     def send(self, msg):
         """Send an APRS Message object."""
-        LOG.debug(f"Send {msg} TO KISS")
-        payload = f"{msg._filter_for_send()}"
-        self.aprsint.send_message(
-            addressee=msg.tocall,
-            message=payload,
-            path=["WIDE1-1", "WIDE2-1"],
-            oneshot=True,
+
+        # payload = (':%-9s:%s' % (
+        #     msg.tocall,
+        #     payload
+        # )).encode('US-ASCII'),
+        # payload = str(msg).encode('US-ASCII')
+        msg_payload = f"{msg.message}{{{str(msg.id)}"
+        payload = (
+            ":{:<9}:{}".format(
+                msg.tocall,
+                msg_payload,
+            )
+        ).encode("US-ASCII")
+        LOG.debug(f"Send '{payload}' TO KISS")
+
+        self.aprsint.transmit(
+            APRSFrame(
+                destination=msg.tocall,
+                source=msg.fromcall,
+                payload=payload,
+                repeaters=["WIDE1-1", "WIDE2-1"],
+            ),
         )
+
+        # self.aprsint.send_message(
+        #     addressee=msg.tocall,
+        #     message=payload,
+        #     path=["WIDE1-1", "WIDE2-1"],
+        #     oneshot=True,
+        # )
