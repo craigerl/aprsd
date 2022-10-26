@@ -3,6 +3,8 @@ services:
   aprsd:
     image: hemna6969/aprsd:latest
     container_name: aprsd
+    ports:
+        - "8001:8001"
     volumes:
         - $HOME/.config/aprsd:/config
     restart: unless-stopped
