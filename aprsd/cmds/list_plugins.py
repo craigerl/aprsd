@@ -174,7 +174,7 @@ def show_pypi_plugins(installed_plugins, console):
         link = urljoin(api_url, snippet.get("href"))
         package = re.sub(r"\s+", " ", snippet.select_one('span[class*="name"]').text.strip())
         version = re.sub(r"\s+", " ", snippet.select_one('span[class*="version"]').text.strip())
-        released = re.sub(r"\s+", " ", snippet.select_one('span[class*="released"]').text.strip())
+        created = re.sub(r"\s+", " ", snippet.select_one('span[class*="created"]').text.strip())
         description = re.sub(r"\s+", " ", snippet.select_one('p[class*="description"]').text.strip())
         emoji = ":open_file_folder:"
 
@@ -189,7 +189,7 @@ def show_pypi_plugins(installed_plugins, console):
 
         table.add_row(
             f"[link={link}]{emoji}[/link] {package}",
-            description, version, released, installed,
+            description, version, created, installed,
         )
 
     console.print("\n")
