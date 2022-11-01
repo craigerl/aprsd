@@ -28,7 +28,7 @@ Please `read the docs`_ to learn more!
 
 
 APRSD Overview Diagram
-----------------------
+======================
 
 .. image:: https://raw.githubusercontent.com/craigerl/aprsd/master/docs/_static/aprsd_overview.svg?sanitize=true
 
@@ -46,7 +46,7 @@ callsigns to look out for.  The watch list can notify you when a HAM callsign
 in the list is seen and now available to message on the APRS network.
 
 
-Current List of built-in plugins:
+Current list of built-in plugins
 ======================================
 
 ::
@@ -86,18 +86,20 @@ Current List of built-in plugins:
     │ 📂 aprsd-slack-plugin    │ Amateur radio APRS daemon which listens for messages and responds  │  1.0.4  │ Jan 15, 2021 │     No     │
     └──────────────────────────┴────────────────────────────────────────────────────────────────────┴─────────┴──────────────┴────────────┘
 
-installation:
+Installation
 =============
 
-  pip install aprsd
+To install ``aprsd``, use Pip:
 
-Example usage:
+``pip install aprsd``
+
+Example usage
 ==============
 
-  aprsd -h
+``aprsd -h``
 
 Help
-====
+----
 ::
 
     └─[$] > aprsd -h
@@ -122,17 +124,15 @@ Help
 
 
 Commands
-========
+--------
 
 Configuration
-=============
+^^^^^^^^^^^^^
 This command outputs a sample config yml formatted block that you can edit
-and use to pass in to aprsd with -c.  By default aprsd looks in ~/.config/aprsd/aprsd.yml
+and use to pass in to ``aprsd`` with ``-c``.  By default aprsd looks in ``~/.config/aprsd/aprsd.yml``
 
-  aprsd sample-config
+``aprsd sample-config``
 
-Output
-======
 ::
 
     └─> aprsd sample-config
@@ -237,7 +237,7 @@ Output
             apiKey: APIKEYVALUE
 
 server
-======
+^^^^^^
 
 This is the main server command that will listen to APRS-IS servers and
 look for incomming commands to the callsign configured in the config file
@@ -277,7 +277,7 @@ look for incomming commands to the callsign configured in the config file
 
 
 send-message
-============
+^^^^^^^^^^^^
 
 This command is typically used for development to send another aprsd instance
 test messages
@@ -309,12 +309,8 @@ test messages
       -h, --help                      Show this message and exit.
 
 
-Example output:
-===============
-
-
 SEND EMAIL (radio to smtp server)
-=================================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ::
 
@@ -336,7 +332,7 @@ SEND EMAIL (radio to smtp server)
 
 
 RECEIVE EMAIL (imap server to radio)
-====================================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ::
 
@@ -353,7 +349,7 @@ RECEIVE EMAIL (imap server to radio)
 
 
 LOCATION
-========
+^^^^^^^^
 
 ::
 
@@ -383,56 +379,66 @@ AND... ping, fortune, time.....
 Development
 ===========
 
-* git clone git@github.com:craigerl/aprsd.git
-* cd aprsd
-* make
+* ``git clone git@github.com:craigerl/aprsd.git``
+* ``cd aprsd``
+* ``make``
 
 Workflow
-========
+--------
 
-While working aprsd, The workflow is as follows
+While working aprsd, The workflow is as follows:
 
-* checkout a new branch to work on
-* git checkout -b mybranch
-* Edit code
-* run tox -epep8
-* run tox -efmt
-* run tox -p
-* git commit  ( This will run the pre-commit hooks which does checks too )
+* Checkout a new branch to work on by running 
+
+  ``git checkout -b mybranch``
+  
+* Make your changes to the code
+* Run Tox with the following options:
+
+  - ``tox -epep8``
+  - ``tox -efmt``
+  - ``tox -p``
+  
+* Commit your changes. This will run the pre-commit hooks which does checks too
+  
+  ``git commit`` 
+
 * Once you are done with all of your commits, then push up the branch to
-  github
-* git push -u origin mybranch
+  github with:
+  
+  ``git push -u origin mybranch``
+  
 * Create a pull request from your branch so github tests can run and we can do
   a code review.
 
 
 Release
-=======
+-------
 
 To do release to pypi:
 
-* Tag release with
+* Tag release with: 
 
-   git tag -v1.XX -m "New release"
+  ``git tag -v1.XX -m "New release"``
 
-* push release tag up
+* Push release tag: 
 
-  git push origin master --tags
+  ``git push origin master --tags``
 
-* Do a test build and verify build is valid
+* Do a test build and verify build is valid by running: 
 
-  make build
+  ``make build``
 
-* Once twine is happy, upload release to pypi
+* Once twine is happy, upload release to pypi: 
 
-  make upload
+  ``make upload``
 
 
 Docker Container
-================
+----------------
 
 Building
-========
+^^^^^^^^
 
 There are 2 versions of the container Dockerfile that can be used.
 The main Dockerfile, which is for building the official release container
@@ -441,18 +447,18 @@ which is used for building a container based off of a git branch of
 the repo.
 
 Official Build
-==============
+^^^^^^^^^^^^^^
 
- docker build -t hemna6969/aprsd:latest .
+``docker build -t hemna6969/aprsd:latest .``
 
 Development Build
-=================
+^^^^^^^^^^^^^^^^^
 
- docker build -t hemna6969/aprsd:latest -f Dockerfile-dev .
+``docker build -t hemna6969/aprsd:latest -f Dockerfile-dev .``
 
 
 Running the container
-=====================
+^^^^^^^^^^^^^^^^^^^^^
 
 There is a docker-compose.yml file that can be used to run your container.
 There are 2 volumes defined that can be used to store your configuration
