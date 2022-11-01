@@ -183,7 +183,7 @@ class Config(collections.UserDict):
         if val == default_fail:
             # We have to fail and bail if the user hasn't edited
             # this config option.
-            raise exception.ConfigOptionBogusDefault(path, default_fail)
+            raise exception.ConfigOptionBogusDefaultException(path, default_fail)
 
 
 def add_config_comments(raw_yaml):
