@@ -460,16 +460,25 @@ Development Build
 Running the container
 ^^^^^^^^^^^^^^^^^^^^^
 
-There is a docker-compose.yml file that can be used to run your container.
-There are 2 volumes defined that can be used to store your configuration
-and the plugins directory:  /config and /plugins
+There is a ``docker-compose.yml`` file in the ``docker/`` directory 
+that can be used to run your container. To provide the container
+an ``aprsd.conf`` configuration file, change your 
+``docker-compose.yml`` as shown below: 
 
-If you want to install plugins at container start time, then use the
-environment var in docker-compose.yml specified as APRS_PLUGINS
-Provide a csv list of pypi installable plugins.  Then make sure the plugin
-python file is in your /plugins volume and the plugin will be installed at
-container startup.  The plugin may have dependencies that are required.
-The plugin file should be copied to /plugins for loading by aprsd
+::
+
+     volumes:
+         - $HOME/.config/aprsd:/config
+
+To install plugins at container start time, pass in a list of 
+comma-separated list of plugins on PyPI using the ``APRSD_PLUGINS``
+environment variable in the ``docker-compose.yml`` file. Note that 
+version constraints may also be provided. For example:
+
+::
+
+    environment:
+        - APRSD_PLUGINS=aprsd-slack-plugin>=1.0.2,aprsd-twitter-plugin
 
 
 .. badges
