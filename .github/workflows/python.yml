@@ -1,4 +1,4 @@
-name: Test and Build
+name: TOX Test
 
 on: [push, pull_request]
 
@@ -20,12 +20,3 @@ jobs:
         pip install tox tox-gh-actions
     - name: Test with tox
       run: tox
-
-  build:
-    needs: tox
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker image
-      working-directory: ./docker
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
