@@ -48,4 +48,3 @@ jobs:
         push: true
         tags: |
           hemna6969/aprsd:${{ steps.branch-name.outputs.current_branch }}
-          hemna6969/aprsd:latest
