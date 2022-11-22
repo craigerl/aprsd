@@ -195,8 +195,8 @@ class KISSClient(Client):
 
     @trace.trace
     def setup_connection(self):
-        ax25client = kiss.Aioax25Client(self.config)
-        return ax25client
+        client = kiss.KISS3Client(self.config)
+        return client
 
 
 class ClientFactory:
@@ -223,7 +223,7 @@ class ClientFactory:
             elif KISSClient.is_enabled(self.config):
                 key = KISSClient.transport(self.config)
 
-        LOG.debug(f"GET client {key}")
+        LOG.debug(f"GET client '{key}'")
         builder = self._builders.get(key)
         if not builder:
             raise ValueError(key)

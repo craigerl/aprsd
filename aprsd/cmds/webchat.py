@@ -20,7 +20,6 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import wrapt
 
 import aprsd
-from aprsd import aprsd as aprsd_main
 from aprsd import cli_helper, client
 from aprsd import config as aprsd_config
 from aprsd import messaging, packets, stats, threads, utils
@@ -42,6 +41,25 @@ msg_queues = {
     "control": control_queue,
     "tx": tx_msg_queue,
 }
+
+
+def signal_handler(sig, frame):
+
+    click.echo("signal_handler: called")
+    LOG.info(
+        f"Ctrl+C, Sending all threads({len(threads.APRSDThreadList())}) exit! "
+        f"Can take up to 10 seconds {datetime.datetime.now()}",
+    )
+    threads.APRSDThreadList().stop_all()
+    if "subprocess" not in str(frame):
+        time.sleep(1.5)
+        # messaging.MsgTrack().save()
+        # packets.WatchList().save()
+        # packets.SeenList().save()
+        LOG.info(stats.APRSDStats())
+        LOG.info("Telling flask to bail.")
+        signal.signal(signal.SIGTERM, sys.exit(0))
+        sys.exit(0)
 
 
 class SentMessages(objectstore.ObjectStoreMixin):
@@ -123,10 +141,14 @@ def verify_password(username, password):
 
 
 class WebChatRXThread(rx.APRSDRXThread):
-    """Class that connects to aprsis and waits for messages."""
+    """Class that connects to aprsis/kiss and waits for messages."""
 
     def connected(self, connected=True):
         self.connected = connected
+
+    def stop(self):
+        self.thread_stop = True
+        client.factory.create().client.stop()
 
     def loop(self):
         # setup the consumer of messages and block until a messages
@@ -154,15 +176,10 @@ class WebChatRXThread(rx.APRSDRXThread):
             time.sleep(2)
 
         try:
-            # This will register a packet consumer with aprslib
             # When new packets come in the consumer will process
             # the packet
 
-            # Do a partial here because the consumer signature doesn't allow
-            # For kwargs to be passed in to the consumer func we declare
-            # and the aprslib developer didn't want to allow a PR to add
-            # kwargs.  :(
-            # https://github.com/rossengeorgiev/aprs-python/pull/56
+            # This call blocks until thread stop() is called.
             self._client.client.consumer(
                 self.process_packet, raw=False, blocking=False,
             )
@@ -177,12 +194,16 @@ class WebChatRXThread(rx.APRSDRXThread):
             # This will cause a reconnect, next time client.get_client()
             # is called
             self._client.reset()
-        # Continue to loop
-        time.sleep(1)
+            return True
         return True
 
     def process_packet(self, *args, **kwargs):
-        packet = self._client.decode_packet(*args, **kwargs)
+        # packet = self._client.decode_packet(*args, **kwargs)
+        if "packet" in kwargs:
+            packet = kwargs["packet"]
+        else:
+            packet = self._client.decode_packet(*args, **kwargs)
+
         LOG.debug(f"GOT Packet {packet}")
         self.msg_queues["rx"].put(packet)
 
@@ -404,8 +425,9 @@ class SendMessageNamespace(Namespace):
         msgs = SentMessages()
         msgs.add(msg)
         msgs.set_status(msg.id, "Sending")
+        obj = msgs.get(self.msg.id)
         socketio.emit(
-            "sent", SentMessages().get(self.msg.id),
+            "sent", obj,
             namespace="/sendmsg",
         )
         msg.send()
@@ -527,8 +549,8 @@ def webchat(ctx, flush, port):
     quiet = ctx.obj["quiet"]
     config = ctx.obj["config"]
 
-    signal.signal(signal.SIGINT, aprsd_main.signal_handler)
-    signal.signal(signal.SIGTERM, aprsd_main.signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     if not quiet:
         click.echo("Load config")
@@ -567,28 +589,29 @@ def webchat(ctx, flush, port):
     packets.WatchList(config=config)
     packets.SeenList(config=config)
 
-    aprsd_main.flask_enabled = True
     (socketio, app) = init_flask(config, loglevel, quiet)
     rx_thread = WebChatRXThread(
         msg_queues=msg_queues,
         config=config,
     )
-    LOG.warning("Start RX Thread")
+    LOG.info("Start RX Thread")
     rx_thread.start()
     tx_thread = WebChatTXThread(
         msg_queues=msg_queues,
         config=config,
         socketio=socketio,
     )
-    LOG.warning("Start TX Thread")
+    LOG.info("Start TX Thread")
     tx_thread.start()
 
     keepalive = threads.KeepAliveThread(config=config)
-    LOG.warning("Start KeepAliveThread")
+    LOG.info("Start KeepAliveThread")
     keepalive.start()
-    LOG.warning("Start socketio.run()")
+    LOG.info("Start socketio.run()")
     socketio.run(
         app,
         host=config["aprsd"]["web"]["host"],
         port=port,
     )
+
+    LOG.info("WebChat exiting!!!!  Bye.")

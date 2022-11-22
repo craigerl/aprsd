@@ -1,8 +1,8 @@
-aioax25>=0.0.10
 aprslib>=0.7.0
 click
 click-completion
-flask
+flask==2.1.2
+werkzeug==2.1.2
 flask-classful
 flask-httpauth
 imapclient
@@ -25,3 +25,6 @@ rich
 # For the list-plugins pypi.org search scraping
 beautifulsoup4
 wrapt
+# kiss3 uses attrs
+kiss3
+attrs==22.1.0
