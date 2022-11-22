@@ -3,6 +3,8 @@ import logging
 import threading
 import time
 
+import wrapt
+
 from aprsd import utils
 from aprsd.utils import objectstore
 
@@ -18,6 +20,7 @@ class PacketList:
     """Class to track all of the packets rx'd and tx'd by aprsd."""
 
     _instance = None
+    lock = threading.Lock()
     config = None
 
     packet_list = {}
@@ -29,7 +32,6 @@ class PacketList:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.packet_list = utils.RingBuffer(1000)
-            cls._instance.lock = threading.Lock()
             cls._instance.config = kwargs["config"]
         return cls._instance
 
@@ -37,47 +39,47 @@ class PacketList:
         if config:
             self.config = config
 
+    @wrapt.synchronized(lock)
     def __iter__(self):
-        with self.lock:
-            return iter(self.packet_list)
+        return iter(self.packet_list)
 
+    @wrapt.synchronized(lock)
     def add(self, packet):
-        with self.lock:
-            packet["ts"] = time.time()
-            if (
-                "fromcall" in packet
-                and packet["fromcall"] == self.config["aprs"]["login"]
-            ):
-                self.total_tx += 1
-            else:
-                self.total_recv += 1
-            self.packet_list.append(packet)
-            SeenList().update_seen(packet)
+        packet["ts"] = time.time()
+        if (
+            "fromcall" in packet
+            and packet["fromcall"] == self.config["aprs"]["login"]
+        ):
+            self.total_tx += 1
+        else:
+            self.total_recv += 1
+        self.packet_list.append(packet)
+        SeenList().update_seen(packet)
 
+    @wrapt.synchronized(lock)
     def get(self):
-        with self.lock:
-            return self.packet_list.get()
+        return self.packet_list.get()
 
+    @wrapt.synchronized(lock)
     def total_received(self):
-        with self.lock:
-            return self.total_recv
+        return self.total_recv
 
+    @wrapt.synchronized(lock)
     def total_sent(self):
-        with self.lock:
-            return self.total_tx
+        return self.total_tx
 
 
 class WatchList(objectstore.ObjectStoreMixin):
     """Global watch list and info for callsigns."""
 
     _instance = None
+    lock = threading.Lock()
     data = {}
     config = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.lock = threading.Lock()
             if "config" in kwargs:
                 cls._instance.config = kwargs["config"]
                 cls._instance._init_store()
@@ -112,12 +114,12 @@ class WatchList(objectstore.ObjectStoreMixin):
     def callsign_in_watchlist(self, callsign):
         return callsign in self.data
 
+    @wrapt.synchronized(lock)
     def update_seen(self, packet):
-        with self.lock:
-            callsign = packet["from"]
-            if self.callsign_in_watchlist(callsign):
-                self.data[callsign]["last"] = datetime.datetime.now()
-                self.data[callsign]["packets"].append(packet)
+        callsign = packet["from"]
+        if self.callsign_in_watchlist(callsign):
+            self.data[callsign]["last"] = datetime.datetime.now()
+            self.data[callsign]["packets"].append(packet)
 
     def last_seen(self, callsign):
         if self.callsign_in_watchlist(callsign):
@@ -160,19 +162,20 @@ class SeenList(objectstore.ObjectStoreMixin):
     """Global callsign seen list."""
 
     _instance = None
+    lock = threading.Lock()
     data = {}
     config = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.lock = threading.Lock()
             if "config" in kwargs:
                 cls._instance.config = kwargs["config"]
                 cls._instance._init_store()
             cls._instance.data = {}
         return cls._instance
 
+    @wrapt.synchronized(lock)
     def update_seen(self, packet):
         callsign = None
         if "fromcall" in packet:
