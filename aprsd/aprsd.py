@@ -70,7 +70,7 @@ def main():
         completion, dev, healthcheck, list_plugins, listen, send_message,
         server, webchat,
     )
-    cli()
+    cli(auto_envvar_prefix="APRSD")
 
 
 def signal_handler(sig, frame):
