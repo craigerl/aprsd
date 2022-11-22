@@ -25,7 +25,7 @@ docs: build
 	cp Changelog docs/changelog.rst
 	tox -edocs
 
-clean: clean-build clean-pyc clean-test ## remove all build, test, coverage and Python artifacts
+clean: clean-build clean-pyc clean-test clean-dev ## remove all build, test, coverage and Python artifacts
 
 clean-build: ## remove build artifacts
 	rm -fr build/
@@ -45,6 +45,9 @@ clean-test: ## remove test and coverage artifacts
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -fr .pytest_cache
+
+clean-dev:
+	rm -rf $(VENVDIR)
 
 test: dev  ## Run all the tox tests
 	tox -p all
@@ -73,5 +76,9 @@ docker-dev: test  ## Make a development docker container tagged with hemna6969/a
 	docker build -t hemna6969/aprsd:master -f docker/Dockerfile-dev docker
 
 update-requirements: dev  ## Update the requirements.txt and dev-requirements.txt files
+	rm requirements.txt
+	rm dev-requirements.txt
+	touch requirements.txt
+	touch dev-requirements.txt
 	$(VENV)/pip-compile requirements.in
 	$(VENV)/pip-compile dev-requirements.in
