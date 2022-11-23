@@ -14,10 +14,9 @@ from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import (
-    cli_helper, client, messaging, packets, stats, threads, trace, utils,
-)
+from aprsd import cli_helper, client, messaging, packets, stats, threads, utils
 from aprsd.aprsd import cli
+from aprsd.utils import trace
 
 
 # setup the global logger
@@ -140,19 +139,24 @@ def listen(
 
     # Creates the client object
     LOG.info("Creating client connection")
-    client.factory.create().client
-    aprs_client = client.factory.create().client
+    aprs_client = client.factory.create()
+    console.log(aprs_client)
 
     LOG.debug(f"Filter by '{filter}'")
-    aprs_client.set_filter(filter)
+    aprs_client.client.set_filter(filter)
+
+    packets.PacketList(config=config)
+
+    keepalive = threads.KeepAliveThread(config=config)
+    keepalive.start()
 
     while True:
         try:
             # This will register a packet consumer with aprslib
             # When new packets come in the consumer will process
             # the packet
-            with console.status("Listening for packets"):
-                aprs_client.consumer(rx_packet, raw=False)
+            # with console.status("Listening for packets"):
+            aprs_client.client.consumer(rx_packet, raw=False)
         except aprslib.exceptions.ConnectionDrop:
             LOG.error("Connection dropped, reconnecting")
             time.sleep(5)

@@ -492,4 +492,5 @@ class PluginManager:
         self._pluggy_pm.register(obj)
 
     def get_plugins(self):
-        return self._pluggy_pm.get_plugins()
+        if self._pluggy_pm:
+            return self._pluggy_pm.get_plugins()

@@ -1,6 +1,7 @@
 import logging
 
-from aprsd import messaging, packets, plugin, trace
+from aprsd import messaging, packets, plugin
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")

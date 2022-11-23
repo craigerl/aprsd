@@ -5,7 +5,7 @@ import queue
 import sys
 
 from aprsd import config as aprsd_config
-from aprsd.logging import logging as aprsd_logging
+from aprsd.logging import rich as aprsd_logging
 
 
 LOG = logging.getLogger("APRSD")

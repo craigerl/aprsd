@@ -2,7 +2,8 @@ import logging
 import shutil
 import subprocess
 
-from aprsd import plugin, trace
+from aprsd import plugin
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")

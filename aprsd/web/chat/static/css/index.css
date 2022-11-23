@@ -1,0 +1,94 @@
+body {
+    background: #eeeeee;
+    margin: 2em;
+    text-align: center;
+    font-family: system-ui, sans-serif;
+}
+
+footer {
+    padding: 2em;
+    text-align: center;
+    height: 10vh;
+}
+
+.ui.segment {
+    background: #eeeeee;
+}
+
+ul.list {
+  list-style-type: disc;
+}
+ul.list li {
+  list-style-position: outside;
+}
+
+#left {
+    margin-right: 2px;
+    height: 300px;
+}
+#right {
+    height: 300px;
+}
+#center {
+    height: 300px;
+}
+
+#title {
+    font-size: 4em;
+}
+#version{
+    font-size: .5em;
+}
+#uptime, #aprsis {
+    font-size: 1em;
+}
+#callsign {
+    font-size: 1.4em;
+    color: #00F;
+    padding-top: 8px;
+    margin:10px;
+}
+
+#title_rx {
+    background-color: darkseagreen;
+    text-align: left;
+}
+
+#title_tx {
+    background-color: lightcoral;
+    text-align: left;
+}
+
+.aprsd_1 {
+    background-image: url(/static/images/aprs-symbols-16-0.png);
+    background-repeat: no-repeat;
+    background-position: -160px -48px;
+    width: 16px;
+    height: 16px;
+}
+
+#msgsTabsDiv .ui.tab {
+   margin:0px;
+   padding:0px;
+   display: block;
+}
+
+#msgsTabsDiv .header, .tiny.text, .content, .break,
+  .thumbs.down.outline.icon,
+  .phone.volume.icon
+ {
+    display: inline-block;
+    float: left;
+    position: relative;
+}
+#msgsTabsDiv .tiny.text {
+  width:100px;
+}
+#msgsTabsDiv .tiny.header {
+  width:100px;
+  text-align: left;
+}
+#msgsTabsDiv .break {
+  margin: 2px;
+  text-align: left;
+}

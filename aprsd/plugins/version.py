@@ -1,7 +1,8 @@
 import logging
 
 import aprsd
-from aprsd import plugin, stats, trace
+from aprsd import plugin, stats
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")

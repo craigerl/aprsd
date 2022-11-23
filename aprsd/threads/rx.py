@@ -1,161 +1,14 @@
 import abc
-import datetime
 import logging
-import queue
-import threading
 import time
-import tracemalloc
 
 import aprslib
 
-from aprsd import client, messaging, packets, plugin, stats, utils
+from aprsd import client, messaging, packets, plugin, stats
+from aprsd.threads import APRSDThread
 
 
 LOG = logging.getLogger("APRSD")
-
-RX_THREAD = "RX"
-EMAIL_THREAD = "Email"
-
-rx_msg_queue = queue.Queue(maxsize=20)
-msg_queues = {
-    "rx": rx_msg_queue,
-}
-
-
-class APRSDThreadList:
-    """Singleton class that keeps track of application wide threads."""
-
-    _instance = None
-
-    threads_list = []
-    lock = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls.lock = threading.Lock()
-            cls.threads_list = []
-        return cls._instance
-
-    def add(self, thread_obj):
-        with self.lock:
-            self.threads_list.append(thread_obj)
-
-    def remove(self, thread_obj):
-        with self.lock:
-            self.threads_list.remove(thread_obj)
-
-    def stop_all(self):
-        """Iterate over all threads and call stop on them."""
-        with self.lock:
-            for th in self.threads_list:
-                LOG.debug(f"Stopping Thread {th.name}")
-                th.stop()
-
-    def __len__(self):
-        with self.lock:
-            return len(self.threads_list)
-
-
-class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
-    def __init__(self, name):
-        super().__init__(name=name)
-        self.thread_stop = False
-        APRSDThreadList().add(self)
-
-    def stop(self):
-        self.thread_stop = True
-
-    @abc.abstractmethod
-    def loop(self):
-        pass
-
-    def run(self):
-        LOG.debug("Starting")
-        while not self.thread_stop:
-            can_loop = self.loop()
-            if not can_loop:
-                self.stop()
-        APRSDThreadList().remove(self)
-        LOG.debug("Exiting")
-
-
-class KeepAliveThread(APRSDThread):
-    cntr = 0
-    checker_time = datetime.datetime.now()
-
-    def __init__(self, config):
-        tracemalloc.start()
-        super().__init__("KeepAlive")
-        self.config = config
-        max_timeout = {"hours": 0.0, "minutes": 2, "seconds": 0}
-        self.max_delta = datetime.timedelta(**max_timeout)
-
-    def loop(self):
-        if self.cntr % 60 == 0:
-            tracker = messaging.MsgTrack()
-            stats_obj = stats.APRSDStats()
-            pl = packets.PacketList()
-            thread_list = APRSDThreadList()
-            now = datetime.datetime.now()
-            last_email = stats_obj.email_thread_time
-            if last_email:
-                email_thread_time = utils.strfdelta(now - last_email)
-            else:
-                email_thread_time = "N/A"
-
-            last_msg_time = utils.strfdelta(now - stats_obj.aprsis_keepalive)
-
-            current, peak = tracemalloc.get_traced_memory()
-            stats_obj.set_memory(current)
-            stats_obj.set_memory_peak(peak)
-
-            try:
-                login = self.config["aprs"]["login"]
-            except KeyError:
-                login = self.config["ham"]["callsign"]
-
-            keepalive = (
-                "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
-                "Last:{} Email: {} - RAM Current:{} Peak:{} Threads:{}"
-            ).format(
-                login,
-                utils.strfdelta(stats_obj.uptime),
-                pl.total_recv,
-                pl.total_tx,
-                len(tracker),
-                stats_obj.msgs_tx,
-                stats_obj.msgs_rx,
-                last_msg_time,
-                email_thread_time,
-                utils.human_size(current),
-                utils.human_size(peak),
-                len(thread_list),
-            )
-            LOG.info(keepalive)
-
-            # See if we should reset the aprs-is client
-            # Due to losing a keepalive from them
-            delta_dict = utils.parse_delta_str(last_msg_time)
-            delta = datetime.timedelta(**delta_dict)
-
-            if delta > self.max_delta:
-                #  We haven't gotten a keepalive from aprs-is in a while
-                # reset the connection.a
-                if not client.KISSClient.is_enabled(self.config):
-                    LOG.warning("Resetting connection to APRS-IS.")
-                    client.factory.create().reset()
-
-            # Check version every hour
-            delta = now - self.checker_time
-            if delta > datetime.timedelta(hours=1):
-                self.checker_time = now
-                level, msg = utils._check_version()
-                if level:
-                    LOG.warning(msg)
-        self.cntr += 1
-        time.sleep(1)
-        return True
 
 
 class APRSDRXThread(APRSDThread):
@@ -186,7 +39,10 @@ class APRSDRXThread(APRSDThread):
                 self.process_packet, raw=False, blocking=False,
             )
 
-        except aprslib.exceptions.ConnectionDrop:
+        except (
+            aprslib.exceptions.ConnectionDrop,
+            aprslib.exceptions.ConnectionError,
+        ):
             LOG.error("Connection dropped, reconnecting")
             time.sleep(5)
             # Force the deletion of the client object connected to aprs
@@ -196,6 +52,12 @@ class APRSDRXThread(APRSDThread):
         # Continue to loop
         return True
 
+    @abc.abstractmethod
+    def process_packet(self, *args, **kwargs):
+        pass
+
+
+class APRSDPluginRXThread(APRSDRXThread):
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
         thread = APRSDProcessPacketThread(packet=packet, config=self.config)
@@ -239,7 +101,7 @@ class APRSDProcessPacketThread(APRSDThread):
 
         # We don't put ack packets destined for us through the
         # plugins.
-        if tocall == self.config["aprs"]["login"] and msg_response == "ack":
+        if tocall == self.config["aprsd"]["callsign"] and msg_response == "ack":
             self.process_ack_packet(packet)
         else:
             # It's not an ACK for us, so lets run it through
@@ -253,12 +115,12 @@ class APRSDProcessPacketThread(APRSDThread):
             )
 
             # Only ack messages that were sent directly to us
-            if tocall == self.config["aprs"]["login"]:
+            if tocall == self.config["aprsd"]["callsign"]:
                 stats.APRSDStats().msgs_rx_inc()
                 # let any threads do their thing, then ack
                 # send an ack last
                 ack = messaging.AckMessage(
-                    self.config["aprs"]["login"],
+                    self.config["aprsd"]["callsign"],
                     fromcall,
                     msg_id=msg_id,
                 )
@@ -280,7 +142,7 @@ class APRSDProcessPacketThread(APRSDThread):
                                 subreply.send()
                             else:
                                 msg = messaging.TextMessage(
-                                    self.config["aprs"]["login"],
+                                    self.config["aprsd"]["callsign"],
                                     fromcall,
                                     subreply,
                                 )
@@ -300,7 +162,7 @@ class APRSDProcessPacketThread(APRSDThread):
                             LOG.debug(f"Sending '{reply}'")
 
                             msg = messaging.TextMessage(
-                                self.config["aprs"]["login"],
+                                self.config["aprsd"]["callsign"],
                                 fromcall,
                                 reply,
                             )
@@ -308,10 +170,10 @@ class APRSDProcessPacketThread(APRSDThread):
 
                 # If the message was for us and we didn't have a
                 # response, then we send a usage statement.
-                if tocall == self.config["aprs"]["login"] and not replied:
+                if tocall == self.config["aprsd"]["callsign"] and not replied:
                     LOG.warning("Sending help!")
                     msg = messaging.TextMessage(
-                        self.config["aprs"]["login"],
+                        self.config["aprsd"]["callsign"],
                         fromcall,
                         "Unknown command! Send 'help' message for help",
                     )
@@ -320,10 +182,10 @@ class APRSDProcessPacketThread(APRSDThread):
                 LOG.error("Plugin failed!!!")
                 LOG.exception(ex)
                 # Do we need to send a reply?
-                if tocall == self.config["aprs"]["login"]:
+                if tocall == self.config["aprsd"]["callsign"]:
                     reply = "A Plugin failed! try again?"
                     msg = messaging.TextMessage(
-                        self.config["aprs"]["login"],
+                        self.config["aprsd"]["callsign"],
                         fromcall,
                         reply,
                     )

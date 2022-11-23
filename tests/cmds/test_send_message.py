@@ -15,7 +15,10 @@ F = t.TypeVar("F", bound=t.Callable[..., t.Any])
 class TestSendMessageCommand(unittest.TestCase):
 
     def _build_config(self, login=None, password=None):
-        config = {"aprs": {}}
+        config = {
+            "aprs": {},
+            "aprsd": {"trace": False},
+        }
         if login:
             config["aprs"]["login"] = login
 
@@ -25,7 +28,7 @@ class TestSendMessageCommand(unittest.TestCase):
         return aprsd_config.Config(config)
 
     @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.log.setup_logging")
+    @mock.patch("aprsd.logging.log.setup_logging")
     def test_no_login(self, mock_logging, mock_parse_config):
         """Make sure we get an error if there is no login and config."""
 
@@ -43,7 +46,7 @@ class TestSendMessageCommand(unittest.TestCase):
         assert "Must set --aprs_login or APRS_LOGIN" in result.output
 
     @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.log.setup_logging")
+    @mock.patch("aprsd.logging.log.setup_logging")
     def test_no_password(self, mock_logging, mock_parse_config):
         """Make sure we get an error if there is no password and config."""
 
@@ -58,7 +61,7 @@ class TestSendMessageCommand(unittest.TestCase):
         assert "Must set --aprs-password or APRS_PASSWORD" in result.output
 
     @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.log.setup_logging")
+    @mock.patch("aprsd.logging.log.setup_logging")
     def test_no_tocallsign(self, mock_logging, mock_parse_config):
         """Make sure we get an error if there is no tocallsign."""
 
@@ -76,7 +79,7 @@ class TestSendMessageCommand(unittest.TestCase):
         assert "Error: Missing argument 'TOCALLSIGN'" in result.output
 
     @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.log.setup_logging")
+    @mock.patch("aprsd.logging.log.setup_logging")
     def test_no_command(self, mock_logging, mock_parse_config):
         """Make sure we get an error if there is no command."""
 

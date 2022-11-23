@@ -68,9 +68,9 @@ def main():
     # The commands themselves live in the cmds directory
     from .cmds import (  # noqa
         completion, dev, healthcheck, list_plugins, listen, send_message,
-        server,
+        server, webchat,
     )
-    cli()
+    cli(auto_envvar_prefix="APRSD")
 
 
 def signal_handler(sig, frame):

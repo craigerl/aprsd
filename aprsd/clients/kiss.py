@@ -1,20 +1,19 @@
-import asyncio
 import logging
 
-from aioax25 import interface
-from aioax25 import kiss as kiss
-from aioax25.aprs import APRSInterface
+import aprslib
+from ax253 import Frame
+import kiss
+
+from aprsd import messaging
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")
 
 
-class Aioax25Client:
+class KISS3Client:
     def __init__(self, config):
         self.config = config
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        self.loop = asyncio.get_event_loop()
         self.setup()
 
     def setup(self):
@@ -24,71 +23,89 @@ class Aioax25Client:
             False,
         ):
             LOG.debug(
-                "Setting up Serial KISS connection to {}".format(
+                "KISS({}) Serial connection to {}".format(
+                    kiss.__version__,
                     self.config["kiss"]["serial"]["device"],
                 ),
             )
-            self.kissdev = kiss.SerialKISSDevice(
-                device=self.config["kiss"]["serial"]["device"],
-                baudrate=self.config["kiss"]["serial"].get("baudrate", 9600),
-                loop=self.loop,
+            self.kiss = kiss.SerialKISS(
+                port=self.config["kiss"]["serial"]["device"],
+                speed=self.config["kiss"]["serial"].get("baudrate", 9600),
+                strip_df_start=True,
             )
         elif "tcp" in self.config["kiss"] and self.config["kiss"]["tcp"].get(
             "enabled",
             False,
         ):
             LOG.debug(
-                "Setting up KISSTCP Connection to {}:{}".format(
+                "KISS({}) TCP Connection to {}:{}".format(
+                    kiss.__version__,
                     self.config["kiss"]["tcp"]["host"],
                     self.config["kiss"]["tcp"]["port"],
                 ),
             )
-            self.kissdev = kiss.TCPKISSDevice(
-                self.config["kiss"]["tcp"]["host"],
-                self.config["kiss"]["tcp"]["port"],
-                loop=self.loop,
-                log=LOG,
+            self.kiss = kiss.TCPKISS(
+                host=self.config["kiss"]["tcp"]["host"],
+                port=int(self.config["kiss"]["tcp"]["port"]),
+                strip_df_start=True,
             )
 
-        self.kissdev.open()
-        self.kissport0 = self.kissdev[0]
+        LOG.debug("Starting KISS interface connection")
+        self.kiss.start()
 
-        LOG.debug("Creating AX25Interface")
-        self.ax25int = interface.AX25Interface(kissport=self.kissport0, loop=self.loop)
-
-        LOG.debug("Creating APRSInterface")
-        self.aprsint = APRSInterface(
-            ax25int=self.ax25int,
-            mycall=self.config["kiss"]["callsign"],
-            log=LOG,
-        )
-
+    @trace.trace
     def stop(self):
-        LOG.debug(self.kissdev)
-        self.kissdev._close()
-        self.loop.stop()
+        try:
+            self.kiss.stop()
+            self.kiss.loop.call_soon_threadsafe(
+                self.kiss.protocol.transport.close,
+            )
+        except Exception as ex:
+            LOG.exception(ex)
 
     def set_filter(self, filter):
         # This does nothing right now.
         pass
 
-    def consumer(self, callback, blocking=True, immortal=False, raw=False):
-        callsign = self.config["kiss"]["callsign"]
-        call = callsign.split("-")
-        if len(call) > 1:
-            callsign = call[0]
-            ssid = int(call[1])
-        else:
-            ssid = 0
-        self.aprsint.bind(callback=callback, callsign=callsign, ssid=ssid, regex=False)
-        self.loop.run_forever()
+    def parse_frame(self, frame_bytes):
+        frame = Frame.from_bytes(frame_bytes)
+        # Now parse it with aprslib
+        packet = aprslib.parse(str(frame))
+        kwargs = {
+            "frame": str(frame),
+            "packet": packet,
+        }
+        self._parse_callback(**kwargs)
+
+    def consumer(self, callback, blocking=False, immortal=False, raw=False):
+        LOG.debug("Start blocking KISS consumer")
+        self._parse_callback = callback
+        self.kiss.read(callback=self.parse_frame, min_frames=None)
+        LOG.debug("END blocking KISS consumer")
 
     def send(self, msg):
         """Send an APRS Message object."""
-        payload = f"{msg._filter_for_send()}"
-        self.aprsint.send_message(
-            addressee=msg.tocall,
-            message=payload,
+
+        # payload = (':%-9s:%s' % (
+        #     msg.tocall,
+        #     payload
+        # )).encode('US-ASCII'),
+        # payload = str(msg).encode('US-ASCII')
+        if isinstance(msg, messaging.AckMessage):
+            msg_payload = f"ack{msg.id}"
+        else:
+            msg_payload = f"{msg.message}{{{str(msg.id)}"
+        payload = (
+            ":{:<9}:{}".format(
+                msg.tocall,
+                msg_payload,
+            )
+        ).encode("US-ASCII")
+        LOG.debug(f"Send '{payload}' TO KISS")
+        frame = Frame.ui(
+            destination=msg.tocall,
+            source=msg.fromcall,
             path=["WIDE1-1", "WIDE2-1"],
-            oneshot=True,
+            info=payload,
         )
+        self.kiss.write(frame)

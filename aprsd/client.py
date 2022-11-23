@@ -6,8 +6,9 @@ import aprslib
 from aprslib.exceptions import LoginError
 
 from aprsd import config as aprsd_config
-from aprsd import exception, trace
+from aprsd import exception
 from aprsd.clients import aprsis, kiss
+from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -51,7 +52,8 @@ class Client:
 
     def reset(self):
         """Call this to force a rebuild/reconnect."""
-        del self._client
+        if self._client:
+            del self._client
 
     @abc.abstractmethod
     def setup_connection(self):
@@ -129,6 +131,7 @@ class APRSISClient(Client):
                 backoff = backoff * 2
                 continue
         LOG.debug(f"Logging in to APRS-IS with user '{user}'")
+        self._client = aprs_client
         return aprs_client
 
 
@@ -153,8 +156,8 @@ class KISSClient(Client):
         # Ensure that the config vars are correctly set
         if KISSClient.is_enabled(config):
             config.check_option(
-                "kiss.callsign",
-                default_fail=aprsd_config.DEFAULT_CONFIG_DICT["kiss"]["callsign"],
+                "aprsd.callsign",
+                default_fail=aprsd_config.DEFAULT_CONFIG_DICT["aprsd"]["callsign"],
             )
             transport = KISSClient.transport(config)
             if transport == TRANSPORT_SERIALKISS:
@@ -192,8 +195,8 @@ class KISSClient(Client):
 
     @trace.trace
     def setup_connection(self):
-        ax25client = kiss.Aioax25Client(self.config)
-        return ax25client
+        client = kiss.KISS3Client(self.config)
+        return client
 
 
 class ClientFactory:
@@ -220,7 +223,7 @@ class ClientFactory:
             elif KISSClient.is_enabled(self.config):
                 key = KISSClient.transport(self.config)
 
-        LOG.debug(f"GET client {key}")
+        LOG.debug(f"GET client '{key}'")
         builder = self._builders.get(key)
         if not builder:
             raise ValueError(key)
