@@ -6,14 +6,12 @@ werkzeug==2.1.2
 flask-classful
 flask-httpauth
 imapclient
-opencage
 pluggy
 pbr
 pyyaml
 # Allowing a newer version can lead to a conflict with
 # requests.
 py3-validate-email
-pytz
 requests
 six
 thesmuggler

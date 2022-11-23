@@ -36,7 +36,7 @@ iniconfig==1.1.1          # via pytest
 isort==5.10.1             # via -r dev-requirements.in, gray
 jaraco.classes==3.2.3     # via keyring
 jinja2==3.1.2             # via sphinx
-jsonschema==4.17.0        # via fixit
+jsonschema==4.17.1        # via fixit
 keyring==23.11.0          # via twine
 libcst==0.4.9             # via fixit
 markupsafe==2.1.1         # via jinja2
