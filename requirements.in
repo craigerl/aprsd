@@ -13,6 +13,7 @@ pyyaml
 # requests.
 py3-validate-email
 requests
+pytz
 six
 thesmuggler
 update_checker

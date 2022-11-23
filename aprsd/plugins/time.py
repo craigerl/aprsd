@@ -2,6 +2,8 @@ import logging
 import re
 import time
 
+import pytz
+
 from aprsd import plugin, plugin_utils
 from aprsd.utils import fuzzy, trace
 
