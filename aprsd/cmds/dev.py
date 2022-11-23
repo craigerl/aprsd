@@ -8,7 +8,7 @@ import logging
 import click
 
 # local imports here
-from aprsd import cli_helper, client, messaging, packets, plugin, stats
+from aprsd import cli_helper, client, messaging, packets, plugin, stats, utils
 from aprsd.aprsd import cli
 from aprsd.utils import trace
 
@@ -69,6 +69,14 @@ def test_plugin(
 ):
     """Test an individual APRSD plugin given a python path."""
     config = ctx.obj["config"]
+
+    flat_config = utils.flatten_dict(config)
+    LOG.info("Using CONFIG values:")
+    for x in flat_config:
+        if "password" in x or "aprsd.web.users.admin" in x:
+            LOG.info(f"{x} = XXXXXXXXXXXXXXXXXXX")
+        else:
+            LOG.info(f"{x} = {flat_config[x]}")
 
     if not aprs_login:
         if not config.exists("aprs.login"):
