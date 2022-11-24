@@ -1,11 +1,11 @@
 var cleared = false;
 var callsign_list = {};
 var message_list = {};
+const socket = io("/sendmsg");
 
 function size_dict(d){c=0; for (i in d) ++c; return c}
 
 function init_chat() {
-   const socket = io("/sendmsg");
    socket.on('connect', function () {
        console.log("Connected to socketio");
    });
@@ -44,6 +44,54 @@ function init_chat() {
        socket.emit("send", msg);
        $('#message').val('');
    });
+
+   $("#send_beacon").click(function() {
+       console.log("Send a beacon!")
+       getLocation();
+   });
+}
+
+function getLocation() {
+    if (navigator.geolocation) {
+        console.log("getCurrentPosition");
+        navigator.geolocation.getCurrentPosition(showPosition, showError);
+    } else {
+        var msg = "Geolocation is not supported by this browser."
+        console.log(msg);
+        alert(msg)
+    }
+}
+
+function showError(error) {
+    console.log("showError");
+    console.log(error);
+    var msg = "";
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          msg = "User denied the request for Geolocation."
+          break;
+        case error.POSITION_UNAVAILABLE:
+          msg = "Location information is unavailable."
+          break;
+        case error.TIMEOUT:
+          msg = "The request to get user location timed out."
+          break;
+        case error.UNKNOWN_ERROR:
+          msg = "An unknown error occurred."
+          break;
+      }
+      console.log(msg);
+      alert(msg);
+}
+
+function showPosition(position) {
+  console.log("showPosition Called");
+  msg = {
+      'latitude': position.coords.latitude,
+      'longitude': position.coords.longitude
+  }
+  console.log(msg);
+  socket.emit("gps", msg);
 }
 
 
