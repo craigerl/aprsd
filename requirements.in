@@ -9,9 +9,6 @@ imapclient
 pluggy
 pbr
 pyyaml
-# Allowing a newer version can lead to a conflict with
-# requests.
-py3-validate-email
 requests
 pytz
 six
