@@ -2,14 +2,14 @@
 FROM ubuntu:focal as aprsd
 
 # Dockerfile for building a container during aprsd development.
-ARG branch
+ARG BRANCH=master
 ARG UID
 ARG GID
 
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
 ENV APRSD=http://github.com/craigerl/aprsd.git
-ENV APRSD_BRANCH=${branch:-master}
+ENV APRSD_BRANCH=${BRANCH:-master}
 ENV VIRTUAL_ENV=$HOME/.venv3
 ENV UID=${UID:-1000}
 ENV GID=${GID:-1000}
@@ -40,7 +40,7 @@ RUN cat $HOME/.bashrc
 USER root
 WORKDIR $HOME
 RUN mkdir $INSTALL
-RUN git clone -b $APRSD_BRANCH $APRSD $INSTALL/aprsd
+RUN git clone -b $BRANCH $APRSD $INSTALL/aprsd
 RUN    cd $INSTALL/aprsd && pip3 install -v .
 RUN ls -al /usr/local/bin
 RUN ls -al /usr/bin

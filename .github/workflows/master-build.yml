@@ -51,9 +51,9 @@ jobs:
     - name: Build the Docker image
       uses: docker/build-push-action@v3
       with:
-        context: ./docker
+        context: "{{defaultContext}}:docker"
         platforms: linux/amd64,linux/arm64,linux/arm/v7
-        file: Dockerfile-dev
+        file: ./Dockerfile-dev
         build-args: |
             BRANCH=${{ steps.branch-name.outputs.current_branch }}
         push: true
