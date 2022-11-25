@@ -1,8 +1,16 @@
 name: Test and Build Latest Container Image
 
 on:
+  schedule:
+      - cron: "0 10 * * *"
   push:
-    branches: [ "master" ]
+    branches:
+      - "**"
+    tags:
+      - "v*.*.*"
+  pull_request:
+      branches:
+        - "master"
 
 jobs:
   tox:
@@ -45,6 +53,9 @@ jobs:
       with:
         context: ./docker
         platforms: linux/amd64,linux/arm64,linux/arm/v7
+        file: Dockerfile-dev
+        build-args: |
+            BRANCH=${{ steps.branch-name.outputs.current_branch }}
         push: true
         tags: |
           hemna6969/aprsd:${{ steps.branch-name.outputs.current_branch }}
