@@ -9,7 +9,6 @@ import threading
 import time
 
 import imapclient
-from validate_email import validate_email
 
 from aprsd import messaging, plugin, stats, threads
 from aprsd.utils import trace
@@ -73,15 +72,8 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
         """Ensure that email is enabled and start the thread."""
 
         email_enabled = self.config["aprsd"]["email"].get("enabled", False)
-        validation = self.config["aprsd"]["email"].get("validate", False)
-
         if email_enabled:
-            valid = validate_email_config(self.config, validation)
-            if not valid:
-                LOG.error("Failed to validate email config options.")
-                LOG.error("EmailPlugin DISABLED!!!!")
-            else:
-                self.enabled = True
+            self.enabled = True
         else:
             LOG.info("Email services not enabled.")
 
@@ -266,47 +258,6 @@ def _smtp_connect(config):
     return server
 
 
-def validate_shortcuts(config):
-    shortcuts = config["aprsd"]["email"].get("shortcuts", None)
-    if not shortcuts:
-        return
-
-    LOG.info(
-        "Validating {} Email shortcuts. This can take up to 10 seconds"
-        " per shortcut".format(len(shortcuts)),
-    )
-    delete_keys = []
-    for key in shortcuts:
-        LOG.info(f"Validating {key}:{shortcuts[key]}")
-        is_valid = validate_email(
-            email_address=shortcuts[key],
-            check_format=True,
-            check_dns=True,
-            check_smtp=True,
-            smtp_from_address=config["aprsd"]["email"]["smtp"]["login"],
-            smtp_helo_host=config["aprsd"]["email"]["smtp"]["host"],
-            smtp_timeout=10,
-            dns_timeout=10,
-            smtp_debug=False,
-        )
-        if not is_valid:
-            LOG.error(
-                "'{}' is an invalid email address. Removing shortcut".format(
-                    shortcuts[key],
-                ),
-            )
-            delete_keys.append(key)
-
-    for key in delete_keys:
-        del config["aprsd"]["email"]["shortcuts"][key]
-
-    LOG.info(
-        "Available shortcuts: {}".format(
-            config["aprsd"]["email"]["shortcuts"],
-        ),
-    )
-
-
 def get_email_from_shortcut(config, addr):
     if config["aprsd"]["email"].get("shortcuts", False):
         return config["aprsd"]["email"]["shortcuts"].get(addr, addr)
@@ -323,12 +274,6 @@ def validate_email_config(config, disable_validation=False):
     imap_server = _imap_connect(config)
     LOG.info("Checking SMTP configuration")
     smtp_server = _smtp_connect(config)
-
-    # Now validate and flag any shortcuts as invalid
-    if not disable_validation:
-        validate_shortcuts(config)
-    else:
-        LOG.info("Shortcuts email validation is Disabled!!, you were warned.")
 
     if imap_server and smtp_server:
         return True

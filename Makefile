@@ -80,5 +80,5 @@ update-requirements: dev  ## Update the requirements.txt and dev-requirements.tx
 	rm dev-requirements.txt
 	touch requirements.txt
 	touch dev-requirements.txt
-	$(VENV)/pip-compile requirements.in
-	$(VENV)/pip-compile dev-requirements.in
+	$(VENV)/pip-compile --resolver backtracking --annotation-style line requirements.in
+	$(VENV)/pip-compile --resolver backtracking --annotation-style line dev-requirements.in

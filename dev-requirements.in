@@ -6,9 +6,10 @@ Sphinx
 tox
 twine
 pre-commit
-pip-tools
 pytest
 pytest-cov
 gray
-pip==22.0.4
-pip-tools==5.4.0
+#pip==22.0.4
+pip
+#pip-tools==5.4.0
+pip-tools
