@@ -38,7 +38,7 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         context: "{{defaultContext}}:docker"
-        platforms: linux/amd64,linux/arm64,linux/arm/v7
+        platforms: linux/amd64,linux/arm64
         file: ./Dockerfile
         build-args: |
             APRSD_VERSION=${{ inputs.aprsd_version }}
