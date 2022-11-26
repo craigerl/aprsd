@@ -6,6 +6,7 @@ FROM ubuntu:focal as aprsd
 ARG UID
 ARG GID
 ARG TZ
+ARG APRSD_VERSION=2.5.9
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
 ENV TZ=${TZ:-US/Eastern}
@@ -13,6 +14,8 @@ ENV UID=${UID:-1000}
 ENV GID=${GID:-1000}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
+ENV APRSD_PIP_VERSION=${APRSD_VERSION}
+
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update
@@ -24,7 +27,7 @@ RUN addgroup --gid $GID $APRS_USER
 RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
 
 # Install aprsd
-RUN pip install aprsd
+RUN pip install aprsd==$APRSD_PIP_VERSION
 
 # Ensure /config is there with a default config file
 USER root
