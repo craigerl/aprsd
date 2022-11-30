@@ -114,6 +114,7 @@ def server(ctx, flush):
         (socketio, app) = flask.init_flask(config, loglevel, quiet)
         socketio.run(
             app,
+            allow_unsafe_werkzeug=True,
             host=config["aprsd"]["web"]["host"],
             port=config["aprsd"]["web"]["port"],
         )
