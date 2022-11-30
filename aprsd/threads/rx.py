@@ -115,7 +115,7 @@ class APRSDProcessPacketThread(APRSDThread):
             )
 
             # Only ack messages that were sent directly to us
-            if tocall == self.config["aprsd"]["callsign"]:
+            if (tocall.lower() == self.config["aprsd"]["callsign"].lower()):
                 stats.APRSDStats().msgs_rx_inc()
                 # let any threads do their thing, then ack
                 # send an ack last
