@@ -358,7 +358,7 @@ class WebChatFlask(flask_classful.FlaskView):
             html_template = "index.html"
 
         # For development
-        # html_template = "mobile.html"
+        html_template = "mobile.html"
 
         LOG.debug(f"Template {html_template}")
 
@@ -443,7 +443,7 @@ class SendMessageNamespace(Namespace):
         data["from"] = self._config["aprs"]["login"]
         msg = messaging.TextMessage(
             data["from"],
-            data["to"],
+            data["to"].upper(),
             data["message"],
         )
         self.msg = msg

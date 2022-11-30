@@ -45,55 +45,8 @@ function init_chat() {
        $('#message').val('');
    });
 
-   $("#send_beacon").click(function() {
-       console.log("Send a beacon!")
-       getLocation();
-   });
+   init_gps();
 }
-
-function getLocation() {
-    if (navigator.geolocation) {
-        console.log("getCurrentPosition");
-        navigator.geolocation.getCurrentPosition(showPosition, showError);
-    } else {
-        var msg = "Geolocation is not supported by this browser."
-        console.log(msg);
-        alert(msg)
-    }
-}
-
-function showError(error) {
-    console.log("showError");
-    console.log(error);
-    var msg = "";
-      switch(error.code) {
-        case error.PERMISSION_DENIED:
-          msg = "User denied the request for Geolocation."
-          break;
-        case error.POSITION_UNAVAILABLE:
-          msg = "Location information is unavailable."
-          break;
-        case error.TIMEOUT:
-          msg = "The request to get user location timed out."
-          break;
-        case error.UNKNOWN_ERROR:
-          msg = "An unknown error occurred."
-          break;
-      }
-      console.log(msg);
-      alert(msg);
-}
-
-function showPosition(position) {
-  console.log("showPosition Called");
-  msg = {
-      'latitude': position.coords.latitude,
-      'longitude': position.coords.longitude
-  }
-  console.log(msg);
-  socket.emit("gps", msg);
-}
-
 
 function add_callsign(callsign) {
    /* Ensure a callsign exists in the left hand nav */

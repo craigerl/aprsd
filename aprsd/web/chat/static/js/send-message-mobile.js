@@ -38,13 +38,15 @@ function init_chat() {
 
    $("#sendform").submit(function(event) {
        event.preventDefault();
-       msg = {'to': $('#to_call').val(),
+       msg = {'to': $('#to_call').val().toUpperCase(),
               'message': $('#message').val(),
               }
        socket.emit("send", msg);
        $('#message').val('');
        $('#to_call').val('');
    });
+
+   init_gps();
 }
 
 
@@ -76,16 +78,16 @@ function append_message(callsign, msg, msg_html) {
        message_list[callsign] = new Array();
   }
   message_list[callsign].push(msg);
+
+  // Find the right div to place the html
+  new_callsign = add_callsign(callsign);
+  append_message_html(callsign, msg_html, new_callsign);
   if (new_callsign) {
       //click on the new tab
       click_div = '#'+tab_string(callsign);
       console.log("Click on "+click_div);
       $(click_div).click();
   }
-
-  // Find the right div to place the html
-  new_callsign = add_callsign(callsign);
-  append_message_html(callsign, msg_html, new_callsign);
 }
 
 function tab_string(callsign) {
