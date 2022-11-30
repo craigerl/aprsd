@@ -11,6 +11,7 @@ import time
 import aprslib
 from aprslib import util as aprslib_util
 import click
+from device_detector import DeviceDetector
 import flask
 from flask import request
 from flask.logging import default_handler
@@ -258,9 +259,12 @@ class WebChatTXThread(aprsd_thread.APRSDThread):
         msg_id = packet.get("msgNo", "0")
         msg_response = packet.get("response", None)
 
-        if tocall == self.config["aprsd"]["callsign"] and msg_response == "ack":
+        if (
+            tocall.lower() == self.config["aprsd"]["callsign"].lower()
+            and msg_response == "ack"
+        ):
             self.process_ack_packet(packet)
-        elif tocall == self.config["aprsd"]["callsign"]:
+        elif tocall.lower() == self.config["aprsd"]["callsign"].lower():
             messaging.log_message(
                 "Received Message",
                 packet["raw"],
@@ -312,10 +316,7 @@ class WebChatFlask(flask_classful.FlaskView):
 
         users = self.users
 
-    @auth.login_required
-    def index(self):
-        stats = self._stats()
-
+    def _get_transport(self, stats):
         if self.config["aprs"].get("enabled", True):
             transport = "aprs-is"
             aprs_connection = (
@@ -341,12 +342,35 @@ class WebChatFlask(flask_classful.FlaskView):
                         )
                     )
 
+        return transport, aprs_connection
+
+    @auth.login_required
+    def index(self):
+        user_agent = request.headers.get("User-Agent")
+        device = DeviceDetector(user_agent).parse()
+        LOG.debug(f"Device type {device.device_type()}")
+        LOG.debug(f"Is mobile? {device.is_mobile()}")
+        stats = self._stats()
+
+        if device.is_mobile():
+            html_template = "mobile.html"
+        else:
+            html_template = "index.html"
+
+        # For development
+        # html_template = "mobile.html"
+
+        LOG.debug(f"Template {html_template}")
+
+        transport, aprs_connection = self._get_transport(stats)
+        LOG.debug(f"transport {transport} aprs_connection {aprs_connection}")
+
         stats["transport"] = transport
         stats["aprs_connection"] = aprs_connection
         LOG.debug(f"initial stats = {stats}")
 
         return flask.render_template(
-            "index.html",
+            html_template,
             initial_stats=stats,
             aprs_connection=aprs_connection,
             callsign=self.config["aprsd"]["callsign"],

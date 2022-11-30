@@ -88,7 +88,7 @@ class APRSDProcessPacketThread(APRSDThread):
         return
 
     def loop(self):
-        """Process a packet recieved from aprs-is server."""
+        """Process a packet received from aprs-is server."""
         packet = self.packet
         packets.PacketList().add(packet)
 
@@ -101,7 +101,10 @@ class APRSDProcessPacketThread(APRSDThread):
 
         # We don't put ack packets destined for us through the
         # plugins.
-        if tocall == self.config["aprsd"]["callsign"] and msg_response == "ack":
+        if (
+            tocall.lower() == self.config["aprsd"]["callsign"].lower()
+            and msg_response == "ack"
+        ):
             self.process_ack_packet(packet)
         else:
             # It's not an ACK for us, so lets run it through

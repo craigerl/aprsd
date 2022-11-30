@@ -1,19 +1,17 @@
 <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
         <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
         <script src="https://cdn.socket.io/4.1.2/socket.io.min.js" integrity="sha384-toS6mmwu70G0fw54EGlWWeA4z3dyJ+dlXBtSURSKN4vyRFOcxd3Bzjj/AoOwY+Rg" crossorigin="anonymous"></script>
 
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.9.0/semantic.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.9.0/semantic.min.js"></script>
 
         <link rel="stylesheet" href="/static/css/index.css">
-        <link rel="stylesheet" href="/static/css/tabs.css">
         <script src="/static/js/main.js"></script>
-        <script src="/static/js/send-message.js"></script>
-
+        <script src="/static/js/send-message-mobile.js"></script>
 
         <script type="text/javascript">
             var initial_stats = {{ initial_stats|tojson|safe }};
@@ -25,7 +23,6 @@
                 console.log(initial_stats);
                 start_update();
                 init_chat();
-                reset_Tabs();
             });
         </script>
     </head>
@@ -35,8 +32,8 @@
             <h1 class='ui dividing header'>APRSD WebChat {{ version }}</h1>
         </div>
 
-        <div class='ui grid text container'>
-            <div class='left floated ten wide column'>
+        <div class='ui grid text container' style="padding-bottom: 5px;">
+            <div class='left floated twelve wide column'>
                 <span style='color: green'>{{ callsign }}</span>
                 connected to
                 <span style='color: blue' id='aprs_connection'>{{ aprs_connection|safe }}</span>
@@ -47,32 +44,30 @@
             </div>
         </div>
 
-        <div class="ui container">
-            <h3 class="ui dividing header">Send Message</h3>
-            <div id="sendMsgDiv" class="ui mini text">
-                <form id="sendform" name="sendmsg" action="">
-                    <div class="ui corner labeled input">
-                        <label for="to_call" class="ui label">Callsign</label>
+        <div id="sendMsgDiv" class="ui grid" align="left" style="padding-top: 2px;">
+            <h3 class="sixteen wide column ui dividing header">Send Message</h3>
+            <form id="sendform" name="sendmsg" action="">
+                <div class="sixteen wide column ui left labeled icon input">
+                        <div class="ui label">Callsign</div>
                         <input type="text" name="to_call" id="to_call" placeholder="To Callsign" size="11" maxlength="9">
-                        <div class="ui corner label">
-                            <i class="asterisk icon"></i>
-                        </div>
-                    </div>
-                    <div class="ui labeled input">
+                        <i class="users icon"></i>
+                </div>
+                <div class="sixteen wide column ui left labeled icon input" style="padding-bottom: 5px;">
                         <label for="message" class="ui label">Message</label>
-                        <input type="text" name="message" id="message" size="40" maxlength="40">
-                    </div>
+                        <input type="text" name="message" id="message" maxlength="40" placeholder="Message">
+                        <i class="comment icon"></i>
+                </div>
+                <div class="right floated column">
                     <input type="submit" name="submit" class="ui button" id="send_msg" value="Send" />
-                    <button type="button" class="ui button" id="send_beacon" value="Send GPS Beacon">Send GPS Beacon</button>
-                </form>
-            </div>
+                </div>
+
+            </form>
         </div>
 
         <div class="ui grid">
-            <div class="three wide column">
-                <div class="tab" id="callsignTabs"></div>
+            <div class="ui top attached tabular raised menu" id="callsignTabs">
             </div>
-            <div class="ten wide column ui raised segment" id="msgsTabsDiv" style="height:450px;padding:0px;">
+            <div class="sixteen wide column ui bottom attached raised tab segment" id="msgsTabsDiv" style="height:250px;padding:5px;">
                 &nbsp;
             </div>
         </div>
