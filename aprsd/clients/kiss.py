@@ -91,21 +91,29 @@ class KISS3Client:
         #     payload
         # )).encode('US-ASCII'),
         # payload = str(msg).encode('US-ASCII')
+        payload = None
+        path = ["WIDE1-1", "WIDE2-1"]
         if isinstance(msg, messaging.AckMessage):
             msg_payload = f"ack{msg.id}"
+        elif isinstance(msg, messaging.RawMessage):
+            payload = msg.message.encode("US-ASCII")
+            path = ["WIDE2-1"]
         else:
             msg_payload = f"{msg.message}{{{str(msg.id)}"
-        payload = (
-            ":{:<9}:{}".format(
-                msg.tocall,
-                msg_payload,
-            )
-        ).encode("US-ASCII")
+
+        if not payload:
+            payload = (
+                ":{:<9}:{}".format(
+                    msg.tocall,
+                    msg_payload,
+                )
+            ).encode("US-ASCII")
+
         LOG.debug(f"Send '{payload}' TO KISS")
         frame = Frame.ui(
             destination=msg.tocall,
             source=msg.fromcall,
-            path=["WIDE1-1", "WIDE2-1"],
+            path=path,
             info=payload,
         )
         self.kiss.write(frame)

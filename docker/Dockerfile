@@ -19,7 +19,7 @@ ENV APRSD_PIP_VERSION=${APRSD_VERSION}
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update
-RUN apt install -y git build-essential rustc cargo
+RUN apt install -y git build-essential
 RUN apt install -y libffi-dev python3-dev libssl-dev libxml2-dev libxslt-dev
 RUN apt install -y python3 python3-pip python3-dev python3-lxml
 

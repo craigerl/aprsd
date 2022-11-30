@@ -9,6 +9,7 @@ import threading
 import time
 
 import aprslib
+from aprslib import util as aprslib_util
 import click
 import flask
 from flask import request
@@ -432,6 +433,32 @@ class SendMessageNamespace(Namespace):
         )
         msg.send()
         # self._msg_queues["tx"].put(msg)
+
+    def on_gps(self, data):
+        LOG.debug(f"WS on_GPS: {data}")
+        lat = aprslib_util.latitude_to_ddm(data["latitude"])
+        long = aprslib_util.longitude_to_ddm(data["longitude"])
+        LOG.debug(f"Lat DDM {lat}")
+        LOG.debug(f"Long DDM {long}")
+
+        local_datetime = datetime.datetime.now()
+        utc_offset_timedelta = datetime.datetime.utcnow() - local_datetime
+        result_utc_datetime = local_datetime + utc_offset_timedelta
+        time_zulu = result_utc_datetime.strftime("%d%H%M")
+
+        # now construct a beacon to send over the client connection
+        txt = (
+            f"{self._config['aprs']['login']}>APZ100,WIDE2-1"
+            f":!{lat}{long}#PHG7260 APRSD WebChat Beacon"
+        )
+
+        txt = f"@{time_zulu}z{lat}1{long}$APRSD WebChat Beacon"
+
+        LOG.debug(f"Sending {txt}")
+        beacon_msg = messaging.RawMessage(txt)
+        beacon_msg.fromcall = self._config["aprs"]["login"]
+        beacon_msg.tocall = "APDW16"
+        beacon_msg.send_direct()
 
     def handle_message(self, data):
         LOG.debug(f"WS Data {data}")
