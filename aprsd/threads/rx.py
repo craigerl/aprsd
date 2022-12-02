@@ -58,17 +58,32 @@ class APRSDRXThread(APRSDThread):
 
 
 class APRSDPluginRXThread(APRSDRXThread):
+    """Process received packets.
+
+    This is the main APRSD Server command thread that
+    receives packets from APRIS and then sends them for
+    processing in the PluginProcessPacketThread.
+    """
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
-        thread = APRSDProcessPacketThread(packet=packet, config=self.config)
+        thread = APRSDPluginProcessPacketThread(
+            config=self.config,
+            packet=packet,
+        )
         thread.start()
 
 
 class APRSDProcessPacketThread(APRSDThread):
+    """Base class for processing received packets.
 
-    def __init__(self, packet, config):
-        self.packet = packet
+    This is the base class for processing packets coming from
+    the consumer.  This base class handles sending ack packets and
+    will ack a message before sending the packet to the subclass
+    for processing."""
+
+    def __init__(self, config, packet):
         self.config = config
+        self.packet = packet
         name = self.packet["raw"][:10]
         super().__init__(f"RXPKT-{name}")
 
@@ -88,7 +103,7 @@ class APRSDProcessPacketThread(APRSDThread):
         return
 
     def loop(self):
-        """Process a packet recieved from aprs-is server."""
+        """Process a packet received from aprs-is server."""
         packet = self.packet
         packets.PacketList().add(packet)
 
@@ -101,7 +116,11 @@ class APRSDProcessPacketThread(APRSDThread):
 
         # We don't put ack packets destined for us through the
         # plugins.
-        if tocall == self.config["aprsd"]["callsign"] and msg_response == "ack":
+        if (
+            tocall
+            and tocall.lower() == self.config["aprsd"]["callsign"].lower()
+            and msg_response == "ack"
+        ):
             self.process_ack_packet(packet)
         else:
             # It's not an ACK for us, so lets run it through
@@ -115,7 +134,10 @@ class APRSDProcessPacketThread(APRSDThread):
             )
 
             # Only ack messages that were sent directly to us
-            if (tocall.lower() == self.config["aprsd"]["callsign"].lower()):
+            if (
+                tocall
+                and tocall.lower() == self.config["aprsd"]["callsign"].lower()
+            ):
                 stats.APRSDStats().msgs_rx_inc()
                 # let any threads do their thing, then ack
                 # send an ack last
@@ -126,69 +148,89 @@ class APRSDProcessPacketThread(APRSDThread):
                 )
                 ack.send()
 
-            pm = plugin.PluginManager()
-            try:
-                results = pm.run(packet)
-                wl = packets.WatchList()
-                wl.update_seen(packet)
-                replied = False
-                for reply in results:
-                    if isinstance(reply, list):
-                        # one of the plugins wants to send multiple messages
-                        replied = True
-                        for subreply in reply:
-                            LOG.debug(f"Sending '{subreply}'")
-                            if isinstance(subreply, messaging.Message):
-                                subreply.send()
-                            else:
-                                msg = messaging.TextMessage(
-                                    self.config["aprsd"]["callsign"],
-                                    fromcall,
-                                    subreply,
-                                )
-                                msg.send()
-                    elif isinstance(reply, messaging.Message):
-                        # We have a message based object.
-                        LOG.debug(f"Sending '{reply}'")
-                        reply.send()
-                        replied = True
-                    else:
-                        replied = True
-                        # A plugin can return a null message flag which signals
-                        # us that they processed the message correctly, but have
-                        # nothing to reply with, so we avoid replying with a
-                        # usage string
-                        if reply is not messaging.NULL_MESSAGE:
-                            LOG.debug(f"Sending '{reply}'")
+                self.process_non_ack_packet(packet)
+            else:
+                LOG.info("Packet was not for us.")
+    LOG.debug("Packet processing complete")
 
+    @abc.abstractmethod
+    def process_non_ack_packet(self, *args, **kwargs):
+        """Ack packets already dealt with here."""
+
+
+class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
+    """Process the packet through the plugin manager.
+
+    This is the main aprsd server plugin processing thread."""
+
+    def process_non_ack_packet(self, packet):
+        """Send the packet through the plugins."""
+        fromcall = packet["from"]
+        tocall = packet.get("addresse", None)
+        msg = packet.get("message_text", None)
+        packet.get("msgNo", "0")
+        packet.get("response", None)
+        pm = plugin.PluginManager()
+        try:
+            results = pm.run(packet)
+            wl = packets.WatchList()
+            wl.update_seen(packet)
+            replied = False
+            for reply in results:
+                if isinstance(reply, list):
+                    # one of the plugins wants to send multiple messages
+                    replied = True
+                    for subreply in reply:
+                        LOG.debug(f"Sending '{subreply}'")
+                        if isinstance(subreply, messaging.Message):
+                            subreply.send()
+                        else:
                             msg = messaging.TextMessage(
                                 self.config["aprsd"]["callsign"],
                                 fromcall,
-                                reply,
+                                subreply,
                             )
                             msg.send()
+                elif isinstance(reply, messaging.Message):
+                    # We have a message based object.
+                    LOG.debug(f"Sending '{reply}'")
+                    reply.send()
+                    replied = True
+                else:
+                    replied = True
+                    # A plugin can return a null message flag which signals
+                    # us that they processed the message correctly, but have
+                    # nothing to reply with, so we avoid replying with a
+                    # usage string
+                    if reply is not messaging.NULL_MESSAGE:
+                        LOG.debug(f"Sending '{reply}'")
 
-                # If the message was for us and we didn't have a
-                # response, then we send a usage statement.
-                if tocall == self.config["aprsd"]["callsign"] and not replied:
-                    LOG.warning("Sending help!")
-                    msg = messaging.TextMessage(
-                        self.config["aprsd"]["callsign"],
-                        fromcall,
-                        "Unknown command! Send 'help' message for help",
-                    )
-                    msg.send()
-            except Exception as ex:
-                LOG.error("Plugin failed!!!")
-                LOG.exception(ex)
-                # Do we need to send a reply?
-                if tocall == self.config["aprsd"]["callsign"]:
-                    reply = "A Plugin failed! try again?"
-                    msg = messaging.TextMessage(
-                        self.config["aprsd"]["callsign"],
-                        fromcall,
-                        reply,
-                    )
-                    msg.send()
+                        msg = messaging.TextMessage(
+                            self.config["aprsd"]["callsign"],
+                            fromcall,
+                            reply,
+                        )
+                        msg.send()
 
-        LOG.debug("Packet processing complete")
+            # If the message was for us and we didn't have a
+            # response, then we send a usage statement.
+            if tocall == self.config["aprsd"]["callsign"] and not replied:
+                LOG.warning("Sending help!")
+                msg = messaging.TextMessage(
+                    self.config["aprsd"]["callsign"],
+                    fromcall,
+                    "Unknown command! Send 'help' message for help",
+                )
+                msg.send()
+        except Exception as ex:
+            LOG.error("Plugin failed!!!")
+            LOG.exception(ex)
+            # Do we need to send a reply?
+            if tocall == self.config["aprsd"]["callsign"]:
+                reply = "A Plugin failed! try again?"
+                msg = messaging.TextMessage(
+                    self.config["aprsd"]["callsign"],
+                    fromcall,
+                    reply,
+                )
+                msg.send()

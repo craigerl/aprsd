@@ -48,6 +48,7 @@ clean-test: ## remove test and coverage artifacts
 
 clean-dev:
 	rm -rf $(VENVDIR)
+	rm Makefile.venv
 
 test: dev  ## Run all the tox tests
 	tox -p all

@@ -1,11 +1,11 @@
 var cleared = false;
 var callsign_list = {};
 var message_list = {};
-const socket = io("/sendmsg");
 
 function size_dict(d){c=0; for (i in d) ++c; return c}
 
 function init_chat() {
+   const socket = io("/sendmsg");
    socket.on('connect', function () {
        console.log("Connected to socketio");
    });
@@ -38,20 +38,24 @@ function init_chat() {
 
    $("#sendform").submit(function(event) {
        event.preventDefault();
-       msg = {'to': $('#to_call').val(),
+       msg = {'to': $('#to_call').val().toUpperCase(),
               'message': $('#message').val(),
               }
        socket.emit("send", msg);
        $('#message').val('');
+       $('#to_call').val('');
    });
 
    init_gps();
 }
 
+
 function add_callsign(callsign) {
    /* Ensure a callsign exists in the left hand nav */
+   dropdown = $('#callsign_dropdown')
 
   if (callsign in callsign_list) {
+      console.log(callsign+' already in list.')
       return false
   }
 
@@ -60,13 +64,15 @@ function add_callsign(callsign) {
   tab_content = tab_content_name(callsign);
   divname = content_divname(callsign);
 
-  item_html = '<div class="tablinks" id="'+tab_name+'" onclick="openCallsign(event, \''+callsign+'\');">'+callsign+'</div>';
+  item_html = '<div class="active item" id="'+tab_name+'" onclick="openCallsign(event, \''+callsign+'\');">'+callsign+'</div>';
   callsignTabs.append(item_html);
-  callsign_list[callsign] = true;
+
+  callsign_list[callsign] = {'name': callsign, 'value': callsign, 'text': callsign}
   return true
 }
 
 function append_message(callsign, msg, msg_html) {
+  console.log('append_message');
   new_callsign = false
   if (!message_list.hasOwnProperty(callsign)) {
        message_list[callsign] = new Array();
@@ -79,6 +85,7 @@ function append_message(callsign, msg, msg_html) {
   if (new_callsign) {
       //click on the new tab
       click_div = '#'+tab_string(callsign);
+      console.log("Click on "+click_div);
       $(click_div).click();
   }
 }
