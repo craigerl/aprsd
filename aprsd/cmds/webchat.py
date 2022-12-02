@@ -358,7 +358,7 @@ class WebChatFlask(flask_classful.FlaskView):
             html_template = "index.html"
 
         # For development
-        html_template = "mobile.html"
+        # html_template = "mobile.html"
 
         LOG.debug(f"Template {html_template}")
 
