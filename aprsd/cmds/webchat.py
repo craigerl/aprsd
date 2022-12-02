@@ -244,6 +244,8 @@ class WebChatTXThread(aprsd_thread.APRSDThread):
         LOG.info(f"We got ack for our sent message {ack_num}")
         messaging.log_packet(packet)
         SentMessages().ack(int(ack_num))
+        tracker = messaging.MsgTrack()
+        tracker.remove(ack_num)
         self.socketio.emit(
             "ack", SentMessages().get(int(ack_num)),
             namespace="/sendmsg",

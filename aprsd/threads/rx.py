@@ -102,7 +102,8 @@ class APRSDProcessPacketThread(APRSDThread):
         # We don't put ack packets destined for us through the
         # plugins.
         if (
-            tocall.lower() == self.config["aprsd"]["callsign"].lower()
+            tocall
+            and tocall.lower() == self.config["aprsd"]["callsign"].lower()
             and msg_response == "ack"
         ):
             self.process_ack_packet(packet)
