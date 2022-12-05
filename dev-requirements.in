@@ -4,12 +4,13 @@ mypy
 pep8-naming
 Sphinx
 tox
-twine
+# Twine is used for uploading packages to pypi
+# but it induces an install of cryptography
+# This is sucky for rpi systems.
+# twine
 pre-commit
 pytest
 pytest-cov
 gray
-#pip==22.0.4
 pip
-#pip-tools==5.4.0
 pip-tools

@@ -54,6 +54,7 @@ test: dev  ## Run all the tox tests
 	tox -p all
 
 build: test  ## Make the build artifact prior to doing an upload
+	$(VENV)pip install twine
 	$(VENV)/python3 setup.py sdist bdist_wheel
 	$(VENV)/twine check dist/*
 
