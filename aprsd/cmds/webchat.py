@@ -9,13 +9,13 @@ import time
 
 from aprslib import util as aprslib_util
 import click
-from device_detector import DeviceDetector
 import flask
 from flask import request
 from flask.logging import default_handler
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
+from user_agents import parse as ua_parse
 from werkzeug.security import check_password_hash, generate_password_hash
 import wrapt
 
@@ -237,10 +237,16 @@ class WebChatFlask(flask_classful.FlaskView):
                         )
                     )
                 elif transport == client.TRANSPORT_SERIALKISS:
+                    # for pep8 violation
+                    kiss_default = aprsd_config.DEFAULT_DATE_FORMAT["kiss"]
+                    default_baudrate = kiss_default["serial"]["baudrate"]
                     aprs_connection = (
                         "SerialKISS://{}@{} baud".format(
                             self.config["kiss"]["serial"]["device"],
-                            self.config["kiss"]["serial"]["baudrate"],
+                            self.config["kiss"]["serial"].get(
+                                "baudrate",
+                                default_baudrate,
+                            ),
                         )
                     )
 
@@ -248,13 +254,13 @@ class WebChatFlask(flask_classful.FlaskView):
 
     @auth.login_required
     def index(self):
-        user_agent = request.headers.get("User-Agent")
-        device = DeviceDetector(user_agent).parse()
-        LOG.debug(f"Device type {device.device_type()}")
-        LOG.debug(f"Is mobile? {device.is_mobile()}")
+        ua_str = request.headers.get("User-Agent")
+        # this takes about 2 seconds :(
+        user_agent = ua_parse(ua_str)
+        LOG.debug(f"Is mobile? {user_agent.is_mobile}")
         stats = self._stats()
 
-        if device.is_mobile():
+        if user_agent.is_mobile:
             html_template = "mobile.html"
         else:
             html_template = "index.html"
@@ -549,6 +555,7 @@ def webchat(ctx, flush, port):
     LOG.info("Start socketio.run()")
     socketio.run(
         app,
+        ssl_context="adhoc",
         host=config["aprsd"]["web"]["host"],
         port=port,
     )
