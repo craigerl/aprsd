@@ -1,4 +1,3 @@
-; REQUIREMENTS_TXT ?= requirements.txt dev-requirements.txt
 WORKDIR?=.
 VENVDIR ?= $(WORKDIR)/.aprsd-venv
 
