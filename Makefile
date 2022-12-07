@@ -1,4 +1,4 @@
-REQUIREMENTS_TXT ?= requirements.txt dev-requirements.txt
+; REQUIREMENTS_TXT ?= requirements.txt dev-requirements.txt
 WORKDIR?=.
 VENVDIR ?= $(WORKDIR)/.aprsd-venv
 
@@ -18,7 +18,10 @@ Makefile.venv:
 help:	# Help for the Makefile
 	@egrep -h '\s##\s' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-dev: venv  ## Create the virtualenv with all the requirements installed
+dev: REQUIREMENTS_TXT = requirements.txt dev-requirements.txt
+dev: venv  ## Create a python virtual environment for development of aprsd
+
+run: venv  ## Create a virtual environment for running aprsd commands
 
 docs: build
 	cp README.rst docs/readme.rst
