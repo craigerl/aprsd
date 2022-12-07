@@ -25,4 +25,4 @@ wrapt
 kiss3
 attrs==22.1.0
 # for mobile checking
-device-detector
+user-agents
