@@ -1,6 +1,72 @@
 CHANGES
 =======
 
+v2.6.0
+------
+
+* Update requirements
+* Removed Makefile comment
+* Update Makefile for dev vs. run environments
+* Added pyopenssl for https for webchat
+* change from device-detector to user-agents
+* Remove twine from dev-requirements
+* Update to latest Makefile.venv
+* Refactored threads a bit
+* Mark packets as acked in MsgTracker
+* remove dev setting for template
+* Add GPS beacon to mobile page
+* Allow werkzeug for admin interface
+* Allow werkzeug for admin interface
+* Add support for mobile browsers for webchat
+* Ignore callsign case while processing packets
+* remove linux/arm/v7 for official builds for now
+* added workflow for building specific version
+* Allow passing in version to the Dockerfile
+* Send GPS Beacon from webchat interface
+* specify Dockerfile-dev
+* Fixed build.sh
+* Build on the source not released aprsd
+* Remove email validation
+* Add support for building linux/arm/v7
+* Remove python 3.7 from docker build github
+* Fixed failing unit tests
+* change github workflow
+* Removed TimeOpenCageDataPlugin
+* Dump config with aprsd dev test-plugin
+* Updated requirements
+* Got webchat working with KISS tcp
+* Added click auto\_envvar\_prefix
+* Update aprsd thread base class to use queue
+* Update packets to use wrapt
+* Add remving existing requirements
+* Try sending raw APRSFrames to aioax25
+* Use new aprsd.callsign as the main callsign
+* Fixed access to threads refactor
+* Added webchat command
+* Moved log.py to logging
+* Moved trace.py to utils
+* Fixed pep8 errors
+* Refactored threads.py
+* Refactor utils to directory
+* remove arm build for now
+* Added rustc and cargo to Dockerfile
+* remove linux/arm/v6 from docker platform build
+* Only tag master build as master
+* Remove docker build from test
+* create master-build.yml
+* Added container build action
+* Update docs on using Docker
+* Update dev-requirements pip-tools
+* Fix typo in docker-compose.yml
+* Fix PyPI scraping
+* Allow web interface when running in Docker
+* Fix typo on exception
+* README formatting fixes
+* Bump dependencies to fix python 3.10
+* Fixed up config option checking for KISS
+* Fix logging issue with log messages
+* for 2.5.9
+
 v2.5.9
 ------
 

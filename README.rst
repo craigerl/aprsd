@@ -388,26 +388,26 @@ Workflow
 
 While working aprsd, The workflow is as follows:
 
-* Checkout a new branch to work on by running 
+* Checkout a new branch to work on by running
 
   ``git checkout -b mybranch``
-  
+
 * Make your changes to the code
 * Run Tox with the following options:
 
   - ``tox -epep8``
   - ``tox -efmt``
   - ``tox -p``
-  
+
 * Commit your changes. This will run the pre-commit hooks which does checks too
-  
-  ``git commit`` 
+
+  ``git commit``
 
 * Once you are done with all of your commits, then push up the branch to
   github with:
-  
+
   ``git push -u origin mybranch``
-  
+
 * Create a pull request from your branch so github tests can run and we can do
   a code review.
 
@@ -417,19 +417,19 @@ Release
 
 To do release to pypi:
 
-* Tag release with: 
+* Tag release with:
 
   ``git tag -v1.XX -m "New release"``
 
-* Push release tag: 
+* Push release tag:
 
   ``git push origin master --tags``
 
-* Do a test build and verify build is valid by running: 
+* Do a test build and verify build is valid by running:
 
   ``make build``
 
-* Once twine is happy, upload release to pypi: 
+* Once twine is happy, upload release to pypi:
 
   ``make upload``
 
@@ -460,19 +460,19 @@ Development Build
 Running the container
 ^^^^^^^^^^^^^^^^^^^^^
 
-There is a ``docker-compose.yml`` file in the ``docker/`` directory 
+There is a ``docker-compose.yml`` file in the ``docker/`` directory
 that can be used to run your container. To provide the container
-an ``aprsd.conf`` configuration file, change your 
-``docker-compose.yml`` as shown below: 
+an ``aprsd.conf`` configuration file, change your
+``docker-compose.yml`` as shown below:
 
 ::
 
      volumes:
          - $HOME/.config/aprsd:/config
 
-To install plugins at container start time, pass in a list of 
+To install plugins at container start time, pass in a list of
 comma-separated list of plugins on PyPI using the ``APRSD_PLUGINS``
-environment variable in the ``docker-compose.yml`` file. Note that 
+environment variable in the ``docker-compose.yml`` file. Note that
 version constraints may also be provided. For example:
 
 ::
