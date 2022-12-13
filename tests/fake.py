@@ -16,7 +16,9 @@ def fake_packet(
     packet = {
         "from": fromcall,
         "addresse": tocall,
+        "to": tocall,
         "format": message_format,
+        "raw": "",
     }
     if message:
         packet["message_text"] = message
