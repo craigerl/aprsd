@@ -41,7 +41,7 @@ jobs:
         platforms: linux/amd64,linux/arm64
         file: ./Dockerfile
         build-args: |
-            APRSD_VERSION=${{ inputs.aprsd_version }}
+            VERSION=${{ inputs.aprsd_version }}
         push: true
         tags: |
           hemna6969/aprsd:v${{ inputs.aprsd_version }}

@@ -15,16 +15,19 @@ OPTIONS:
    -t      The tag/version (${TAG}) (default = master)
    -d      Use Dockerfile-dev for a git clone build
    -b      Branch to use (default = master)
+   -r      Destroy and rebuild the buildx environment
 EOF
 }
 
 
 ALL_PLATFORMS=0
 DEV=0
+REBUILD_BUILDX=0
 TAG="latest"
 BRANCH=${BRANCH:-master}
+VERSION="2.6.0"
 
-while getopts “hdat:b:” OPTION
+while getopts “hdart:b:v:” OPTION
 do
     case $OPTION in
         t)
@@ -36,8 +39,14 @@ do
         a)
            ALL_PLATFORMS=1
            ;;
+        r)
+           REBUILD_BUILDX=1
+           ;;
         d)
            DEV=1
+           ;;
+        v)
+           VERSION=$OPTARG
            ;;
         h)
            usage
@@ -50,25 +59,28 @@ do
     esac
 done
 
-VERSION="2.5.8"
 
 if [ $ALL_PLATFORMS -eq 1 ]
 then
     PLATFORMS="linux/arm/v7,linux/arm64,linux/amd64"
     #PLATFORMS="linux/arm/v7,linux/arm/v6,linux/amd64"
 else
-    PLATFORMS="linux/amd64,linux/arm/v7"
+    PLATFORMS="linux/amd64"
 fi
 
-echo "Build with tag=${TAG} BRANCH=${BRANCH} dev?=${DEV} platforms?=${PLATFORMS}"
 
 
-echo "Destroying old multiarch build container"
-docker buildx rm multiarch
-docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-echo "Creating new buildx container"
-docker buildx create --name multiarch --driver docker-container --use --platform linux/arm/v7,linux/arm/v6,linux/arm64,linux/amd64 --config ./buildkit.toml --use --driver-opt image=moby/buildkit:master
-docker buildx inspect --bootstrap
+if [ $REBUILD_BUILDX -eq 1 ]
+then
+    echo "Destroying old multiarch build container"
+    docker buildx rm multiarch
+    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    echo "Creating new buildx container"
+    docker buildx create --name multiarch --driver docker-container --use \
+        --config ./buildkit.toml --use \
+        --driver-opt image=moby/buildkit:master
+    docker buildx inspect --bootstrap
+fi
 
 if [ $DEV -eq 1 ]
 then
@@ -79,14 +91,11 @@ then
         -f Dockerfile-dev --build-arg branch=$BRANCH --no-cache .
 else
     # Use this script to locally build the docker image
-    echo "Build with tag=${TAG} BRANCH=${BRANCH} platforms?=${PLATFORMS}"
+    echo "Build with tag=${TAG} BRANCH=${BRANCH} dev?=${DEV} platforms?=${PLATFORMS} VERSION=${VERSION}"
     docker buildx build --push --platform $PLATFORMS \
-        --allow security.insecure \
+        --build-arg VERSION=$VERSION \
         -t hemna6969/aprsd:$VERSION \
         -t hemna6969/aprsd:$TAG \
         -t hemna6969/aprsd:latest \
-        -t harbor.hemna.com/hemna6969/aprsd:$TAG \
-        -t harbor.hemna.com/hemna6969/aprsd:$VERSION \
-        -t harbor.hemna.com/hemna6969/aprsd:latest \
         -f Dockerfile .
 fi
