@@ -45,3 +45,4 @@ jobs:
         push: true
         tags: |
           hemna6969/aprsd:v${{ inputs.aprsd_version }}
+          hemna6969/aprsd:latest
