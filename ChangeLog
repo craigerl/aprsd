@@ -4,6 +4,7 @@ CHANGES
 v2.6.0
 ------
 
+* Prep for 2.6.0 release
 * Update requirements
 * Removed Makefile comment
 * Update Makefile for dev vs. run environments

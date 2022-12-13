@@ -1,9 +1,9 @@
 """Utilities and helper functions."""
 
-import collections
 import errno
 import os
 import re
+import sys
 
 import update_checker
 
@@ -13,6 +13,12 @@ from .fuzzyclock import fuzzy  # noqa: F401
 # Make these available by anyone importing
 # aprsd.utils
 from .ring_buffer import RingBuffer  # noqa: F401
+
+
+if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+    from collections.abc import MutableMapping
+else:
+    from collections import MutableMapping
 
 
 def env(*vars, **kwargs):
@@ -105,7 +111,7 @@ def flatten_dict(d, parent_key="", sep="."):
     items = []
     for k, v in d.items():
         new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, collections.MutableMapping):
+        if isinstance(v, MutableMapping):
             items.extend(flatten_dict(v, new_key, sep=sep).items())
         else:
             items.append((new_key, v))
