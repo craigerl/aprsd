@@ -1,5 +1,5 @@
 #FROM python:3-bullseye as aprsd
-FROM ubuntu:focal as aprsd
+FROM ubuntu:22.04 as aprsd
 
 # Dockerfile for building a container during aprsd development.
 
