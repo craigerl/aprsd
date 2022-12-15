@@ -1,0 +1,60 @@
+import logging
+import threading
+import time
+
+import wrapt
+
+from aprsd import utils
+from aprsd.packets import seen_list
+
+
+LOG = logging.getLogger("APRSD")
+
+
+class PacketList:
+    """Class to track all of the packets rx'd and tx'd by aprsd."""
+
+    _instance = None
+    lock = threading.Lock()
+    config = None
+
+    packet_list = utils.RingBuffer(1000)
+
+    total_recv = 0
+    total_tx = 0
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance.config = kwargs["config"]
+        return cls._instance
+
+    def __init__(self, config=None):
+        if config:
+            self.config = config
+
+    @wrapt.synchronized(lock)
+    def __iter__(self):
+        return iter(self.packet_list)
+
+    @wrapt.synchronized(lock)
+    def add(self, packet):
+        packet.ts = time.time()
+        if packet.from_call == self.config["aprs"]["login"]:
+            self.total_tx += 1
+        else:
+            self.total_recv += 1
+        self.packet_list.append(packet)
+        seen_list.SeenList().update_seen(packet)
+
+    @wrapt.synchronized(lock)
+    def get(self):
+        return self.packet_list.get()
+
+    @wrapt.synchronized(lock)
+    def total_received(self):
+        return self.total_recv
+
+    @wrapt.synchronized(lock)
+    def total_sent(self):
+        return self.total_tx

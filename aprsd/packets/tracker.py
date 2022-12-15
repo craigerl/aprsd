@@ -1,0 +1,116 @@
+import datetime
+import threading
+
+import wrapt
+
+from aprsd import stats
+from aprsd.utils import objectstore
+
+
+class PacketTrack(objectstore.ObjectStoreMixin):
+    """Class to keep track of outstanding text messages.
+
+    This is a thread safe class that keeps track of active
+    messages.
+
+    When a message is asked to be sent, it is placed into this
+    class via it's id.  The TextMessage class's send() method
+    automatically adds itself to this class.  When the ack is
+    recieved from the radio, the message object is removed from
+    this class.
+    """
+
+    _instance = None
+    _start_time = None
+    lock = threading.Lock()
+
+    data = {}
+    total_tracked = 0
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._start_time = datetime.datetime.now()
+            cls._instance.config = kwargs["config"]
+            cls._instance._init_store()
+        return cls._instance
+
+    @wrapt.synchronized(lock)
+    def __getitem__(self, name):
+        return self.data[name]
+
+    @wrapt.synchronized(lock)
+    def __iter__(self):
+        return iter(self.data)
+
+    @wrapt.synchronized(lock)
+    def keys(self):
+        return self.data.keys()
+
+    @wrapt.synchronized(lock)
+    def items(self):
+        return self.data.items()
+
+    @wrapt.synchronized(lock)
+    def values(self):
+        return self.data.values()
+
+    @wrapt.synchronized(lock)
+    def __len__(self):
+        return len(self.data)
+
+    @wrapt.synchronized(lock)
+    def __str__(self):
+        result = "{"
+        for key in self.data.keys():
+            result += f"{key}: {str(self.data[key])}, "
+        result += "}"
+        return result
+
+    @wrapt.synchronized(lock)
+    def add(self, packet):
+        key = int(packet.msgNo)
+        self.data[key] = packet
+        stats.APRSDStats().msgs_tracked_inc()
+        self.total_tracked += 1
+
+    @wrapt.synchronized(lock)
+    def get(self, id):
+        if id in self.data:
+            return self.data[id]
+
+    @wrapt.synchronized(lock)
+    def remove(self, id):
+        key = int(id)
+        if key in self.data.keys():
+            del self.data[key]
+
+    def restart(self):
+        """Walk the list of messages and restart them if any."""
+        for key in self.data.keys():
+            pkt = self.data[key]
+            if pkt.last_send_attempt < pkt.retry_count:
+                pkt.send()
+
+    def _resend(self, packet):
+        packet._last_send_attempt = 0
+        packet.send()
+
+    def restart_delayed(self, count=None, most_recent=True):
+        """Walk the list of delayed messages and restart them if any."""
+        if not count:
+            # Send all the delayed messages
+            for key in self.data.keys():
+                pkt = self.data[key]
+                if pkt._last_send_attempt == pkt._retry_count:
+                    self._resend(pkt)
+        else:
+            # They want to resend <count> delayed messages
+            tmp = sorted(
+                self.data.items(),
+                reverse=most_recent,
+                key=lambda x: x[1].last_send_time,
+            )
+            pkt_list = tmp[:count]
+            for (_key, pkt) in pkt_list:
+                self._resend(pkt)

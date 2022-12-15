@@ -39,6 +39,8 @@ class APRSDThreadList:
         """Iterate over all threads and call stop on them."""
         for th in self.threads_list:
             LOG.info(f"Stopping Thread {th.name}")
+            if hasattr(th, "packet"):
+                LOG.info(F"{th.name} packet {th.packet}")
             th.stop()
 
     @wrapt.synchronized(lock)

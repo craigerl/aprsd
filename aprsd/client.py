@@ -8,6 +8,7 @@ from aprslib.exceptions import LoginError
 from aprsd import config as aprsd_config
 from aprsd import exception
 from aprsd.clients import aprsis, kiss
+from aprsd.packets import core
 from aprsd.utils import trace
 
 
@@ -109,7 +110,7 @@ class APRSISClient(Client):
 
     def decode_packet(self, *args, **kwargs):
         """APRS lib already decodes this."""
-        return args[0]
+        return core.Packet.factory(args[0])
 
     @trace.trace
     def setup_connection(self):
@@ -198,8 +199,8 @@ class KISSClient(Client):
         # msg = frame.tnc2
         LOG.debug(f"Decoding {msg}")
 
-        packet = aprslib.parse(msg)
-        return packet
+        raw = aprslib.parse(msg)
+        return core.Packet.factory(raw)
 
     @trace.trace
     def setup_connection(self):

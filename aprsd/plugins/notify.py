@@ -1,7 +1,6 @@
 import logging
 
 from aprsd import messaging, packets, plugin
-from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -18,7 +17,6 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
 
     short_description = "Notify me when a CALLSIGN is recently seen on APRS-IS"
 
-    @trace.trace
     def process(self, packet: packets.MessagePacket):
         LOG.info("NotifySeenPlugin")
 

@@ -64,12 +64,10 @@ class APRSDPluginRXThread(APRSDRXThread):
     processing in the PluginProcessPacketThread.
     """
     def process_packet(self, *args, **kwargs):
-        raw = self._client.decode_packet(*args, **kwargs)
+        packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)
-        packet = packets.Packet.factory(raw.copy())
+        #packet = packets.Packet.factory(raw.copy())
         packet.log(header="RX Packet")
-        # LOG.debug(packet)
-        del raw
         thread = APRSDPluginProcessPacketThread(
             config=self.config,
             packet=packet,
@@ -90,24 +88,20 @@ class APRSDProcessPacketThread(APRSDThread):
         self.packet = packet
         name = self.packet.raw[:10]
         super().__init__(f"RXPKT-{name}")
+        self._loop_cnt = 1
 
     def process_ack_packet(self, packet):
         ack_num = packet.msgNo
         LOG.info(f"Got ack for message {ack_num}")
-        messaging.log_message(
-            "RXACK",
-            packet.raw,
-            None,
-            ack=ack_num,
-            fromcall=packet.from_call,
-        )
-        tracker = messaging.MsgTrack()
-        tracker.remove(ack_num)
+        packet.log("RXACK")
+        pkt_tracker = packets.PacketTrack()
+        pkt_tracker.remove(ack_num)
         stats.APRSDStats().ack_rx_inc()
         return
 
     def loop(self):
         """Process a packet received from aprs-is server."""
+        LOG.debug(f"RXPKT-LOOP {self._loop_cnt}")
         packet = self.packet
         packets.PacketList().add(packet)
         our_call = self.config["aprsd"]["callsign"].lower()
@@ -136,12 +130,20 @@ class APRSDProcessPacketThread(APRSDThread):
                     stats.APRSDStats().msgs_rx_inc()
                     # let any threads do their thing, then ack
                     # send an ack last
-                    ack = messaging.AckMessage(
-                        self.config["aprsd"]["callsign"],
-                        from_call,
-                        msg_id=msg_id,
+                    ack_pkt = packets.AckPacket(
+                        from_call=self.config["aprsd"]["callsign"],
+                        to_call=from_call,
+                        msgNo=msg_id,
                     )
-                    ack.send()
+                    LOG.warning(f"Send AckPacket {ack_pkt}")
+                    ack_pkt.send()
+                    LOG.warning("Send ACK called Continue on")
+                    #ack = messaging.AckMessage(
+                    #    self.config["aprsd"]["callsign"],
+                    #    from_call,
+                    #    msg_id=msg_id,
+                    #)
+                    #ack.send()
 
                     self.process_our_message_packet(packet)
                 else:
@@ -151,7 +153,8 @@ class APRSDProcessPacketThread(APRSDThread):
                 self.process_other_packet(
                     packet, for_us=(to_call.lower() == our_call),
                 )
-    LOG.debug("Packet processing complete")
+        LOG.debug("Packet processing complete")
+        return False
 
     @abc.abstractmethod
     def process_our_message_packet(self, *args, **kwargs):
@@ -194,16 +197,29 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                         if isinstance(subreply, messaging.Message):
                             subreply.send()
                         else:
-                            msg = messaging.TextMessage(
-                                self.config["aprsd"]["callsign"],
-                                from_call,
-                                subreply,
+                            msg_pkt = packets.MessagePacket(
+                                from_call=self.config["aprsd"]["callsign"],
+                                to_call=from_call,
+                                message_text=subreply,
                             )
-                            msg.send()
+                            msg_pkt.send()
+                            #msg = messaging.TextMessage(
+                            #    self.config["aprsd"]["callsign"],
+                            #    from_call,
+                            #    subreply,
+                            #)
+                            #msg.send()
                 elif isinstance(reply, messaging.Message):
                     # We have a message based object.
                     LOG.debug(f"Sending '{reply}'")
-                    reply.send()
+                    # Convert this to the new packet
+                    msg_pkt = packets.MessagePacket(
+                        from_call=reply.fromcall,
+                        to_call=reply.tocall,
+                        message_text=reply._raw_message,
+                    )
+                    #reply.send()
+                    msg_pkt.send()
                     replied = True
                 else:
                     replied = True
@@ -213,33 +229,55 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     # usage string
                     if reply is not messaging.NULL_MESSAGE:
                         LOG.debug(f"Sending '{reply}'")
-
-                        msg = messaging.TextMessage(
-                            self.config["aprsd"]["callsign"],
-                            from_call,
-                            reply,
+                        msg_pkt = packets.MessagePacket(
+                            from_call=self.config["aprsd"]["callsign"],
+                            to_call=from_call,
+                            message_text=reply,
                         )
-                        msg.send()
+                        LOG.warning("Calling msg_pkg.send()")
+                        msg_pkt.send()
+                        LOG.warning("Calling msg_pkg.send() --- DONE")
+
+                        #msg = messaging.TextMessage(
+                        #    self.config["aprsd"]["callsign"],
+                        #    from_call,
+                        #    reply,
+                        #)
+                        #msg.send()
 
             # If the message was for us and we didn't have a
             # response, then we send a usage statement.
             if to_call == self.config["aprsd"]["callsign"] and not replied:
                 LOG.warning("Sending help!")
-                msg = messaging.TextMessage(
-                    self.config["aprsd"]["callsign"],
-                    from_call,
-                    "Unknown command! Send 'help' message for help",
+                msg_pkt = packets.MessagePacket(
+                    from_call=self.config["aprsd"]["callsign"],
+                    to_call=from_call,
+                    message_text="Unknown command! Send 'help' message for help",
                 )
-                msg.send()
+                msg_pkt.send()
+                #msg = messaging.TextMessage(
+                #    self.config["aprsd"]["callsign"],
+                #    from_call,
+                #    "Unknown command! Send 'help' message for help",
+                #)
+                #msg.send()
         except Exception as ex:
             LOG.error("Plugin failed!!!")
             LOG.exception(ex)
             # Do we need to send a reply?
             if to_call == self.config["aprsd"]["callsign"]:
                 reply = "A Plugin failed! try again?"
-                msg = messaging.TextMessage(
-                    self.config["aprsd"]["callsign"],
-                    from_call,
-                    reply,
+                msg_pkt = packets.MessagePacket(
+                    from_call=self.config["aprsd"]["callsign"],
+                    to_call=from_call,
+                    message_text=reply,
                 )
-                msg.send()
+                msg_pkt.send()
+                #msg = messaging.TextMessage(
+                #    self.config["aprsd"]["callsign"],
+                #    from_call,
+                #    reply,
+                #)
+                #msg.send()
+
+        LOG.debug("Completed process_our_message_packet")

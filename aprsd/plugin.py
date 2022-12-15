@@ -13,7 +13,8 @@ import pluggy
 from thesmuggler import smuggle
 
 import aprsd
-from aprsd import client, messaging, packets, threads
+from aprsd import client, messaging, threads
+from aprsd.packets import watch_list
 
 
 # setup the global logger
@@ -119,11 +120,11 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
                 thread.stop()
 
     @abc.abstractmethod
-    def filter(self, packet: packets.Packet):
+    def filter(self, packet):
         pass
 
     @abc.abstractmethod
-    def process(self, packet: packets.Packet):
+    def process(self, packet):
         """This is called when the filter passes."""
 
 
@@ -160,10 +161,10 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 LOG.warning("Watch list enabled, but no callsigns set.")
 
     @hookimpl
-    def filter(self, packet: packets.Packet):
+    def filter(self, packet):
         result = messaging.NULL_MESSAGE
         if self.enabled:
-            wl = packets.WatchList()
+            wl = watch_list.WatchList()
             if wl.callsign_in_watchlist(packet.from_call):
                 # packet is from a callsign in the watch list
                 self.rx_inc()
@@ -212,7 +213,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         self.enabled = True
 
     @hookimpl
-    def filter(self, packet: packets.MessagePacket):
+    def filter(self, packet):
         result = None
 
         message = packet.get("message_text", None)
@@ -272,7 +273,7 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
     def help(self):
         return "Help: send APRS help or help <plugin>"
 
-    def process(self, packet: packets.MessagePacket):
+    def process(self, packet):
         LOG.info("HelpPlugin")
         # fromcall = packet.get("from")
         message = packet.message_text
@@ -475,7 +476,7 @@ class PluginManager:
                     self._load_plugin(p_name)
         LOG.info("Completed Plugin Loading.")
 
-    def run(self, packet: packets.Packet):
+    def run(self, packet):
         """Execute all the pluguns run method."""
         with self.lock:
             return self._pluggy_pm.hook.filter(packet=packet)

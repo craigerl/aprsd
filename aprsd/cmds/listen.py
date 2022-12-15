@@ -14,7 +14,7 @@ from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import cli_helper, client, messaging, packets, stats, threads, utils
+from aprsd import cli_helper, client, packets, stats, threads, utils
 from aprsd.aprsd import cli
 from aprsd.threads import rx
 
@@ -39,9 +39,7 @@ def signal_handler(sig, frame):
 
 class APRSDListenThread(rx.APRSDRXThread):
     def process_packet(self, *args, **kwargs):
-        raw = self._client.decode_packet(*args, **kwargs)
-        packet = packets.Packet.factory(raw)
-        LOG.debug(f"Got packet {packet}")
+        packet = self._client.decode_packet(*args, **kwargs)
         packet.log(header="RX Packet")
 
 
@@ -115,7 +113,7 @@ def listen(
 
     # Try and load saved MsgTrack list
     LOG.debug("Loading saved MsgTrack object.")
-    messaging.MsgTrack(config=config).load()
+    packets.PacketTrack(config=config).load()
     packets.WatchList(config=config).load()
     packets.SeenList(config=config).load()
 

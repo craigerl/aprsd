@@ -3,7 +3,7 @@ import logging
 import time
 import tracemalloc
 
-from aprsd import client, messaging, packets, stats, utils
+from aprsd import client, packets, stats, utils
 from aprsd.threads import APRSDThread, APRSDThreadList
 
 
@@ -23,7 +23,7 @@ class KeepAliveThread(APRSDThread):
 
     def loop(self):
         if self.cntr % 60 == 0:
-            tracker = messaging.MsgTrack()
+            pkt_tracker = packets.PacketTrack()
             stats_obj = stats.APRSDStats()
             pl = packets.PacketList()
             thread_list = APRSDThreadList()
@@ -53,7 +53,7 @@ class KeepAliveThread(APRSDThread):
                 utils.strfdelta(stats_obj.uptime),
                 pl.total_recv,
                 pl.total_tx,
-                len(tracker),
+                len(pkt_tracker),
                 stats_obj.msgs_tx,
                 stats_obj.msgs_rx,
                 last_msg_time,

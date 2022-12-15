@@ -34,7 +34,7 @@ import click_completion
 import aprsd
 from aprsd import cli_helper
 from aprsd import config as aprsd_config
-from aprsd import messaging, packets, stats, threads, utils
+from aprsd import packets, stats, threads, utils
 
 
 # setup the global logger
@@ -85,7 +85,7 @@ def signal_handler(sig, frame):
             ),
         )
         time.sleep(1.5)
-        messaging.MsgTrack().save()
+        packets.PacketTrack().save()
         packets.WatchList().save()
         packets.SeenList().save()
         LOG.info(stats.APRSDStats())
