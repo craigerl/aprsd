@@ -7,6 +7,7 @@ ARG UID
 ARG GID
 ARG TZ
 ARG VERSION=2.6.0
+ARG BUILDX_QEMU_ENV
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
 ENV TZ=${TZ:-US/Eastern}
@@ -25,6 +26,14 @@ RUN apt install -y python3 python3-pip python3-dev python3-lxml
 
 RUN addgroup --gid $GID $APRS_USER
 RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
+
+# Handle an extremely specific issue when building the cryptography package for
+# 32-bit architectures within QEMU running on a 64-bit host (issue #30).
+RUN if [ "${BUILDX_QEMU_ENV}" = "true" -a "$(getconf LONG_BIT)" = "32" ]; then \
+        pip3 install -U cryptography==3.3.2; \
+    else \
+        pip3 install cryptography ;\
+    fi
 
 # Install aprsd
 RUN pip install aprsd==$APRSD_PIP_VERSION

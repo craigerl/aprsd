@@ -88,12 +88,15 @@ then
     # Use this script to locally build the docker image
     docker buildx build --push --platform $PLATFORMS \
         -t harbor.hemna.com/hemna6969/aprsd:$TAG \
-        -f Dockerfile-dev --build-arg branch=$BRANCH --no-cache .
+        -f Dockerfile-dev --build-arg branch=$BRANCH \
+        --build-arg BUILDX_QEMU_ENV=true \
+        --no-cache .
 else
     # Use this script to locally build the docker image
     echo "Build with tag=${TAG} BRANCH=${BRANCH} dev?=${DEV} platforms?=${PLATFORMS} VERSION=${VERSION}"
     docker buildx build --push --platform $PLATFORMS \
         --build-arg VERSION=$VERSION \
+        --build-arg BUILDX_QEMU_ENV=true \
         -t hemna6969/aprsd:$VERSION \
         -t hemna6969/aprsd:$TAG \
         -t hemna6969/aprsd:latest \

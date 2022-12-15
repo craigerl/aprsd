@@ -6,6 +6,8 @@ ARG BRANCH=master
 ARG UID
 ARG GID
 
+ARG BUILDX_QEMU_ENV
+
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
 ENV APRSD=http://github.com/craigerl/aprsd.git
@@ -39,6 +41,13 @@ RUN cat $HOME/.bashrc
 
 USER root
 WORKDIR $HOME
+# Handle an extremely specific issue when building the cryptography package for
+# 32-bit architectures within QEMU running on a 64-bit host (issue #30).
+RUN if [ "${BUILDX_QEMU_ENV}" = "true" -a "$(getconf LONG_BIT)" = "32" ]; then \
+        pip3 install -U cryptography==3.3.2; \
+    else \
+        pip3 install cryptography ;\
+    fi
 RUN mkdir $INSTALL
 RUN git clone -b $BRANCH $APRSD $INSTALL/aprsd
 RUN    cd $INSTALL/aprsd && pip3 install -v .

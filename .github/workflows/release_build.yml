@@ -39,10 +39,11 @@ jobs:
       uses: docker/build-push-action@v3
       with:
         context: "{{defaultContext}}:docker"
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64,linux/arm64,linux/arm/v7
         file: ./Dockerfile
         build-args: |
             VERSION=${{ inputs.aprsd_version }}
+            BUILDX_QEMU_ENV=true
         push: true
         tags: |
           hemna6969/aprsd:v${{ inputs.aprsd_version }}
