@@ -31,6 +31,7 @@ class Client:
 
     connected = False
     server_string = None
+    filter = None
 
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
@@ -44,10 +45,17 @@ class Client:
         if config:
             self.config = config
 
+    def set_filter(self, filter):
+        self.filter = filter
+        if self._client:
+            self._client.set_filter(filter)
+
     @property
     def client(self):
         if not self._client:
             self._client = self.setup_connection()
+            if self.filter:
+                self._client.set_filter(self.filter)
         return self._client
 
     def reset(self):

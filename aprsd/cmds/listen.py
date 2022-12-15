@@ -5,10 +5,10 @@
 # python included libs
 import datetime
 import logging
+import signal
 import sys
 import time
 
-import aprslib
 import click
 from rich.console import Console
 
@@ -16,7 +16,7 @@ from rich.console import Console
 import aprsd
 from aprsd import cli_helper, client, messaging, packets, stats, threads, utils
 from aprsd.aprsd import cli
-from aprsd.utils import trace
+from aprsd.threads import rx
 
 
 # setup the global logger
@@ -35,6 +35,14 @@ def signal_handler(sig, frame):
         )
         time.sleep(5)
         LOG.info(stats.APRSDStats())
+
+
+class APRSDListenThread(rx.APRSDRXThread):
+    def process_packet(self, *args, **kwargs):
+        raw = self._client.decode_packet(*args, **kwargs)
+        packet = packets.Packet.factory(raw)
+        LOG.debug(f"Got packet {packet}")
+        packet.log(header="RX Packet")
 
 
 @cli.command()
@@ -74,6 +82,8 @@ def listen(
     o/obj1/obj2... - Object Filter Pass all objects with the exact name of obj1, obj2, ... (* wild card allowed)\n
 
     """
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     config = ctx.obj["config"]
 
     if not aprs_login:
@@ -109,26 +119,6 @@ def listen(
     packets.WatchList(config=config).load()
     packets.SeenList(config=config).load()
 
-    @trace.trace
-    def rx_packet(packet):
-        resp = packet.get("response", None)
-        if resp == "ack":
-            ack_num = packet.get("msgNo")
-            console.log(f"We saw an ACK {ack_num} Ignoring")
-            messaging.log_packet(packet)
-        else:
-            message = packet.get("message_text", None)
-            fromcall = packet["from"]
-            msg_number = packet.get("msgNo", "0")
-            messaging.log_message(
-                "Received Message",
-                packet["raw"],
-                message,
-                fromcall=fromcall,
-                ack=msg_number,
-                console=console,
-            )
-
     # Initialize the client factory and create
     # The correct client object ready for use
     client.ClientFactory.setup(config)
@@ -140,29 +130,21 @@ def listen(
     # Creates the client object
     LOG.info("Creating client connection")
     aprs_client = client.factory.create()
-    console.log(aprs_client)
+    LOG.info(aprs_client)
 
     LOG.debug(f"Filter by '{filter}'")
-    aprs_client.client.set_filter(filter)
+    aprs_client.set_filter(filter)
 
     packets.PacketList(config=config)
 
     keepalive = threads.KeepAliveThread(config=config)
     keepalive.start()
 
-    while True:
-        try:
-            # This will register a packet consumer with aprslib
-            # When new packets come in the consumer will process
-            # the packet
-            # with console.status("Listening for packets"):
-            aprs_client.client.consumer(rx_packet, raw=False)
-        except aprslib.exceptions.ConnectionDrop:
-            LOG.error("Connection dropped, reconnecting")
-            time.sleep(5)
-            # Force the deletion of the client object connected to aprs
-            # This will cause a reconnect, next time client.get_client()
-            # is called
-            aprs_client.reset()
-        except aprslib.exceptions.UnknownFormat:
-            LOG.error("Got a Bad packet")
+    LOG.debug("Create APRSDListenThread")
+    listen_thread = APRSDListenThread(threads.msg_queues, config=config)
+    LOG.debug("Start APRSDListenThread")
+    listen_thread.start()
+    LOG.debug("keepalive Join")
+    keepalive.join()
+    LOG.debug("listen_thread Join")
+    listen_thread.join()

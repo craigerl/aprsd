@@ -178,7 +178,7 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         )
         self.got_ack = True
 
-    def process_non_ack_packet(self, packet):
+    def process_our_message_packet(self, packet):
         LOG.info(f"process non ack PACKET {packet}")
         packet.get("addresse", None)
         fromcall = packet["from"]

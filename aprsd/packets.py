@@ -1,8 +1,10 @@
+from dataclasses import asdict, dataclass, field
 import datetime
 import logging
 import threading
 import time
 
+import dacite
 import wrapt
 
 from aprsd import utils
@@ -14,6 +16,150 @@ LOG = logging.getLogger("APRSD")
 PACKET_TYPE_MESSAGE = "message"
 PACKET_TYPE_ACK = "ack"
 PACKET_TYPE_MICE = "mic-e"
+PACKET_TYPE_WX = "weather"
+PACKET_TYPE_UNKNOWN = "unknown"
+PACKET_TYPE_STATUS = "status"
+
+
+@dataclass
+class Packet:
+    from_call: str
+    to_call: str
+    addresse: str = None
+    format: str = None
+    msgNo: str = None
+    packet_type: str = None
+    timestamp: float = field(default_factory=time.time)
+    raw: str = None
+    _raw_dict: dict = field(repr=True, default_factory=lambda: {})
+
+    @staticmethod
+    def factory(raw):
+        raw["_raw_dict"] = raw.copy()
+        translate_fields = {
+            "from": "from_call",
+            "to": "to_call",
+        }
+        # First translate some fields
+        for key in translate_fields:
+            if key in raw:
+                raw[translate_fields[key]] = raw[key]
+                del raw[key]
+
+        if "addresse" in raw:
+            raw["to_call"] = raw["addresse"]
+
+        class_lookup = {
+            PACKET_TYPE_WX: WeatherPacket,
+            PACKET_TYPE_MESSAGE: MessagePacket,
+            PACKET_TYPE_ACK: AckPacket,
+            PACKET_TYPE_MICE: MicEPacket,
+            PACKET_TYPE_STATUS: StatusPacket,
+            PACKET_TYPE_UNKNOWN: Packet,
+        }
+        packet_type = get_packet_type(raw)
+        raw["packet_type"] = packet_type
+        class_name = class_lookup[packet_type]
+        if packet_type == PACKET_TYPE_UNKNOWN:
+            # Try and figure it out here
+            if "latitude" in raw:
+                class_name = GPSPacket
+
+        if packet_type == PACKET_TYPE_WX:
+            # the weather information is in a dict
+            # this brings those values out to the outer dict
+            for key in raw["weather"]:
+                raw[key] = raw["weather"][key]
+
+        return dacite.from_dict(data_class=class_name, data=raw)
+
+    def log(self, header=None):
+        """LOG a packet to the logfile."""
+        asdict(self)
+        log_list = ["\n"]
+        if header:
+            log_list.append(f"{header} _______________")
+        log_list.append(f"  Packet  : {self.__class__.__name__}")
+        log_list.append(f"  Raw     : {self.raw}")
+        if self.to_call:
+            log_list.append(f"  To      : {self.to_call}")
+        if self.from_call:
+            log_list.append(f"  From    : {self.from_call}")
+        if hasattr(self, "path"):
+            log_list.append(f"  Path    : {'=>'.join(self.path)}")
+        if hasattr(self, "via"):
+            log_list.append(f"  VIA     : {self.via}")
+
+        elif isinstance(self, MessagePacket):
+            log_list.append(f"  Message : {self.message_text}")
+
+        if self.msgNo:
+            log_list.append(f"  Msg #   : {self.msgNo}")
+        log_list.append(f"{header} _______________ Complete")
+
+
+        LOG.info(self)
+        LOG.info("\n".join(log_list))
+
+@dataclass
+class PathPacket(Packet):
+    path: list[str] = field(default_factory=list)
+    via: str = None
+
+
+@dataclass
+class AckPacket(PathPacket):
+    response: str = None
+
+@dataclass
+class MessagePacket(PathPacket):
+    message_text: str = None
+
+
+@dataclass
+class StatusPacket(PathPacket):
+    status: str = None
+    timestamp: int = 0
+    messagecapable: bool = False
+    comment: str = None
+
+
+@dataclass
+class GPSPacket(PathPacket):
+    latitude: float = 0.00
+    longitude: float = 0.00
+    altitude: float = 0.00
+    rng: float = 0.00
+    posambiguity: int = 0
+    timestamp: int = 0
+    comment: str = None
+    symbol: str = None
+    symbol_table: str = None
+    speed: float = 0.00
+    course: int = 0
+
+
+@dataclass
+class MicEPacket(GPSPacket):
+    messagecapable: bool = False
+    mbits: str = None
+    mtype: str = None
+
+
+@dataclass
+class WeatherPacket(GPSPacket):
+    symbol: str = "_"
+    wind_gust: float = 0.00
+    temperature: float = 0.00
+    rain_1h: float = 0.00
+    rain_24h: float = 0.00
+    rain_since_midnight: float = 0.00
+    humidity: int = 0
+    pressure: float = 0.00
+    messagecapable: bool = False
+    comment: str = None
+
+
 
 
 class PacketList:
@@ -45,11 +191,8 @@ class PacketList:
 
     @wrapt.synchronized(lock)
     def add(self, packet):
-        packet["ts"] = time.time()
-        if (
-            "fromcall" in packet
-            and packet["fromcall"] == self.config["aprs"]["login"]
-        ):
+        packet.ts = time.time()
+        if (packet.from_call == self.config["aprs"]["login"]):
             self.total_tx += 1
         else:
             self.total_recv += 1
@@ -116,7 +259,10 @@ class WatchList(objectstore.ObjectStoreMixin):
 
     @wrapt.synchronized(lock)
     def update_seen(self, packet):
-        callsign = packet["from"]
+        if packet.addresse:
+            callsign = packet.addresse
+        else:
+            callsign = packet.from_call
         if self.callsign_in_watchlist(callsign):
             self.data[callsign]["last"] = datetime.datetime.now()
             self.data[callsign]["packets"].append(packet)
@@ -178,10 +324,8 @@ class SeenList(objectstore.ObjectStoreMixin):
     @wrapt.synchronized(lock)
     def update_seen(self, packet):
         callsign = None
-        if "fromcall" in packet:
-            callsign = packet["fromcall"]
-        elif "from" in packet:
-            callsign = packet["from"]
+        if packet.from_call:
+            callsign = packet.from_call
         else:
             LOG.warning(f"Can't find FROM in packet {packet}")
             return
@@ -200,12 +344,16 @@ def get_packet_type(packet):
     msg_format = packet.get("format", None)
     msg_response = packet.get("response", None)
     packet_type = "unknown"
-    if msg_format == "message":
-        packet_type = PACKET_TYPE_MESSAGE
-    elif msg_response == "ack":
+    if msg_format == "message" and msg_response == "ack":
         packet_type = PACKET_TYPE_ACK
+    elif msg_format == "message":
+        packet_type = PACKET_TYPE_MESSAGE
     elif msg_format == "mic-e":
         packet_type = PACKET_TYPE_MICE
+    elif msg_format == "status":
+        packet_type = PACKET_TYPE_STATUS
+    elif packet.get("symbol", None) == "_":
+        packet_type = PACKET_TYPE_WX
     return packet_type
 
 
