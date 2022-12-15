@@ -168,7 +168,7 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         self.connected = False
         super().__init__(config, packet)
 
-    def process_ack_packet(self, packet):
+    def process_ack_packet(self, packet: packets.AckPacket):
         super().process_ack_packet(packet)
         ack_num = packet.get("msgNo")
         SentMessages().ack(int(ack_num))
@@ -178,21 +178,21 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         )
         self.got_ack = True
 
-    def process_our_message_packet(self, packet):
+    def process_our_message_packet(self, packet: packets.MessagePacket):
         LOG.info(f"process non ack PACKET {packet}")
         packet.get("addresse", None)
-        fromcall = packet["from"]
+        fromcall = packet.from_call
 
         packets.PacketList().add(packet)
         stats.APRSDStats().msgs_rx_inc()
         message = packet.get("message_text", None)
         msg = {
             "id": 0,
-            "ts": time.time(),
+            "ts": packet.get("timestamp", time.time()),
             "ack": False,
             "from": fromcall,
-            "to": packet["to"],
-            "raw": packet["raw"],
+            "to": packet.to_call,
+            "raw": packet.raw,
             "message": message,
             "status": None,
             "last_update": None,

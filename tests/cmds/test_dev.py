@@ -17,7 +17,10 @@ class TestDevTestPluginCommand(unittest.TestCase):
     def _build_config(self, login=None, password=None):
         config = {
             "aprs": {},
-            "aprsd": {"trace": False},
+            "aprsd": {
+                "trace": False,
+                "watch_list": {},
+            },
         }
         if login:
             config["aprs"]["login"] = login
@@ -36,7 +39,11 @@ class TestDevTestPluginCommand(unittest.TestCase):
         mock_parse_config.return_value = self._build_config()
 
         result = runner.invoke(
-            cli, ["dev", "test-plugin", "bogus command"],
+            cli, [
+                "dev", "test-plugin",
+                "-p", "aprsd.plugins.version.VersionPlugin",
+                "bogus command",
+            ],
             catch_exceptions=False,
         )
         # rich.print(f"EXIT CODE {result.exit_code}")

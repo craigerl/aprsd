@@ -346,7 +346,11 @@ class TextMessage(Message):
         )
         cl.send(self)
         stats.APRSDStats().msgs_tx_inc()
-        packets.PacketList().add(self.dict())
+        pkt_dict = self.dict().copy()
+        pkt_dict["from"] = pkt_dict["fromcall"]
+        pkt_dict["to"] = pkt_dict["tocall"]
+        packet = packets.Packet.factory(pkt_dict)
+        packets.PacketList().add(packet)
 
 
 class SendMessageThread(threads.APRSDThread):

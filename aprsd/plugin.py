@@ -119,11 +119,11 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
                 thread.stop()
 
     @abc.abstractmethod
-    def filter(self, packet):
+    def filter(self, packet: packets.Packet):
         pass
 
     @abc.abstractmethod
-    def process(self, packet):
+    def process(self, packet: packets.Packet):
         """This is called when the filter passes."""
 
 
@@ -160,11 +160,11 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 LOG.warning("Watch list enabled, but no callsigns set.")
 
     @hookimpl
-    def filter(self, packet):
+    def filter(self, packet: packets.Packet):
         result = messaging.NULL_MESSAGE
         if self.enabled:
             wl = packets.WatchList()
-            if wl.callsign_in_watchlist(packet["from"]):
+            if wl.callsign_in_watchlist(packet.from_call):
                 # packet is from a callsign in the watch list
                 self.rx_inc()
                 try:
@@ -212,7 +212,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         self.enabled = True
 
     @hookimpl
-    def filter(self, packet):
+    def filter(self, packet: packets.MessagePacket):
         result = None
 
         message = packet.get("message_text", None)
@@ -272,10 +272,10 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
     def help(self):
         return "Help: send APRS help or help <plugin>"
 
-    def process(self, packet):
+    def process(self, packet: packets.MessagePacket):
         LOG.info("HelpPlugin")
         # fromcall = packet.get("from")
-        message = packet.get("message_text", None)
+        message = packet.message_text
         # ack = packet.get("msgNo", "0")
         a = re.search(r"^.*\s+(.*)", message)
         command_name = None
@@ -475,7 +475,7 @@ class PluginManager:
                     self._load_plugin(p_name)
         LOG.info("Completed Plugin Loading.")
 
-    def run(self, packet):
+    def run(self, packet: packets.Packet):
         """Execute all the pluguns run method."""
         with self.lock:
             return self._pluggy_pm.hook.filter(packet=packet)

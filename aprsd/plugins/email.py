@@ -10,7 +10,7 @@ import time
 
 import imapclient
 
-from aprsd import messaging, plugin, stats, threads
+from aprsd import messaging, packets, plugin, stats, threads
 from aprsd.utils import trace
 
 
@@ -85,14 +85,14 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
             )
 
     @trace.trace
-    def process(self, packet):
+    def process(self, packet: packets.MessagePacket):
         LOG.info("Email COMMAND")
         if not self.enabled:
             # Email has not been enabled
             # so the plugin will just NOOP
             return messaging.NULL_MESSAGE
 
-        fromcall = packet.get("from")
+        fromcall = packet.from_call
         message = packet.get("message_text", None)
         ack = packet.get("msgNo", "0")
 

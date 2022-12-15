@@ -19,16 +19,16 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
     short_description = "Notify me when a CALLSIGN is recently seen on APRS-IS"
 
     @trace.trace
-    def process(self, packet):
+    def process(self, packet: packets.MessagePacket):
         LOG.info("NotifySeenPlugin")
 
         notify_callsign = self.config["aprsd"]["watch_list"]["alert_callsign"]
-        fromcall = packet.get("from")
+        fromcall = packet.from_call
 
         wl = packets.WatchList()
         age = wl.age(fromcall)
 
-        if wl.is_old(packet["from"]):
+        if wl.is_old(fromcall):
             LOG.info(
                 "NOTIFY {} last seen {} max age={}".format(
                     fromcall,
@@ -36,7 +36,7 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                     wl.max_delta(),
                 ),
             )
-            packet_type = packets.get_packet_type(packet)
+            packet_type = packet.packet_type
             # we shouldn't notify the alert user that they are online.
             if fromcall != notify_callsign:
                 msg = messaging.TextMessage(

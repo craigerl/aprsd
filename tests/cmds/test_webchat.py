@@ -93,7 +93,7 @@ class TestSendMessageCommand(unittest.TestCase):
     @mock.patch("aprsd.config.parse_config")
     @mock.patch("aprsd.packets.PacketList.add")
     @mock.patch("aprsd.cmds.webchat.socketio.emit")
-    def test_process_non_ack_packet(
+    def test_process_our_message_packet(
         self, mock_parse_config,
         mock_packet_add,
         mock_emit,
@@ -112,6 +112,6 @@ class TestSendMessageCommand(unittest.TestCase):
         packets.SeenList(config=config)
         wcp = webchat.WebChatProcessPacketThread(config, packet, socketio)
 
-        wcp.process_non_ack_packet(packet)
+        wcp.process_our_message_packet(packet)
         mock_packet_add.called_once()
         mock_emit.called_once()

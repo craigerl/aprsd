@@ -4,7 +4,7 @@ import time
 
 import pytz
 
-from aprsd import plugin, plugin_utils
+from aprsd import packets, plugin, plugin_utils
 from aprsd.utils import fuzzy, trace
 
 
@@ -42,7 +42,7 @@ class TimePlugin(plugin.APRSDRegexCommandPluginBase):
         return reply
 
     @trace.trace
-    def process(self, packet):
+    def process(self, packet: packets.Packet):
         LOG.info("TIME COMMAND")
         # So we can mock this in unit tests
         localzone = self._get_local_tz()
@@ -60,9 +60,9 @@ class TimeOWMPlugin(TimePlugin, plugin.APRSFIKEYMixin):
         self.ensure_aprs_fi_key()
 
     @trace.trace
-    def process(self, packet):
-        fromcall = packet.get("from")
-        message = packet.get("message_text", None)
+    def process(self, packet: packets.MessagePacket):
+        fromcall = packet.from_call
+        message = packet.message_text
         # ack = packet.get("msgNo", "0")
 
         # optional second argument is a callsign to search

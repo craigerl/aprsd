@@ -65,10 +65,10 @@ class APRSDPluginRXThread(APRSDRXThread):
     """
     def process_packet(self, *args, **kwargs):
         raw = self._client.decode_packet(*args, **kwargs)
-        #LOG.debug(raw)
+        # LOG.debug(raw)
         packet = packets.Packet.factory(raw.copy())
         packet.log(header="RX Packet")
-        #LOG.debug(packet)
+        # LOG.debug(packet)
         del raw
         thread = APRSDPluginProcessPacketThread(
             config=self.config,

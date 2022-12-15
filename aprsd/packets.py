@@ -3,6 +3,8 @@ import datetime
 import logging
 import threading
 import time
+# Due to a failure in python 3.8
+from typing import List
 
 import dacite
 import wrapt
@@ -19,6 +21,8 @@ PACKET_TYPE_MICE = "mic-e"
 PACKET_TYPE_WX = "weather"
 PACKET_TYPE_UNKNOWN = "unknown"
 PACKET_TYPE_STATUS = "status"
+PACKET_TYPE_BEACON = "beacon"
+PACKET_TYPE_UNCOMPRESSED = "uncompressed"
 
 
 @dataclass
@@ -27,14 +31,22 @@ class Packet:
     to_call: str
     addresse: str = None
     format: str = None
-    msgNo: str = None
+    msgNo: str = None   # noqa: N815
     packet_type: str = None
     timestamp: float = field(default_factory=time.time)
     raw: str = None
     _raw_dict: dict = field(repr=True, default_factory=lambda: {})
 
+    def get(self, key, default=None):
+        """Emulate a getter on a dict."""
+        if hasattr(self, key):
+            return getattr(self, key)
+        else:
+            return default
+
     @staticmethod
-    def factory(raw):
+    def factory(raw_packet):
+        raw = raw_packet.copy()
         raw["_raw_dict"] = raw.copy()
         translate_fields = {
             "from": "from_call",
@@ -49,17 +61,9 @@ class Packet:
         if "addresse" in raw:
             raw["to_call"] = raw["addresse"]
 
-        class_lookup = {
-            PACKET_TYPE_WX: WeatherPacket,
-            PACKET_TYPE_MESSAGE: MessagePacket,
-            PACKET_TYPE_ACK: AckPacket,
-            PACKET_TYPE_MICE: MicEPacket,
-            PACKET_TYPE_STATUS: StatusPacket,
-            PACKET_TYPE_UNKNOWN: Packet,
-        }
         packet_type = get_packet_type(raw)
         raw["packet_type"] = packet_type
-        class_name = class_lookup[packet_type]
+        class_name = TYPE_LOOKUP[packet_type]
         if packet_type == PACKET_TYPE_UNKNOWN:
             # Try and figure it out here
             if "latitude" in raw:
@@ -97,19 +101,20 @@ class Packet:
             log_list.append(f"  Msg #   : {self.msgNo}")
         log_list.append(f"{header} _______________ Complete")
 
-
-        LOG.info(self)
         LOG.info("\n".join(log_list))
+        LOG.debug(self)
+
 
 @dataclass
 class PathPacket(Packet):
-    path: list[str] = field(default_factory=list)
+    path: List[str] = field(default_factory=list)
     via: str = None
 
 
 @dataclass
 class AckPacket(PathPacket):
     response: str = None
+
 
 @dataclass
 class MessagePacket(PathPacket):
@@ -156,10 +161,7 @@ class WeatherPacket(GPSPacket):
     rain_since_midnight: float = 0.00
     humidity: int = 0
     pressure: float = 0.00
-    messagecapable: bool = False
     comment: str = None
-
-
 
 
 class PacketList:
@@ -190,7 +192,7 @@ class PacketList:
         return iter(self.packet_list)
 
     @wrapt.synchronized(lock)
-    def add(self, packet):
+    def add(self, packet: Packet):
         packet.ts = time.time()
         if (packet.from_call == self.config["aprs"]["login"]):
             self.total_tx += 1
@@ -322,7 +324,7 @@ class SeenList(objectstore.ObjectStoreMixin):
         return cls._instance
 
     @wrapt.synchronized(lock)
-    def update_seen(self, packet):
+    def update_seen(self, packet: Packet):
         callsign = None
         if packet.from_call:
             callsign = packet.from_call
@@ -338,22 +340,36 @@ class SeenList(objectstore.ObjectStoreMixin):
         self.data[callsign]["count"] += 1
 
 
-def get_packet_type(packet):
+TYPE_LOOKUP = {
+    PACKET_TYPE_WX: WeatherPacket,
+    PACKET_TYPE_MESSAGE: MessagePacket,
+    PACKET_TYPE_ACK: AckPacket,
+    PACKET_TYPE_MICE: MicEPacket,
+    PACKET_TYPE_STATUS: StatusPacket,
+    PACKET_TYPE_BEACON: GPSPacket,
+    PACKET_TYPE_UNKNOWN: Packet,
+}
+
+
+def get_packet_type(packet: dict):
     """Decode the packet type from the packet."""
 
-    msg_format = packet.get("format", None)
+    format = packet.get("format", None)
     msg_response = packet.get("response", None)
     packet_type = "unknown"
-    if msg_format == "message" and msg_response == "ack":
+    if format == "message" and msg_response == "ack":
         packet_type = PACKET_TYPE_ACK
-    elif msg_format == "message":
+    elif format == "message":
         packet_type = PACKET_TYPE_MESSAGE
-    elif msg_format == "mic-e":
+    elif format == "mic-e":
         packet_type = PACKET_TYPE_MICE
-    elif msg_format == "status":
+    elif format == "status":
         packet_type = PACKET_TYPE_STATUS
-    elif packet.get("symbol", None) == "_":
-        packet_type = PACKET_TYPE_WX
+    elif format == PACKET_TYPE_BEACON:
+        packet_type = PACKET_TYPE_BEACON
+    elif format == PACKET_TYPE_UNCOMPRESSED:
+        if packet.get("symbol", None) == "_":
+            packet_type = PACKET_TYPE_WX
     return packet_type
 
 

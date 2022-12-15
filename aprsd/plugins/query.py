@@ -2,7 +2,7 @@ import datetime
 import logging
 import re
 
-from aprsd import messaging, plugin
+from aprsd import messaging, packets, plugin
 from aprsd.utils import trace
 
 
@@ -17,10 +17,10 @@ class QueryPlugin(plugin.APRSDRegexCommandPluginBase):
     short_description = "APRSD Owner command to query messages in the MsgTrack"
 
     @trace.trace
-    def process(self, packet):
+    def process(self, packet: packets.MessagePacket):
         LOG.info("Query COMMAND")
 
-        fromcall = packet.get("from")
+        fromcall = packet.from_call
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
 
