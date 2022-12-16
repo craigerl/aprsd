@@ -26,6 +26,11 @@ PACKET_TYPE_BEACON = "beacon"
 PACKET_TYPE_UNCOMPRESSED = "uncompressed"
 
 
+def _int_timestamp():
+    """Build a unix style timestamp integer"""
+    return int(round(time.time()))
+
+
 @dataclass()
 class Packet(metaclass=abc.ABCMeta):
     from_call: str
@@ -34,7 +39,7 @@ class Packet(metaclass=abc.ABCMeta):
     format: str = None
     msgNo: str = None   # noqa: N815
     packet_type: str = None
-    timestamp: float = field(default_factory=time.time)
+    timestamp: float = field(default_factory=_int_timestamp)
     raw: str = None
     _raw_dict: dict = field(repr=False, default_factory=lambda: {})
     _retry_count = 3
