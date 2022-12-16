@@ -1,6 +1,6 @@
 import logging
 
-from aprsd import messaging, packets, plugin
+from aprsd import packets, plugin
 
 
 LOG = logging.getLogger("APRSD")
@@ -34,20 +34,21 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                     wl.max_delta(),
                 ),
             )
-            packet_type = packet.packet_type
+            packet_type = packet.__class__.__name__
             # we shouldn't notify the alert user that they are online.
             if fromcall != notify_callsign:
-                msg = messaging.TextMessage(
-                    self.config["aprs"]["login"],
-                    notify_callsign,
-                    f"{fromcall} was just seen by type:'{packet_type}'",
-                    # We don't need to keep this around if it doesn't go thru
-                    allow_delay=False,
+                pkt = packets.MessagePacket(
+                    from_call=self.config["aprsd"]["callsign"],
+                    to_call=notify_callsign,
+                    message_text=(
+                        f"{fromcall} was just seen by type:'{packet_type}'"
+                    ),
+                    _allow_delay=False,
                 )
-                return msg
+                return pkt
             else:
                 LOG.debug("fromcall and notify_callsign are the same, not notifying")
-                return messaging.NULL_MESSAGE
+                return packets.NULL_MESSAGE
         else:
             LOG.debug(
                 "Not old enough to notify on callsign '{}' : {} < {}".format(
@@ -56,4 +57,4 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                     wl.max_delta(),
                 ),
             )
-            return messaging.NULL_MESSAGE
+            return packets.NULL_MESSAGE

@@ -46,6 +46,12 @@ class Packet(metaclass=abc.ABCMeta):
     _transport = None
     _raw_message = None
 
+    def __post__init(self):
+        if not self.msgNo:
+            c = counter.PacketCounter()
+            c.increment()
+            self.msgNo = c.value
+
     def get(self, key, default=None):
         """Emulate a getter on a dict."""
         if hasattr(self, key):
@@ -55,11 +61,6 @@ class Packet(metaclass=abc.ABCMeta):
 
     def _init_for_send(self):
         """Do stuff here that is needed prior to sending over the air."""
-        if not self.msgNo:
-            c = counter.PacketCounter()
-            c.increment()
-            self.msgNo = c.value
-
         # now build the raw message for sending
         self._build_raw()
 

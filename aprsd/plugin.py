@@ -13,7 +13,7 @@ import pluggy
 from thesmuggler import smuggle
 
 import aprsd
-from aprsd import client, messaging, threads
+from aprsd import client, packets, threads
 from aprsd.packets import watch_list
 
 
@@ -162,7 +162,7 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
 
     @hookimpl
     def filter(self, packet):
-        result = messaging.NULL_MESSAGE
+        result = packets.NULL_MESSAGE
         if self.enabled:
             wl = watch_list.WatchList()
             if wl.callsign_in_watchlist(packet.from_call):

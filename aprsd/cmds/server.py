@@ -80,14 +80,12 @@ def server(ctx, flush):
     packets.PacketList(config=config)
     if flush:
         LOG.debug("Deleting saved MsgTrack.")
-        #messaging.MsgTrack(config=config).flush()
         packets.PacketTrack(config=config).flush()
         packets.WatchList(config=config)
         packets.SeenList(config=config)
     else:
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
-        #messaging.MsgTrack(config=config).load()
         packets.PacketTrack(config=config).load()
         packets.WatchList(config=config).load()
         packets.SeenList(config=config).load()
@@ -103,7 +101,6 @@ def server(ctx, flush):
     )
     rx_thread.start()
 
-    #messaging.MsgTrack().restart()
     packets.PacketTrack().restart()
 
     keepalive = threads.KeepAliveThread(config=config)

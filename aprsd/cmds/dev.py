@@ -8,7 +8,7 @@ import logging
 import click
 
 # local imports here
-from aprsd import cli_helper, client, messaging, packets, plugin, stats, utils
+from aprsd import cli_helper, client, packets, plugin, stats, utils
 from aprsd.aprsd import cli
 from aprsd.utils import trace
 
@@ -102,7 +102,7 @@ def test_plugin(
 
     client.Client(config)
     stats.APRSDStats(config)
-    messaging.MsgTrack(config=config)
+    packets.PacketTrack(config=config)
     packets.WatchList(config=config)
     packets.SeenList(config=config)
 

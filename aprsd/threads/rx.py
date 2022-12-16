@@ -4,7 +4,7 @@ import time
 
 import aprslib
 
-from aprsd import client, messaging, packets, plugin, stats
+from aprsd import client, packets, plugin, stats
 from aprsd.threads import APRSDThread
 
 
@@ -66,7 +66,6 @@ class APRSDPluginRXThread(APRSDRXThread):
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)
-        #packet = packets.Packet.factory(raw.copy())
         packet.log(header="RX Packet")
         thread = APRSDPluginProcessPacketThread(
             config=self.config,
@@ -186,7 +185,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     replied = True
                     for subreply in reply:
                         LOG.debug(f"Sending '{subreply}'")
-                        if isinstance(subreply, messaging.Message):
+                        if isinstance(subreply, packets.Packet):
                             subreply.send()
                         else:
                             msg_pkt = packets.MessagePacket(
@@ -195,23 +194,9 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                                 message_text=subreply,
                             )
                             msg_pkt.send()
-                            #msg = messaging.TextMessage(
-                            #    self.config["aprsd"]["callsign"],
-                            #    from_call,
-                            #    subreply,
-                            #)
-                            #msg.send()
-                elif isinstance(reply, messaging.Message):
+                elif isinstance(reply, packets.Packet):
                     # We have a message based object.
-                    LOG.debug(f"Sending '{reply}'")
-                    # Convert this to the new packet
-                    msg_pkt = packets.MessagePacket(
-                        from_call=reply.fromcall,
-                        to_call=reply.tocall,
-                        message_text=reply._raw_message,
-                    )
-                    #reply.send()
-                    msg_pkt.send()
+                    reply.send()
                     replied = True
                 else:
                     replied = True
@@ -219,7 +204,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     # us that they processed the message correctly, but have
                     # nothing to reply with, so we avoid replying with a
                     # usage string
-                    if reply is not messaging.NULL_MESSAGE:
+                    if reply is not packets.NULL_MESSAGE:
                         LOG.debug(f"Sending '{reply}'")
                         msg_pkt = packets.MessagePacket(
                             from_call=self.config["aprsd"]["callsign"],
@@ -229,13 +214,6 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                         LOG.warning("Calling msg_pkg.send()")
                         msg_pkt.send()
                         LOG.warning("Calling msg_pkg.send() --- DONE")
-
-                        #msg = messaging.TextMessage(
-                        #    self.config["aprsd"]["callsign"],
-                        #    from_call,
-                        #    reply,
-                        #)
-                        #msg.send()
 
             # If the message was for us and we didn't have a
             # response, then we send a usage statement.
@@ -247,12 +225,6 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     message_text="Unknown command! Send 'help' message for help",
                 )
                 msg_pkt.send()
-                #msg = messaging.TextMessage(
-                #    self.config["aprsd"]["callsign"],
-                #    from_call,
-                #    "Unknown command! Send 'help' message for help",
-                #)
-                #msg.send()
         except Exception as ex:
             LOG.error("Plugin failed!!!")
             LOG.exception(ex)
@@ -265,11 +237,5 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     message_text=reply,
                 )
                 msg_pkt.send()
-                #msg = messaging.TextMessage(
-                #    self.config["aprsd"]["callsign"],
-                #    from_call,
-                #    reply,
-                #)
-                #msg.send()
 
         LOG.debug("Completed process_our_message_packet")

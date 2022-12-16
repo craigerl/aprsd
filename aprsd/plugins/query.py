@@ -2,7 +2,8 @@ import datetime
 import logging
 import re
 
-from aprsd import messaging, packets, plugin
+from aprsd import packets, plugin
+from aprsd.packets import tracker
 from aprsd.utils import trace
 
 
@@ -24,10 +25,10 @@ class QueryPlugin(plugin.APRSDRegexCommandPluginBase):
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
 
-        tracker = messaging.MsgTrack()
+        pkt_tracker = tracker.PacketTrack()
         now = datetime.datetime.now()
         reply = "Pending messages ({}) {}".format(
-            len(tracker),
+            len(pkt_tracker),
             now.strftime("%H:%M:%S"),
         )
 
@@ -38,11 +39,11 @@ class QueryPlugin(plugin.APRSDRegexCommandPluginBase):
             # resend last N most recent:  "!3"
             r = re.search(r"^\!([0-9]).*", message)
             if r is not None:
-                if len(tracker) > 0:
+                if len(pkt_tracker) > 0:
                     last_n = r.group(1)
-                    reply = messaging.NULL_MESSAGE
+                    reply = packets.NULL_MESSAGE
                     LOG.debug(reply)
-                    tracker.restart_delayed(count=int(last_n))
+                    pkt_tracker.restart_delayed(count=int(last_n))
                 else:
                     reply = "No pending msgs to resend"
                     LOG.debug(reply)
@@ -51,10 +52,10 @@ class QueryPlugin(plugin.APRSDRegexCommandPluginBase):
             # resend all:   "!a"
             r = re.search(r"^\![aA].*", message)
             if r is not None:
-                if len(tracker) > 0:
-                    reply = messaging.NULL_MESSAGE
+                if len(pkt_tracker) > 0:
+                    reply = packets.NULL_MESSAGE
                     LOG.debug(reply)
-                    tracker.restart_delayed()
+                    pkt_tracker.restart_delayed()
                 else:
                     reply = "No pending msgs"
                     LOG.debug(reply)
@@ -65,7 +66,7 @@ class QueryPlugin(plugin.APRSDRegexCommandPluginBase):
             if r is not None:
                 reply = "Deleted ALL pending msgs."
                 LOG.debug(reply)
-                tracker.flush()
+                pkt_tracker.flush()
                 return reply
 
         return reply
