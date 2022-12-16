@@ -381,12 +381,10 @@ class SendMessageNamespace(Namespace):
             from_call=self._config["aprs"]["login"],
             to_call="APDW16",
             raw=txt,
+            latitude=lat,
+            longitude=long,
         )
         beacon.send_direct()
-        #beacon_msg = messaging.RawMessage(txt)
-        #beacon_msg.fromcall = self._config["aprs"]["login"]
-        #beacon_msg.tocall = "APDW16"
-        #beacon_msg.send_direct()
 
     def handle_message(self, data):
         LOG.debug(f"WS Data {data}")

@@ -135,15 +135,7 @@ class APRSDProcessPacketThread(APRSDThread):
                         to_call=from_call,
                         msgNo=msg_id,
                     )
-                    LOG.warning(f"Send AckPacket {ack_pkt}")
                     ack_pkt.send()
-                    LOG.warning("Send ACK called Continue on")
-                    #ack = messaging.AckMessage(
-                    #    self.config["aprsd"]["callsign"],
-                    #    from_call,
-                    #    msg_id=msg_id,
-                    #)
-                    #ack.send()
 
                     self.process_our_message_packet(packet)
                 else:

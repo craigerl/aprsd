@@ -147,12 +147,9 @@ class Packet(metaclass=abc.ABCMeta):
 
     def send(self):
         """Method to send a packet."""
-        LOG.warning("send() called!")
         self._init_for_send()
         thread = tx.SendPacketThread(packet=self)
-        LOG.warning(f"Starting thread to TX {self}")
         thread.start()
-        LOG.warning("Thread started")
 
     def send_direct(self, aprsis_client=None):
         """Send the message in the same thread as caller."""
