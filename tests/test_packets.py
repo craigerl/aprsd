@@ -1,6 +1,7 @@
 import unittest
 
 from aprsd import packets
+from aprsd.packets import core
 
 from . import fake
 
@@ -13,7 +14,7 @@ class TestPluginBase(unittest.TestCase):
         to_call=fake.FAKE_TO_CALLSIGN,
         message=None,
         msg_number=None,
-        message_format=packets.PACKET_TYPE_MESSAGE,
+        message_format=core.PACKET_TYPE_MESSAGE,
     ):
         packet_dict = {
             "from": from_call,
@@ -56,9 +57,9 @@ class TestPluginBase(unittest.TestCase):
         pkt = packets.Packet.factory(pkt_dict)
 
         self.assertIsInstance(pkt, packets.MessagePacket)
-        self.assertEqual(pkt_dict["from"], pkt.from_call)
-        self.assertEqual(pkt_dict["to"], pkt.to_call)
-        self.assertEqual(pkt_dict["addresse"], pkt.addresse)
+        self.assertEqual(fake.FAKE_FROM_CALLSIGN, pkt.from_call)
+        self.assertEqual(fake.FAKE_TO_CALLSIGN, pkt.to_call)
+        self.assertEqual(fake.FAKE_TO_CALLSIGN, pkt.addresse)
 
         pkt_dict["symbol"] = "_"
         pkt_dict["weather"] = {
@@ -68,6 +69,6 @@ class TestPluginBase(unittest.TestCase):
             "pressure": 1095.12,
             "comment": "Home!",
         }
-        pkt_dict["format"] = packets.PACKET_TYPE_UNCOMPRESSED
+        pkt_dict["format"] = core.PACKET_TYPE_UNCOMPRESSED
         pkt = packets.Packet.factory(pkt_dict)
         self.assertIsInstance(pkt, packets.WeatherPacket)

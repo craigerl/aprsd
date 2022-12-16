@@ -1,13 +1,14 @@
 from unittest import mock
 
-from aprsd import messaging
+from aprsd import packets
+from aprsd.packets import tracker
 from aprsd.plugins import query as query_plugin
 
 from .. import fake, test_plugin
 
 
 class TestQueryPlugin(test_plugin.TestPlugin):
-    @mock.patch("aprsd.messaging.MsgTrack.flush")
+    @mock.patch("aprsd.packets.tracker.PacketTrack.flush")
     def test_query_flush(self, mock_flush):
         packet = fake.fake_packet(message="!delete")
         query = query_plugin.QueryPlugin(self.config)
@@ -17,9 +18,9 @@ class TestQueryPlugin(test_plugin.TestPlugin):
         mock_flush.assert_called_once()
         self.assertEqual(expected, actual)
 
-    @mock.patch("aprsd.messaging.MsgTrack.restart_delayed")
+    @mock.patch("aprsd.packets.tracker.PacketTrack.restart_delayed")
     def test_query_restart_delayed(self, mock_restart):
-        track = messaging.MsgTrack()
+        track = tracker.PacketTrack()
         track.data = {}
         packet = fake.fake_packet(message="!4")
         query = query_plugin.QueryPlugin(self.config)
@@ -31,7 +32,11 @@ class TestQueryPlugin(test_plugin.TestPlugin):
         mock_restart.reset_mock()
 
         # add a message
-        msg = messaging.TextMessage(self.fromcall, "testing", self.ack)
-        track.add(msg)
+        pkt = packets.MessagePacket(
+            from_call=self.fromcall,
+            to_call="testing",
+            msgNo=self.ack,
+        )
+        track.add(pkt)
         actual = query.filter(packet)
         mock_restart.assert_called_once()

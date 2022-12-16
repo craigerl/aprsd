@@ -1,4 +1,5 @@
 from aprsd import packets, plugin, threads
+from aprsd.packets import core
 
 
 FAKE_MESSAGE_TEXT = "fake MeSSage"
@@ -11,7 +12,7 @@ def fake_packet(
     tocall=FAKE_TO_CALLSIGN,
     message=None,
     msg_number=None,
-    message_format=packets.PACKET_TYPE_MESSAGE,
+    message_format=core.PACKET_TYPE_MESSAGE,
 ):
     packet_dict = {
         "from": fromcall,

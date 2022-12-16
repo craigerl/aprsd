@@ -2,7 +2,8 @@ import unittest
 from unittest import mock
 
 from aprsd import config as aprsd_config
-from aprsd import messaging, packets, stats
+from aprsd import packets, stats
+from aprsd.packets import core
 
 from . import fake
 
@@ -18,7 +19,7 @@ class TestPlugin(unittest.TestCase):
         stats.APRSDStats._instance = None
         packets.WatchList._instance = None
         packets.SeenList._instance = None
-        messaging.MsgTrack._instance = None
+        packets.PacketTrack._instance = None
         self.config = None
 
     def config_and_init(self, config=None):
@@ -34,7 +35,7 @@ class TestPlugin(unittest.TestCase):
         stats.APRSDStats(self.config)
         packets.WatchList(config=self.config)
         packets.SeenList(config=self.config)
-        messaging.MsgTrack(config=self.config)
+        packets.PacketTrack(config=self.config)
 
 
 class TestPluginBase(TestPlugin):
@@ -89,7 +90,7 @@ class TestPluginBase(TestPlugin):
 
         packet = fake.fake_packet(
             message="F",
-            message_format=packets.PACKET_TYPE_MICE,
+            message_format=core.PACKET_TYPE_MICE,
         )
         expected = None
         actual = p.filter(packet)
@@ -98,7 +99,7 @@ class TestPluginBase(TestPlugin):
 
         packet = fake.fake_packet(
             message="f",
-            message_format=packets.PACKET_TYPE_ACK,
+            message_format=core.PACKET_TYPE_ACK,
         )
         expected = None
         actual = p.filter(packet)
