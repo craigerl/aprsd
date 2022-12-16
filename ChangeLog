@@ -1,9 +1,22 @@
 CHANGES
 =======
 
+v2.6.1
+------
+
+* Fixed position report for webchat beacon
+* Try and fix broken 32bit qemu builds on 64bit system
+* Add unit tests for webchat
+* remove armv7 build RUST sucks
+* Fix for Collections change in 3.10
+
 v2.6.0
 ------
 
+* Update workflow again
+* Update Dockerfile to 22.04
+* Update Dockerfile and build.sh
+* Update workflow
 * Prep for 2.6.0 release
 * Update requirements
 * Removed Makefile comment
