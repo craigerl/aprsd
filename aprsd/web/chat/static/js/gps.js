@@ -10,7 +10,14 @@ function init_gps() {
 function getLocation() {
     if (navigator.geolocation) {
         console.log("getCurrentPosition");
-        navigator.geolocation.getCurrentPosition(showPosition, showError);
+        try {
+            navigator.geolocation.getCurrentPosition(
+            showPosition, showError,
+            {timeout:3000});
+        } catch(err) {
+            console.log("Failed to getCurrentPosition");
+            console.log(err);
+        }
     } else {
         var msg = "Geolocation is not supported by this browser."
         console.log(msg);
@@ -30,7 +37,7 @@ function showError(error) {
           msg = "Location information is unavailable."
           break;
         case error.TIMEOUT:
-          msg = "The request to get user location timed out."
+          msg = "The location fix timed out."
           break;
         case error.UNKNOWN_ERROR:
           msg = "An unknown error occurred."
@@ -39,9 +46,11 @@ function showError(error) {
       console.log(msg);
       $.toast({
           title: 'GPS Error',
+          class: 'warning',
+          position: 'middle center',
           message: msg,
-          showProgress: 'bottom',
-          classProgress: 'red'
+          showProgress: 'top',
+          classProgress: 'blue',
       });
 }
 
@@ -59,5 +68,6 @@ function showPosition(position) {
       classProgress: 'red'
   });
 
+  console.log("Sending GPS msg")
   socket.emit("gps", msg);
 }

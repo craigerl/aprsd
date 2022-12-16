@@ -375,12 +375,9 @@ class SendMessageNamespace(Namespace):
         # now construct a beacon to send over the client connection
         txt = (
             f"{self._config['aprs']['login']}>APZ100,WIDE2-1"
-            f":!{lat}{long}#PHG7260 APRSD WebChat Beacon"
+            f":@{time_zulu}z{lat}/{long}l APRSD WebChat Beacon"
         )
 
-        txt = f"@{time_zulu}z{lat}1{long}$APRSD WebChat Beacon"
-
-        LOG.debug(f"Sending {txt}")
         beacon_msg = messaging.RawMessage(txt)
         beacon_msg.fromcall = self._config["aprs"]["login"]
         beacon_msg.tocall = "APDW16"
