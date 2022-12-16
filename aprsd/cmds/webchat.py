@@ -365,24 +365,12 @@ class SendMessageNamespace(Namespace):
         LOG.debug(f"Lat DDM {lat}")
         LOG.debug(f"Long DDM {long}")
 
-        local_datetime = datetime.datetime.now()
-        utc_offset_timedelta = datetime.datetime.utcnow() - local_datetime
-        result_utc_datetime = local_datetime + utc_offset_timedelta
-        time_zulu = result_utc_datetime.strftime("%d%H%M")
-
-        # now construct a beacon to send over the client connection
-        txt = (
-            f"{self._config['aprs']['login']}>APZ100,WIDE2-1"
-            f":@{time_zulu}z{lat}/{long}l APRSD WebChat Beacon"
-        )
-
-        LOG.debug(f"Sending {txt}")
         beacon = packets.GPSPacket(
             from_call=self._config["aprs"]["login"],
             to_call="APDW16",
-            raw=txt,
             latitude=lat,
             longitude=long,
+            comment="APRSD WebChat Beacon",
         )
         beacon.send_direct()
 

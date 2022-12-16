@@ -1,5 +1,6 @@
 import abc
 from dataclasses import asdict, dataclass, field
+import datetime
 import logging
 import re
 import time
@@ -220,7 +221,6 @@ class MessagePacket(PathPacket):
 @dataclass()
 class StatusPacket(PathPacket):
     status: str = None
-    timestamp: int = 0
     messagecapable: bool = False
     comment: str = None
 
@@ -235,15 +235,35 @@ class GPSPacket(PathPacket):
     altitude: float = 0.00
     rng: float = 0.00
     posambiguity: int = 0
-    timestamp: int = 0
     comment: str = None
-    symbol: str = None
-    symbol_table: str = None
+    symbol: str = field(default="l")
+    symbol_table: str = field(default="/")
     speed: float = 0.00
     course: int = 0
 
+    def _build_time_zulu(self):
+        """Build the timestamp in UTC/zulu."""
+        if self.timestamp:
+            local_dt = datetime.datetime.fromtimestamp(self.timestamp)
+        else:
+            local_dt = datetime.datetime.now()
+            self.timestamp = datetime.datetime.timestamp(local_dt)
+
+        utc_offset_timedelta = datetime.datetime.utcnow() - local_dt
+        result_utc_datetime = local_dt + utc_offset_timedelta
+        time_zulu = result_utc_datetime.strftime("%d%H%M")
+        return time_zulu
+
     def _build_raw(self):
-        raise NotImplementedError
+        time_zulu = self._build_time_zulu()
+
+        self.raw = (
+            f"{self.from_call}>{self.to_call},WIDE2-1:"
+            f"@{time_zulu}z{self.latitude}{self.symbol_table}"
+            f"{self.longitude}{self.symbol}"
+        )
+        if self.comment:
+            self.raw = f"{self.raw}{self.comment}"
 
 
 @dataclass()
