@@ -43,8 +43,9 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                     message_text=(
                         f"{fromcall} was just seen by type:'{packet_type}'"
                     ),
+                    allow_delay=False,
                 )
-                pkt._allow_delay = False
+                # pkt.allow_delay = False
                 return pkt
             else:
                 LOG.debug("fromcall and notify_callsign are the same, not notifying")

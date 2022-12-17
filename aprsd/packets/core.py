@@ -31,31 +31,41 @@ def _int_timestamp():
     return int(round(time.time()))
 
 
-@dataclass()
+def _init_msgNo():    # noqa: N802
+    """For some reason __post__init doesn't get called.
+
+    So in order to initialize the msgNo field in the packet
+    we use this workaround.
+    """
+    c = counter.PacketCounter()
+    c.increment()
+    return c.value
+
+
+@dataclass
 class Packet(metaclass=abc.ABCMeta):
     from_call: str
     to_call: str
     addresse: str = None
     format: str = None
-    msgNo: str = None   # noqa: N815
+    msgNo: str = field(default_factory=_init_msgNo)   # noqa: N815
     packet_type: str = None
     timestamp: float = field(default_factory=_int_timestamp)
+    # Holds the raw text string to be sent over the wire
+    # or holds the raw string from input packet
     raw: str = None
-    _raw_dict: dict = field(repr=False, default_factory=lambda: {})
-    _retry_count = 3
-    _last_send_time = 0
-    _last_send_attempt = 0
+    raw_dict: dict = field(repr=False, default_factory=lambda: {})
+
+    # Fields related to sending packets out
+    send_count: int = field(repr=False, default=1)
+    retry_count: int = field(repr=False, default=3)
+    last_send_time: datetime.timedelta = field(repr=False, default=None)
+    last_send_attempt: int = field(repr=False, default=0)
     # Do we allow this packet to be saved to send later?
-    _allow_delay = True
+    allow_delay: bool = field(repr=False, default=True)
 
-    _transport = None
-    _raw_message = None
-
-    def __post__init(self):
-        if not self.msgNo:
-            c = counter.PacketCounter()
-            c.increment()
-            self.msgNo = c.value
+    def __post__init__(self):
+        LOG.warning(f"POST INIT {self}")
 
     def get(self, key, default=None):
         """Emulate a getter on a dict."""
@@ -76,7 +86,7 @@ class Packet(metaclass=abc.ABCMeta):
     @staticmethod
     def factory(raw_packet):
         raw = raw_packet
-        raw["_raw_dict"] = raw.copy()
+        raw["raw_dict"] = raw.copy()
         translate_fields = {
             "from": "from_call",
             "to": "to_call",
@@ -110,15 +120,16 @@ class Packet(metaclass=abc.ABCMeta):
         """LOG a packet to the logfile."""
         asdict(self)
         log_list = ["\n"]
+        name = self.__class__.__name__
         if header:
-            if isinstance(self, AckPacket):
+            if isinstance(self, AckPacket) and "tx" in header.lower():
                 log_list.append(
-                    f"{header} ___________"
-                    f"(TX:{self._send_count} of {self._retry_count})",
+                    f"{header}____________({name}__"
+                    f"TX:{self.send_count} of {self.retry_count})",
                 )
             else:
-                log_list.append(f"{header} _______________")
-        log_list.append(f"  Packet  : {self.__class__.__name__}")
+                log_list.append(f"{header}____________({name})")
+        # log_list.append(f"  Packet  : {self.__class__.__name__}")
         log_list.append(f"  Raw     : {self.raw}")
         if self.to_call:
             log_list.append(f"  To      : {self.to_call}")
@@ -137,7 +148,7 @@ class Packet(metaclass=abc.ABCMeta):
 
         if self.msgNo:
             log_list.append(f"  Msg #   : {self.msgNo}")
-        log_list.append(f"{header} _______________ Complete")
+        log_list.append(f"{header}____________({name})")
 
         LOG.info("\n".join(log_list))
         LOG.debug(self)
@@ -165,12 +176,12 @@ class Packet(metaclass=abc.ABCMeta):
             cl = aprsis_client
         else:
             cl = client.factory.create().client
-        self.log(header="Sending Message Direct")
+        self.log(header="TX Message Direct")
         cl.send(self.raw)
         stats.APRSDStats().msgs_tx_inc()
 
 
-@dataclass()
+@dataclass
 class PathPacket(Packet):
     path: List[str] = field(default_factory=list)
     via: str = None
@@ -179,10 +190,13 @@ class PathPacket(Packet):
         raise NotImplementedError
 
 
-@dataclass()
+@dataclass
 class AckPacket(PathPacket):
     response: str = None
-    _send_count = 1
+
+    def __post__init__(self):
+        if self.response:
+            LOG.warning("Response set!")
 
     def _build_raw(self):
         """Build the self.raw which is what is sent over the air."""
@@ -200,7 +214,7 @@ class AckPacket(PathPacket):
         thread.start()
 
 
-@dataclass()
+@dataclass
 class MessagePacket(PathPacket):
     message_text: str = None
 

@@ -66,7 +66,7 @@ class APRSDPluginRXThread(APRSDRXThread):
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)
-        packet.log(header="RX Packet")
+        packet.log(header="RX")
         thread = APRSDPluginProcessPacketThread(
             config=self.config,
             packet=packet,
@@ -92,7 +92,6 @@ class APRSDProcessPacketThread(APRSDThread):
     def process_ack_packet(self, packet):
         ack_num = packet.msgNo
         LOG.info(f"Got ack for message {ack_num}")
-        packet.log("RXACK")
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
         stats.APRSDStats().ack_rx_inc()
