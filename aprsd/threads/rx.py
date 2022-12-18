@@ -67,6 +67,7 @@ class APRSDPluginRXThread(APRSDRXThread):
         packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)
         packet.log(header="RX")
+        packets.PacketList().rx(packet)
         thread = APRSDPluginProcessPacketThread(
             config=self.config,
             packet=packet,
@@ -101,7 +102,6 @@ class APRSDProcessPacketThread(APRSDThread):
         """Process a packet received from aprs-is server."""
         LOG.debug(f"RXPKT-LOOP {self._loop_cnt}")
         packet = self.packet
-        packets.PacketList().add(packet)
         our_call = self.config["aprsd"]["callsign"].lower()
 
         from_call = packet.from_call

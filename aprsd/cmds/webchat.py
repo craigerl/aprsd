@@ -181,7 +181,7 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         packet.get("addresse", None)
         fromcall = packet.from_call
 
-        packets.PacketList().add(packet)
+        packets.PacketList().rx(packet)
         stats.APRSDStats().msgs_rx_inc()
         message = packet.get("message_text", None)
         msg = {

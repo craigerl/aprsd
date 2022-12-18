@@ -90,6 +90,14 @@ class APRSDStats:
     def set_aprsis_keepalive(self):
         self._aprsis_keepalive = datetime.datetime.now()
 
+    def rx_packet(self, packet):
+        if isinstance(packet, packets.MessagePacket):
+            self.msgs_rx_inc()
+        elif isinstance(packet, packets.MicEPacket):
+            self.msgs_mice_inc()
+        elif isinstance(packet, packets.AckPacket):
+            self.ack_rx_inc()
+
     @wrapt.synchronized(lock)
     @property
     def msgs_tx(self):

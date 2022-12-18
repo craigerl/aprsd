@@ -67,7 +67,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                 cl = client.factory.create().client
                 cl.send(packet.raw)
                 stats.APRSDStats().msgs_tx_inc()
-                packet_list.PacketList().add(packet)
+                packet_list.PacketList().tx(packet)
                 packet.last_send_time = datetime.datetime.now()
                 packet.last_send_attempt += 1
 
@@ -115,7 +115,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
             cl.send(self.packet.raw)
             self.packet.send_count += 1
             stats.APRSDStats().ack_tx_inc()
-            packet_list.PacketList().add(self.packet)
+            packet_list.PacketList().tx(self.packet)
             self.packet.last_send_attempt += 1
             self.packet.last_send_time = datetime.datetime.now()
 

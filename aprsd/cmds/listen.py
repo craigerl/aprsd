@@ -40,7 +40,8 @@ def signal_handler(sig, frame):
 class APRSDListenThread(rx.APRSDRXThread):
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
-        packet.log(header="RX Packet")
+        packet.log(header="RX")
+        packets.PacketList().rx(packet)
 
 
 @cli.command()
@@ -113,9 +114,6 @@ def listen(
 
     # Try and load saved MsgTrack list
     LOG.debug("Loading saved MsgTrack object.")
-    packets.PacketTrack(config=config).load()
-    packets.WatchList(config=config).load()
-    packets.SeenList(config=config).load()
 
     # Initialize the client factory and create
     # The correct client object ready for use
@@ -132,8 +130,6 @@ def listen(
 
     LOG.debug(f"Filter by '{filter}'")
     aprs_client.set_filter(filter)
-
-    packets.PacketList(config=config)
 
     keepalive = threads.KeepAliveThread(config=config)
     keepalive.start()

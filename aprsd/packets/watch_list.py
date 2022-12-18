@@ -47,6 +47,9 @@ class WatchList(objectstore.ObjectStoreMixin):
                     ),
                 }
 
+    def is_initialized(self):
+        return self.config is not None
+
     def is_enabled(self):
         if self.config and "watch_list" in self.config["aprsd"]:
             return self.config["aprsd"]["watch_list"].get("enabled", False)

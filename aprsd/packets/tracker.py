@@ -23,17 +23,22 @@ class PacketTrack(objectstore.ObjectStoreMixin):
     _instance = None
     _start_time = None
     lock = threading.Lock()
+    config = None
 
-    data = {}
-    total_tracked = 0
+    data: dict = {}
+    total_tracked: int = 0
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._start_time = datetime.datetime.now()
-            cls._instance.config = kwargs["config"]
+            if "config" in kwargs:
+                cls._instance.config = kwargs["config"]
             cls._instance._init_store()
         return cls._instance
+
+    def is_initialized(self):
+        return self.config is not None
 
     @wrapt.synchronized(lock)
     def __getitem__(self, name):

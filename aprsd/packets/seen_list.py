@@ -15,17 +15,21 @@ class SeenList(objectstore.ObjectStoreMixin):
 
     _instance = None
     lock = threading.Lock()
-    data = {}
+    data: dict = {}
     config = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             if "config" in kwargs:
-                cls._instance.config = kwargs["config"]
+                if "config" in kwargs:
+                    cls._instance.config = kwargs["config"]
                 cls._instance._init_store()
             cls._instance.data = {}
         return cls._instance
+
+    def is_initialized(self):
+        return self.config is not None
 
     @wrapt.synchronized(lock)
     def update_seen(self, packet):

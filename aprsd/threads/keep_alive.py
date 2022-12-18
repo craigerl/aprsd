@@ -45,6 +45,11 @@ class KeepAliveThread(APRSDThread):
             except KeyError:
                 login = self.config["ham"]["callsign"]
 
+            if pkt_tracker.is_initialized():
+                tracked_packets = len(pkt_tracker)
+            else:
+                tracked_packets = 0
+
             keepalive = (
                 "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
                 "Last:{} Email: {} - RAM Current:{} Peak:{} Threads:{}"
@@ -53,7 +58,7 @@ class KeepAliveThread(APRSDThread):
                 utils.strfdelta(stats_obj.uptime),
                 pl.total_recv,
                 pl.total_tx,
-                len(pkt_tracker),
+                tracked_packets,
                 stats_obj.msgs_tx,
                 stats_obj.msgs_rx,
                 last_msg_time,

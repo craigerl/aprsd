@@ -209,7 +209,7 @@ class SendMessageThread(threads.APRSDRXThread):
 
     def process_our_message_packet(self, packet):
         global socketio
-        packets.PacketList().add(packet)
+        packets.PacketList().rx(packet)
         stats.APRSDStats().msgs_rx_inc()
         msg_number = packet.msgNo
         SentMessages().reply(self.packet.msgNo, packet)
