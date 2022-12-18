@@ -90,7 +90,7 @@ class TestSendMessageCommand(unittest.TestCase):
         mock_emit.called_once()
 
     @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.packets.PacketList.add")
+    @mock.patch("aprsd.packets.PacketList.rx")
     @mock.patch("aprsd.cmds.webchat.socketio.emit")
     def test_process_our_message_packet(
         self, mock_parse_config,

@@ -96,10 +96,15 @@ def server(ctx, flush):
     plugin_manager.setup_plugins()
 
     rx_thread = rx.APRSDPluginRXThread(
-        msg_queues=threads.msg_queues,
+        packet_queue=threads.packet_queue,
         config=config,
     )
+    process_thread = rx.APRSDPluginProcessPacketThread(
+        config=config,
+        packet_queue=threads.packet_queue,
+    )
     rx_thread.start()
+    process_thread.start()
 
     packets.PacketTrack().restart()
 

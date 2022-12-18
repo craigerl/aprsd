@@ -6,7 +6,7 @@ from aprsd import plugin
 LOG = logging.getLogger("APRSD")
 
 
-class HelloPlugin(plugin.APRSDPluginBase):
+class HelloPlugin(plugin.APRSDRegexCommandPluginBase):
     """Hello World."""
 
     version = "1.0"
@@ -14,7 +14,7 @@ class HelloPlugin(plugin.APRSDPluginBase):
     command_regex = "^[hH]"
     command_name = "hello"
 
-    def command(self, fromcall, message, ack):
+    def command(self, packet):
         LOG.info("HelloPlugin")
-        reply = f"Hello '{fromcall}'"
+        reply = f"Hello '{packet.from_call}'"
         return reply

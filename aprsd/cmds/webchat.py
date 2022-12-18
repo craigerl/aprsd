@@ -63,6 +63,9 @@ class SentMessages(objectstore.ObjectStoreMixin):
             cls._instance = super().__new__(cls)
         return cls._instance
 
+    def is_initialized(self):
+        return True
+
     @wrapt.synchronized(lock)
     def add(self, msg):
         self.data[msg.msgNo] = self.create(msg.msgNo)

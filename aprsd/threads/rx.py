@@ -1,5 +1,6 @@
 import abc
 import logging
+import queue
 import time
 
 import aprslib
@@ -12,9 +13,9 @@ LOG = logging.getLogger("APRSD")
 
 
 class APRSDRXThread(APRSDThread):
-    def __init__(self, msg_queues, config):
+    def __init__(self, packet_queue, config):
         super().__init__("RX_MSG")
-        self.msg_queues = msg_queues
+        self.packet_queue = packet_queue
         self.config = config
         self._client = client.factory.create()
 
@@ -68,11 +69,7 @@ class APRSDPluginRXThread(APRSDRXThread):
         # LOG.debug(raw)
         packet.log(header="RX")
         packets.PacketList().rx(packet)
-        thread = APRSDPluginProcessPacketThread(
-            config=self.config,
-            packet=packet,
-        )
-        thread.start()
+        self.packet_queue.put(packet)
 
 
 class APRSDProcessPacketThread(APRSDThread):
@@ -83,11 +80,10 @@ class APRSDProcessPacketThread(APRSDThread):
     will ack a message before sending the packet to the subclass
     for processing."""
 
-    def __init__(self, config, packet):
+    def __init__(self, config, packet_queue):
         self.config = config
-        self.packet = packet
-        name = self.packet.raw[:10]
-        super().__init__(f"RXPKT-{name}")
+        self.packet_queue = packet_queue
+        super().__init__("ProcessPKT")
         self._loop_cnt = 1
 
     def process_ack_packet(self, packet):
@@ -99,9 +95,18 @@ class APRSDProcessPacketThread(APRSDThread):
         return
 
     def loop(self):
+        try:
+            packet = self.packet_queue.get(block=True, timeout=1)
+            if packet:
+                self.process_packet(packet)
+        except queue.Empty:
+            pass
+        self._loop_cnt += 1
+        return True
+
+    def process_packet(self, packet):
         """Process a packet received from aprs-is server."""
         LOG.debug(f"RXPKT-LOOP {self._loop_cnt}")
-        packet = self.packet
         our_call = self.config["aprsd"]["callsign"].lower()
 
         from_call = packet.from_call
@@ -147,7 +152,7 @@ class APRSDProcessPacketThread(APRSDThread):
         return False
 
     @abc.abstractmethod
-    def process_our_message_packet(self, *args, **kwargs):
+    def process_our_message_packet(self, packet):
         """Process a MessagePacket destined for us!"""
 
     def process_other_packet(self, packet, for_us=False):
@@ -210,9 +215,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                             to_call=from_call,
                             message_text=reply,
                         )
-                        LOG.warning("Calling msg_pkg.send()")
                         msg_pkt.send()
-                        LOG.warning("Calling msg_pkg.send() --- DONE")
 
             # If the message was for us and we didn't have a
             # response, then we send a usage statement.
