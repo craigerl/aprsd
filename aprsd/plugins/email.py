@@ -80,7 +80,6 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
     def create_threads(self):
         if self.enabled:
             return APRSDEmailThread(
-                msg_queues=threads.msg_queues,
                 config=self.config,
             )
 
@@ -502,9 +501,8 @@ def resend_email(config, count, fromcall):
 
 
 class APRSDEmailThread(threads.APRSDThread):
-    def __init__(self, msg_queues, config):
+    def __init__(self, config):
         super().__init__("EmailThread")
-        self.msg_queues = msg_queues
         self.config = config
         self.past = datetime.datetime.now()
 
