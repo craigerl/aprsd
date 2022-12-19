@@ -2,7 +2,7 @@ import datetime
 import logging
 import time
 
-from aprsd import client, stats
+from aprsd import client
 from aprsd import threads as aprsd_threads
 from aprsd.packets import packet_list, tracker
 
@@ -36,14 +36,23 @@ class SendPacketThread(aprsd_threads.APRSDThread):
         if not packet:
             # The message has been removed from the tracking queue
             # So it got acked and we are done.
-            LOG.info("Message Send Complete via Ack.")
+            LOG.info(
+                f"{packet.__class__.__name__}"
+                f"({packet.msgNo}) "
+                "Message Send Complete via Ack.",
+            )
             return False
         else:
             send_now = False
-            if packet.last_send_attempt == packet.retry_count:
+            if packet.send_count == packet.retry_count:
                 # we reached the send limit, don't send again
                 # TODO(hemna) - Need to put this in a delayed queue?
-                LOG.info("Message Send Complete. Max attempts reached.")
+                LOG.info(
+                    f"{packet.__class__.__name__} "
+                    f"({packet.msgNo}) "
+                    "Message Send Complete. Max attempts reached"
+                    f" {packet.retry_count}",
+                )
                 if not packet.allow_delay:
                     pkt_tracker.remove(packet.msgNo)
                 return False
@@ -52,7 +61,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
             if packet.last_send_time:
                 # Message has a last send time tracking
                 now = datetime.datetime.now()
-                sleeptime = (packet.last_send_attempt + 1) * 31
+                sleeptime = (packet.send_count + 1) * 31
                 delta = now - packet.last_send_time
                 if delta > datetime.timedelta(seconds=sleeptime):
                     # It's time to try to send it again
@@ -66,10 +75,9 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                 packet.log("TX")
                 cl = client.factory.create().client
                 cl.send(packet.raw)
-                stats.APRSDStats().msgs_tx_inc()
                 packet_list.PacketList().tx(packet)
                 packet.last_send_time = datetime.datetime.now()
-                packet.last_send_attempt += 1
+                packet.send_count += 1
 
             time.sleep(1)
             # Make sure we get called again.
@@ -87,10 +95,15 @@ class SendAckThread(aprsd_threads.APRSDThread):
     def loop(self):
         """Separate thread to send acks with retries."""
         send_now = False
-        if self.packet.last_send_attempt == self.packet.retry_count:
+        if self.packet.send_count == self.packet.retry_count:
             # we reached the send limit, don't send again
             # TODO(hemna) - Need to put this in a delayed queue?
-            LOG.info("Ack Send Complete. Max attempts reached.")
+            LOG.info(
+                f"{self.packet.__class__.__name__}"
+                f"({self.packet.msgNo}) "
+                "Send Complete. Max attempts reached"
+                f" {self.packet.retry_count}",
+            )
             return False
 
         if self.packet.last_send_time:
@@ -113,10 +126,8 @@ class SendAckThread(aprsd_threads.APRSDThread):
             cl = client.factory.create().client
             self.packet.log("TX")
             cl.send(self.packet.raw)
-            self.packet.send_count += 1
-            stats.APRSDStats().ack_tx_inc()
             packet_list.PacketList().tx(self.packet)
-            self.packet.last_send_attempt += 1
+            self.packet.send_count += 1
             self.packet.last_send_time = datetime.datetime.now()
 
         time.sleep(1)

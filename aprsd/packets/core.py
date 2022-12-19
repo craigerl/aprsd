@@ -1,6 +1,7 @@
 import abc
 from dataclasses import asdict, dataclass, field
 import datetime
+import json
 import logging
 import re
 import time
@@ -9,9 +10,11 @@ from typing import List
 
 import dacite
 
-from aprsd import client, stats
+from aprsd import client
+from aprsd.packets.packet_list import PacketList  # noqa: F401
 from aprsd.threads import tx
 from aprsd.utils import counter
+from aprsd.utils import json as aprsd_json
 
 
 LOG = logging.getLogger("APRSD")
@@ -57,15 +60,25 @@ class Packet(metaclass=abc.ABCMeta):
     raw_dict: dict = field(repr=False, default_factory=lambda: {})
 
     # Fields related to sending packets out
-    send_count: int = field(repr=False, default=1)
+    send_count: int = field(repr=False, default=0)
     retry_count: int = field(repr=False, default=3)
     last_send_time: datetime.timedelta = field(repr=False, default=None)
-    last_send_attempt: int = field(repr=False, default=0)
     # Do we allow this packet to be saved to send later?
     allow_delay: bool = field(repr=False, default=True)
 
     def __post__init__(self):
         LOG.warning(f"POST INIT {self}")
+
+    @property
+    def __dict__(self):
+        return asdict(self)
+
+    @property
+    def json(self):
+        """
+        get the json formated string
+        """
+        return json.dumps(self.__dict__, cls=aprsd_json.EnhancedJSONEncoder)
 
     def get(self, key, default=None):
         """Emulate a getter on a dict."""
@@ -122,13 +135,13 @@ class Packet(metaclass=abc.ABCMeta):
         log_list = ["\n"]
         name = self.__class__.__name__
         if header:
-            if isinstance(self, AckPacket) and "tx" in header.lower():
+            if "tx" in header.lower():
                 log_list.append(
-                    f"{header}____________({name}__"
-                    f"TX:{self.send_count} of {self.retry_count})",
+                    f"{header}________({name}  "
+                    f"TX:{self.send_count+1} of {self.retry_count})",
                 )
             else:
-                log_list.append(f"{header}____________({name})")
+                log_list.append(f"{header}________({name})")
         # log_list.append(f"  Packet  : {self.__class__.__name__}")
         log_list.append(f"  Raw     : {self.raw}")
         if self.to_call:
@@ -148,7 +161,7 @@ class Packet(metaclass=abc.ABCMeta):
 
         if self.msgNo:
             log_list.append(f"  Msg #   : {self.msgNo}")
-        log_list.append(f"{header}____________({name})")
+        log_list.append(f"{header}________({name})")
 
         LOG.info("\n".join(log_list))
         LOG.debug(self)
@@ -178,7 +191,7 @@ class Packet(metaclass=abc.ABCMeta):
             cl = client.factory.create().client
         self.log(header="TX Message Direct")
         cl.send(self.raw)
-        stats.APRSDStats().msgs_tx_inc()
+        PacketList().tx(self)
 
 
 @dataclass

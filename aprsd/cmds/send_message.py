@@ -100,7 +100,8 @@ def send_message(
         global got_ack, got_response
         cl = client.factory.create()
         packet = cl.decode_packet(packet)
-        packet.log("RX_PKT")
+        packets.PacketList().rx(packet)
+        packet.log("RX")
         # LOG.debug("Got packet back {}".format(packet))
         if isinstance(packet, packets.AckPacket):
             got_ack = True

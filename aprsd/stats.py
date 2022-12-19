@@ -21,21 +21,43 @@ class APRSDStats:
     _aprsis_server = None
     _aprsis_keepalive = None
 
-    _msgs_tracked = 0
-    _msgs_tx = 0
-    _msgs_rx = 0
-
-    _msgs_mice_rx = 0
-
-    _ack_tx = 0
-    _ack_rx = 0
-
     _email_thread_last_time = None
     _email_tx = 0
     _email_rx = 0
 
     _mem_current = 0
     _mem_peak = 0
+
+    _pkt_cnt = {
+        "Packet": {
+            "tx": 0,
+            "rx": 0,
+        },
+        "AckPacket": {
+            "tx": 0,
+            "rx": 0,
+        },
+        "GPSPacket": {
+            "tx": 0,
+            "rx": 0,
+        },
+        "StatusPacket": {
+            "tx": 0,
+            "rx": 0,
+        },
+        "MicEPacket": {
+            "tx": 0,
+            "rx": 0,
+        },
+        "MessagePacket": {
+            "tx": 0,
+            "rx": 0,
+        },
+        "WeatherPacket": {
+            "tx": 0,
+            "rx": 0,
+        },
+    }
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -90,67 +112,18 @@ class APRSDStats:
     def set_aprsis_keepalive(self):
         self._aprsis_keepalive = datetime.datetime.now()
 
-    def rx_packet(self, packet):
-        if isinstance(packet, packets.MessagePacket):
-            self.msgs_rx_inc()
-        elif isinstance(packet, packets.MicEPacket):
-            self.msgs_mice_inc()
-        elif isinstance(packet, packets.AckPacket):
-            self.ack_rx_inc()
+    def rx(self, packet):
+        type = packet.__class__.__name__
+        self._pkt_cnt[type]["rx"] += 1
 
-    @wrapt.synchronized(lock)
-    @property
-    def msgs_tx(self):
-        return self._msgs_tx
-
-    @wrapt.synchronized(lock)
-    def msgs_tx_inc(self):
-        self._msgs_tx += 1
-
-    @wrapt.synchronized(lock)
-    @property
-    def msgs_rx(self):
-        return self._msgs_rx
-
-    @wrapt.synchronized(lock)
-    def msgs_rx_inc(self):
-        self._msgs_rx += 1
-
-    @wrapt.synchronized(lock)
-    @property
-    def msgs_mice_rx(self):
-        return self._msgs_mice_rx
-
-    @wrapt.synchronized(lock)
-    def msgs_mice_inc(self):
-        self._msgs_mice_rx += 1
-
-    @wrapt.synchronized(lock)
-    @property
-    def ack_tx(self):
-        return self._ack_tx
-
-    @wrapt.synchronized(lock)
-    def ack_tx_inc(self):
-        self._ack_tx += 1
-
-    @wrapt.synchronized(lock)
-    @property
-    def ack_rx(self):
-        return self._ack_rx
-
-    @wrapt.synchronized(lock)
-    def ack_rx_inc(self):
-        self._ack_rx += 1
+    def tx(self, packet):
+        type = packet.__class__.__name__
+        self._pkt_cnt[type]["tx"] += 1
 
     @wrapt.synchronized(lock)
     @property
     def msgs_tracked(self):
-        return self._msgs_tracked
-
-    @wrapt.synchronized(lock)
-    def msgs_tracked_inc(self):
-        self._msgs_tracked += 1
+        return packets.PacketTrack().total_tracked
 
     @wrapt.synchronized(lock)
     @property
@@ -212,11 +185,13 @@ class APRSDStats:
 
         wl = packets.WatchList()
         sl = packets.SeenList()
+        pl = packets.PacketList()
 
         stats = {
             "aprsd": {
                 "version": aprsd.__version__,
                 "uptime": utils.strfdelta(self.uptime),
+                "callsign": self.config["aprsd"]["callsign"],
                 "memory_current": int(self.memory),
                 "memory_current_str": utils.human_size(self.memory),
                 "memory_peak": int(self.memory_peak),
@@ -229,18 +204,20 @@ class APRSDStats:
                 "callsign": self.config["aprs"]["login"],
                 "last_update": last_aprsis_keepalive,
             },
+            "packets": {
+                "tracked": int(pl.total_tx() + pl.total_rx()),
+                "sent": int(pl.total_tx()),
+                "received": int(pl.total_rx()),
+            },
             "messages": {
-                "tracked": int(self.msgs_tracked),
-                "sent": int(self.msgs_tx),
-                "recieved": int(self.msgs_rx),
-                "ack_sent": int(self.ack_tx),
-                "ack_recieved": int(self.ack_rx),
-                "mic-e recieved": int(self.msgs_mice_rx),
+                "sent": self._pkt_cnt["MessagePacket"]["tx"],
+                "received": self._pkt_cnt["MessagePacket"]["tx"],
+                "ack_sent": self._pkt_cnt["AckPacket"]["tx"],
             },
             "email": {
                 "enabled": self.config["aprsd"]["email"]["enabled"],
                 "sent": int(self._email_tx),
-                "recieved": int(self._email_rx),
+                "received": int(self._email_rx),
                 "thread_last_update": last_update,
             },
             "plugins": plugin_stats,
@@ -248,15 +225,16 @@ class APRSDStats:
         return stats
 
     def __str__(self):
+        pl = packets.PacketList()
         return (
             "Uptime:{} Msgs TX:{} RX:{} "
             "ACK: TX:{} RX:{} "
             "Email TX:{} RX:{} LastLoop:{} ".format(
                 self.uptime,
-                self._msgs_tx,
-                self._msgs_rx,
-                self._ack_tx,
-                self._ack_rx,
+                pl.total_tx(),
+                pl.total_rx(),
+                self._pkt_cnt["AckPacket"]["tx"],
+                self._pkt_cnt["AckPacket"]["rx"],
                 self._email_tx,
                 self._email_rx,
                 self._email_thread_last_time,

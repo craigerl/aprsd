@@ -5,7 +5,7 @@ import time
 
 import aprslib
 
-from aprsd import client, packets, plugin, stats
+from aprsd import client, packets, plugin
 from aprsd.threads import APRSDThread
 
 
@@ -91,7 +91,6 @@ class APRSDProcessPacketThread(APRSDThread):
         LOG.info(f"Got ack for message {ack_num}")
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
-        stats.APRSDStats().ack_rx_inc()
         return
 
     def loop(self):
@@ -130,7 +129,6 @@ class APRSDProcessPacketThread(APRSDThread):
             if isinstance(packet, packets.MessagePacket):
                 if to_call and to_call.lower() == our_call:
                     # It's a MessagePacket and it's for us!
-                    stats.APRSDStats().msgs_rx_inc()
                     # let any threads do their thing, then ack
                     # send an ack last
                     ack_pkt = packets.AckPacket(

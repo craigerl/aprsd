@@ -380,7 +380,12 @@ class APRSDFlask(flask_classful.FlaskView):
     @auth.login_required
     def packets(self):
         packet_list = packets.PacketList().get()
-        return json.dumps(packet_list)
+        tmp_list = []
+        for pkt in packet_list:
+            tmp_list.append(pkt.json)
+
+        LOG.info(f"PACKETS {tmp_list}")
+        return json.dumps(tmp_list)
 
     @auth.login_required
     def plugins(self):
@@ -420,8 +425,8 @@ class APRSDFlask(flask_classful.FlaskView):
 
         stats_dict["aprsd"]["watch_list"] = new_list
         packet_list = packets.PacketList()
-        rx = packet_list.total_received()
-        tx = packet_list.total_sent()
+        rx = packet_list.total_rx()
+        tx = packet_list.total_tx()
         stats_dict["packets"] = {
             "sent": tx,
             "received": rx,

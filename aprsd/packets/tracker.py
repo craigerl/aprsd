@@ -3,7 +3,6 @@ import threading
 
 import wrapt
 
-from aprsd import stats
 from aprsd.utils import objectstore
 
 
@@ -76,7 +75,6 @@ class PacketTrack(objectstore.ObjectStoreMixin):
     def add(self, packet):
         key = int(packet.msgNo)
         self.data[key] = packet
-        stats.APRSDStats().msgs_tracked_inc()
         self.total_tracked += 1
 
     @wrapt.synchronized(lock)

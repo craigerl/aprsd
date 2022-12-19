@@ -1,5 +1,6 @@
 // watchlist is a dict of ham callsign => symbol, packets
 var watchlist = {};
+var our_callsign = "";
 
 function aprs_img(item, x_offset, y_offset) {
     var x = x_offset * -16;
@@ -107,34 +108,35 @@ function update_packets( data ) {
         packetsdiv.html('')
     }
     jQuery.each(data, function(i, val) {
-        update_watchlist_from_packet(val['from'], val);
-        if ( packet_list.hasOwnProperty(val["ts"]) == false ) {
+        pkt = JSON.parse(val);
+        update_watchlist_from_packet(pkt['from_call'], pkt);
+        if ( packet_list.hasOwnProperty(val["timestamp"]) == false ) {
             // Store the packet
-            packet_list[val["ts"]] = val;
-            ts_str = val["ts"].toString();
-            ts = ts_str.split(".")[0]*1000;
-            var d = new Date(ts).toLocaleDateString("en-US")
-            var t = new Date(ts).toLocaleTimeString("en-US")
-            if (val.hasOwnProperty('from') == false) {
-                from = val['fromcall']
-                title_id = 'title_tx'
+            packet_list[pkt["timestamp"]] = pkt;
+            //ts_str = val["timestamp"].toString();
+            //ts = ts_str.split(".")[0]*1000;
+            ts = pkt["timestamp"]
+            var d = new Date(ts).toLocaleDateString("en-US");
+            var t = new Date(ts).toLocaleTimeString("en-US");
+            var from_call = pkt['from_call'];
+            if (from_call == our_callsign) {
+                title_id = 'title_tx';
             } else {
-                from = val['from']
-                title_id = 'title_rx'
+                title_id = 'title_rx';
             }
-            var from_to = d + " " + t + "&nbsp;&nbsp;&nbsp;&nbsp;" + from + " > "
+            var from_to = d + " " + t + "&nbsp;&nbsp;&nbsp;&nbsp;" + from_call + " > "
 
             if (val.hasOwnProperty('addresse')) {
-                from_to = from_to + val['addresse']
-            } else if (val.hasOwnProperty('tocall')) {
-                from_to = from_to + val['tocall']
-            } else if (val.hasOwnProperty('format') && val['format'] == 'mic-e') {
+                from_to = from_to + pkt['addresse']
+            } else if (pkt.hasOwnProperty('to_call')) {
+                from_to = from_to + pkt['to_call']
+            } else if (pkt.hasOwnProperty('format') && pkt['format'] == 'mic-e') {
                 from_to =  from_to + "Mic-E"
             }
 
-            from_to = from_to + "&nbsp;&nbsp;-&nbsp;&nbsp;" + val['raw']
+            from_to = from_to + "&nbsp;&nbsp;-&nbsp;&nbsp;" + pkt['raw']
 
-            json_pretty = Prism.highlight(JSON.stringify(val, null, '\t'), Prism.languages.json, 'json');
+            json_pretty = Prism.highlight(JSON.stringify(pkt, null, '\t'), Prism.languages.json, 'json');
             pkt_html = '<div class="title" id="' + title_id + '"><i class="dropdown icon"></i>' + from_to + '</div><div class="content"><p class="transition hidden"><pre class="language-json">' + json_pretty + '</p></p></div>'
             packetsdiv.prepend(pkt_html);
         }

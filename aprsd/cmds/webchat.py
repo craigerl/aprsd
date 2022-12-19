@@ -185,7 +185,6 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         fromcall = packet.from_call
 
         packets.PacketList().rx(packet)
-        stats.APRSDStats().msgs_rx_inc()
         message = packet.get("message_text", None)
         msg = {
             "id": 0,
