@@ -38,7 +38,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
             # So it got acked and we are done.
             LOG.info(
                 f"{packet.__class__.__name__}"
-                f"({packet.msgNo}) "
+                f"({self.packet.msgNo}) "
                 "Message Send Complete via Ack.",
             )
             return False

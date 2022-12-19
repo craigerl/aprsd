@@ -13,10 +13,10 @@ LOG = logging.getLogger("APRSD")
 
 
 class APRSDRXThread(APRSDThread):
-    def __init__(self, packet_queue, config):
+    def __init__(self, config, packet_queue):
         super().__init__("RX_MSG")
-        self.packet_queue = packet_queue
         self.config = config
+        self.packet_queue = packet_queue
         self._client = client.factory.create()
 
     def stop(self):
@@ -95,7 +95,7 @@ class APRSDProcessPacketThread(APRSDThread):
 
     def loop(self):
         try:
-            packet = self.packet_queue.get(block=True, timeout=1)
+            packet = self.packet_queue.get(timeout=1)
             if packet:
                 self.process_packet(packet)
         except queue.Empty:

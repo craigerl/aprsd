@@ -135,7 +135,10 @@ def listen(
     keepalive.start()
 
     LOG.debug("Create APRSDListenThread")
-    listen_thread = APRSDListenThread(threads.packet_queue, config=config)
+    listen_thread = APRSDListenThread(
+        config=config,
+        packet_queue=threads.packet_queue,
+    )
     LOG.debug("Start APRSDListenThread")
     listen_thread.start()
     LOG.debug("keepalive Join")

@@ -132,42 +132,12 @@ def verify_password(username, password):
         return username
 
 
-class WebChatRXThread(rx.APRSDRXThread):
-    """Class that connects to APRISIS/kiss and waits for messages.
-
-    After the packet is received from APRSIS/KISS, the packet is
-    sent to processing in the WebChatProcessPacketThread.
-    """
-    def __init__(self, config, socketio):
-        super().__init__(None, config)
-        self.socketio = socketio
-        self.connected = False
-
-    def connected(self, connected=True):
-        self.connected = connected
-
-    def process_packet(self, *args, **kwargs):
-        # packet = self._client.decode_packet(*args, **kwargs)
-        if "packet" in kwargs:
-            packet = kwargs["packet"]
-        else:
-            packet = self._client.decode_packet(*args, **kwargs)
-
-        LOG.debug(f"GOT Packet {packet}")
-        thread = WebChatProcessPacketThread(
-            config=self.config,
-            packet=packet,
-            socketio=self.socketio,
-        )
-        thread.start()
-
-
 class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
     """Class that handles packets being sent to us."""
-    def __init__(self, config, packet, socketio):
+    def __init__(self, config, packet_queue, socketio):
         self.socketio = socketio
         self.connected = False
-        super().__init__(config, packet)
+        super().__init__(config, packet_queue)
 
     def process_ack_packet(self, packet: packets.AckPacket):
         super().process_ack_packet(packet)
@@ -184,7 +154,6 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         packet.get("addresse", None)
         fromcall = packet.from_call
 
-        packets.PacketList().rx(packet)
         message = packet.get("message_text", None)
         msg = {
             "id": 0,
@@ -532,12 +501,17 @@ def webchat(ctx, flush, port):
     packets.SeenList(config=config)
 
     (socketio, app) = init_flask(config, loglevel, quiet)
-    rx_thread = WebChatRXThread(
+    rx_thread = rx.APRSDPluginRXThread(
         config=config,
+        packet_queue=threads.packet_queue,
+    )
+    rx_thread.start()
+    process_thread = WebChatProcessPacketThread(
+        config=config,
+        packet_queue=threads.packet_queue,
         socketio=socketio,
     )
-    LOG.info("Start RX Thread")
-    rx_thread.start()
+    process_thread.start()
 
     keepalive = threads.KeepAliveThread(config=config)
     LOG.info("Start KeepAliveThread")
