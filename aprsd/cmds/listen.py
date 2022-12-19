@@ -38,9 +38,28 @@ def signal_handler(sig, frame):
 
 
 class APRSDListenThread(rx.APRSDRXThread):
+    def __init__(self, config, packet_queue, packet_filter=None):
+        super().__init__(config, packet_queue)
+        self.packet_filter=packet_filter
+
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
-        packet.log(header="RX")
+        filters = {
+            packets.Packet.__name__: packets.Packet,
+            packets.AckPacket.__name__: packets.AckPacket,
+            packets.GPSPacket.__name__: packets.GPSPacket,
+            packets.MessagePacket.__name__: packets.MessagePacket,
+            packets.MicEPacket.__name__: packets.MicEPacket,
+            packets.WeatherPacket.__name__: packets.WeatherPacket,
+        }
+
+        if self.packet_filter:
+            filter_class = filters[self.packet_filter]
+            if isinstance(packet, filter_class):
+                packet.log(header="RX")
+        else:
+            packet.log(header="RX")
+
         packets.PacketList().rx(packet)
 
 
@@ -58,6 +77,21 @@ class APRSDListenThread(rx.APRSDRXThread):
     show_envvar=True,
     help="the APRS-IS password for APRS_LOGIN",
 )
+@click.option(
+    "--packet-filter",
+    type=click.Choice(
+        [
+            packets.Packet.__name__,
+            packets.AckPacket.__name__,
+            packets.GPSPacket.__name__,
+            packets.MicEPacket.__name__,
+            packets.MessagePacket.__name__,
+            packets.WeatherPacket.__name__,
+        ],
+        case_sensitive=False,
+    ),
+    help="Filter by packet type",
+)
 @click.argument(
     "filter",
     nargs=-1,
@@ -69,6 +103,7 @@ def listen(
     ctx,
     aprs_login,
     aprs_password,
+    packet_filter,
     filter,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
@@ -138,6 +173,7 @@ def listen(
     listen_thread = APRSDListenThread(
         config=config,
         packet_queue=threads.packet_queue,
+        packet_filter=packet_filter,
     )
     LOG.debug("Start APRSDListenThread")
     listen_thread.start()
