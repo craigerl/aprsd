@@ -271,7 +271,9 @@ class GPSPacket(PathPacket):
     comment: str = None
     symbol: str = field(default="l")
     symbol_table: str = field(default="/")
+    # in MPH
     speed: float = 0.00
+    # 0 to 360
     course: int = 0
 
     def _build_time_zulu(self):
@@ -322,7 +324,55 @@ class WeatherPacket(GPSPacket):
     comment: str = None
 
     def _build_raw(self):
-        raise NotImplementedError
+        """Build an uncompressed weather packet
+
+        Format =
+
+       _CSE/SPDgXXXtXXXrXXXpXXXPXXXhXXbXXXXX%type NEW FORMAT APRS793 June 97
+                                                  NOT BACKWARD COMPATIBLE
+
+
+        Where: CSE/SPD is wind direction and sustained 1 minute speed
+        t is in degrees F
+        r is Rain per last 60 minutes
+        p is precipitation per last 24 hours (sliding 24 hour window)
+        P is precip per last 24 hours since midnight
+        b is Baro in tenths of a mb
+        h is humidity in percent. 00=100
+        g is Gust (peak winds in last 5 minutes)
+        # is the raw rain counter for remote WX stations
+        See notes on remotes below
+        % shows software type d=Dos, m=Mac, w=Win, etc
+        type shows type of WX instrument
+
+        """
+        time_zulu = self._build_time_zulu()
+
+        contents = [
+            f"{self.from_call}>{self.to_call},WIDE2-1:",
+            f"@{time_zulu}z{self.latitude}{self.symbol_table}",
+            f"{self.longitude}{self.symbol}",
+            # Add CSE = Course
+            f"{self.course}",
+            # Speed = sustained 1 minute wind speed in mph
+            f"{self.symbol_table}", f"{self.speed:03.0f}",
+            # wind gust (peak wind speed in mph in the last 5 minutes)
+            f"g{self.wind_gust:03.0f}",
+            # Temperature in degrees F
+            f"t{self.temperature:03.0f}",
+            # Rainfall (in hundredths of an inch) in the last hour
+            f"r{self.rain_1h:03.0f}",
+            # Rainfall (in hundredths of an inch) in last 24 hours
+            f"P{self.rain_since_midnight:03.0f}",
+            # Humidity
+            f"h{self.humidity:02d}",
+            # Barometric pressure (in tenths of millibars/tenths of hPascal)
+            f"b{self.pressure:05.0f}",
+        ]
+
+        if self.comment:
+            contents.append(self.comment)
+        self.raw = "".join(contents)
 
 
 TYPE_LOOKUP = {
