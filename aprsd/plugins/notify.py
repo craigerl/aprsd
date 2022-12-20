@@ -26,17 +26,17 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
         wl = packets.WatchList()
         age = wl.age(fromcall)
 
-        if wl.is_old(fromcall):
-            LOG.info(
-                "NOTIFY {} last seen {} max age={}".format(
-                    fromcall,
-                    age,
-                    wl.max_delta(),
-                ),
-            )
-            packet_type = packet.__class__.__name__
-            # we shouldn't notify the alert user that they are online.
-            if fromcall != notify_callsign:
+        if fromcall != notify_callsign:
+            if wl.is_old(fromcall):
+                LOG.info(
+                    "NOTIFY {} last seen {} max age={}".format(
+                        fromcall,
+                        age,
+                        wl.max_delta(),
+                    ),
+                )
+                packet_type = packet.__class__.__name__
+                # we shouldn't notify the alert user that they are online.
                 pkt = packets.MessagePacket(
                     from_call=self.config["aprsd"]["callsign"],
                     to_call=notify_callsign,
@@ -45,17 +45,14 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                     ),
                     allow_delay=False,
                 )
-                # pkt.allow_delay = False
+                pkt.allow_delay = False
                 return pkt
             else:
-                LOG.debug("fromcall and notify_callsign are the same, not notifying")
+                LOG.debug(
+                    "Not old enough to notify on callsign "
+                    f"'{fromcall}' : {age} < {wl.max_delta()}",
+                )
                 return packets.NULL_MESSAGE
         else:
-            LOG.debug(
-                "Not old enough to notify on callsign '{}' : {} < {}".format(
-                    fromcall,
-                    age,
-                    wl.max_delta(),
-                ),
-            )
+            LOG.debug("fromcall and notify_callsign are the same, ignoring")
             return packets.NULL_MESSAGE

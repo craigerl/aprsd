@@ -159,13 +159,38 @@ class APRSDProcessPacketThread(APRSDThread):
             LOG.info("Got a packet not meant for us.")
         else:
             LOG.info("Got a non AckPacket/MessagePacket")
-        LOG.info(packet)
 
 
 class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
     """Process the packet through the plugin manager.
 
     This is the main aprsd server plugin processing thread."""
+
+    def process_other_packet(self, packet, for_us=False):
+        pm = plugin.PluginManager()
+        try:
+            results = pm.run_watchlist(packet)
+            for reply in results:
+                if isinstance(reply, list):
+                    for subreply in reply:
+                        LOG.debug(f"Sending '{subreply}'")
+                        if isinstance(subreply, packets.Packet):
+                            subreply.send()
+                        else:
+                            to_call = self.config["aprsd"]["watch_list"]["alert_callsign"]
+                            msg_pkt = packets.MessagePacket(
+                                from_call=self.config["aprsd"]["callsign"],
+                                to_call=to_call,
+                                message_text=subreply,
+                            )
+                            msg_pkt.send()
+                elif isinstance(reply, packets.Packet):
+                    # We have a message based object.
+                    reply.send()
+        except Exception as ex:
+            LOG.error("Plugin failed!!!")
+            LOG.exception(ex)
+
 
     def process_our_message_packet(self, packet):
         """Send the packet through the plugins."""
