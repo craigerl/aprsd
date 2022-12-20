@@ -40,7 +40,7 @@ def signal_handler(sig, frame):
 class APRSDListenThread(rx.APRSDRXThread):
     def __init__(self, config, packet_queue, packet_filter=None):
         super().__init__(config, packet_queue)
-        self.packet_filter=packet_filter
+        self.packet_filter = packet_filter
 
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
