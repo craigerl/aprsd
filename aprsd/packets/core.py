@@ -348,12 +348,14 @@ class WeatherPacket(GPSPacket):
         """
         time_zulu = self._build_time_zulu()
 
+        course = "%03u" % self.course
+
         contents = [
             f"{self.from_call}>{self.to_call},WIDE2-1:",
             f"@{time_zulu}z{self.latitude}{self.symbol_table}",
             f"{self.longitude}{self.symbol}",
             # Add CSE = Course
-            f"{self.course}",
+            f"{course}",
             # Speed = sustained 1 minute wind speed in mph
             f"{self.symbol_table}", f"{self.speed:03.0f}",
             # wind gust (peak wind speed in mph in the last 5 minutes)
@@ -363,6 +365,8 @@ class WeatherPacket(GPSPacket):
             # Rainfall (in hundredths of an inch) in the last hour
             f"r{self.rain_1h:03.0f}",
             # Rainfall (in hundredths of an inch) in last 24 hours
+            f"p{self.rain_24h:03.0f}",
+            # Rainfall (in hundredths of an inch) since midnigt
             f"P{self.rain_since_midnight:03.0f}",
             # Humidity
             f"h{self.humidity:02d}",
@@ -372,6 +376,7 @@ class WeatherPacket(GPSPacket):
 
         if self.comment:
             contents.append(self.comment)
+
         self.raw = "".join(contents)
 
 
