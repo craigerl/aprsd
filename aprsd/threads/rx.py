@@ -191,7 +191,6 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             LOG.error("Plugin failed!!!")
             LOG.exception(ex)
 
-
     def process_our_message_packet(self, packet):
         """Send the packet through the plugins."""
         from_call = packet.from_call
