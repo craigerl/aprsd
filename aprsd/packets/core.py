@@ -351,7 +351,7 @@ class WeatherPacket(GPSPacket):
         course = "%03u" % self.course
 
         contents = [
-            f"{self.from_call}>{self.to_call},WIDE2-1:",
+            f"{self.from_call}>{self.to_call},WIDE1-1,WIDE2-1:",
             f"@{time_zulu}z{self.latitude}{self.symbol_table}",
             f"{self.longitude}{self.symbol}",
             # Add CSE = Course
