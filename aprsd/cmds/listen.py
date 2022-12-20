@@ -5,18 +5,18 @@
 # python included libs
 import datetime
 import logging
+import signal
 import sys
 import time
 
-import aprslib
 import click
 from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import cli_helper, client, messaging, packets, stats, threads, utils
+from aprsd import cli_helper, client, packets, stats, threads, utils
 from aprsd.aprsd import cli
-from aprsd.utils import trace
+from aprsd.threads import rx
 
 
 # setup the global logger
@@ -37,6 +37,32 @@ def signal_handler(sig, frame):
         LOG.info(stats.APRSDStats())
 
 
+class APRSDListenThread(rx.APRSDRXThread):
+    def __init__(self, config, packet_queue, packet_filter=None):
+        super().__init__(config, packet_queue)
+        self.packet_filter = packet_filter
+
+    def process_packet(self, *args, **kwargs):
+        packet = self._client.decode_packet(*args, **kwargs)
+        filters = {
+            packets.Packet.__name__: packets.Packet,
+            packets.AckPacket.__name__: packets.AckPacket,
+            packets.GPSPacket.__name__: packets.GPSPacket,
+            packets.MessagePacket.__name__: packets.MessagePacket,
+            packets.MicEPacket.__name__: packets.MicEPacket,
+            packets.WeatherPacket.__name__: packets.WeatherPacket,
+        }
+
+        if self.packet_filter:
+            filter_class = filters[self.packet_filter]
+            if isinstance(packet, filter_class):
+                packet.log(header="RX")
+        else:
+            packet.log(header="RX")
+
+        packets.PacketList().rx(packet)
+
+
 @cli.command()
 @cli_helper.add_options(cli_helper.common_options)
 @click.option(
@@ -51,6 +77,21 @@ def signal_handler(sig, frame):
     show_envvar=True,
     help="the APRS-IS password for APRS_LOGIN",
 )
+@click.option(
+    "--packet-filter",
+    type=click.Choice(
+        [
+            packets.Packet.__name__,
+            packets.AckPacket.__name__,
+            packets.GPSPacket.__name__,
+            packets.MicEPacket.__name__,
+            packets.MessagePacket.__name__,
+            packets.WeatherPacket.__name__,
+        ],
+        case_sensitive=False,
+    ),
+    help="Filter by packet type",
+)
 @click.argument(
     "filter",
     nargs=-1,
@@ -62,6 +103,7 @@ def listen(
     ctx,
     aprs_login,
     aprs_password,
+    packet_filter,
     filter,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
@@ -74,6 +116,8 @@ def listen(
     o/obj1/obj2... - Object Filter Pass all objects with the exact name of obj1, obj2, ... (* wild card allowed)\n
 
     """
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     config = ctx.obj["config"]
 
     if not aprs_login:
@@ -105,29 +149,6 @@ def listen(
 
     # Try and load saved MsgTrack list
     LOG.debug("Loading saved MsgTrack object.")
-    messaging.MsgTrack(config=config).load()
-    packets.WatchList(config=config).load()
-    packets.SeenList(config=config).load()
-
-    @trace.trace
-    def rx_packet(packet):
-        resp = packet.get("response", None)
-        if resp == "ack":
-            ack_num = packet.get("msgNo")
-            console.log(f"We saw an ACK {ack_num} Ignoring")
-            messaging.log_packet(packet)
-        else:
-            message = packet.get("message_text", None)
-            fromcall = packet["from"]
-            msg_number = packet.get("msgNo", "0")
-            messaging.log_message(
-                "Received Message",
-                packet["raw"],
-                message,
-                fromcall=fromcall,
-                ack=msg_number,
-                console=console,
-            )
 
     # Initialize the client factory and create
     # The correct client object ready for use
@@ -140,29 +161,23 @@ def listen(
     # Creates the client object
     LOG.info("Creating client connection")
     aprs_client = client.factory.create()
-    console.log(aprs_client)
+    LOG.info(aprs_client)
 
     LOG.debug(f"Filter by '{filter}'")
-    aprs_client.client.set_filter(filter)
-
-    packets.PacketList(config=config)
+    aprs_client.set_filter(filter)
 
     keepalive = threads.KeepAliveThread(config=config)
     keepalive.start()
 
-    while True:
-        try:
-            # This will register a packet consumer with aprslib
-            # When new packets come in the consumer will process
-            # the packet
-            # with console.status("Listening for packets"):
-            aprs_client.client.consumer(rx_packet, raw=False)
-        except aprslib.exceptions.ConnectionDrop:
-            LOG.error("Connection dropped, reconnecting")
-            time.sleep(5)
-            # Force the deletion of the client object connected to aprs
-            # This will cause a reconnect, next time client.get_client()
-            # is called
-            aprs_client.reset()
-        except aprslib.exceptions.UnknownFormat:
-            LOG.error("Got a Bad packet")
+    LOG.debug("Create APRSDListenThread")
+    listen_thread = APRSDListenThread(
+        config=config,
+        packet_queue=threads.packet_queue,
+        packet_filter=packet_filter,
+    )
+    LOG.debug("Start APRSDListenThread")
+    listen_thread.start()
+    LOG.debug("keepalive Join")
+    keepalive.join()
+    LOG.debug("listen_thread Join")
+    listen_thread.join()

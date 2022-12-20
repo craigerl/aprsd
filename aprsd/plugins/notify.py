@@ -1,7 +1,6 @@
 import logging
 
-from aprsd import messaging, packets, plugin
-from aprsd.utils import trace
+from aprsd import packets, plugin
 
 
 LOG = logging.getLogger("APRSD")
@@ -18,44 +17,42 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
 
     short_description = "Notify me when a CALLSIGN is recently seen on APRS-IS"
 
-    @trace.trace
-    def process(self, packet):
+    def process(self, packet: packets.MessagePacket):
         LOG.info("NotifySeenPlugin")
 
         notify_callsign = self.config["aprsd"]["watch_list"]["alert_callsign"]
-        fromcall = packet.get("from")
+        fromcall = packet.from_call
 
         wl = packets.WatchList()
         age = wl.age(fromcall)
 
-        if wl.is_old(packet["from"]):
-            LOG.info(
-                "NOTIFY {} last seen {} max age={}".format(
-                    fromcall,
-                    age,
-                    wl.max_delta(),
-                ),
-            )
-            packet_type = packets.get_packet_type(packet)
-            # we shouldn't notify the alert user that they are online.
-            if fromcall != notify_callsign:
-                msg = messaging.TextMessage(
-                    self.config["aprs"]["login"],
-                    notify_callsign,
-                    f"{fromcall} was just seen by type:'{packet_type}'",
-                    # We don't need to keep this around if it doesn't go thru
+        if fromcall != notify_callsign:
+            if wl.is_old(fromcall):
+                LOG.info(
+                    "NOTIFY {} last seen {} max age={}".format(
+                        fromcall,
+                        age,
+                        wl.max_delta(),
+                    ),
+                )
+                packet_type = packet.__class__.__name__
+                # we shouldn't notify the alert user that they are online.
+                pkt = packets.MessagePacket(
+                    from_call=self.config["aprsd"]["callsign"],
+                    to_call=notify_callsign,
+                    message_text=(
+                        f"{fromcall} was just seen by type:'{packet_type}'"
+                    ),
                     allow_delay=False,
                 )
-                return msg
+                pkt.allow_delay = False
+                return pkt
             else:
-                LOG.debug("fromcall and notify_callsign are the same, not notifying")
-                return messaging.NULL_MESSAGE
+                LOG.debug(
+                    "Not old enough to notify on callsign "
+                    f"'{fromcall}' : {age} < {wl.max_delta()}",
+                )
+                return packets.NULL_MESSAGE
         else:
-            LOG.debug(
-                "Not old enough to notify on callsign '{}' : {} < {}".format(
-                    fromcall,
-                    age,
-                    wl.max_delta(),
-                ),
-            )
-            return messaging.NULL_MESSAGE
+            LOG.debug("fromcall and notify_callsign are the same, ignoring")
+            return packets.NULL_MESSAGE

@@ -2,7 +2,7 @@ import logging
 import re
 import time
 
-from aprsd import plugin, plugin_utils
+from aprsd import packets, plugin, plugin_utils
 from aprsd.utils import trace
 
 
@@ -20,9 +20,9 @@ class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
         self.ensure_aprs_fi_key()
 
     @trace.trace
-    def process(self, packet):
+    def process(self, packet: packets.MessagePacket):
         LOG.info("Location Plugin")
-        fromcall = packet.get("from")
+        fromcall = packet.from_call
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
 

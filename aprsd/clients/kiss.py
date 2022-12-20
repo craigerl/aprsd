@@ -4,7 +4,7 @@ import aprslib
 from ax253 import Frame
 import kiss
 
-from aprsd import messaging
+from aprsd.packets import core
 from aprsd.utils import trace
 
 
@@ -83,7 +83,7 @@ class KISS3Client:
         self.kiss.read(callback=self.parse_frame, min_frames=None)
         LOG.debug("END blocking KISS consumer")
 
-    def send(self, msg):
+    def send(self, packet):
         """Send an APRS Message object."""
 
         # payload = (':%-9s:%s' % (
@@ -93,26 +93,26 @@ class KISS3Client:
         # payload = str(msg).encode('US-ASCII')
         payload = None
         path = ["WIDE1-1", "WIDE2-1"]
-        if isinstance(msg, messaging.AckMessage):
-            msg_payload = f"ack{msg.id}"
-        elif isinstance(msg, messaging.RawMessage):
-            payload = msg.message.encode("US-ASCII")
+        if isinstance(packet, core.AckPacket):
+            msg_payload = f"ack{packet.msgNo}"
+        elif isinstance(packet, core.Packet):
+            payload = packet.raw.encode("US-ASCII")
             path = ["WIDE2-1"]
         else:
-            msg_payload = f"{msg.message}{{{str(msg.id)}"
+            msg_payload = f"{packet.raw}{{{str(packet.msgNo)}"
 
         if not payload:
             payload = (
                 ":{:<9}:{}".format(
-                    msg.tocall,
+                    packet.to_call,
                     msg_payload,
                 )
             ).encode("US-ASCII")
 
         LOG.debug(f"Send '{payload}' TO KISS")
         frame = Frame.ui(
-            destination=msg.tocall,
-            source=msg.fromcall,
+            destination=packet.to_call,
+            source=packet.from_call,
             path=path,
             info=payload,
         )

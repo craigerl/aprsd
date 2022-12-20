@@ -7,8 +7,9 @@ import flask
 import flask_socketio
 
 from aprsd import config as aprsd_config
-from aprsd import messaging, packets
+from aprsd import packets
 from aprsd.cmds import webchat  # noqa
+from aprsd.packets import core
 
 from .. import fake
 
@@ -63,12 +64,11 @@ class TestSendMessageCommand(unittest.TestCase):
         self.assertIsInstance(socketio, flask_socketio.SocketIO)
         self.assertIsInstance(flask_app, flask.Flask)
 
-    @mock.patch("aprsd.messaging.log_message")
     @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.messaging.MsgTrack.remove")
+    @mock.patch("aprsd.packets.tracker.PacketTrack.remove")
     @mock.patch("aprsd.cmds.webchat.socketio.emit")
     def test_process_ack_packet(
-        self, mock_parse_config, mock_log_message,
+        self, mock_parse_config,
         mock_remove, mock_emit,
     ):
         config = self._build_config()
@@ -76,24 +76,23 @@ class TestSendMessageCommand(unittest.TestCase):
         packet = fake.fake_packet(
             message="blah",
             msg_number=1,
-            message_format=packets.PACKET_TYPE_ACK,
+            message_format=core.PACKET_TYPE_ACK,
         )
         socketio = mock.MagicMock()
         packets.PacketList(config=config)
-        messaging.MsgTrack(config=config)
+        packets.PacketTrack(config=config)
         packets.WatchList(config=config)
         packets.SeenList(config=config)
         wcp = webchat.WebChatProcessPacketThread(config, packet, socketio)
 
         wcp.process_ack_packet(packet)
-        mock_log_message.called_once()
         mock_remove.called_once()
         mock_emit.called_once()
 
     @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.packets.PacketList.add")
+    @mock.patch("aprsd.packets.PacketList.rx")
     @mock.patch("aprsd.cmds.webchat.socketio.emit")
-    def test_process_non_ack_packet(
+    def test_process_our_message_packet(
         self, mock_parse_config,
         mock_packet_add,
         mock_emit,
@@ -103,15 +102,15 @@ class TestSendMessageCommand(unittest.TestCase):
         packet = fake.fake_packet(
             message="blah",
             msg_number=1,
-            message_format=packets.PACKET_TYPE_MESSAGE,
+            message_format=core.PACKET_TYPE_MESSAGE,
         )
         socketio = mock.MagicMock()
         packets.PacketList(config=config)
-        messaging.MsgTrack(config=config)
+        packets.PacketTrack(config=config)
         packets.WatchList(config=config)
         packets.SeenList(config=config)
         wcp = webchat.WebChatProcessPacketThread(config, packet, socketio)
 
-        wcp.process_non_ack_packet(packet)
+        wcp.process_our_message_packet(packet)
         mock_packet_add.called_once()
         mock_emit.called_once()

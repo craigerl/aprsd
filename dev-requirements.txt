@@ -4,7 +4,7 @@
 #
 #    pip-compile --annotation-style=line --resolver=backtracking dev-requirements.in
 #
-add-trailing-comma==2.3.0  # via gray
+add-trailing-comma==2.4.0  # via gray
 alabaster==0.7.12         # via sphinx
 attrs==22.1.0             # via jsonschema, pytest
 autoflake==1.5.3          # via gray
@@ -34,7 +34,7 @@ imagesize==1.4.1          # via sphinx
 importlib-metadata==5.1.0  # via sphinx
 importlib-resources==5.10.1  # via fixit
 iniconfig==1.1.1          # via pytest
-isort==5.10.1             # via -r dev-requirements.in, gray
+isort==5.11.2             # via -r dev-requirements.in, gray
 jinja2==3.1.2             # via sphinx
 jsonschema==4.17.3        # via fixit
 libcst==0.4.9             # via fixit
@@ -47,7 +47,7 @@ packaging==22.0           # via build, pyproject-api, pytest, sphinx, tox
 pathspec==0.10.3          # via black
 pep517==0.13.0            # via build
 pep8-naming==0.13.2       # via -r dev-requirements.in
-pip-tools==6.11.0         # via -r dev-requirements.in
+pip-tools==6.12.0         # via -r dev-requirements.in
 platformdirs==2.6.0       # via black, tox, virtualenv
 pluggy==1.0.0             # via pytest, tox
 pre-commit==2.20.0        # via -r dev-requirements.in
@@ -74,7 +74,7 @@ sphinxcontrib-serializinghtml==1.1.5  # via sphinx
 tokenize-rt==5.0.0        # via add-trailing-comma, pyupgrade
 toml==0.10.2              # via autoflake, pre-commit
 tomli==2.0.1              # via black, build, coverage, mypy, pep517, pyproject-api, pytest, tox
-tox==4.0.8                # via -r dev-requirements.in
+tox==4.0.9                # via -r dev-requirements.in
 typing-extensions==4.4.0  # via black, libcst, mypy, typing-inspect
 typing-inspect==0.8.0     # via libcst
 unify==0.5                # via gray

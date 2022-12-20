@@ -2,7 +2,7 @@ import logging
 import shutil
 import subprocess
 
-from aprsd import plugin
+from aprsd import packets, plugin
 from aprsd.utils import trace
 
 
@@ -26,7 +26,7 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
             self.enabled = True
 
     @trace.trace
-    def process(self, packet):
+    def process(self, packet: packets.MessagePacket):
         LOG.info("FortunePlugin")
 
         # fromcall = packet.get("from")

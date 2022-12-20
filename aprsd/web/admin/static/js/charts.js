@@ -219,6 +219,7 @@ function updateQuadData(chart, label, first, second, third, fourth) {
 }
 
 function update_stats( data ) {
+    our_callsign = data["stats"]["aprsd"]["callsign"];
     $("#version").text( data["stats"]["aprsd"]["version"] );
     $("#aprs_connection").html( data["aprs_connection"] );
     $("#uptime").text( "uptime: " + data["stats"]["aprsd"]["uptime"] );
@@ -226,7 +227,7 @@ function update_stats( data ) {
     $("#jsonstats").html(html_pretty);
     short_time = data["time"].split(/\s(.+)/)[1];
     updateDualData(packets_chart, short_time, data["stats"]["packets"]["sent"], data["stats"]["packets"]["received"]);
-    updateQuadData(message_chart, short_time, data["stats"]["messages"]["sent"], data["stats"]["messages"]["recieved"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
+    updateQuadData(message_chart, short_time, data["stats"]["messages"]["sent"], data["stats"]["messages"]["received"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
     updateDualData(email_chart, short_time, data["stats"]["email"]["sent"], data["stats"]["email"]["recieved"]);
     updateDualData(memory_chart, short_time, data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);
 }

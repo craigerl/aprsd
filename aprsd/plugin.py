@@ -1,19 +1,17 @@
 # The base plugin class
 import abc
-import fnmatch
 import importlib
 import inspect
 import logging
-import os
 import re
 import textwrap
 import threading
 
 import pluggy
-from thesmuggler import smuggle
 
 import aprsd
-from aprsd import client, messaging, packets, threads
+from aprsd import client, packets, threads
+from aprsd.packets import watch_list
 
 
 # setup the global logger
@@ -161,10 +159,10 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
 
     @hookimpl
     def filter(self, packet):
-        result = messaging.NULL_MESSAGE
+        result = packets.NULL_MESSAGE
         if self.enabled:
-            wl = packets.WatchList()
-            if wl.callsign_in_watchlist(packet["from"]):
+            wl = watch_list.WatchList()
+            if wl.callsign_in_watchlist(packet.from_call):
                 # packet is from a callsign in the watch list
                 self.rx_inc()
                 try:
@@ -275,7 +273,7 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
     def process(self, packet):
         LOG.info("HelpPlugin")
         # fromcall = packet.get("from")
-        message = packet.get("message_text", None)
+        message = packet.message_text
         # ack = packet.get("msgNo", "0")
         a = re.search(r"^.*\s+(.*)", message)
         command_name = None
@@ -347,29 +345,9 @@ class PluginManager:
     def _init(self):
         self._pluggy_pm = pluggy.PluginManager("aprsd")
         self._pluggy_pm.add_hookspecs(APRSDPluginSpec)
-
-    def load_plugins_from_path(self, module_path):
-        if not os.path.exists(module_path):
-            LOG.error(f"plugin path '{module_path}' doesn't exist.")
-            return None
-
-        dir_path = os.path.realpath(module_path)
-        pattern = "*.py"
-
-        self.obj_list = []
-
-        for path, _subdirs, files in os.walk(dir_path):
-            for name in files:
-                if fnmatch.fnmatch(name, pattern):
-                    LOG.debug(f"MODULE? '{name}' '{path}'")
-                    module = smuggle(f"{path}/{name}")
-                    for mem_name, obj in inspect.getmembers(module):
-                        if inspect.isclass(obj) and self.is_plugin(obj):
-                            self.obj_list.append(
-                                {"name": mem_name, "obj": obj(self.config)},
-                            )
-
-        return self.obj_list
+        # For the watchlist plugins
+        self._watchlist_pm = pluggy.PluginManager("aprsd")
+        self._watchlist_pm.add_hookspecs(APRSDPluginSpec)
 
     def is_plugin(self, obj):
         for c in inspect.getmro(obj):
@@ -429,13 +407,22 @@ class PluginManager:
                 config=self.config,
             )
             if plugin_obj:
-                LOG.info(
-                    "Registering plugin '{}'({})".format(
-                        plugin_name,
-                        plugin_obj.version,
-                    ),
-                )
-                self._pluggy_pm.register(plugin_obj)
+                if isinstance(plugin_obj, APRSDWatchListPluginBase):
+                    LOG.info(
+                        "Registering WatchList plugin '{}'({})".format(
+                            plugin_name,
+                            plugin_obj.version,
+                        ),
+                    )
+                    self._watchlist_pm.register(plugin_obj)
+                else:
+                    LOG.info(
+                        "Registering plugin '{}'({})".format(
+                            plugin_name,
+                            plugin_obj.version,
+                        ),
+                    )
+                    self._pluggy_pm.register(plugin_obj)
         except Exception as ex:
             LOG.error(f"Couldn't load plugin '{plugin_name}'")
             LOG.exception(ex)
@@ -464,21 +451,16 @@ class PluginManager:
             for p_name in CORE_MESSAGE_PLUGINS:
                 self._load_plugin(p_name)
 
-        if self.config["aprsd"]["watch_list"].get("enabled", False):
-            LOG.info("Loading APRSD WatchList Plugins")
-            enabled_notify_plugins = self.config["aprsd"]["watch_list"].get(
-                "enabled_plugins",
-                None,
-            )
-            if enabled_notify_plugins:
-                for p_name in enabled_notify_plugins:
-                    self._load_plugin(p_name)
         LOG.info("Completed Plugin Loading.")
 
     def run(self, packet):
         """Execute all the pluguns run method."""
         with self.lock:
             return self._pluggy_pm.hook.filter(packet=packet)
+
+    def run_watchlist(self, packet):
+        with self.lock:
+            return self._watchlist_pm.hook.filter(packet=packet)
 
     def stop(self):
         """Stop all threads created by all plugins."""
@@ -492,5 +474,10 @@ class PluginManager:
         self._pluggy_pm.register(obj)
 
     def get_plugins(self):
+        plugin_list = []
         if self._pluggy_pm:
-            return self._pluggy_pm.get_plugins()
+            plugin_list.append(self._pluggy_pm.get_plugins())
+        if self._watchlist_pm:
+            plugin_list.append(self._watchlist_pm.get_plugins())
+
+        return plugin_list

@@ -7,7 +7,7 @@ from aprslib.exceptions import LoginError
 import click
 
 import aprsd
-from aprsd import cli_helper, client, messaging, packets
+from aprsd import cli_helper, client, packets
 from aprsd.aprsd import cli
 
 
@@ -98,32 +98,23 @@ def send_message(
 
     def rx_packet(packet):
         global got_ack, got_response
+        cl = client.factory.create()
+        packet = cl.decode_packet(packet)
+        packets.PacketList().rx(packet)
+        packet.log("RX")
         # LOG.debug("Got packet back {}".format(packet))
-        resp = packet.get("response", None)
-        if resp == "ack":
-            ack_num = packet.get("msgNo")
-            LOG.info(f"We got ack for our sent message {ack_num}")
-            messaging.log_packet(packet)
+        if isinstance(packet, packets.AckPacket):
             got_ack = True
         else:
-            message = packet.get("message_text", None)
-            fromcall = packet["from"]
-            msg_number = packet.get("msgNo", "0")
-            messaging.log_message(
-                "Received Message",
-                packet["raw"],
-                message,
-                fromcall=fromcall,
-                ack=msg_number,
-            )
             got_response = True
-            # Send the ack back?
-            ack = messaging.AckMessage(
-                config["aprs"]["login"],
-                fromcall,
-                msg_id=msg_number,
+            from_call = packet.from_call
+            our_call = config["aprsd"]["callsign"].lower()
+            ack_pkt = packets.AckPacket(
+                from_call=our_call,
+                to_call=from_call,
+                msgNo=packet.msgNo,
             )
-            ack.send_direct()
+            ack_pkt.send_direct()
 
         if got_ack:
             if wait_response:
@@ -144,12 +135,16 @@ def send_message(
     # we should bail after we get the ack and send an ack back for the
     # message
     if raw:
-        msg = messaging.RawMessage(raw)
-        msg.send_direct()
+        pkt = packets.Packet(from_call="", to_call="", raw=raw)
+        pkt.send_direct()
         sys.exit(0)
     else:
-        msg = messaging.TextMessage(aprs_login, tocallsign, command)
-    msg.send_direct()
+        pkt = packets.MessagePacket(
+            from_call=aprs_login,
+            to_call=tocallsign,
+            message_text=command,
+        )
+        pkt.send_direct()
 
     if no_ack:
         sys.exit(0)

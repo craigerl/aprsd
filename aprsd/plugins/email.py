@@ -10,7 +10,7 @@ import time
 
 import imapclient
 
-from aprsd import messaging, plugin, stats, threads
+from aprsd import packets, plugin, stats, threads
 from aprsd.utils import trace
 
 
@@ -80,20 +80,19 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
     def create_threads(self):
         if self.enabled:
             return APRSDEmailThread(
-                msg_queues=threads.msg_queues,
                 config=self.config,
             )
 
     @trace.trace
-    def process(self, packet):
+    def process(self, packet: packets.MessagePacket):
         LOG.info("Email COMMAND")
         if not self.enabled:
             # Email has not been enabled
             # so the plugin will just NOOP
-            return messaging.NULL_MESSAGE
+            return packets.NULL_MESSAGE
 
-        fromcall = packet.get("from")
-        message = packet.get("message_text", None)
+        fromcall = packet.from_call
+        message = packet.message_text
         ack = packet.get("msgNo", "0")
 
         reply = None
@@ -109,7 +108,7 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
             if r is not None:
                 LOG.debug("RESEND EMAIL")
                 resend_email(self.config, r.group(1), fromcall)
-                reply = messaging.NULL_MESSAGE
+                reply = packets.NULL_MESSAGE
             # -user@address.com body of email
             elif re.search(r"^-([A-Za-z0-9_\-\.@]+) (.*)", message):
                 # (same search again)
@@ -142,7 +141,7 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
                     if not too_soon or ack == 0:
                         LOG.info(f"Send email '{content}'")
                         send_result = send_email(self.config, to_addr, content)
-                        reply = messaging.NULL_MESSAGE
+                        reply = packets.NULL_MESSAGE
                         if send_result != 0:
                             reply = f"-{to_addr} failed"
                         else:
@@ -157,7 +156,7 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
                                 self.email_sent_dict.clear()
                             self.email_sent_dict[ack] = now
                     else:
-                        reply = messaging.NULL_MESSAGE
+                        reply = packets.NULL_MESSAGE
                         LOG.info(
                             "Email for message number "
                             + ack
@@ -165,7 +164,6 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
                         )
             else:
                 reply = "Bad email address"
-                # messaging.send_message(fromcall, "Bad email address")
 
         return reply
 
@@ -466,13 +464,12 @@ def resend_email(config, count, fromcall):
                 from_addr = shortcuts_inverted[from_addr]
             # asterisk indicates a resend
             reply = "-" + from_addr + " * " + body.decode(errors="ignore")
-            # messaging.send_message(fromcall, reply)
-            msg = messaging.TextMessage(
-                config["aprs"]["login"],
-                fromcall,
-                reply,
+            pkt = packets.MessagePacket(
+                from_call=config["aprsd"]["callsign"],
+                to_call=fromcall,
+                message_text=reply,
             )
-            msg.send()
+            pkt.send()
             msgexists = True
 
     if msgexists is not True:
@@ -489,9 +486,12 @@ def resend_email(config, count, fromcall):
             str(m).zfill(2),
             str(s).zfill(2),
         )
-        # messaging.send_message(fromcall, reply)
-        msg = messaging.TextMessage(config["aprs"]["login"], fromcall, reply)
-        msg.send()
+        pkt = packets.MessagePacket(
+            from_call=config["aprsd"]["callsign"],
+            to_call=fromcall,
+            message_text=reply,
+        )
+        pkt.send()
 
     # check email more often since we're resending one now
     EmailInfo().delay = 60
@@ -501,9 +501,8 @@ def resend_email(config, count, fromcall):
 
 
 class APRSDEmailThread(threads.APRSDThread):
-    def __init__(self, msg_queues, config):
+    def __init__(self, config):
         super().__init__("EmailThread")
-        self.msg_queues = msg_queues
         self.config = config
         self.past = datetime.datetime.now()
 
@@ -605,12 +604,14 @@ class APRSDEmailThread(threads.APRSDThread):
                         from_addr = shortcuts_inverted[from_addr]
 
                     reply = "-" + from_addr + " " + body.decode(errors="ignore")
-                    msg = messaging.TextMessage(
-                        self.config["aprs"]["login"],
-                        self.config["ham"]["callsign"],
-                        reply,
+                    # Send the message to the registered user in the
+                    # config ham.callsign
+                    pkt = packets.MessagePacket(
+                        from_call=self.config["aprsd"]["callsign"],
+                        to_call=self.config["ham"]["callsign"],
+                        message_text=reply,
                     )
-                    msg.send()
+                    pkt.send()
                     # flag message as sent via aprs
                     try:
                         server.add_flags(msgid, ["APRS"])

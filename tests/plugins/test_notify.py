@@ -2,7 +2,7 @@ from unittest import mock
 
 from aprsd import client
 from aprsd import config as aprsd_config
-from aprsd import messaging, packets
+from aprsd import packets
 from aprsd.plugins import notify as notify_plugin
 
 from .. import fake, test_plugin
@@ -28,7 +28,8 @@ class TestWatchListPlugin(test_plugin.TestPlugin):
         default_wl = aprsd_config.DEFAULT_CONFIG_DICT["aprsd"]["watch_list"]
 
         _config["ham"]["callsign"] = self.fromcall
-        _config["aprs"]["login"] = fake.FAKE_TO_CALLSIGN
+        _config["aprsd"]["callsign"] = self.fromcall
+        _config["aprs"]["login"] = self.fromcall
         _config["services"]["aprs.fi"]["apiKey"] = "something"
 
         # Set the watchlist specific config options
@@ -62,7 +63,7 @@ class TestAPRSDWatchListPluginBase(TestWatchListPlugin):
             msg_number=1,
         )
         actual = plugin.filter(packet)
-        expected = messaging.NULL_MESSAGE
+        expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
     @mock.patch("aprsd.client.ClientFactory", autospec=True)
@@ -78,7 +79,7 @@ class TestAPRSDWatchListPluginBase(TestWatchListPlugin):
             msg_number=1,
         )
         actual = plugin.filter(packet)
-        expected = messaging.NULL_MESSAGE
+        expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
 
@@ -94,7 +95,7 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
             msg_number=1,
         )
         actual = plugin.filter(packet)
-        expected = messaging.NULL_MESSAGE
+        expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
     @mock.patch("aprsd.client.ClientFactory", autospec=True)
@@ -109,7 +110,7 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
             msg_number=1,
         )
         actual = plugin.filter(packet)
-        expected = messaging.NULL_MESSAGE
+        expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
     @mock.patch("aprsd.client.ClientFactory", autospec=True)
@@ -130,7 +131,7 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
             msg_number=1,
         )
         actual = plugin.filter(packet)
-        expected = messaging.NULL_MESSAGE
+        expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
     @mock.patch("aprsd.client.ClientFactory", autospec=True)
@@ -152,7 +153,7 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
             msg_number=1,
         )
         actual = plugin.filter(packet)
-        expected = messaging.NULL_MESSAGE
+        expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
     @mock.patch("aprsd.client.ClientFactory", autospec=True)
@@ -160,7 +161,7 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
     def test_callsign_in_watchlist_old_send_alert(self, mock_is_old, mock_factory):
         client.factory = mock_factory
         mock_is_old.return_value = True
-        notify_callsign = "KFAKE"
+        notify_callsign = fake.FAKE_TO_CALLSIGN
         fromcall = "WB4BOR"
         config = self._config(
             watchlist_enabled=True,
@@ -175,11 +176,11 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
             message="ping",
             msg_number=1,
         )
-        packet_type = packets.get_packet_type(packet)
+        packet_type = packet.__class__.__name__
         actual = plugin.filter(packet)
         msg = f"{fromcall} was just seen by type:'{packet_type}'"
 
-        self.assertIsInstance(actual, messaging.TextMessage)
-        self.assertEqual(fake.FAKE_TO_CALLSIGN, actual.fromcall)
-        self.assertEqual(notify_callsign, actual.tocall)
-        self.assertEqual(msg, actual.message)
+        self.assertIsInstance(actual, packets.MessagePacket)
+        self.assertEqual(fake.FAKE_FROM_CALLSIGN, actual.from_call)
+        self.assertEqual(notify_callsign, actual.to_call)
+        self.assertEqual(msg, actual.message_text)

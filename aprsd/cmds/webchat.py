@@ -22,7 +22,7 @@ import wrapt
 import aprsd
 from aprsd import cli_helper, client
 from aprsd import config as aprsd_config
-from aprsd import messaging, packets, stats, threads, utils
+from aprsd import packets, stats, threads, utils
 from aprsd.aprsd import cli
 from aprsd.logging import rich as aprsd_logging
 from aprsd.threads import rx
@@ -44,13 +44,11 @@ def signal_handler(sig, frame):
     threads.APRSDThreadList().stop_all()
     if "subprocess" not in str(frame):
         time.sleep(1.5)
-        # messaging.MsgTrack().save()
         # packets.WatchList().save()
         # packets.SeenList().save()
         LOG.info(stats.APRSDStats())
         LOG.info("Telling flask to bail.")
         signal.signal(signal.SIGTERM, sys.exit(0))
-        sys.exit(0)
 
 
 class SentMessages(objectstore.ObjectStoreMixin):
@@ -65,13 +63,16 @@ class SentMessages(objectstore.ObjectStoreMixin):
             cls._instance = super().__new__(cls)
         return cls._instance
 
+    def is_initialized(self):
+        return True
+
     @wrapt.synchronized(lock)
     def add(self, msg):
-        self.data[msg.id] = self.create(msg.id)
-        self.data[msg.id]["from"] = msg.fromcall
-        self.data[msg.id]["to"] = msg.tocall
-        self.data[msg.id]["message"] = msg.message.rstrip("\n")
-        self.data[msg.id]["raw"] = str(msg).rstrip("\n")
+        self.data[msg.msgNo] = self.create(msg.msgNo)
+        self.data[msg.msgNo]["from"] = msg.from_call
+        self.data[msg.msgNo]["to"] = msg.to_call
+        self.data[msg.msgNo]["message"] = msg.message_text.rstrip("\n")
+        self.data[msg.msgNo]["raw"] = msg.message_text.rstrip("\n")
 
     def create(self, id):
         return {
@@ -131,44 +132,14 @@ def verify_password(username, password):
         return username
 
 
-class WebChatRXThread(rx.APRSDRXThread):
-    """Class that connects to APRISIS/kiss and waits for messages.
-
-    After the packet is received from APRSIS/KISS, the packet is
-    sent to processing in the WebChatProcessPacketThread.
-    """
-    def __init__(self, config, socketio):
-        super().__init__(None, config)
-        self.socketio = socketio
-        self.connected = False
-
-    def connected(self, connected=True):
-        self.connected = connected
-
-    def process_packet(self, *args, **kwargs):
-        # packet = self._client.decode_packet(*args, **kwargs)
-        if "packet" in kwargs:
-            packet = kwargs["packet"]
-        else:
-            packet = self._client.decode_packet(*args, **kwargs)
-
-        LOG.debug(f"GOT Packet {packet}")
-        thread = WebChatProcessPacketThread(
-            config=self.config,
-            packet=packet,
-            socketio=self.socketio,
-        )
-        thread.start()
-
-
 class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
     """Class that handles packets being sent to us."""
-    def __init__(self, config, packet, socketio):
+    def __init__(self, config, packet_queue, socketio):
         self.socketio = socketio
         self.connected = False
-        super().__init__(config, packet)
+        super().__init__(config, packet_queue)
 
-    def process_ack_packet(self, packet):
+    def process_ack_packet(self, packet: packets.AckPacket):
         super().process_ack_packet(packet)
         ack_num = packet.get("msgNo")
         SentMessages().ack(int(ack_num))
@@ -178,21 +149,19 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         )
         self.got_ack = True
 
-    def process_non_ack_packet(self, packet):
+    def process_our_message_packet(self, packet: packets.MessagePacket):
         LOG.info(f"process non ack PACKET {packet}")
         packet.get("addresse", None)
-        fromcall = packet["from"]
+        fromcall = packet.from_call
 
-        packets.PacketList().add(packet)
-        stats.APRSDStats().msgs_rx_inc()
         message = packet.get("message_text", None)
         msg = {
             "id": 0,
-            "ts": time.time(),
+            "ts": packet.get("timestamp", time.time()),
             "ack": False,
             "from": fromcall,
-            "to": packet["to"],
-            "raw": packet["raw"],
+            "to": packet.to_call,
+            "raw": packet.raw,
             "message": message,
             "status": None,
             "last_update": None,
@@ -344,21 +313,21 @@ class SendMessageNamespace(Namespace):
         LOG.debug(f"WS: on_send {data}")
         self.request = data
         data["from"] = self._config["aprs"]["login"]
-        msg = messaging.TextMessage(
-            data["from"],
-            data["to"].upper(),
-            data["message"],
+        pkt = packets.MessagePacket(
+            from_call=data["from"],
+            to_call=data["to"].upper(),
+            message_text=data["message"],
         )
-        self.msg = msg
+        self.msg = pkt
         msgs = SentMessages()
-        msgs.add(msg)
-        msgs.set_status(msg.id, "Sending")
-        obj = msgs.get(self.msg.id)
+        msgs.add(pkt)
+        pkt.send()
+        msgs.set_status(pkt.msgNo, "Sending")
+        obj = msgs.get(pkt.msgNo)
         socketio.emit(
             "sent", obj,
             namespace="/sendmsg",
         )
-        msg.send()
 
     def on_gps(self, data):
         LOG.debug(f"WS on_GPS: {data}")
@@ -367,21 +336,14 @@ class SendMessageNamespace(Namespace):
         LOG.debug(f"Lat DDM {lat}")
         LOG.debug(f"Long DDM {long}")
 
-        local_datetime = datetime.datetime.now()
-        utc_offset_timedelta = datetime.datetime.utcnow() - local_datetime
-        result_utc_datetime = local_datetime + utc_offset_timedelta
-        time_zulu = result_utc_datetime.strftime("%d%H%M")
-
-        # now construct a beacon to send over the client connection
-        txt = (
-            f"{self._config['aprs']['login']}>APZ100,WIDE2-1"
-            f":@{time_zulu}z{lat}/{long}l APRSD WebChat Beacon"
+        beacon = packets.GPSPacket(
+            from_call=self._config["aprs"]["login"],
+            to_call="APDW16",
+            latitude=lat,
+            longitude=long,
+            comment="APRSD WebChat Beacon",
         )
-
-        beacon_msg = messaging.RawMessage(txt)
-        beacon_msg.fromcall = self._config["aprs"]["login"]
-        beacon_msg.tocall = "APDW16"
-        beacon_msg.send_direct()
+        beacon.send_direct()
 
     def handle_message(self, data):
         LOG.debug(f"WS Data {data}")
@@ -534,17 +496,22 @@ def webchat(ctx, flush, port):
         sys.exit(-1)
 
     packets.PacketList(config=config)
-    messaging.MsgTrack(config=config)
+    packets.PacketTrack(config=config)
     packets.WatchList(config=config)
     packets.SeenList(config=config)
 
     (socketio, app) = init_flask(config, loglevel, quiet)
-    rx_thread = WebChatRXThread(
+    rx_thread = rx.APRSDPluginRXThread(
         config=config,
+        packet_queue=threads.packet_queue,
+    )
+    rx_thread.start()
+    process_thread = WebChatProcessPacketThread(
+        config=config,
+        packet_queue=threads.packet_queue,
         socketio=socketio,
     )
-    LOG.info("Start RX Thread")
-    rx_thread.start()
+    process_thread.start()
 
     keepalive = threads.KeepAliveThread(config=config)
     LOG.info("Start KeepAliveThread")

@@ -3,7 +3,7 @@ import logging
 import time
 import tracemalloc
 
-from aprsd import client, messaging, packets, stats, utils
+from aprsd import client, packets, stats, utils
 from aprsd.threads import APRSDThread, APRSDThreadList
 
 
@@ -23,7 +23,7 @@ class KeepAliveThread(APRSDThread):
 
     def loop(self):
         if self.cntr % 60 == 0:
-            tracker = messaging.MsgTrack()
+            pkt_tracker = packets.PacketTrack()
             stats_obj = stats.APRSDStats()
             pl = packets.PacketList()
             thread_list = APRSDThreadList()
@@ -45,17 +45,22 @@ class KeepAliveThread(APRSDThread):
             except KeyError:
                 login = self.config["ham"]["callsign"]
 
+            if pkt_tracker.is_initialized():
+                tracked_packets = len(pkt_tracker)
+            else:
+                tracked_packets = 0
+
             keepalive = (
                 "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
                 "Last:{} Email: {} - RAM Current:{} Peak:{} Threads:{}"
             ).format(
                 login,
                 utils.strfdelta(stats_obj.uptime),
-                pl.total_recv,
-                pl.total_tx,
-                len(tracker),
-                stats_obj.msgs_tx,
-                stats_obj.msgs_rx,
+                pl.total_rx(),
+                pl.total_tx(),
+                tracked_packets,
+                stats_obj._pkt_cnt["MessagePacket"]["tx"],
+                stats_obj._pkt_cnt["MessagePacket"]["rx"],
                 last_msg_time,
                 email_thread_time,
                 utils.human_size(current),

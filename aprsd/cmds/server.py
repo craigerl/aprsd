@@ -6,8 +6,7 @@ import click
 
 import aprsd
 from aprsd import (
-    cli_helper, client, flask, messaging, packets, plugin, stats, threads,
-    utils,
+    cli_helper, client, flask, packets, plugin, stats, threads, utils,
 )
 from aprsd import aprsd as aprsd_main
 from aprsd.aprsd import cli
@@ -81,13 +80,13 @@ def server(ctx, flush):
     packets.PacketList(config=config)
     if flush:
         LOG.debug("Deleting saved MsgTrack.")
-        messaging.MsgTrack(config=config).flush()
+        packets.PacketTrack(config=config).flush()
         packets.WatchList(config=config)
         packets.SeenList(config=config)
     else:
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
-        messaging.MsgTrack(config=config).load()
+        packets.PacketTrack(config=config).load()
         packets.WatchList(config=config).load()
         packets.SeenList(config=config).load()
 
@@ -97,12 +96,17 @@ def server(ctx, flush):
     plugin_manager.setup_plugins()
 
     rx_thread = rx.APRSDPluginRXThread(
-        msg_queues=threads.msg_queues,
+        packet_queue=threads.packet_queue,
         config=config,
     )
+    process_thread = rx.APRSDPluginProcessPacketThread(
+        config=config,
+        packet_queue=threads.packet_queue,
+    )
     rx_thread.start()
+    process_thread.start()
 
-    messaging.MsgTrack().restart()
+    packets.PacketTrack().restart()
 
     keepalive = threads.KeepAliveThread(config=config)
     keepalive.start()

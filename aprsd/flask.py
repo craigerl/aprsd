@@ -14,11 +14,12 @@ import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
 from werkzeug.security import check_password_hash, generate_password_hash
+import wrapt
 
 import aprsd
 from aprsd import client
 from aprsd import config as aprsd_config
-from aprsd import messaging, packets, plugin, stats, threads, utils
+from aprsd import packets, plugin, stats, threads, utils
 from aprsd.clients import aprsis
 from aprsd.logging import log
 from aprsd.logging import rich as aprsd_logging
@@ -32,7 +33,7 @@ users = None
 
 class SentMessages:
     _instance = None
-    lock = None
+    lock = threading.Lock()
 
     msgs = {}
 
@@ -41,16 +42,16 @@ class SentMessages:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             # Put any initialization here.
-            cls.lock = threading.Lock()
         return cls._instance
 
-    def add(self, msg):
-        with self.lock:
-            self.msgs[msg.id] = self._create(msg.id)
-            self.msgs[msg.id]["from"] = msg.fromcall
-            self.msgs[msg.id]["to"] = msg.tocall
-            self.msgs[msg.id]["message"] = msg.message.rstrip("\n")
-            self.msgs[msg.id]["raw"] = str(msg).rstrip("\n")
+    @wrapt.synchronized(lock)
+    def add(self, packet):
+        self.msgs[packet.msgNo] = self._create(packet.msgNo)
+        self.msgs[packet.msgNo]["from"] = packet.from_call
+        self.msgs[packet.msgNo]["to"] = packet.to_call
+        self.msgs[packet.msgNo]["message"] = packet.message_text.rstrip("\n")
+        packet._build_raw()
+        self.msgs[packet.msgNo]["raw"] = packet.raw.rstrip("\n")
 
     def _create(self, id):
         return {
@@ -66,34 +67,34 @@ class SentMessages:
             "reply": None,
         }
 
+    @wrapt.synchronized(lock)
     def __len__(self):
-        with self.lock:
-            return len(self.msgs.keys())
+        return len(self.msgs.keys())
 
+    @wrapt.synchronized(lock)
     def get(self, id):
-        with self.lock:
-            if id in self.msgs:
-                return self.msgs[id]
+        if id in self.msgs:
+            return self.msgs[id]
 
+    @wrapt.synchronized(lock)
     def get_all(self):
-        with self.lock:
-            return self.msgs
+        return self.msgs
 
+    @wrapt.synchronized(lock)
     def set_status(self, id, status):
-        with self.lock:
-            self.msgs[id]["last_update"] = str(datetime.datetime.now())
-            self.msgs[id]["status"] = status
+        self.msgs[id]["last_update"] = str(datetime.datetime.now())
+        self.msgs[id]["status"] = status
 
+    @wrapt.synchronized(lock)
     def ack(self, id):
         """The message got an ack!"""
-        with self.lock:
-            self.msgs[id]["last_update"] = str(datetime.datetime.now())
-            self.msgs[id]["ack"] = True
+        self.msgs[id]["last_update"] = str(datetime.datetime.now())
+        self.msgs[id]["ack"] = True
 
+    @wrapt.synchronized(lock)
     def reply(self, id, packet):
         """We got a packet back from the sent message."""
-        with self.lock:
-            self.msgs[id]["reply"] = packet
+        self.msgs[id]["reply"] = packet
 
 
 # HTTPBasicAuth doesn't work on a class method.
@@ -107,7 +108,7 @@ def verify_password(username, password):
         return username
 
 
-class SendMessageThread(threads.APRSDThread):
+class SendMessageThread(threads.APRSDRXThread):
     """Thread for sending a message from web."""
 
     aprsis_client = None
@@ -115,10 +116,10 @@ class SendMessageThread(threads.APRSDThread):
     got_ack = False
     got_reply = False
 
-    def __init__(self, config, info, msg, namespace):
+    def __init__(self, config, info, packet, namespace):
         self.config = config
         self.request = info
-        self.msg = msg
+        self.packet = packet
         self.namespace = namespace
         self.start_time = datetime.datetime.now()
         msg = "({} -> {}) : {}".format(
@@ -180,8 +181,8 @@ class SendMessageThread(threads.APRSDThread):
         except LoginError as e:
             f"Failed to setup Connection {e}"
 
-        self.msg.send_direct(aprsis_client=self.aprs_client)
-        SentMessages().set_status(self.msg.id, "Sent")
+        self.packet.send_direct(aprsis_client=self.aprs_client)
+        SentMessages().set_status(self.packet.msgNo, "Sent")
 
         while not self.thread_stop:
             can_loop = self.loop()
@@ -190,59 +191,55 @@ class SendMessageThread(threads.APRSDThread):
         threads.APRSDThreadList().remove(self)
         LOG.debug("Exiting")
 
-    def rx_packet(self, packet):
+    def process_ack_packet(self, packet):
         global socketio
-        # LOG.debug("Got packet back {}".format(packet))
-        resp = packet.get("response", None)
-        if resp == "ack":
-            ack_num = packet.get("msgNo")
-            LOG.info(f"We got ack for our sent message {ack_num}")
-            messaging.log_packet(packet)
-            SentMessages().ack(self.msg.id)
-            socketio.emit(
-                "ack", SentMessages().get(self.msg.id),
-                namespace="/sendmsg",
-            )
-            stats.APRSDStats().ack_rx_inc()
-            self.got_ack = True
-            if self.request["wait_reply"] == "0" or self.got_reply:
-                # We aren't waiting for a reply, so we can bail
-                self.stop()
-                self.thread_stop = self.aprs_client.thread_stop = True
+        ack_num = packet.msgNo
+        LOG.info(f"We got ack for our sent message {ack_num}")
+        packet.log("RXACK")
+        SentMessages().ack(self.packet.msgNo)
+        stats.APRSDStats().ack_rx_inc()
+        socketio.emit(
+            "ack", SentMessages().get(self.packet.msgNo),
+            namespace="/sendmsg",
+        )
+        if self.request["wait_reply"] == "0" or self.got_reply:
+            # We aren't waiting for a reply, so we can bail
+            self.stop()
+            self.thread_stop = self.aprs_client.thread_stop = True
+
+    def process_our_message_packet(self, packet):
+        global socketio
+        packets.PacketList().rx(packet)
+        stats.APRSDStats().msgs_rx_inc()
+        msg_number = packet.msgNo
+        SentMessages().reply(self.packet.msgNo, packet)
+        SentMessages().set_status(self.packet.msgNo, "Got Reply")
+        socketio.emit(
+            "reply", SentMessages().get(self.packet.msgNo),
+            namespace="/sendmsg",
+        )
+        ack_pkt = packets.AckPacket(
+            from_call=self.request["from"],
+            to_call=packet.from_call,
+            msgNo=msg_number,
+        )
+        ack_pkt.send_direct(aprsis_client=self.aprsis_client)
+        SentMessages().set_status(self.packet.msgNo, "Ack Sent")
+
+        # Now we can exit, since we are done.
+        self.got_reply = True
+        if self.got_ack:
+            self.stop()
+            self.thread_stop = self.aprs_client.thread_stop = True
+
+    def process_packet(self, *args, **kwargs):
+        packet = self._client.decode_packet(*args, **kwargs)
+        packet.log(header="RX Packet")
+
+        if isinstance(packet, packets.AckPacket):
+            self.process_ack_packet(packet)
         else:
-            packets.PacketList().add(packet)
-            stats.APRSDStats().msgs_rx_inc()
-            message = packet.get("message_text", None)
-            fromcall = packet["from"]
-            msg_number = packet.get("msgNo", "0")
-            messaging.log_message(
-                "Received Message",
-                packet["raw"],
-                message,
-                fromcall=fromcall,
-                ack=msg_number,
-            )
-            SentMessages().reply(self.msg.id, packet)
-            SentMessages().set_status(self.msg.id, "Got Reply")
-            socketio.emit(
-                "reply", SentMessages().get(self.msg.id),
-                namespace="/sendmsg",
-            )
-
-            # Send the ack back?
-            ack = messaging.AckMessage(
-                self.request["from"],
-                fromcall,
-                msg_id=msg_number,
-            )
-            ack.send_direct()
-            SentMessages().set_status(self.msg.id, "Ack Sent")
-
-            # Now we can exit, since we are done.
-            self.got_reply = True
-            if self.got_ack:
-                self.stop()
-                self.thread_stop = self.aprs_client.thread_stop = True
+            self.process_our_message_packet(packet)
 
     def loop(self):
         # we have a general time limit expecting results of
@@ -265,7 +262,9 @@ class SendMessageThread(threads.APRSDThread):
             # This will register a packet consumer with aprslib
             # When new packets come in the consumer will process
             # the packet
-            self.aprs_client.consumer(self.rx_packet, raw=False, blocking=False)
+            self.aprs_client.consumer(
+                self.process_packet, raw=False, blocking=False,
+            )
         except aprslib.exceptions.ConnectionDrop:
             LOG.error("Connection dropped.")
             return False
@@ -353,7 +352,7 @@ class APRSDFlask(flask_classful.FlaskView):
 
     @auth.login_required
     def messages(self):
-        track = messaging.MsgTrack()
+        track = packets.PacketTrack()
         msgs = []
         for id in track:
             LOG.info(track[id].dict())
@@ -381,7 +380,12 @@ class APRSDFlask(flask_classful.FlaskView):
     @auth.login_required
     def packets(self):
         packet_list = packets.PacketList().get()
-        return json.dumps(packet_list)
+        tmp_list = []
+        for pkt in packet_list:
+            tmp_list.append(pkt.json)
+
+        LOG.info(f"PACKETS {tmp_list}")
+        return json.dumps(tmp_list)
 
     @auth.login_required
     def plugins(self):
@@ -393,13 +397,13 @@ class APRSDFlask(flask_classful.FlaskView):
     @auth.login_required
     def save(self):
         """Save the existing queue to disk."""
-        track = messaging.MsgTrack()
+        track = packets.PacketTrack()
         track.save()
         return json.dumps({"messages": "saved"})
 
     def _stats(self):
         stats_obj = stats.APRSDStats()
-        track = messaging.MsgTrack()
+        track = packets.PacketTrack()
         now = datetime.datetime.now()
 
         time_format = "%m-%d-%Y %H:%M:%S"
@@ -421,8 +425,8 @@ class APRSDFlask(flask_classful.FlaskView):
 
         stats_dict["aprsd"]["watch_list"] = new_list
         packet_list = packets.PacketList()
-        rx = packet_list.total_received()
-        tx = packet_list.total_sent()
+        rx = packet_list.total_rx()
+        tx = packet_list.total_tx()
         stats_dict["packets"] = {
             "sent": tx,
             "received": rx,
@@ -444,7 +448,7 @@ class SendMessageNamespace(Namespace):
     _config = None
     got_ack = False
     reply_sent = False
-    msg = None
+    packet = None
     request = None
 
     def __init__(self, namespace=None, config=None):
@@ -466,24 +470,27 @@ class SendMessageNamespace(Namespace):
         global socketio
         LOG.debug(f"WS: on_send {data}")
         self.request = data
-        msg = messaging.TextMessage(
-            data["from"], data["to"],
-            data["message"],
+        self.packet = packets.MessagePacket(
+            from_call=data["from"],
+            to_call=data["to"],
+            message_text=data["message"],
         )
-        self.msg = msg
         msgs = SentMessages()
-        msgs.add(msg)
-        msgs.set_status(msg.id, "Sending")
+        msgs.add(self.packet)
+        msgs.set_status(self.packet.msgNo, "Sending")
         socketio.emit(
-            "sent", SentMessages().get(self.msg.id),
+            "sent", SentMessages().get(self.packet.msgNo),
             namespace="/sendmsg",
         )
 
-        socketio.start_background_task(self._start, self._config, data, msg, self)
+        socketio.start_background_task(
+            self._start, self._config, data,
+            self.packet, self,
+        )
         LOG.warning("WS: on_send: exit")
 
-    def _start(self, config, data, msg, namespace):
-        msg_thread = SendMessageThread(self._config, data, msg, self)
+    def _start(self, config, data, packet, namespace):
+        msg_thread = SendMessageThread(self._config, data, packet, self)
         msg_thread.start()
 
     def handle_message(self, data):

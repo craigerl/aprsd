@@ -27,3 +27,5 @@ attrs==22.1.0
 # for mobile checking
 user-agents
 pyopenssl
+dataclasses
+dacite2

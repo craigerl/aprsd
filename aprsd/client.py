@@ -8,6 +8,7 @@ from aprslib.exceptions import LoginError
 from aprsd import config as aprsd_config
 from aprsd import exception
 from aprsd.clients import aprsis, kiss
+from aprsd.packets import core
 from aprsd.utils import trace
 
 
@@ -31,6 +32,7 @@ class Client:
 
     connected = False
     server_string = None
+    filter = None
 
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
@@ -44,10 +46,17 @@ class Client:
         if config:
             self.config = config
 
+    def set_filter(self, filter):
+        self.filter = filter
+        if self._client:
+            self._client.set_filter(filter)
+
     @property
     def client(self):
         if not self._client:
             self._client = self.setup_connection()
+            if self.filter:
+                self._client.set_filter(self.filter)
         return self._client
 
     def reset(self):
@@ -101,7 +110,7 @@ class APRSISClient(Client):
 
     def decode_packet(self, *args, **kwargs):
         """APRS lib already decodes this."""
-        return args[0]
+        return core.Packet.factory(args[0])
 
     @trace.trace
     def setup_connection(self):
@@ -190,8 +199,8 @@ class KISSClient(Client):
         # msg = frame.tnc2
         LOG.debug(f"Decoding {msg}")
 
-        packet = aprslib.parse(msg)
-        return packet
+        raw = aprslib.parse(msg)
+        return core.Packet.factory(raw)
 
     @trace.trace
     def setup_connection(self):
