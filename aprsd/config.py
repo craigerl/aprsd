@@ -15,7 +15,6 @@ DEFAULT_CONFIG_DIR = f"{home}/.config/aprsd/"
 DEFAULT_SAVE_FILE = f"{home}/.config/aprsd/aprsd.p"
 DEFAULT_CONFIG_FILE = f"{home}/.config/aprsd/aprsd.yml"
 
-
 LOG_LEVELS = {
     "CRITICAL": logging.CRITICAL,
     "ERROR": logging.ERROR,
@@ -42,7 +41,6 @@ CORE_MESSAGE_PLUGINS = [
     "aprsd.plugins.location.LocationPlugin",
     "aprsd.plugins.ping.PingPlugin",
     "aprsd.plugins.query.QueryPlugin",
-    "aprsd.plugins.stock.StockPlugin",
     "aprsd.plugins.time.TimePlugin",
     "aprsd.plugins.weather.USWeatherPlugin",
     "aprsd.plugins.version.VersionPlugin",
@@ -51,6 +49,12 @@ CORE_MESSAGE_PLUGINS = [
 CORE_NOTIFY_PLUGINS = [
     "aprsd.plugins.notify.NotifySeenPlugin",
 ]
+
+ALL_PLUGINS = []
+for i in CORE_MESSAGE_PLUGINS:
+    ALL_PLUGINS.append(i)
+for i in CORE_NOTIFY_PLUGINS:
+    ALL_PLUGINS.append(i)
 
 # an example of what should be in the ~/.aprsd/config.yml
 DEFAULT_CONFIG_DICT = {
@@ -85,7 +89,7 @@ DEFAULT_CONFIG_DICT = {
         "save_location": DEFAULT_CONFIG_DIR,
         "rich_logging": True,
         "trace": False,
-        "enabled_plugins": CORE_MESSAGE_PLUGINS,
+        "enabled_plugins": ALL_PLUGINS,
         "units": "imperial",
         "watch_list": {
             "enabled": False,
@@ -97,7 +101,6 @@ DEFAULT_CONFIG_DICT = {
             # for a particular callsign
             "packet_keep_count": 10,
             "callsigns": [],
-            "enabled_plugins": CORE_NOTIFY_PLUGINS,
         },
         "web": {
             "enabled": True,

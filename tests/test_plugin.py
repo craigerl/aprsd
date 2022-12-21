@@ -2,10 +2,86 @@ import unittest
 from unittest import mock
 
 from aprsd import config as aprsd_config
-from aprsd import packets, stats
+from aprsd import packets
+from aprsd import plugin as aprsd_plugin
+from aprsd import plugins, stats
 from aprsd.packets import core
 
 from . import fake
+
+
+class TestPluginManager(unittest.TestCase):
+
+    def setUp(self) -> None:
+        self.fromcall = fake.FAKE_FROM_CALLSIGN
+        self.config_and_init()
+
+    def tearDown(self) -> None:
+        self.config = None
+        aprsd_plugin.PluginManager._instance = None
+
+    def config_and_init(self):
+        self.config = aprsd_config.Config(aprsd_config.DEFAULT_CONFIG_DICT)
+        self.config["ham"]["callsign"] = self.fromcall
+        self.config["aprs"]["login"] = fake.FAKE_TO_CALLSIGN
+        self.config["services"]["aprs.fi"]["apiKey"] = "something"
+        self.config["aprsd"]["enabled_plugins"] = [
+            "aprsd.plugins.ping.PingPlugin",
+        ]
+        print(self.config)
+
+    def test_init_no_config(self):
+        pm = aprsd_plugin.PluginManager()
+        self.assertEqual(None, pm.config)
+
+    def test_init_with_config(self):
+        pm = aprsd_plugin.PluginManager(self.config)
+        self.assertEqual(self.config, pm.config)
+
+    def test_get_plugins_no_plugins(self):
+        pm = aprsd_plugin.PluginManager(self.config)
+        plugin_list = pm.get_plugins()
+        self.assertEqual([], plugin_list)
+
+    def test_get_plugins_with_plugins(self):
+        pm = aprsd_plugin.PluginManager(self.config)
+        plugin_list = pm.get_plugins()
+        self.assertEqual([], plugin_list)
+        pm.setup_plugins()
+        plugin_list = pm.get_plugins()
+        self.assertIsInstance(plugin_list, list)
+        self.assertIsInstance(
+            plugin_list[0],
+            (
+                aprsd_plugin.HelpPlugin,
+                plugins.ping.PingPlugin,
+            ),
+        )
+
+    def test_get_watchlist_plugins(self):
+        pm = aprsd_plugin.PluginManager(self.config)
+        plugin_list = pm.get_plugins()
+        self.assertEqual([], plugin_list)
+        pm.setup_plugins()
+        plugin_list = pm.get_watchlist_plugins()
+        self.assertIsInstance(plugin_list, list)
+        self.assertEqual(0, len(plugin_list))
+
+    def test_get_message_plugins(self):
+        pm = aprsd_plugin.PluginManager(self.config)
+        plugin_list = pm.get_plugins()
+        self.assertEqual([], plugin_list)
+        pm.setup_plugins()
+        plugin_list = pm.get_message_plugins()
+        self.assertIsInstance(plugin_list, list)
+        self.assertEqual(2, len(plugin_list))
+        self.assertIsInstance(
+            plugin_list[0],
+            (
+                aprsd_plugin.HelpPlugin,
+                plugins.ping.PingPlugin,
+            ),
+        )
 
 
 class TestPlugin(unittest.TestCase):
