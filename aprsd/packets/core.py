@@ -10,9 +10,6 @@ from typing import List
 
 import dacite
 
-from aprsd import client
-from aprsd.packets.packet_list import PacketList  # noqa: F401
-from aprsd.threads import tx
 from aprsd.utils import counter
 from aprsd.utils import json as aprsd_json
 
@@ -87,7 +84,7 @@ class Packet(metaclass=abc.ABCMeta):
         else:
             return default
 
-    def _init_for_send(self):
+    def prepare(self):
         """Do stuff here that is needed prior to sending over the air."""
         # now build the raw message for sending
         self._build_raw()
@@ -164,7 +161,7 @@ class Packet(metaclass=abc.ABCMeta):
         log_list.append(f"{header}________({name})")
 
         LOG.info("\n".join(log_list))
-        LOG.debug(self)
+        LOG.debug(repr(self))
 
     def _filter_for_send(self) -> str:
         """Filter and format message string for FCC."""
@@ -176,22 +173,10 @@ class Packet(metaclass=abc.ABCMeta):
         # We all miss George Carlin
         return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
 
-    def send(self):
-        """Method to send a packet."""
-        self._init_for_send()
-        thread = tx.SendPacketThread(packet=self)
-        thread.start()
-
-    def send_direct(self, aprsis_client=None):
-        """Send the message in the same thread as caller."""
-        self._init_for_send()
-        if aprsis_client:
-            cl = aprsis_client
-        else:
-            cl = client.factory.create().client
-        self.log(header="TX Message Direct")
-        cl.send(self.raw)
-        PacketList().tx(self)
+    def __str__(self):
+        """Show the raw version of the packet"""
+        self.prepare()
+        return self.raw
 
 
 @dataclass
@@ -218,13 +203,6 @@ class AckPacket(PathPacket):
             self.to_call.ljust(9),
             self.msgNo,
         )
-
-    def send(self):
-        """Method to send a packet."""
-        self._init_for_send()
-        thread = tx.SendAckThread(packet=self)
-        LOG.warning(f"Starting thread to TXACK {self}")
-        thread.start()
 
 
 @dataclass

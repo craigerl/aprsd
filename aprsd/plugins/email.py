@@ -11,6 +11,7 @@ import time
 import imapclient
 
 from aprsd import packets, plugin, stats, threads
+from aprsd.threads import tx
 from aprsd.utils import trace
 
 
@@ -464,12 +465,13 @@ def resend_email(config, count, fromcall):
                 from_addr = shortcuts_inverted[from_addr]
             # asterisk indicates a resend
             reply = "-" + from_addr + " * " + body.decode(errors="ignore")
-            pkt = packets.MessagePacket(
-                from_call=config["aprsd"]["callsign"],
-                to_call=fromcall,
-                message_text=reply,
+            tx.send(
+                packets.MessagePacket(
+                    from_call=config["aprsd"]["callsign"],
+                    to_call=fromcall,
+                    message_text=reply,
+                ),
             )
-            pkt.send()
             msgexists = True
 
     if msgexists is not True:
@@ -486,12 +488,13 @@ def resend_email(config, count, fromcall):
             str(m).zfill(2),
             str(s).zfill(2),
         )
-        pkt = packets.MessagePacket(
-            from_call=config["aprsd"]["callsign"],
-            to_call=fromcall,
-            message_text=reply,
+        tx.send(
+            packets.MessagePacket(
+                from_call=config["aprsd"]["callsign"],
+                to_call=fromcall,
+                message_text=reply,
+            ),
         )
-        pkt.send()
 
     # check email more often since we're resending one now
     EmailInfo().delay = 60
@@ -606,12 +609,13 @@ class APRSDEmailThread(threads.APRSDThread):
                     reply = "-" + from_addr + " " + body.decode(errors="ignore")
                     # Send the message to the registered user in the
                     # config ham.callsign
-                    pkt = packets.MessagePacket(
-                        from_call=self.config["aprsd"]["callsign"],
-                        to_call=self.config["ham"]["callsign"],
-                        message_text=reply,
+                    tx.send(
+                        packets.MessagePacket(
+                            from_call=self.config["aprsd"]["callsign"],
+                            to_call=self.config["ham"]["callsign"],
+                            message_text=reply,
+                        ),
                     )
-                    pkt.send()
                     # flag message as sent via aprs
                     try:
                         server.add_flags(msgid, ["APRS"])

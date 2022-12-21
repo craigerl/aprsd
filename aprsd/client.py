@@ -8,7 +8,7 @@ from aprslib.exceptions import LoginError
 from aprsd import config as aprsd_config
 from aprsd import exception
 from aprsd.clients import aprsis, kiss
-from aprsd.packets import core
+from aprsd.packets import core, packet_list
 from aprsd.utils import trace
 
 
@@ -58,6 +58,10 @@ class Client:
             if self.filter:
                 self._client.set_filter(self.filter)
         return self._client
+
+    def send(self, packet: core.Packet):
+        packet_list.PacketList().tx(packet)
+        self.client.send(packet)
 
     def reset(self):
         """Call this to force a rebuild/reconnect."""

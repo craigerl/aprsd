@@ -23,6 +23,7 @@ from aprsd import packets, plugin, stats, threads, utils
 from aprsd.clients import aprsis
 from aprsd.logging import log
 from aprsd.logging import rich as aprsd_logging
+from aprsd.threads import tx
 
 
 LOG = logging.getLogger("APRSD")
@@ -181,7 +182,11 @@ class SendMessageThread(threads.APRSDRXThread):
         except LoginError as e:
             f"Failed to setup Connection {e}"
 
-        self.packet.send_direct(aprsis_client=self.aprs_client)
+        tx.send(
+            self.packet,
+            direct=True,
+            aprs_client=self.aprs_client,
+        )
         SentMessages().set_status(self.packet.msgNo, "Sent")
 
         while not self.thread_stop:
@@ -218,12 +223,15 @@ class SendMessageThread(threads.APRSDRXThread):
             "reply", SentMessages().get(self.packet.msgNo),
             namespace="/sendmsg",
         )
-        ack_pkt = packets.AckPacket(
-            from_call=self.request["from"],
-            to_call=packet.from_call,
-            msgNo=msg_number,
+        tx.send(
+            packets.AckPacket(
+                from_call=self.request["from"],
+                to_call=packet.from_call,
+                msgNo=msg_number,
+            ),
+            direct=True,
+            aprs_client=self.aprsis_client,
         )
-        ack_pkt.send_direct(aprsis_client=self.aprsis_client)
         SentMessages().set_status(self.packet.msgNo, "Ack Sent")
 
         # Now we can exit, since we are done.

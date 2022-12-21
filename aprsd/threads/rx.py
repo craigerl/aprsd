@@ -6,7 +6,7 @@ import time
 import aprslib
 
 from aprsd import client, packets, plugin
-from aprsd.threads import APRSDThread
+from aprsd.threads import APRSDThread, tx
 
 
 LOG = logging.getLogger("APRSD")
@@ -131,12 +131,13 @@ class APRSDProcessPacketThread(APRSDThread):
                     # It's a MessagePacket and it's for us!
                     # let any threads do their thing, then ack
                     # send an ack last
-                    ack_pkt = packets.AckPacket(
-                        from_call=self.config["aprsd"]["callsign"],
-                        to_call=from_call,
-                        msgNo=msg_id,
+                    tx.send(
+                        packets.AckPacket(
+                            from_call=self.config["aprsd"]["callsign"],
+                            to_call=from_call,
+                            msgNo=msg_id,
+                        ),
                     )
-                    ack_pkt.send()
 
                     self.process_our_message_packet(packet)
                 else:
@@ -175,18 +176,20 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     for subreply in reply:
                         LOG.debug(f"Sending '{subreply}'")
                         if isinstance(subreply, packets.Packet):
-                            subreply.send()
+                            tx.send(subreply)
                         else:
-                            to_call = self.config["aprsd"]["watch_list"]["alert_callsign"]
-                            msg_pkt = packets.MessagePacket(
-                                from_call=self.config["aprsd"]["callsign"],
-                                to_call=to_call,
-                                message_text=subreply,
+                            wl = self.config["aprsd"]["watch_list"]
+                            to_call = wl["alert_callsign"]
+                            tx.send(
+                                packets.MessagePacket(
+                                    from_call=self.config["aprsd"]["callsign"],
+                                    to_call=to_call,
+                                    message_text=subreply,
+                                ),
                             )
-                            msg_pkt.send()
                 elif isinstance(reply, packets.Packet):
                     # We have a message based object.
-                    reply.send()
+                    tx.send(reply)
         except Exception as ex:
             LOG.error("Plugin failed!!!")
             LOG.exception(ex)
@@ -212,17 +215,18 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     for subreply in reply:
                         LOG.debug(f"Sending '{subreply}'")
                         if isinstance(subreply, packets.Packet):
-                            subreply.send()
+                            tx.send(subreply)
                         else:
-                            msg_pkt = packets.MessagePacket(
-                                from_call=self.config["aprsd"]["callsign"],
-                                to_call=from_call,
-                                message_text=subreply,
+                            tx.send(
+                                packets.MessagePacket(
+                                    from_call=self.config["aprsd"]["callsign"],
+                                    to_call=from_call,
+                                    message_text=subreply,
+                                ),
                             )
-                            msg_pkt.send()
                 elif isinstance(reply, packets.Packet):
                     # We have a message based object.
-                    reply.send()
+                    tx.send(reply)
                     replied = True
                 else:
                     replied = True
@@ -232,34 +236,38 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     # usage string
                     if reply is not packets.NULL_MESSAGE:
                         LOG.debug(f"Sending '{reply}'")
-                        msg_pkt = packets.MessagePacket(
-                            from_call=self.config["aprsd"]["callsign"],
-                            to_call=from_call,
-                            message_text=reply,
+                        tx.send(
+                            packets.MessagePacket(
+                                from_call=self.config["aprsd"]["callsign"],
+                                to_call=from_call,
+                                message_text=reply,
+                            ),
                         )
-                        msg_pkt.send()
 
             # If the message was for us and we didn't have a
             # response, then we send a usage statement.
             if to_call == self.config["aprsd"]["callsign"] and not replied:
                 LOG.warning("Sending help!")
-                msg_pkt = packets.MessagePacket(
-                    from_call=self.config["aprsd"]["callsign"],
-                    to_call=from_call,
-                    message_text="Unknown command! Send 'help' message for help",
+                message_text = "Unknown command! Send 'help' message for help"
+                tx.send(
+                    packets.MessagePacket(
+                        from_call=self.config["aprsd"]["callsign"],
+                        to_call=from_call,
+                        message_text=message_text,
+                    ),
                 )
-                msg_pkt.send()
         except Exception as ex:
             LOG.error("Plugin failed!!!")
             LOG.exception(ex)
             # Do we need to send a reply?
             if to_call == self.config["aprsd"]["callsign"]:
                 reply = "A Plugin failed! try again?"
-                msg_pkt = packets.MessagePacket(
-                    from_call=self.config["aprsd"]["callsign"],
-                    to_call=from_call,
-                    message_text=reply,
+                tx.send(
+                    packets.MessagePacket(
+                        from_call=self.config["aprsd"]["callsign"],
+                        to_call=from_call,
+                        message_text=reply,
+                    ),
                 )
-                msg_pkt.send()
 
         LOG.debug("Completed process_our_message_packet")

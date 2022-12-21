@@ -3,6 +3,7 @@ import threading
 
 import wrapt
 
+from aprsd.threads import tx
 from aprsd.utils import objectstore
 
 
@@ -93,11 +94,11 @@ class PacketTrack(objectstore.ObjectStoreMixin):
         for key in self.data.keys():
             pkt = self.data[key]
             if pkt.last_send_attempt < pkt.retry_count:
-                pkt.send()
+                tx.send(pkt)
 
     def _resend(self, packet):
         packet._last_send_attempt = 0
-        packet.send()
+        tx.send(packet)
 
     def restart_delayed(self, count=None, most_recent=True):
         """Walk the list of delayed messages and restart them if any."""

@@ -9,6 +9,7 @@ import click
 import aprsd
 from aprsd import cli_helper, client, packets
 from aprsd.aprsd import cli
+from aprsd.threads import tx
 
 
 LOG = logging.getLogger("APRSD")
@@ -109,12 +110,14 @@ def send_message(
             got_response = True
             from_call = packet.from_call
             our_call = config["aprsd"]["callsign"].lower()
-            ack_pkt = packets.AckPacket(
-                from_call=our_call,
-                to_call=from_call,
-                msgNo=packet.msgNo,
+            tx.send(
+                packets.AckPacket(
+                    from_call=our_call,
+                    to_call=from_call,
+                    msgNo=packet.msgNo,
+                ),
+                direct=True,
             )
-            ack_pkt.send_direct()
 
         if got_ack:
             if wait_response:
@@ -135,16 +138,20 @@ def send_message(
     # we should bail after we get the ack and send an ack back for the
     # message
     if raw:
-        pkt = packets.Packet(from_call="", to_call="", raw=raw)
-        pkt.send_direct()
+        tx.send(
+            packets.Packet(from_call="", to_call="", raw=raw),
+            direct=True,
+        )
         sys.exit(0)
     else:
-        pkt = packets.MessagePacket(
-            from_call=aprs_login,
-            to_call=tocallsign,
-            message_text=command,
+        tx.send(
+            packets.MessagePacket(
+                from_call=aprs_login,
+                to_call=tocallsign,
+                message_text=command,
+            ),
+            direct=True,
         )
-        pkt.send_direct()
 
     if no_ack:
         sys.exit(0)

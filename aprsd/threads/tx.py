@@ -4,10 +4,32 @@ import time
 
 from aprsd import client
 from aprsd import threads as aprsd_threads
-from aprsd.packets import packet_list, tracker
+from aprsd.packets import core, packet_list, tracker
 
 
 LOG = logging.getLogger("APRSD")
+
+
+def send(packet: core.Packet, direct=False, aprs_client=None):
+    """Send a packet either in a thread or directly to the client."""
+    # prepare the packet for sending.
+    # This constructs the packet.raw
+    packet.prepare()
+    if not direct:
+        if isinstance(packet, core.AckPacket):
+            thread = SendAckThread(packet=packet)
+        else:
+            thread = SendPacketThread(packet=packet)
+        thread.start()
+    else:
+        if aprs_client:
+            cl = aprs_client
+        else:
+            cl = client.factory.create()
+
+        packet.log(header="TX")
+        cl.send(packet)
+        packet_list.PacketList().tx(packet)
 
 
 class SendPacketThread(aprsd_threads.APRSDThread):
@@ -37,7 +59,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
             # The message has been removed from the tracking queue
             # So it got acked and we are done.
             LOG.info(
-                f"{packet.__class__.__name__}"
+                f"{self.packet.__class__.__name__}"
                 f"({self.packet.msgNo}) "
                 "Message Send Complete via Ack.",
             )
@@ -72,10 +94,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
             if send_now:
                 # no attempt time, so lets send it, and start
                 # tracking the time.
-                packet.log("TX")
-                cl = client.factory.create().client
-                cl.send(packet.raw)
-                packet_list.PacketList().tx(packet)
+                send(packet, direct=True)
                 packet.last_send_time = datetime.datetime.now()
                 packet.send_count += 1
 
@@ -123,10 +142,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
             send_now = True
 
         if send_now:
-            cl = client.factory.create().client
-            self.packet.log("TX")
-            cl.send(self.packet.raw)
-            packet_list.PacketList().tx(self.packet)
+            send(self.packet, direct=True)
             self.packet.send_count += 1
             self.packet.last_send_time = datetime.datetime.now()
 

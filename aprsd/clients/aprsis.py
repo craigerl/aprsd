@@ -12,6 +12,7 @@ import wrapt
 
 import aprsd
 from aprsd import stats
+from aprsd.packets import core
 
 
 LOG = logging.getLogger("APRSD")
@@ -32,10 +33,9 @@ class Aprsdis(aprslib.IS):
         LOG.info("Shutdown Aprsdis client.")
 
     @wrapt.synchronized(lock)
-    def send(self, msg):
+    def send(self, packet: core.Packet):
         """Send an APRS Message object."""
-        line = str(msg)
-        self.sendall(line)
+        self.sendall(packet.raw)
 
     def _socket_readlines(self, blocking=False):
         """

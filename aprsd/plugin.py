@@ -40,7 +40,7 @@ class APRSDPluginSpec:
     """A hook specification namespace."""
 
     @hookspec
-    def filter(self, packet):
+    def filter(self, packet: packets.core.Packet):
         """My special little hook that you can customize."""
 
 
@@ -117,11 +117,11 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
                 thread.stop()
 
     @abc.abstractmethod
-    def filter(self, packet):
+    def filter(self, packet: packets.core.Packet):
         pass
 
     @abc.abstractmethod
-    def process(self, packet):
+    def process(self, packet: packets.core.Packet):
         """This is called when the filter passes."""
 
 
@@ -158,7 +158,7 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 LOG.warning("Watch list enabled, but no callsigns set.")
 
     @hookimpl
-    def filter(self, packet):
+    def filter(self, packet: packets.core.Packet):
         result = packets.NULL_MESSAGE
         if self.enabled:
             wl = watch_list.WatchList()
@@ -210,7 +210,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         self.enabled = True
 
     @hookimpl
-    def filter(self, packet):
+    def filter(self, packet: packets.core.MessagePacket):
         result = None
 
         message = packet.get("message_text", None)
@@ -270,7 +270,7 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
     def help(self):
         return "Help: send APRS help or help <plugin>"
 
-    def process(self, packet):
+    def process(self, packet: packets.core.MessagePacket):
         LOG.info("HelpPlugin")
         # fromcall = packet.get("from")
         message = packet.message_text
@@ -455,12 +455,12 @@ class PluginManager:
 
         LOG.info("Completed Plugin Loading.")
 
-    def run(self, packet):
+    def run(self, packet: packets.core.MessagePacket):
         """Execute all the pluguns run method."""
         with self.lock:
             return self._pluggy_pm.hook.filter(packet=packet)
 
-    def run_watchlist(self, packet):
+    def run_watchlist(self, packet: packets.core.Packet):
         with self.lock:
             return self._watchlist_pm.hook.filter(packet=packet)
 

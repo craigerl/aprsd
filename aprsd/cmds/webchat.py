@@ -25,7 +25,7 @@ from aprsd import config as aprsd_config
 from aprsd import packets, stats, threads, utils
 from aprsd.aprsd import cli
 from aprsd.logging import rich as aprsd_logging
-from aprsd.threads import rx
+from aprsd.threads import rx, tx
 from aprsd.utils import objectstore, trace
 
 
@@ -150,7 +150,7 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         self.got_ack = True
 
     def process_our_message_packet(self, packet: packets.MessagePacket):
-        LOG.info(f"process non ack PACKET {packet}")
+        LOG.info(f"process MessagePacket {repr(packet)}")
         packet.get("addresse", None)
         fromcall = packet.from_call
 
@@ -321,7 +321,7 @@ class SendMessageNamespace(Namespace):
         self.msg = pkt
         msgs = SentMessages()
         msgs.add(pkt)
-        pkt.send()
+        tx.send(pkt)
         msgs.set_status(pkt.msgNo, "Sending")
         obj = msgs.get(pkt.msgNo)
         socketio.emit(
@@ -336,14 +336,16 @@ class SendMessageNamespace(Namespace):
         LOG.debug(f"Lat DDM {lat}")
         LOG.debug(f"Long DDM {long}")
 
-        beacon = packets.GPSPacket(
-            from_call=self._config["aprs"]["login"],
-            to_call="APDW16",
-            latitude=lat,
-            longitude=long,
-            comment="APRSD WebChat Beacon",
+        tx.send(
+            packets.GPSPacket(
+                from_call=self._config["aprs"]["login"],
+                to_call="APDW16",
+                latitude=lat,
+                longitude=long,
+                comment="APRSD WebChat Beacon",
+            ),
+            direct=True,
         )
-        beacon.send_direct()
 
     def handle_message(self, data):
         LOG.debug(f"WS Data {data}")
