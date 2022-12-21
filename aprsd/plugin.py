@@ -323,6 +323,8 @@ class PluginManager:
 
     # the pluggy PluginManager for all Message plugins
     _pluggy_pm = None
+    # the pluggy PluginManager for all WatchList plugins
+    _watchlist_pm = None
 
     # aprsd config dict
     config = None
@@ -476,8 +478,24 @@ class PluginManager:
     def get_plugins(self):
         plugin_list = []
         if self._pluggy_pm:
-            plugin_list.append(self._pluggy_pm.get_plugins())
+            for plug in self._pluggy_pm.get_plugins():
+                plugin_list.append(plug)
         if self._watchlist_pm:
-            plugin_list.append(self._watchlist_pm.get_plugins())
+            for plug in self._watchlist_pm.get_plugins():
+                plugin_list.append(plug)
 
         return plugin_list
+
+    def get_watchlist_plugins(self):
+        pl = []
+        if self._watchlist_pm:
+            for plug in self._watchlist_pm.get_plugins():
+                pl.append(plug)
+        return pl
+
+    def get_message_plugins(self):
+        pl = []
+        if self._pluggy_pm:
+            for plug in self._pluggy_pm.get_plugins():
+                pl.append(plug)
+        return pl
