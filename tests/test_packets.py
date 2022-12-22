@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 from aprsd import packets
 from aprsd.packets import core
@@ -72,3 +73,30 @@ class TestPluginBase(unittest.TestCase):
         pkt_dict["format"] = core.PACKET_TYPE_UNCOMPRESSED
         pkt = packets.Packet.factory(pkt_dict)
         self.assertIsInstance(pkt, packets.WeatherPacket)
+
+    @mock.patch("aprsd.packets.core.GPSPacket._build_time_zulu")
+    def test_packet_format_rain_1h(self, mock_time_zulu):
+
+        mock_time_zulu.return_value = "221450"
+
+        wx = packets.WeatherPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            timestamp=1671721164.1112509,
+        )
+        wx.prepare()
+
+        expected = "KFAKE>KMINE,WIDE1-1,WIDE2-1:@221450z0.0/0.0_000/000g000t000r000p000P000h00b00000"
+        self.assertEqual(expected, wx.raw)
+        rain_location = 59
+        self.assertEqual(rain_location, wx.raw.find("r000"))
+
+        wx.rain_1h = 1.11
+        wx.prepare()
+        expected = "KFAKE>KMINE,WIDE1-1,WIDE2-1:@221450z0.0/0.0_000/000g000t000r111p000P000h00b00000"
+        self.assertEqual(expected, wx.raw)
+
+        wx.rain_1h = 0.01
+        wx.prepare()
+        expected = "KFAKE>KMINE,WIDE1-1,WIDE2-1:@221450z0.0/0.0_000/000g000t000r001p000P000h00b00000"
+        self.assertEqual(expected, wx.raw)
