@@ -294,6 +294,7 @@ class WeatherPacket(GPSPacket):
     symbol: str = "_"
     wind_gust: float = 0.00
     temperature: float = 0.00
+    # in inches.  1.04 means 1.04 inches
     rain_1h: float = 0.00
     rain_24h: float = 0.00
     rain_since_midnight: float = 0.00
@@ -312,7 +313,9 @@ class WeatherPacket(GPSPacket):
 
         Where: CSE/SPD is wind direction and sustained 1 minute speed
         t is in degrees F
+
         r is Rain per last 60 minutes
+            1.04 inches of rain will show as r104
         p is precipitation per last 24 hours (sliding 24 hour window)
         P is precip per last 24 hours since midnight
         b is Baro in tenths of a mb
@@ -341,11 +344,11 @@ class WeatherPacket(GPSPacket):
             # Temperature in degrees F
             f"t{self.temperature:03.0f}",
             # Rainfall (in hundredths of an inch) in the last hour
-            f"r{self.rain_1h:03.0f}",
+            f"r{self.rain_1h*100:03.0f}",
             # Rainfall (in hundredths of an inch) in last 24 hours
-            f"p{self.rain_24h:03.0f}",
+            f"p{self.rain_24h*100:03.0f}",
             # Rainfall (in hundredths of an inch) since midnigt
-            f"P{self.rain_since_midnight:03.0f}",
+            f"P{self.rain_since_midnight*100:03.0f}",
             # Humidity
             f"h{self.humidity:02d}",
             # Barometric pressure (in tenths of millibars/tenths of hPascal)
