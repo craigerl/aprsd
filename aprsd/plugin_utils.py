@@ -26,13 +26,18 @@ def get_aprs_fi(api_key, callsign):
 
 def get_weather_gov_for_gps(lat, lon):
     LOG.debug(f"Fetch station at {lat}, {lon}")
+    headers = requests.utils.default_headers()
+    headers.update(
+        {"User-Agent": "(aprsd, waboring@hemna.com)"},
+    )
     try:
         url2 = (
-            "https://forecast.weather.gov/MapClick.php?lat=%s"
-            "&lon=%s&FcstType=json" % (lat, lon)
+            #"https://forecast.weather.gov/MapClick.php?lat=%s"
+            #"&lon=%s&FcstType=json" % (lat, lon)
+            f"https://api.weather.gov/points/{lat},{lon}"
         )
         LOG.debug(f"Fetching weather '{url2}'")
-        response = requests.get(url2)
+        response = requests.get(url2, headers=headers)
     except Exception as e:
         LOG.error(e)
         raise Exception("Failed to get weather")

@@ -2,12 +2,14 @@ import datetime
 import logging
 import threading
 
+from oslo_config import cfg
 import wrapt
 
 from aprsd import utils
 from aprsd.utils import objectstore
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -17,24 +19,22 @@ class WatchList(objectstore.ObjectStoreMixin):
     _instance = None
     lock = threading.Lock()
     data = {}
-    config = None
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            if "config" in kwargs:
-                cls._instance.config = kwargs["config"]
-                cls._instance._init_store()
+            cls._instance._init_store()
             cls._instance.data = {}
         return cls._instance
 
     def __init__(self, config=None):
-        if config:
-            self.config = config
+        ring_size = CONF.watch_list.packet_keep_count
 
-            ring_size = config["aprsd"]["watch_list"].get("packet_keep_count", 10)
+        if not self.is_enabled():
+            LOG.info("Watch List is disabled.")
 
-            for callsign in config["aprsd"]["watch_list"].get("callsigns", []):
+        if CONF.watch_list.callsigns:
+            for callsign in CONF.watch_list.callsigns:
                 call = callsign.replace("*", "")
                 # FIXME(waboring) - we should fetch the last time we saw
                 # a beacon from a callsign or some other mechanism to find
@@ -47,14 +47,8 @@ class WatchList(objectstore.ObjectStoreMixin):
                     ),
                 }
 
-    def is_initialized(self):
-        return self.config is not None
-
     def is_enabled(self):
-        if self.config and "watch_list" in self.config["aprsd"]:
-            return self.config["aprsd"]["watch_list"].get("enabled", False)
-        else:
-            return False
+        return CONF.watch_list.enabled
 
     def callsign_in_watchlist(self, callsign):
         return callsign in self.data
@@ -78,9 +72,8 @@ class WatchList(objectstore.ObjectStoreMixin):
         return str(now - self.last_seen(callsign))
 
     def max_delta(self, seconds=None):
-        watch_list_conf = self.config["aprsd"]["watch_list"]
         if not seconds:
-            seconds = watch_list_conf["alert_time_seconds"]
+            seconds = CONF.watch_list.alert_time_seconds
         max_timeout = {"seconds": seconds}
         return datetime.timedelta(**max_timeout)
 

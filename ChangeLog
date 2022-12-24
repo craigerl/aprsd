@@ -1,9 +1,37 @@
 CHANGES
 =======
 
+* Added rain formatting unit tests to WeatherPacket
+* Fix Rain reporting in WeatherPacket send
+* Removed Packet.send()
+* Removed watchlist plugins
+* Fix PluginManager.get\_plugins
+* Cleaned up PluginManager
+* Cleaned up PluginManager
+* Update routing for weatherpacket
+* Fix some WeatherPacket formatting
+* Fix pep8 violation
+* Add packet filtering for aprsd listen
+* Added WeatherPacket encoding
+* Updated webchat and listen for queue based RX
+* reworked collecting and reporting stats
+* Removed unused threading code
+* Change RX packet processing to enqueu
+* Make tracking objectstores work w/o initializing
+* Cleaned up packet transmit class attributes
+* Fix packets timestamp to int
+* More messaging -> packets cleanup
+* Cleaned out all references to messaging
+* Added contructing a GPSPacket for sending
+* cleanup webchat
+* Reworked all packet processing
+* Updated plugins and plugin interfaces for Packet
+* Started using dataclasses to describe packets
+
 v2.6.1
 ------
 
+* v2.6.1
 * Fixed position report for webchat beacon
 * Try and fix broken 32bit qemu builds on 64bit system
 * Add unit tests for webchat

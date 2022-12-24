@@ -2,12 +2,14 @@ import json
 import logging
 import re
 
+from oslo_config import cfg
 import requests
 
 from aprsd import plugin, plugin_utils
 from aprsd.utils import trace
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -34,10 +36,10 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
     @trace.trace
     def process(self, packet):
         LOG.info("Weather Plugin")
-        fromcall = packet.get("from")
+        fromcall = packet.from_call
         # message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
-        api_key = self.config["services"]["aprs.fi"]["apiKey"]
+        api_key = CONF.aprs_fi.apiKey
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
         except Exception as ex:
@@ -58,17 +60,23 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
             LOG.error(f"Couldn't fetch forecast.weather.gov '{ex}'")
             return "Unable to get weather"
 
-        reply = (
-            "%sF(%sF/%sF) %s. %s, %s."
-            % (
-                wx_data["currentobservation"]["Temp"],
-                wx_data["data"]["temperature"][0],
-                wx_data["data"]["temperature"][1],
-                wx_data["data"]["weather"][0],
-                wx_data["time"]["startPeriodName"][1],
-                wx_data["data"]["weather"][1],
-            )
-        ).rstrip()
+        LOG.info(f"WX data {wx_data}")
+
+        if wx_data["success"] == False:
+            # Failed to fetch the weather
+            reply = "Failed to fetch weather for location"
+        else:
+            reply = (
+                "%sF(%sF/%sF) %s. %s, %s."
+                % (
+                    wx_data["currentobservation"]["Temp"],
+                    wx_data["data"]["temperature"][0],
+                    wx_data["data"]["temperature"][1],
+                    wx_data["data"]["weather"][0],
+                    wx_data["time"]["startPeriodName"][1],
+                    wx_data["data"]["weather"][1],
+                )
+            ).rstrip()
         LOG.debug(f"reply: '{reply}' ")
         return reply
 
@@ -119,13 +127,7 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
             # if no second argument, search for calling station
             fromcall = fromcall
 
-            try:
-                self.config.exists(["services", "aprs.fi", "apiKey"])
-            except Exception as ex:
-                LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
-                return "No aprs.fi apikey found"
-
-            api_key = self.config["services"]["aprs.fi"]["apiKey"]
+            api_key = CONF.aprs_fi.apiKey
 
             try:
                 aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
@@ -187,6 +189,13 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     command_name = "OpenWeatherMap"
     short_description = "OpenWeatherMap weather of GPS Beacon location"
 
+    def setup(self):
+        if not CONF.owm_weather_plugin.apiKey:
+            LOG.error("Config.owm_weather_plugin.apiKey is not set.  Disabling")
+            self.enabled = False
+        else:
+            self.enabled = True
+
     def help(self):
         _help = [
             "openweathermap: Send {} to get weather "
@@ -209,13 +218,8 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         else:
             searchcall = fromcall
 
-        try:
-            self.config.exists(["services", "aprs.fi", "apiKey"])
-        except Exception as ex:
-            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
-            return "No aprs.fi apikey found"
+        api_key = CONF.aprs_fi.apiKey
 
-        api_key = self.config["services"]["aprs.fi"]["apiKey"]
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
@@ -230,21 +234,8 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         lat = aprs_data["entries"][0]["lat"]
         lon = aprs_data["entries"][0]["lng"]
 
-        try:
-            self.config.exists(["services", "openweathermap", "apiKey"])
-        except Exception as ex:
-            LOG.error(f"Failed to find config openweathermap:apiKey {ex}")
-            return "No openweathermap apiKey found"
-
-        try:
-            self.config.exists(["aprsd", "units"])
-        except Exception:
-            LOG.debug("Couldn't find untis in aprsd:services:units")
-            units = "metric"
-        else:
-            units = self.config["aprsd"]["units"]
-
-        api_key = self.config["services"]["openweathermap"]["apiKey"]
+        units = CONF.units
+        api_key = CONF.owm_weather_plugin.apiKey
         try:
             wx_data = plugin_utils.fetch_openweathermap(
                 api_key,
@@ -317,6 +308,16 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     command_name = "AVWXWeather"
     short_description = "AVWX weather of GPS Beacon location"
 
+    def setup(self):
+        if not CONF.avwx_plugin.base_url:
+            LOG.error("Config avwx_plugin.base_url not specified.  Disabling")
+            return False
+        elif not CONF.avwx_plugin.apiKey:
+            LOG.error("Config avwx_plugin.apiKey not specified. Disabling")
+            return False
+        else:
+            return True
+
     def help(self):
         _help = [
             "avwxweather: Send {} to get weather "
@@ -339,13 +340,7 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         else:
             searchcall = fromcall
 
-        try:
-            self.config.exists(["services", "aprs.fi", "apiKey"])
-        except Exception as ex:
-            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
-            return "No aprs.fi apikey found"
-
-        api_key = self.config["services"]["aprs.fi"]["apiKey"]
+        api_key = CONF.aprs_fi.apiKey
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
@@ -360,21 +355,8 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         lat = aprs_data["entries"][0]["lat"]
         lon = aprs_data["entries"][0]["lng"]
 
-        try:
-            self.config.exists(["services", "avwx", "apiKey"])
-        except Exception as ex:
-            LOG.error(f"Failed to find config avwx:apiKey {ex}")
-            return "No avwx apiKey found"
-
-        try:
-            self.config.exists(self.config, ["services", "avwx", "base_url"])
-        except Exception as ex:
-            LOG.debug(f"Didn't find avwx:base_url {ex}")
-            base_url = "https://avwx.rest"
-        else:
-            base_url = self.config["services"]["avwx"]["base_url"]
-
-        api_key = self.config["services"]["avwx"]["apiKey"]
+        api_key = CONF.avwx_plugin.apiKey
+        base_url = CONF.avwx_plugin.base_url
         token = f"TOKEN {api_key}"
         headers = {"Authorization": token}
         try:

@@ -4,14 +4,15 @@ import time
 
 import aprslib
 from aprslib.exceptions import LoginError
+from oslo_config import cfg
 
-from aprsd import config as aprsd_config
 from aprsd import exception
 from aprsd.clients import aprsis, kiss
 from aprsd.packets import core, packet_list
 from aprsd.utils import trace
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 TRANSPORT_APRSIS = "aprsis"
 TRANSPORT_TCPKISS = "tcpkiss"
@@ -28,7 +29,6 @@ class Client:
 
     _instance = None
     _client = None
-    config = None
 
     connected = False
     server_string = None
@@ -40,11 +40,6 @@ class Client:
             cls._instance = super().__new__(cls)
             # Put any initialization here.
         return cls._instance
-
-    def __init__(self, config=None):
-        """Initialize the object instance."""
-        if config:
-            self.config = config
 
     def set_filter(self, filter):
         self.filter = filter
@@ -74,12 +69,12 @@ class Client:
 
     @staticmethod
     @abc.abstractmethod
-    def is_enabled(config):
+    def is_enabled():
         pass
 
     @staticmethod
     @abc.abstractmethod
-    def transport(config):
+    def transport():
         pass
 
     @abc.abstractmethod
@@ -90,26 +85,38 @@ class Client:
 class APRSISClient(Client):
 
     @staticmethod
-    def is_enabled(config):
+    def is_enabled():
         # Defaults to True if the enabled flag is non existent
         try:
-            return config["aprs"].get("enabled", True)
+            return CONF.aprs_network.enabled
         except KeyError:
             return False
 
     @staticmethod
-    def is_configured(config):
-        if APRSISClient.is_enabled(config):
+    def is_configured():
+        if APRSISClient.is_enabled():
             # Ensure that the config vars are correctly set
-            config.check_option("aprs.login")
-            config.check_option("aprs.password")
-            config.check_option("aprs.host")
-            return True
+            if not CONF.aprs_network.login:
+                LOG.error("Config aprs_network.login not set.")
+                raise exception.MissingConfigOptionException(
+                    "aprs_network.login is not set.",
+                )
+            if not CONF.aprs_network.password:
+                LOG.error("Config aprs_network.password not set.")
+                raise exception.MissingConfigOptionException(
+                    "aprs_network.password is not set.",
+                )
+            if not CONF.aprs_network.host:
+                LOG.error("Config aprs_network.host not set.")
+                raise exception.MissingConfigOptionException(
+                    "aprs_network.host is not set.",
+                )
 
+            return True
         return True
 
     @staticmethod
-    def transport(config):
+    def transport():
         return TRANSPORT_APRSIS
 
     def decode_packet(self, *args, **kwargs):
@@ -118,10 +125,10 @@ class APRSISClient(Client):
 
     @trace.trace
     def setup_connection(self):
-        user = self.config["aprs"]["login"]
-        password = self.config["aprs"]["password"]
-        host = self.config["aprs"].get("host", "rotate.aprs.net")
-        port = self.config["aprs"].get("port", 14580)
+        user = CONF.aprs_network.login
+        password = CONF.aprs_network.password
+        host = CONF.aprs_network.host
+        port = CONF.aprs_network.port
         connected = False
         backoff = 1
         aprs_client = None
@@ -151,45 +158,43 @@ class APRSISClient(Client):
 class KISSClient(Client):
 
     @staticmethod
-    def is_enabled(config):
+    def is_enabled():
         """Return if tcp or serial KISS is enabled."""
-        if "kiss" not in config:
-            return False
-
-        if config.get("kiss.serial.enabled", default=False):
+        if CONF.kiss_serial.enabled:
             return True
 
-        if config.get("kiss.tcp.enabled", default=False):
+        if CONF.kiss_tcp.enabled:
             return True
 
         return False
 
     @staticmethod
-    def is_configured(config):
+    def is_configured():
         # Ensure that the config vars are correctly set
-        if KISSClient.is_enabled(config):
-            config.check_option(
-                "aprsd.callsign",
-                default_fail=aprsd_config.DEFAULT_CONFIG_DICT["aprsd"]["callsign"],
-            )
-            transport = KISSClient.transport(config)
+        if KISSClient.is_enabled():
+            transport = KISSClient.transport()
             if transport == TRANSPORT_SERIALKISS:
-                config.check_option("kiss.serial")
-                config.check_option("kiss.serial.device")
+                if not CONF.kiss_serial.device:
+                    LOG.error("KISS serial enabled, but no device is set.")
+                    raise exception.MissingConfigOptionException(
+                        "kiss_serial.device is not set.",
+                    )
             elif transport == TRANSPORT_TCPKISS:
-                config.check_option("kiss.tcp")
-                config.check_option("kiss.tcp.host")
-                config.check_option("kiss.tcp.port")
+                if not CONF.kiss_tcp.host:
+                    LOG.error("KISS TCP enabled, but no host is set.")
+                    raise exception.MissingConfigOptionException(
+                        "kiss_tcp.host is not set.",
+                    )
 
             return True
-        return True
+        return False
 
     @staticmethod
-    def transport(config):
-        if config.get("kiss.serial.enabled", default=False):
+    def transport():
+        if CONF.kiss_serial.enabled:
             return TRANSPORT_SERIALKISS
 
-        if config.get("kiss.tcp.enabled", default=False):
+        if CONF.kiss_tcp.enabled:
             return TRANSPORT_TCPKISS
 
     def decode_packet(self, *args, **kwargs):
@@ -208,7 +213,7 @@ class KISSClient(Client):
 
     @trace.trace
     def setup_connection(self):
-        client = kiss.KISS3Client(self.config)
+        client = kiss.KISS3Client()
         return client
 
 
@@ -222,8 +227,7 @@ class ClientFactory:
             # Put any initialization here.
         return cls._instance
 
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
         self._builders = {}
 
     def register(self, key, builder):
@@ -231,23 +235,23 @@ class ClientFactory:
 
     def create(self, key=None):
         if not key:
-            if APRSISClient.is_enabled(self.config):
+            if APRSISClient.is_enabled():
                 key = TRANSPORT_APRSIS
-            elif KISSClient.is_enabled(self.config):
-                key = KISSClient.transport(self.config)
+            elif KISSClient.is_enabled():
+                key = KISSClient.transport()
 
         LOG.debug(f"GET client '{key}'")
         builder = self._builders.get(key)
         if not builder:
             raise ValueError(key)
-        return builder(self.config)
+        return builder()
 
     def is_client_enabled(self):
         """Make sure at least one client is enabled."""
         enabled = False
         for key in self._builders.keys():
             try:
-                enabled |= self._builders[key].is_enabled(self.config)
+                enabled |= self._builders[key].is_enabled()
             except KeyError:
                 pass
 
@@ -257,7 +261,7 @@ class ClientFactory:
         enabled = False
         for key in self._builders.keys():
             try:
-                enabled |= self._builders[key].is_configured(self.config)
+                enabled |= self._builders[key].is_configured()
             except KeyError:
                 pass
             except exception.MissingConfigOptionException as ex:
@@ -270,11 +274,11 @@ class ClientFactory:
         return enabled
 
     @staticmethod
-    def setup(config):
+    def setup():
         """Create and register all possible client objects."""
         global factory
 
-        factory = ClientFactory(config)
+        factory = ClientFactory()
         factory.register(TRANSPORT_APRSIS, APRSISClient)
         factory.register(TRANSPORT_TCPKISS, KISSClient)
         factory.register(TRANSPORT_SERIALKISS, KISSClient)

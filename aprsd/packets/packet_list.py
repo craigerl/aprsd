@@ -1,12 +1,14 @@
 import logging
 import threading
 
+from oslo_config import cfg
 import wrapt
 
 from aprsd import stats, utils
 from aprsd.packets import seen_list
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -15,7 +17,6 @@ class PacketList:
 
     _instance = None
     lock = threading.Lock()
-    config = None
 
     packet_list: utils.RingBuffer = utils.RingBuffer(1000)
 
@@ -25,16 +26,7 @@ class PacketList:
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            if "config" in kwargs:
-                cls._instance.config = kwargs["config"]
         return cls._instance
-
-    def __init__(self, config=None):
-        if config:
-            self.config = config
-
-    def _is_initialized(self):
-        return self.config is not None
 
     @wrapt.synchronized(lock)
     def __iter__(self):

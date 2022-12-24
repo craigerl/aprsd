@@ -2,12 +2,14 @@ import datetime
 import logging
 import threading
 
+from oslo_config import cfg
 import wrapt
 
 import aprsd
 from aprsd import packets, plugin, utils
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -15,7 +17,6 @@ class APRSDStats:
 
     _instance = None
     lock = threading.Lock()
-    config = None
 
     start_time = None
     _aprsis_server = None
@@ -66,10 +67,6 @@ class APRSDStats:
             cls._instance.start_time = datetime.datetime.now()
             cls._instance._aprsis_keepalive = datetime.datetime.now()
         return cls._instance
-
-    def __init__(self, config=None):
-        if config:
-            self.config = config
 
     @wrapt.synchronized(lock)
     @property
@@ -191,7 +188,7 @@ class APRSDStats:
             "aprsd": {
                 "version": aprsd.__version__,
                 "uptime": utils.strfdelta(self.uptime),
-                "callsign": self.config["aprsd"]["callsign"],
+                "callsign": CONF.callsign,
                 "memory_current": int(self.memory),
                 "memory_current_str": utils.human_size(self.memory),
                 "memory_peak": int(self.memory_peak),
@@ -201,7 +198,7 @@ class APRSDStats:
             },
             "aprs-is": {
                 "server": str(self.aprsis_server),
-                "callsign": self.config["aprs"]["login"],
+                "callsign": CONF.aprs_network.login,
                 "last_update": last_aprsis_keepalive,
             },
             "packets": {
@@ -215,7 +212,7 @@ class APRSDStats:
                 "ack_sent": self._pkt_cnt["AckPacket"]["tx"],
             },
             "email": {
-                "enabled": self.config["aprsd"]["email"]["enabled"],
+                "enabled": CONF.email_plugin.enabled,
                 "sent": int(self._email_tx),
                 "received": int(self._email_rx),
                 "thread_last_update": last_update,

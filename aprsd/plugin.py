@@ -7,6 +7,7 @@ import re
 import textwrap
 import threading
 
+from oslo_config import cfg
 import pluggy
 
 import aprsd
@@ -15,6 +16,7 @@ from aprsd.packets import watch_list
 
 
 # setup the global logger
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 CORE_MESSAGE_PLUGINS = [
@@ -211,6 +213,10 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
 
     @hookimpl
     def filter(self, packet: packets.core.MessagePacket):
+        if not self.enabled:
+            LOG.info(f"{self.__class__.__name__} is not enabled.")
+            return None
+
         result = None
 
         message = packet.get("message_text", None)
@@ -220,7 +226,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         # Only process messages destined for us
         # and is an APRS message format and has a message.
         if (
-            tocall == self.config["aprs"]["login"]
+            tocall == CONF.callsign
             and msg_format == "message"
             and message
         ):
@@ -249,12 +255,11 @@ class APRSFIKEYMixin:
     """Mixin class to enable checking the existence of the aprs.fi apiKey."""
 
     def ensure_aprs_fi_key(self):
-        try:
-            self.config.check_option(["services", "aprs.fi", "apiKey"])
-            self.enabled = True
-        except Exception as ex:
-            LOG.error(f"Failed to find config aprs.fi:apikey {ex}")
+        if not CONF.aprs_fi.apiKey:
+            LOG.error("Config aprs_fi.apiKey is not set")
             self.enabled = False
+        else:
+            self.enabled = True
 
 
 class HelpPlugin(APRSDRegexCommandPluginBase):
@@ -410,21 +415,28 @@ class PluginManager:
             )
             if plugin_obj:
                 if isinstance(plugin_obj, APRSDWatchListPluginBase):
-                    LOG.info(
-                        "Registering WatchList plugin '{}'({})".format(
-                            plugin_name,
-                            plugin_obj.version,
-                        ),
-                    )
-                    self._watchlist_pm.register(plugin_obj)
+                    if plugin_obj.enabled:
+                        LOG.info(
+                            "Registering WatchList plugin '{}'({})".format(
+                                plugin_name,
+                                plugin_obj.version,
+                            ),
+                        )
+                        self._watchlist_pm.register(plugin_obj)
+                    else:
+                        LOG.warning(f"Plugin {plugin_obj.__class__.__name__} is disabled")
                 else:
-                    LOG.info(
-                        "Registering plugin '{}'({})".format(
-                            plugin_name,
-                            plugin_obj.version,
-                        ),
-                    )
-                    self._pluggy_pm.register(plugin_obj)
+                    if plugin_obj.enabled:
+                        LOG.info(
+                            "Registering plugin '{}'({}) -- {}".format(
+                                plugin_name,
+                                plugin_obj.version,
+                                plugin_obj.command_regex,
+                            ),
+                        )
+                        self._pluggy_pm.register(plugin_obj)
+                    else:
+                        LOG.warning(f"Plugin {plugin_obj.__class__.__name__} is disabled")
         except Exception as ex:
             LOG.error(f"Couldn't load plugin '{plugin_name}'")
             LOG.exception(ex)
@@ -443,7 +455,7 @@ class PluginManager:
         _help = HelpPlugin(self.config)
         self._pluggy_pm.register(_help)
 
-        enabled_plugins = self.config["aprsd"].get("enabled_plugins", None)
+        enabled_plugins = CONF.enabled_plugins
         if enabled_plugins:
             for p_name in enabled_plugins:
                 self._load_plugin(p_name)
