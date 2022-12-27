@@ -65,12 +65,15 @@ def process_standard_options(f: F) -> F:
             default_config_files = [kwargs["config_file"]]
         else:
             default_config_files = None
-        CONF(
-            [], project="aprsd", version=aprsd.__version__,
-            default_config_files=default_config_files,
-        )
+        try:
+            CONF(
+                [], project="aprsd", version=aprsd.__version__,
+                default_config_files=default_config_files,
+            )
+        except cfg.ConfigFilesNotFoundError:
+            pass
         ctx.obj["loglevel"] = kwargs["loglevel"]
-        ctx.obj["config_file"] = kwargs["config_file"]
+        # ctx.obj["config_file"] = kwargs["config_file"]
         ctx.obj["quiet"] = kwargs["quiet"]
         log.setup_logging(
             ctx.obj["loglevel"],

@@ -86,7 +86,8 @@ def test_plugin(
     if not plugin_path:
         click.echo(ctx.get_help())
         click.echo("")
-        ctx.fail("Failed to provide -p option to test a plugin")
+        click.echo("Failed to provide -p option to test a plugin")
+        ctx.exit(-1)
         return
 
     if type(message) is tuple:
