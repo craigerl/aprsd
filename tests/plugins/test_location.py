@@ -1,18 +1,24 @@
 from unittest import mock
 
+from oslo_config import cfg
+
+from aprsd import conf  # noqa: F401
 from aprsd.plugins import location as location_plugin
 
 from .. import fake, test_plugin
 
 
+CONF = cfg.CONF
+
+
 class TestLocationPlugin(test_plugin.TestPlugin):
 
-    @mock.patch("aprsd.config.Config.check_option")
-    def test_location_not_enabled_missing_aprs_fi_key(self, mock_check):
+    def test_location_not_enabled_missing_aprs_fi_key(self):
         # When the aprs.fi api key isn't set, then
         # the LocationPlugin will be disabled.
-        mock_check.side_effect = Exception
-        fortune = location_plugin.LocationPlugin(self.config)
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        CONF.aprs_fi.apiKey = None
+        fortune = location_plugin.LocationPlugin()
         expected = "LocationPlugin isn't enabled"
         packet = fake.fake_packet(message="location")
         actual = fortune.filter(packet)
@@ -23,7 +29,8 @@ class TestLocationPlugin(test_plugin.TestPlugin):
         # When the aprs.fi api key isn't set, then
         # the LocationPlugin will be disabled.
         mock_check.side_effect = Exception
-        fortune = location_plugin.LocationPlugin(self.config)
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        fortune = location_plugin.LocationPlugin()
         expected = "Failed to fetch aprs.fi location"
         packet = fake.fake_packet(message="location")
         actual = fortune.filter(packet)
@@ -34,7 +41,8 @@ class TestLocationPlugin(test_plugin.TestPlugin):
         # When the aprs.fi api key isn't set, then
         # the LocationPlugin will be disabled.
         mock_check.return_value = {"entries": []}
-        fortune = location_plugin.LocationPlugin(self.config)
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        fortune = location_plugin.LocationPlugin()
         expected = "Failed to fetch aprs.fi location"
         packet = fake.fake_packet(message="location")
         actual = fortune.filter(packet)
@@ -57,7 +65,8 @@ class TestLocationPlugin(test_plugin.TestPlugin):
         }
         mock_weather.side_effect = Exception
         mock_time.return_value = 10
-        fortune = location_plugin.LocationPlugin(self.config)
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        fortune = location_plugin.LocationPlugin()
         expected = "KFAKE: Unknown Location 0' 10,11 0.0h ago"
         packet = fake.fake_packet(message="location")
         actual = fortune.filter(packet)
@@ -82,7 +91,8 @@ class TestLocationPlugin(test_plugin.TestPlugin):
         wx_data = {"location": {"areaDescription": expected_town}}
         mock_weather.return_value = wx_data
         mock_time.return_value = 10
-        fortune = location_plugin.LocationPlugin(self.config)
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        fortune = location_plugin.LocationPlugin()
         expected = f"KFAKE: {expected_town} 0' 10,11 0.0h ago"
         packet = fake.fake_packet(message="location")
         actual = fortune.filter(packet)

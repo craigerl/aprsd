@@ -2,7 +2,6 @@ import logging
 
 import aprsd
 from aprsd import plugin, stats
-from aprsd.utils import trace
 
 
 LOG = logging.getLogger("APRSD")
@@ -19,7 +18,6 @@ class VersionPlugin(plugin.APRSDRegexCommandPluginBase):
     # five mins {int:int}
     email_sent_dict = {}
 
-    @trace.trace
     def process(self, packet):
         LOG.info("Version COMMAND")
         # fromcall = packet.get("from")
@@ -27,6 +25,7 @@ class VersionPlugin(plugin.APRSDRegexCommandPluginBase):
         # ack = packet.get("msgNo", "0")
         stats_obj = stats.APRSDStats()
         s = stats_obj.stats()
+        print(s)
         return "APRSD ver:{} uptime:{}".format(
             aprsd.__version__,
             s["aprsd"]["uptime"],

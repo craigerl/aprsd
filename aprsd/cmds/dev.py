@@ -6,13 +6,15 @@
 import logging
 
 import click
+from oslo_config import cfg
 
 # local imports here
-from aprsd import cli_helper, client, packets, plugin, stats, utils
+from aprsd import cli_helper, client, conf, packets, plugin
 from aprsd.aprsd import cli
 from aprsd.utils import trace
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
@@ -68,23 +70,16 @@ def test_plugin(
     message,
 ):
     """Test an individual APRSD plugin given a python path."""
-    config = ctx.obj["config"]
 
-    flat_config = utils.flatten_dict(config)
-    LOG.info("Using CONFIG values:")
-    for x in flat_config:
-        if "password" in x or "aprsd.web.users.admin" in x:
-            LOG.info(f"{x} = XXXXXXXXXXXXXXXXXXX")
-        else:
-            LOG.info(f"{x} = {flat_config[x]}")
+    CONF.log_opt_values(LOG, logging.DEBUG)
 
     if not aprs_login:
-        if not config.exists("aprs.login"):
+        if CONF.aprs_network.login == conf.client.DEFAULT_LOGIN:
             click.echo("Must set --aprs_login or APRS_LOGIN")
             ctx.exit(-1)
             return
         else:
-            fromcall = config.get("aprs.login")
+            fromcall = CONF.aprs_network.login
     else:
         fromcall = aprs_login
 
@@ -97,21 +92,17 @@ def test_plugin(
     if type(message) is tuple:
         message = " ".join(message)
 
-    if config["aprsd"].get("trace", False):
+    if CONF.trace_enabled:
         trace.setup_tracing(["method", "api"])
 
-    client.Client(config)
-    stats.APRSDStats(config)
-    packets.PacketTrack(config=config)
-    packets.WatchList(config=config)
-    packets.SeenList(config=config)
+    client.Client()
 
-    pm = plugin.PluginManager(config)
+    pm = plugin.PluginManager()
     if load_all:
         pm.setup_plugins()
     else:
         pm._init()
-    obj = pm._create_class(plugin_path, plugin.APRSDPluginBase, config=config)
+    obj = pm._create_class(plugin_path, plugin.APRSDPluginBase)
     if not obj:
         click.echo(ctx.get_help())
         click.echo("")
@@ -125,14 +116,13 @@ def test_plugin(
         ),
     )
     pm._pluggy_pm.register(obj)
-    login = config["aprs"]["login"]
 
-    packet = {
-        "from": fromcall, "addresse": login,
-        "message_text": message,
-        "format": "message",
-        "msgNo": 1,
-    }
+    packet = packets.MessagePacket(
+        from_call=fromcall,
+        to_call=CONF.callsign,
+        msgNo=1,
+        message_text=message,
+    )
     LOG.info(f"P'{plugin_path}'  F'{fromcall}'   C'{message}'")
 
     for x in range(number):

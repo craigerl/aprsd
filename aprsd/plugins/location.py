@@ -27,7 +27,6 @@ class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
         LOG.info("Location Plugin")
         fromcall = packet.from_call
         message = packet.get("message_text", None)
-        # ack = packet.get("msgNo", "0")
 
         api_key = CONF.aprs_fi.apiKey
 

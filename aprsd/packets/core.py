@@ -84,6 +84,9 @@ class Packet(metaclass=abc.ABCMeta):
         else:
             return default
 
+    def update_timestamp(self):
+        self.timestamp = _int_timestamp()
+
     def prepare(self):
         """Do stuff here that is needed prior to sending over the air."""
         # now build the raw message for sending

@@ -33,7 +33,6 @@ class QueryPlugin(plugin.APRSDRegexCommandPluginBase):
 
         fromcall = packet.from_call
         message = packet.get("message_text", None)
-        # ack = packet.get("msgNo", "0")
 
         pkt_tracker = tracker.PacketTrack()
         now = datetime.datetime.now()

@@ -25,6 +25,7 @@ def get_aprs_fi(api_key, callsign):
 
 
 def get_weather_gov_for_gps(lat, lon):
+    # FIXME(hemna) This is currently BROKEN
     LOG.debug(f"Fetch station at {lat}, {lon}")
     headers = requests.utils.default_headers()
     headers.update(
@@ -32,8 +33,8 @@ def get_weather_gov_for_gps(lat, lon):
     )
     try:
         url2 = (
-            #"https://forecast.weather.gov/MapClick.php?lat=%s"
-            #"&lon=%s&FcstType=json" % (lat, lon)
+            # "https://forecast.weather.gov/MapClick.php?lat=%s"
+            # "&lon=%s&FcstType=json" % (lat, lon)
             f"https://api.weather.gov/points/{lat},{lon}"
         )
         LOG.debug(f"Fetching weather '{url2}'")

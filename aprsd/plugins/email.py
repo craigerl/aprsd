@@ -272,7 +272,6 @@ def _build_shortcuts_dict():
         else:
             shortcuts_dict = {}
 
-    LOG.info(f"Shortcuts Dict {shortcuts_dict}")
     return shortcuts_dict
 
 

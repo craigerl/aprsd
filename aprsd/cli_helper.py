@@ -6,6 +6,7 @@ import click
 from oslo_config import cfg
 
 import aprsd
+from aprsd import conf  # noqa: F401
 from aprsd.logging import log
 from aprsd.utils import trace
 

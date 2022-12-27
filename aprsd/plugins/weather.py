@@ -62,21 +62,17 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
 
         LOG.info(f"WX data {wx_data}")
 
-        if wx_data["success"] == False:
-            # Failed to fetch the weather
-            reply = "Failed to fetch weather for location"
-        else:
-            reply = (
-                "%sF(%sF/%sF) %s. %s, %s."
-                % (
-                    wx_data["currentobservation"]["Temp"],
-                    wx_data["data"]["temperature"][0],
-                    wx_data["data"]["temperature"][1],
-                    wx_data["data"]["weather"][0],
-                    wx_data["time"]["startPeriodName"][1],
-                    wx_data["data"]["weather"][1],
-                )
-            ).rstrip()
+        reply = (
+            "%sF(%sF/%sF) %s. %s, %s."
+            % (
+                wx_data["currentobservation"]["Temp"],
+                wx_data["data"]["temperature"][0],
+                wx_data["data"]["temperature"][1],
+                wx_data["data"]["weather"][0],
+                wx_data["time"]["startPeriodName"][1],
+                wx_data["data"]["weather"][1],
+            )
+        ).rstrip()
         LOG.debug(f"reply: '{reply}' ")
         return reply
 
@@ -105,6 +101,7 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
 
     @trace.trace
     def process(self, packet):
+        print("FISTY")
         fromcall = packet.get("from")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")

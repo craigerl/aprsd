@@ -1,14 +1,16 @@
 from unittest import mock
 
-from aprsd import client
-from aprsd import config as aprsd_config
-from aprsd import packets
+from oslo_config import cfg
+
+from aprsd import client, packets
+from aprsd import conf  # noqa: F401
 from aprsd.plugins import notify as notify_plugin
 
 from .. import fake, test_plugin
 
 
-DEFAULT_WATCHLIST_CALLSIGNS = [fake.FAKE_FROM_CALLSIGN]
+CONF = cfg.CONF
+DEFAULT_WATCHLIST_CALLSIGNS = fake.FAKE_FROM_CALLSIGN
 
 
 class TestWatchListPlugin(test_plugin.TestPlugin):
@@ -16,7 +18,7 @@ class TestWatchListPlugin(test_plugin.TestPlugin):
         self.fromcall = fake.FAKE_FROM_CALLSIGN
         self.ack = 1
 
-    def _config(
+    def config_and_init(
         self,
         watchlist_enabled=True,
         watchlist_alert_callsign=None,
@@ -24,39 +26,33 @@ class TestWatchListPlugin(test_plugin.TestPlugin):
         watchlist_packet_keep_count=None,
         watchlist_callsigns=DEFAULT_WATCHLIST_CALLSIGNS,
     ):
-        _config = aprsd_config.Config(aprsd_config.DEFAULT_CONFIG_DICT)
-        default_wl = aprsd_config.DEFAULT_CONFIG_DICT["aprsd"]["watch_list"]
-
-        _config["ham"]["callsign"] = self.fromcall
-        _config["aprsd"]["callsign"] = self.fromcall
-        _config["aprs"]["login"] = self.fromcall
-        _config["services"]["aprs.fi"]["apiKey"] = "something"
+        CONF.callsign = self.fromcall
+        CONF.aprs_network.login = self.fromcall
+        CONF.aprs_fi.apiKey = "something"
 
         # Set the watchlist specific config options
+        CONF.watch_list.enabled = watchlist_enabled
 
-        _config["aprsd"]["watch_list"]["enabled"] = watchlist_enabled
         if not watchlist_alert_callsign:
             watchlist_alert_callsign = fake.FAKE_TO_CALLSIGN
-        _config["aprsd"]["watch_list"]["alert_callsign"] = watchlist_alert_callsign
+        CONF.watch_list.alert_callsign = watchlist_alert_callsign
 
         if not watchlist_alert_time_seconds:
-            watchlist_alert_time_seconds = default_wl["alert_time_seconds"]
-        _config["aprsd"]["watch_list"]["alert_time_seconds"] = watchlist_alert_time_seconds
+            watchlist_alert_time_seconds = CONF.watch_list.alert_time_seconds
+        CONF.watch_list.alert_time_seconds = watchlist_alert_time_seconds
 
         if not watchlist_packet_keep_count:
-            watchlist_packet_keep_count = default_wl["packet_keep_count"]
-        _config["aprsd"]["watch_list"]["packet_keep_count"] = watchlist_packet_keep_count
+            watchlist_packet_keep_count = CONF.watch_list.packet_keep_count
+            CONF.watch_list.packet_keep_count = watchlist_packet_keep_count
 
-        _config["aprsd"]["watch_list"]["callsigns"] = watchlist_callsigns
-        return _config
+        CONF.watch_list.callsigns = watchlist_callsigns
 
 
 class TestAPRSDWatchListPluginBase(TestWatchListPlugin):
 
     def test_watchlist_not_enabled(self):
-        config = self._config(watchlist_enabled=False)
-        self.config_and_init(config=config)
-        plugin = fake.FakeWatchListPlugin(self.config)
+        self.config_and_init(watchlist_enabled=False)
+        plugin = fake.FakeWatchListPlugin()
 
         packet = fake.fake_packet(
             message="version",
@@ -69,9 +65,8 @@ class TestAPRSDWatchListPluginBase(TestWatchListPlugin):
     @mock.patch("aprsd.client.ClientFactory", autospec=True)
     def test_watchlist_not_in_watchlist(self, mock_factory):
         client.factory = mock_factory
-        config = self._config()
-        self.config_and_init(config=config)
-        plugin = fake.FakeWatchListPlugin(self.config)
+        self.config_and_init()
+        plugin = fake.FakeWatchListPlugin()
 
         packet = fake.fake_packet(
             fromcall="FAKE",
@@ -86,9 +81,8 @@ class TestAPRSDWatchListPluginBase(TestWatchListPlugin):
 class TestNotifySeenPlugin(TestWatchListPlugin):
 
     def test_disabled(self):
-        config = self._config(watchlist_enabled=False)
-        self.config_and_init(config=config)
-        plugin = notify_plugin.NotifySeenPlugin(self.config)
+        self.config_and_init(watchlist_enabled=False)
+        plugin = notify_plugin.NotifySeenPlugin()
 
         packet = fake.fake_packet(
             message="version",
@@ -101,9 +95,8 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
     @mock.patch("aprsd.client.ClientFactory", autospec=True)
     def test_callsign_not_in_watchlist(self, mock_factory):
         client.factory = mock_factory
-        config = self._config(watchlist_enabled=False)
-        self.config_and_init(config=config)
-        plugin = notify_plugin.NotifySeenPlugin(self.config)
+        self.config_and_init(watchlist_enabled=False)
+        plugin = notify_plugin.NotifySeenPlugin()
 
         packet = fake.fake_packet(
             message="version",
@@ -118,12 +111,11 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
     def test_callsign_in_watchlist_not_old(self, mock_is_old, mock_factory):
         client.factory = mock_factory
         mock_is_old.return_value = False
-        config = self._config(
+        self.config_and_init(
             watchlist_enabled=True,
             watchlist_callsigns=["WB4BOR"],
         )
-        self.config_and_init(config=config)
-        plugin = notify_plugin.NotifySeenPlugin(self.config)
+        plugin = notify_plugin.NotifySeenPlugin()
 
         packet = fake.fake_packet(
             fromcall="WB4BOR",
@@ -139,13 +131,12 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
     def test_callsign_in_watchlist_old_same_alert_callsign(self, mock_is_old, mock_factory):
         client.factory = mock_factory
         mock_is_old.return_value = True
-        config = self._config(
+        self.config_and_init(
             watchlist_enabled=True,
             watchlist_alert_callsign="WB4BOR",
             watchlist_callsigns=["WB4BOR"],
         )
-        self.config_and_init(config=config)
-        plugin = notify_plugin.NotifySeenPlugin(self.config)
+        plugin = notify_plugin.NotifySeenPlugin()
 
         packet = fake.fake_packet(
             fromcall="WB4BOR",
@@ -163,13 +154,12 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
         mock_is_old.return_value = True
         notify_callsign = fake.FAKE_TO_CALLSIGN
         fromcall = "WB4BOR"
-        config = self._config(
+        self.config_and_init(
             watchlist_enabled=True,
             watchlist_alert_callsign=notify_callsign,
             watchlist_callsigns=["WB4BOR"],
         )
-        self.config_and_init(config=config)
-        plugin = notify_plugin.NotifySeenPlugin(self.config)
+        plugin = notify_plugin.NotifySeenPlugin()
 
         packet = fake.fake_packet(
             fromcall=fromcall,

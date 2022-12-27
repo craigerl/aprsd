@@ -1,4 +1,4 @@
-from unittest import mock
+from oslo_config import cfg
 
 import aprsd
 from aprsd.plugins import version as version_plugin
@@ -6,11 +6,16 @@ from aprsd.plugins import version as version_plugin
 from .. import fake, test_plugin
 
 
+CONF = cfg.CONF
+
+
 class TestVersionPlugin(test_plugin.TestPlugin):
-    @mock.patch("aprsd.plugin.PluginManager.get_plugins")
-    def test_version(self, mock_get_plugins):
+
+    def test_version(self):
         expected = f"APRSD ver:{aprsd.__version__} uptime:00:00:00"
-        version = version_plugin.VersionPlugin(self.config)
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        version = version_plugin.VersionPlugin()
+        version.enabled = True
 
         packet = fake.fake_packet(
             message="No",

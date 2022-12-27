@@ -1,8 +1,14 @@
 from unittest import mock
 
+from oslo_config import cfg
+
+from aprsd import conf  # noqa: F401
 from aprsd.plugins import ping as ping_plugin
 
 from .. import fake, test_plugin
+
+
+CONF = cfg.CONF
 
 
 class TestPingPlugin(test_plugin.TestPlugin):
@@ -14,7 +20,8 @@ class TestPingPlugin(test_plugin.TestPlugin):
         s = fake_time.tm_sec = 55
         mock_time.return_value = fake_time
 
-        ping = ping_plugin.PingPlugin(self.config)
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        ping = ping_plugin.PingPlugin()
 
         packet = fake.fake_packet(
             message="location",

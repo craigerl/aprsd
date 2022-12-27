@@ -30,9 +30,6 @@ class WatchList(objectstore.ObjectStoreMixin):
     def __init__(self, config=None):
         ring_size = CONF.watch_list.packet_keep_count
 
-        if not self.is_enabled():
-            LOG.info("Watch List is disabled.")
-
         if CONF.watch_list.callsigns:
             for callsign in CONF.watch_list.callsigns:
                 call = callsign.replace("*", "")

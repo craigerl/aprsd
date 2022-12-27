@@ -4,7 +4,7 @@ import time
 
 from aprsd import client
 from aprsd import threads as aprsd_threads
-from aprsd.packets import core, packet_list, tracker
+from aprsd.packets import core, tracker
 
 
 LOG = logging.getLogger("APRSD")
@@ -27,9 +27,9 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
         else:
             cl = client.factory.create()
 
+        packet.update_timestamp()
         packet.log(header="TX")
         cl.send(packet)
-        packet_list.PacketList().tx(packet)
 
 
 class SendPacketThread(aprsd_threads.APRSDThread):
@@ -94,8 +94,8 @@ class SendPacketThread(aprsd_threads.APRSDThread):
             if send_now:
                 # no attempt time, so lets send it, and start
                 # tracking the time.
-                send(packet, direct=True)
                 packet.last_send_time = datetime.datetime.now()
+                send(packet, direct=True)
                 packet.send_count += 1
 
             time.sleep(1)

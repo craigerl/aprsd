@@ -13,19 +13,19 @@ from flask.logging import default_handler
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
+from oslo_config import cfg
 from werkzeug.security import check_password_hash, generate_password_hash
 import wrapt
 
 import aprsd
-from aprsd import client
-from aprsd import config as aprsd_config
-from aprsd import packets, plugin, stats, threads, utils
+from aprsd import client, conf, packets, plugin, stats, threads, utils
 from aprsd.clients import aprsis
 from aprsd.logging import log
 from aprsd.logging import rich as aprsd_logging
 from aprsd.threads import tx
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 auth = HTTPBasicAuth()
@@ -117,8 +117,7 @@ class SendMessageThread(threads.APRSDRXThread):
     got_ack = False
     got_reply = False
 
-    def __init__(self, config, info, packet, namespace):
-        self.config = config
+    def __init__(self, info, packet, namespace):
         self.request = info
         self.packet = packet
         self.namespace = namespace
@@ -133,8 +132,8 @@ class SendMessageThread(threads.APRSDRXThread):
     def setup_connection(self):
         user = self.request["from"]
         password = self.request["password"]
-        host = self.config["aprs"].get("host", "rotate.aprs.net")
-        port = self.config["aprs"].get("port", 14580)
+        host = CONF.aprs_network.host
+        port = CONF.aprs_network.port
         connected = False
         backoff = 1
         while not connected:
@@ -281,17 +280,12 @@ class SendMessageThread(threads.APRSDRXThread):
 
 
 class APRSDFlask(flask_classful.FlaskView):
-    config = None
 
-    def set_config(self, config):
+    def set_config(self):
         global users
-        self.config = config
         self.users = {}
-        for user in self.config["aprsd"]["web"]["users"]:
-            self.users[user] = generate_password_hash(
-                self.config["aprsd"]["web"]["users"][user],
-            )
-
+        user = CONF.admin.user
+        self.users[user] = generate_password_hash(CONF.admin.password)
         users = self.users
 
     @auth.login_required
@@ -299,7 +293,7 @@ class APRSDFlask(flask_classful.FlaskView):
         stats = self._stats()
         LOG.debug(
             "watch list? {}".format(
-                self.config["aprsd"]["watch_list"],
+                CONF.watch_list.callsigns,
             ),
         )
         wl = packets.WatchList()
@@ -317,7 +311,7 @@ class APRSDFlask(flask_classful.FlaskView):
         plugins = pm.get_plugins()
         plugin_count = len(plugins)
 
-        if self.config["aprs"].get("enabled", True):
+        if CONF.aprs_network.enabled:
             transport = "aprs-is"
             aprs_connection = (
                 "APRS-IS Server: <a href='http://status.aprs2.net' >"
@@ -325,33 +319,34 @@ class APRSDFlask(flask_classful.FlaskView):
             )
         else:
             # We might be connected to a KISS socket?
-            if client.KISSClient.kiss_enabled(self.config):
-                transport = client.KISSClient.transport(self.config)
+            if client.KISSClient.kiss_enabled():
+                transport = client.KISSClient.transport()
                 if transport == client.TRANSPORT_TCPKISS:
                     aprs_connection = (
                         "TCPKISS://{}:{}".format(
-                            self.config["kiss"]["tcp"]["host"],
-                            self.config["kiss"]["tcp"]["port"],
+                            CONF.kiss_tcp.host,
+                            CONF.kiss_tcp.port,
                         )
                     )
                 elif transport == client.TRANSPORT_SERIALKISS:
                     aprs_connection = (
                         "SerialKISS://{}@{} baud".format(
-                            self.config["kiss"]["serial"]["device"],
-                            self.config["kiss"]["serial"]["baudrate"],
+                            CONF.kiss_serial.device,
+                            CONF.kiss_serial.baudrate,
                         )
                     )
 
         stats["transport"] = transport
         stats["aprs_connection"] = aprs_connection
+        entries = conf.conf_to_dict()
 
         return flask.render_template(
             "index.html",
             initial_stats=stats,
             aprs_connection=aprs_connection,
-            callsign=self.config["aprs"]["login"],
+            callsign=CONF.callsign,
             version=aprsd.__version__,
-            config_json=json.dumps(self.config.data),
+            config_json=json.dumps(entries),
             watch_count=watch_count,
             watch_age=watch_age,
             seen_count=seen_count,
@@ -381,7 +376,7 @@ class APRSDFlask(flask_classful.FlaskView):
         if request.method == "GET":
             return flask.render_template(
                 "send-message.html",
-                callsign=self.config["aprs"]["login"],
+                callsign=CONF.callsign,
                 version=aprsd.__version__,
             )
 
@@ -392,7 +387,6 @@ class APRSDFlask(flask_classful.FlaskView):
         for pkt in packet_list:
             tmp_list.append(pkt.json)
 
-        LOG.info(f"PACKETS {tmp_list}")
         return json.dumps(tmp_list)
 
     @auth.login_required
@@ -453,14 +447,12 @@ class APRSDFlask(flask_classful.FlaskView):
 
 
 class SendMessageNamespace(Namespace):
-    _config = None
     got_ack = False
     reply_sent = False
     packet = None
     request = None
 
-    def __init__(self, namespace=None, config=None):
-        self._config = config
+    def __init__(self, namespace=None):
         super().__init__(namespace)
 
     def on_connect(self):
@@ -492,13 +484,13 @@ class SendMessageNamespace(Namespace):
         )
 
         socketio.start_background_task(
-            self._start, self._config, data,
+            self._start, data,
             self.packet, self,
         )
         LOG.warning("WS: on_send: exit")
 
-    def _start(self, config, data, packet, namespace):
-        msg_thread = SendMessageThread(self._config, data, packet, self)
+    def _start(self, data, packet, namespace):
+        msg_thread = SendMessageThread(data, packet, self)
         msg_thread.start()
 
     def handle_message(self, data):
@@ -566,25 +558,18 @@ class LoggingNamespace(Namespace):
         self.log_thread.stop()
 
 
-def setup_logging(config, flask_app, loglevel, quiet):
+def setup_logging(flask_app, loglevel, quiet):
     flask_log = logging.getLogger("werkzeug")
     flask_app.logger.removeHandler(default_handler)
     flask_log.removeHandler(default_handler)
 
-    log_level = aprsd_config.LOG_LEVELS[loglevel]
+    log_level = conf.log.LOG_LEVELS[loglevel]
     flask_log.setLevel(log_level)
-    date_format = config["aprsd"].get(
-        "dateformat",
-        aprsd_config.DEFAULT_DATE_FORMAT,
-    )
+    date_format = CONF.logging.date_format
+    flask_log.disabled = True
+    flask_app.logger.disabled = True
 
-    if not config["aprsd"]["web"].get("logging_enabled", False):
-        # disable web logging
-        flask_log.disabled = True
-        flask_app.logger.disabled = True
-        return
-
-    if config["aprsd"].get("rich_logging", False) and not quiet:
+    if CONF.logging.rich_logging:
         log_format = "%(message)s"
         log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         rh = aprsd_logging.APRSDRichHandler(
@@ -594,13 +579,10 @@ def setup_logging(config, flask_app, loglevel, quiet):
         rh.setFormatter(log_formatter)
         flask_log.addHandler(rh)
 
-    log_file = config["aprsd"].get("logfile", None)
+    log_file = CONF.logging.logfile
 
     if log_file:
-        log_format = config["aprsd"].get(
-            "logformat",
-            aprsd_config.DEFAULT_LOG_FORMAT,
-        )
+        log_format = CONF.logging.logformat
         log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         fh = RotatingFileHandler(
             log_file, maxBytes=(10248576 * 5),
@@ -610,7 +592,7 @@ def setup_logging(config, flask_app, loglevel, quiet):
         flask_log.addHandler(fh)
 
 
-def init_flask(config, loglevel, quiet):
+def init_flask(loglevel, quiet):
     global socketio
 
     flask_app = flask.Flask(
@@ -619,9 +601,9 @@ def init_flask(config, loglevel, quiet):
         static_folder="web/admin/static",
         template_folder="web/admin/templates",
     )
-    setup_logging(config, flask_app, loglevel, quiet)
+    setup_logging(flask_app, loglevel, quiet)
     server = APRSDFlask()
-    server.set_config(config)
+    server.set_config()
     flask_app.route("/", methods=["GET"])(server.index)
     flask_app.route("/stats", methods=["GET"])(server.stats)
     flask_app.route("/messages", methods=["GET"])(server.messages)
@@ -638,6 +620,6 @@ def init_flask(config, loglevel, quiet):
     #    import eventlet
     #    eventlet.monkey_patch()
 
-    socketio.on_namespace(SendMessageNamespace("/sendmsg", config=config))
+    socketio.on_namespace(SendMessageNamespace("/sendmsg"))
     socketio.on_namespace(LoggingNamespace("/logs"))
     return socketio, flask_app

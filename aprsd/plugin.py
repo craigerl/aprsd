@@ -59,8 +59,7 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
     # Set this in setup()
     enabled = False
 
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
         self.message_counter = 0
         self.setup()
         self.threads = self.create_threads() or []
@@ -142,15 +141,10 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
     def setup(self):
         # if we have a watch list enabled, we need to add filtering
         # to enable seeing packets from the watch list.
-        if "watch_list" in self.config["aprsd"] and self.config["aprsd"][
-            "watch_list"
-        ].get("enabled", False):
+        if CONF.watch_list.enabled:
             # watch list is enabled
             self.enabled = True
-            watch_list = self.config["aprsd"]["watch_list"].get(
-                "callsigns",
-                [],
-            )
+            watch_list = CONF.watch_list.callsigns
             # make sure the timeout is set or this doesn't work
             if watch_list:
                 aprs_client = client.factory.create().client
@@ -214,39 +208,39 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
     @hookimpl
     def filter(self, packet: packets.core.MessagePacket):
         if not self.enabled:
-            LOG.info(f"{self.__class__.__name__} is not enabled.")
-            return None
+            result = f"{self.__class__.__name__} isn't enabled"
+            LOG.warning(result)
+            return result
+
+        if not isinstance(packet, packets.core.MessagePacket):
+            LOG.warning(f"Got a {packet.__class__.__name__} ignoring")
+            return packets.NULL_MESSAGE
 
         result = None
 
-        message = packet.get("message_text", None)
-        msg_format = packet.get("format", None)
-        tocall = packet.get("addresse", None)
+        message = packet.message_text
+        tocall = packet.to_call
 
         # Only process messages destined for us
         # and is an APRS message format and has a message.
         if (
             tocall == CONF.callsign
-            and msg_format == "message"
+            and isinstance(packet, packets.core.MessagePacket)
             and message
         ):
             if re.search(self.command_regex, message):
                 self.rx_inc()
-                if self.enabled:
-                    try:
-                        result = self.process(packet)
-                    except Exception as ex:
-                        LOG.error(
-                            "Plugin {} failed to process packet {}".format(
-                                self.__class__, ex,
-                            ),
-                        )
-                        LOG.exception(ex)
-                    if result:
-                        self.tx_inc()
-                else:
-                    result = f"{self.__class__.__name__} isn't enabled"
-                    LOG.warning(result)
+                try:
+                    result = self.process(packet)
+                except Exception as ex:
+                    LOG.error(
+                        "Plugin {} failed to process packet {}".format(
+                            self.__class__, ex,
+                        ),
+                    )
+                    LOG.exception(ex)
+                if result:
+                    self.tx_inc()
 
         return result
 
@@ -376,12 +370,17 @@ class PluginManager:
         :param kwargs: parameters to pass
         :return:
         """
-        module_name, class_name = module_class_string.rsplit(".", 1)
+        module_name = None
+        class_name = None
         try:
+            module_name, class_name = module_class_string.rsplit(".", 1)
             module = importlib.import_module(module_name)
             module = importlib.reload(module)
         except Exception as ex:
-            LOG.error(f"Failed to load Plugin '{module_name}' : '{ex}'")
+            if not module_name:
+                LOG.error(f"Failed to load Plugin {module_class_string}")
+            else:
+                LOG.error(f"Failed to load Plugin '{module_name}' : '{ex}'")
             return
 
         assert hasattr(module, class_name), "class {} is not in {}".format(
@@ -411,7 +410,6 @@ class PluginManager:
             plugin_obj = self._create_class(
                 plugin_name,
                 APRSDPluginBase,
-                config=self.config,
             )
             if plugin_obj:
                 if isinstance(plugin_obj, APRSDWatchListPluginBase):
@@ -452,7 +450,7 @@ class PluginManager:
         LOG.info("Loading APRSD Plugins")
         self._init()
         # Help plugin is always enabled.
-        _help = HelpPlugin(self.config)
+        _help = HelpPlugin()
         self._pluggy_pm.register(_help)
 
         enabled_plugins = CONF.enabled_plugins

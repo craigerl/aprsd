@@ -3,78 +3,42 @@ import unittest
 from unittest import mock
 
 from click.testing import CliRunner
+from oslo_config import cfg
 
-from aprsd import config as aprsd_config
+from aprsd import conf  # noqa : F401
 from aprsd.aprsd import cli
 from aprsd.cmds import send_message  # noqa
 
+from .. import fake
 
+
+CONF = cfg.CONF
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
 
 
 class TestSendMessageCommand(unittest.TestCase):
 
-    def _build_config(self, login=None, password=None):
-        config = {
-            "aprs": {},
-            "aprsd": {
-                "trace": False,
-                "watch_list": {},
-            },
-        }
+    def config_and_init(self, login=None, password=None):
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        CONF.trace_enabled = False
+        CONF.watch_list.packet_keep_count = 1
         if login:
-            config["aprs"]["login"] = login
-
+            CONF.aprs_network.login = login
         if password:
-            config["aprs"]["password"] = password
+            CONF.aprs_network.password = password
 
-        return aprsd_config.Config(config)
+        CONF.admin.user = "admin"
+        CONF.admin.password = "password"
 
-    @mock.patch("aprsd.config.parse_config")
     @mock.patch("aprsd.logging.log.setup_logging")
-    def test_no_login(self, mock_logging, mock_parse_config):
-        """Make sure we get an error if there is no login and config."""
-        return
-
-        runner = CliRunner()
-        mock_parse_config.return_value = self._build_config()
-
-        result = runner.invoke(
-            cli, ["send-message", "WB4BOR", "wx"],
-            catch_exceptions=False,
-        )
-        # rich.print(f"EXIT CODE {result.exit_code}")
-        # rich.print(f"Exception {result.exception}")
-        # rich.print(f"OUTPUT {result.output}")
-        assert result.exit_code == -1
-        assert "Must set --aprs_login or APRS_LOGIN" in result.output
-
-    @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.logging.log.setup_logging")
-    def test_no_password(self, mock_logging, mock_parse_config):
-        """Make sure we get an error if there is no password and config."""
-
-        return
-        runner = CliRunner()
-        mock_parse_config.return_value = self._build_config(login="something")
-
-        result = runner.invoke(
-            cli, ["send-message", "WB4BOR", "wx"],
-            catch_exceptions=False,
-        )
-        assert result.exit_code == -1
-        assert "Must set --aprs-password or APRS_PASSWORD" in result.output
-
-    @mock.patch("aprsd.config.parse_config")
-    @mock.patch("aprsd.logging.log.setup_logging")
-    def test_no_tocallsign(self, mock_logging, mock_parse_config):
+    def test_no_tocallsign(self, mock_logging):
         """Make sure we get an error if there is no tocallsign."""
 
-        runner = CliRunner()
-        mock_parse_config.return_value = self._build_config(
+        self.config_and_init(
             login="something",
             password="another",
         )
+        runner = CliRunner()
 
         result = runner.invoke(
             cli, ["send-message"],
@@ -83,16 +47,15 @@ class TestSendMessageCommand(unittest.TestCase):
         assert result.exit_code == 2
         assert "Error: Missing argument 'TOCALLSIGN'" in result.output
 
-    @mock.patch("aprsd.config.parse_config")
     @mock.patch("aprsd.logging.log.setup_logging")
-    def test_no_command(self, mock_logging, mock_parse_config):
+    def test_no_command(self, mock_logging):
         """Make sure we get an error if there is no command."""
 
-        runner = CliRunner()
-        mock_parse_config.return_value = self._build_config(
+        self.config_and_init(
             login="something",
             password="another",
         )
+        runner = CliRunner()
 
         result = runner.invoke(
             cli, ["send-message", "WB4BOR"],
