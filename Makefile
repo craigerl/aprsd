@@ -22,7 +22,7 @@ dev: venv  ## Create a python virtual environment for development of aprsd
 
 run: venv  ## Create a virtual environment for running aprsd commands
 
-docs: build
+docs: dev
 	cp README.rst docs/readme.rst
 	cp Changelog docs/changelog.rst
 	tox -edocs

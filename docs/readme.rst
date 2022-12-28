@@ -1,28 +1,12 @@
-=====
-APRSD
-=====
-by KM6LYW and WB4BOR
+===============================================
+APRSD - Ham radio APRS-IS Message plugin server
+===============================================
 
-.. image:: https://badge.fury.io/py/aprsd.svg
-    :target: https://badge.fury.io/py/aprsd
+KM6LYW and WB4BOR
+____________________
 
-.. image:: https://github.com/craigerl/aprsd/workflows/python/badge.svg
-    :target: https://github.com/craigerl/aprsd/actions
+|pypi| |pytest| |versions| |slack| |issues| |commit| |imports| |down|
 
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://black.readthedocs.io/en/stable/
-
-.. image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
-    :target: https://timothycrosley.github.io/isort/
-
-.. image:: https://img.shields.io/github/issues/craigerl/aprsd
-
-.. image:: https://img.shields.io/github/last-commit/craigerl/aprsd
-
-.. image:: https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads
-     :target: https://pepy.tech/project/aprsd
-
-.. contents:: :local:
 
 `APRSD <http://github.com/craigerl/aprsd>`_ is a Ham radio `APRS <http://aprs.org>`_ message command gateway built on python.
 
@@ -37,11 +21,14 @@ provide responding to messages to check email, get location, ping,
 time of day, get weather, and fortune telling as well as version information
 of aprsd itself.
 
-Documentation: https://aprsd.readthedocs.io
+Please `read the docs`_ to learn more!
+
+
+.. contents:: :local:
 
 
 APRSD Overview Diagram
-----------------------
+======================
 
 .. image:: https://raw.githubusercontent.com/craigerl/aprsd/master/docs/_static/aprsd_overview.svg?sanitize=true
 
@@ -50,7 +37,7 @@ Typical use case
 ================
 
 Ham radio operator using an APRS enabled HAM radio sends a message to check
-the weather.  an APRS message is sent, and then picked up by APRSD.  The
+the weather.  An APRS message is sent, and then picked up by APRSD.  The
 APRS packet is decoded, and the message is sent through the list of plugins
 for processing.  For example, the WeatherPlugin picks up the message, fetches the weather
 for the area around the user who sent the request, and then responds with
@@ -59,103 +46,91 @@ callsigns to look out for.  The watch list can notify you when a HAM callsign
 in the list is seen and now available to message on the APRS network.
 
 
-APRSD Capabilities
-==================
-
-* server - The main aprsd server processor.  Send/Rx APRS messages to HAM callsign
-* send-message - use aprsd to send a command/message to aprsd server.  Used for development testing
-* sample-config - generate a sample aprsd.yml config file for use/editing
-* bash completion generation.  Uses python click bash completion to generate completion code for your .bashrc/.zshrc
-
-
-List of core server plugins
-===========================
-
-Plugins function by specifying a regex that is searched for in the APRS message.
-If it matches, the plugin runs.  IF the regex doesn't match, the plugin is skipped.
-
-* EmailPlugin - Check email and reply with contents.  Have to configure IMAP and SMTP settings in aprs.yml
-* FortunePlugin - Replies with old unix fortune random fortune!
-* LocationPlugin - Checks location of ham operator
-* PingPlugin - Sends pong with timestamp
-* QueryPlugin - Allows querying the list of delayed messages that were not ACK'd by radio
-* TimePlugin - Current time of day
-* WeatherPlugin - Get weather conditions for current location of HAM callsign
-* VersionPlugin - Reports the version information for aprsd
-
-
-List of core notification plugins
-=================================
-
-These plugins see all APRS messages from ham callsigns in the config's watch
-list.
-
-* NotifySeenPlugin - Send a message when a message is seen from a callsign in
-                     the watch list.  This is helpful when you want to know
-                     when a friend is online in the ARPS network, but haven't
-                     been seen in a while.
-
-
-Current messages this will respond to:
+Current list of built-in plugins
 ======================================
 
 ::
 
-  APRS messages:
-   l(ocation) [callsign]  = descriptive current location of your radio
-                            8 Miles E Auburn CA 1673' 39.92150,-120.93950 0.1h ago
-   w(eather)              = weather forecast for your radio's current position
-                            58F(58F/46F) Partly Cloudy. Tonight, Heavy Rain.
-   t(ime)                 = respond with the current time
-   f(ortune)              = respond with a short fortune
-   -email_addr email text = send an email, say "mapme" to send a current position/map
-   -2                     = resend the last 2 emails from your imap inbox to this radio
-   p(ing)                 = respond with Pong!/time
-   v(ersion)              = Respond with current APRSD Version string
-   anything else          = respond with usage
+    └─> aprsd list-plugins
+                                                           🐍 APRSD Built-in Plugins 🐍
+    ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ Plugin Name       ┃ Info                                                       ┃ Type         ┃ Plugin Path                             ┃
+    ┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+    │ AVWXWeatherPlugin │ AVWX weather of GPS Beacon location                        │ RegexCommand │ aprsd.plugins.weather.AVWXWeatherPlugin │
+    │ EmailPlugin       │ Send and Receive email                                     │ RegexCommand │ aprsd.plugins.email.EmailPlugin         │
+    │ FortunePlugin     │ Give me a fortune                                          │ RegexCommand │ aprsd.plugins.fortune.FortunePlugin     │
+    │ LocationPlugin    │ Where in the world is a CALLSIGN's last GPS beacon?        │ RegexCommand │ aprsd.plugins.location.LocationPlugin   │
+    │ NotifySeenPlugin  │ Notify me when a CALLSIGN is recently seen on APRS-IS      │ WatchList    │ aprsd.plugins.notify.NotifySeenPlugin   │
+    │ OWMWeatherPlugin  │ OpenWeatherMap weather of GPS Beacon location              │ RegexCommand │ aprsd.plugins.weather.OWMWeatherPlugin  │
+    │ PingPlugin        │ reply with a Pong!                                         │ RegexCommand │ aprsd.plugins.ping.PingPlugin           │
+    │ QueryPlugin       │ APRSD Owner command to query messages in the MsgTrack      │ RegexCommand │ aprsd.plugins.query.QueryPlugin         │
+    │ TimeOWMPlugin     │ Current time of GPS beacon's timezone. Uses OpenWeatherMap │ RegexCommand │ aprsd.plugins.time.TimeOWMPlugin        │
+    │ TimePlugin        │ What is the current local time.                            │ RegexCommand │ aprsd.plugins.time.TimePlugin           │
+    │ USMetarPlugin     │ USA only METAR of GPS Beacon location                      │ RegexCommand │ aprsd.plugins.weather.USMetarPlugin     │
+    │ USWeatherPlugin   │ Provide USA only weather of GPS Beacon location            │ RegexCommand │ aprsd.plugins.weather.USWeatherPlugin   │
+    │ VersionPlugin     │ What is the APRSD Version                                  │ RegexCommand │ aprsd.plugins.version.VersionPlugin     │
+    └───────────────────┴────────────────────────────────────────────────────────────┴──────────────┴─────────────────────────────────────────┘
 
 
-Meanwhile this code will monitor a single imap mailbox and forward email
-to your BASECALLSIGN over the air.  Only radios using the BASECALLSIGN are allowed
-to send email, so consider this security risk before using this (or Amatuer radio in
-general).  Email is single user at this time.
+                                                    Pypi.org APRSD Installable Plugin Packages
 
-There are additional parameters in the code (sorry), so be sure to set your
-email server, and associated logins, passwords.  search for "yourdomain",
-"password".  Search for "shortcuts" to setup email aliases as well.
+                                   Install any of the following plugins with 'pip install <Plugin Package Name>'
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
+    ┃ Plugin Package Name          ┃ Description                                                        ┃ Version ┃   Released   ┃ Installed? ┃
+    ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
+    │ 📂 aprsd-stock-plugin        │ Ham Radio APRSD Plugin for fetching stock quotes                   │  0.1.3  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-sentry-plugin       │ Ham radio APRSD plugin that does....                               │  0.1.2  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-timeopencage-plugin │ APRSD plugin for fetching time based on GPS location               │  0.1.0  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-weewx-plugin        │ HAM Radio APRSD that reports weather from a weewx weather station. │  0.1.4  │ Dec 7, 2021  │    Yes     │
+    │ 📂 aprsd-repeat-plugins      │ APRSD Plugins for the REPEAT service                               │ 1.0.12  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-telegram-plugin     │ Ham Radio APRS APRSD plugin for Telegram IM service                │  0.1.3  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-twitter-plugin      │ Python APRSD plugin to send tweets                                 │  0.3.0  │ Dec 7, 2021  │     No     │
+    │ 📂 aprsd-slack-plugin        │ Amateur radio APRS daemon which listens for messages and responds  │  1.0.5  │ Dec 18, 2022 │     No     │
+    └──────────────────────────────┴────────────────────────────────────────────────────────────────────┴─────────┴──────────────┴────────────┘
 
 
-Installation:
+                                      🐍 APRSD Installed 3rd party Plugins 🐍
+    ┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ Package Name       ┃ Plugin Name     ┃ Version ┃ Type         ┃ Plugin Path                              ┃
+    ┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+    │ aprsd-weewx-plugin │ WeewxMQTTPlugin │   1.0   │ RegexCommand │ aprsd_weewx_plugin.weewx.WeewxMQTTPlugin │
+    └────────────────────┴─────────────────┴─────────┴──────────────┴──────────────────────────────────────────┘
+
+Installation
 =============
 
-  pip install aprsd
+To install ``aprsd``, use Pip:
 
-Example usage:
+``pip install aprsd``
+
+Example usage
 ==============
 
-  aprsd -h
+``aprsd -h``
 
 Help
 ====
 ::
 
-    └─[$] > aprsd -h
+    └─> aprsd -h
     Usage: aprsd [OPTIONS] COMMAND [ARGS]...
-
-      Shell completion for click-completion-command Available shell types:
-      bash         Bourne again shell   fish         Friendly interactive shell
-      powershell   Windows PowerShell   zsh          Z shell Default type: auto
 
     Options:
       --version   Show the version and exit.
       -h, --help  Show this message and exit.
 
     Commands:
-      install        Install the click-completion-command completion
-      sample-config  This dumps the config to stdout.
+      check-version  Check this version against the latest in pypi.org.
+      completion     Click Completion subcommands
+      dev            Development type subcommands
+      healthcheck    Check the health of the running aprsd server.
+      list-plugins   List the built in plugins available to APRSD.
+      listen         Listen to packets on the APRS-IS Network based on FILTER.
+      sample-config  Generate a sample Config file from aprsd and all...
       send-message   Send a message to a callsign via APRS_IS.
-      server         Start the aprsd server process.
-      show           Show the click-completion-command completion code
+      server         Start the aprsd server gateway process.
+      version        Show the APRSD version.
+      webchat        Web based HAM Radio chat program!
 
 
 
@@ -165,90 +140,14 @@ Commands
 Configuration
 =============
 This command outputs a sample config yml formatted block that you can edit
-and use to pass in to aprsd with -c.  By default aprsd looks in ~/.config/aprsd/aprsd.yml
+and use to pass in to ``aprsd`` with ``-c``.  By default aprsd looks in ``~/.config/aprsd/aprsd.yml``
 
-  aprsd sample-config
+``aprsd sample-config``
 
-Output
-======
 ::
 
     └─> aprsd sample-config
-    aprs:
-        # Get the passcode for your callsign here:
-        # https://apps.magicbug.co.uk/passcode
-        host: rotate.aprs2.net
-        login: CALLSIGN
-        password: '00000'
-        port: 14580
-    aprsd:
-        dateformat: '%m/%d/%Y %I:%M:%S %p'
-        email:
-            enabled: true
-            imap:
-                debug: false
-                host: imap.gmail.com
-                login: IMAP_USERNAME
-                password: IMAP_PASSWORD
-                port: 993
-                use_ssl: true
-            shortcuts:
-                aa: 5551239999@vtext.com
-                cl: craiglamparter@somedomain.org
-                wb: 555309@vtext.com
-            smtp:
-                debug: false
-                host: smtp.gmail.com
-                login: SMTP_USERNAME
-                password: SMTP_PASSWORD
-                port: 465
-                use_ssl: false
-        enabled_plugins:
-        - aprsd.plugins.email.EmailPlugin
-        - aprsd.plugins.fortune.FortunePlugin
-        - aprsd.plugins.location.LocationPlugin
-        - aprsd.plugins.ping.PingPlugin
-        - aprsd.plugins.query.QueryPlugin
-        - aprsd.plugins.stock.StockPlugin
-        - aprsd.plugins.time.TimePlugin
-        - aprsd.plugins.weather.USWeatherPlugin
-        - aprsd.plugins.version.VersionPlugin
-        logfile: /tmp/aprsd.log
-        logformat: '[%(asctime)s] [%(threadName)-12s] [%(levelname)-5.5s] %(message)s - [%(pathname)s:%(lineno)d]'
-        trace: false
-        units: imperial
-        web:
-            enabled: true
-            host: 0.0.0.0
-            logging_enabled: true
-            port: 8001
-            users:
-                admin: aprsd
-    ham:
-        callsign: CALLSIGN
-    services:
-        aprs.fi:
-            # Get the apiKey from your aprs.fi account here:
-            # http://aprs.fi/account
-            apiKey: APIKEYVALUE
-        avwx:
-            # (Optional for AVWXWeatherPlugin)
-            # Use hosted avwx-api here: https://avwx.rest
-            # or deploy your own from here:
-            # https://github.com/avwx-rest/avwx-api
-            apiKey: APIKEYVALUE
-            base_url: http://host:port
-        opencagedata:
-            # (Optional for TimeOpenCageDataPlugin)
-            # Get the apiKey from your opencagedata account here:
-            # https://opencagedata.com/dashboard#api-keys
-            apiKey: APIKEYVALUE
-        openweathermap:
-            # (Optional for OWMWeatherPlugin)
-            # Get the apiKey from your
-            # openweathermap account here:
-            # https://home.openweathermap.org/api_keys
-            apiKey: APIKEYVALUE
+    ...
 
 server
 ======
@@ -259,35 +158,35 @@ look for incomming commands to the callsign configured in the config file
 ::
 
     └─[$] > aprsd server --help
-    Usage: aprsd server [OPTIONS]
+        Usage: aprsd server [OPTIONS]
 
-      Start the aprsd server process.
+          Start the aprsd server gateway process.
 
-    Options:
-      --loglevel [CRITICAL|ERROR|WARNING|INFO|DEBUG]
-                                      The log level to use for aprsd.log
-                                      [default: INFO]
+        Options:
+          --loglevel [CRITICAL|ERROR|WARNING|INFO|DEBUG]
+                                          The log level to use for aprsd.log
+                                          [default: INFO]
+          -c, --config TEXT               The aprsd config file to use for options.
+                                          [default:
+                                          /Users/i530566/.config/aprsd/aprsd.yml]
+          --quiet                         Don't log to stdout
+          -f, --flush                     Flush out all old aged messages on disk.
+                                          [default: False]
+          -h, --help                      Show this message and exit.
 
-      --quiet                         Don't log to stdout
-      --disable-validation            Disable email shortcut validation.  Bad
-                                      email addresses can result in broken email
-                                      responses!!
-
-      -c, --config TEXT               The aprsd config file to use for options.
-                                      [default:
-                                      /home/waboring/.config/aprsd/aprsd.yml]
-
-      -f, --flush                     Flush out all old aged messages on disk.
-                                      [default: False]
-
-      -h, --help                      Show this message and exit.
-
-      $ aprsd server
+    └─> aprsd server
     Load config
-    [02/13/2021 09:22:09 AM] [MainThread  ] [INFO ] APRSD Started version: 1.6.0
-    [02/13/2021 09:22:09 AM] [MainThread  ] [INFO ] Checking IMAP configuration
-    [02/13/2021 09:22:09 AM] [MainThread  ] [INFO ] Checking SMTP configuration
-    [02/13/2021 09:22:10 AM] [MainThread  ] [INFO ] Validating 2 Email shortcuts. This can take up to 10 seconds per shortcut
+    12/07/2021 03:16:17 PM MainThread      INFO     APRSD is up to date                                                                   server.py:51
+    12/07/2021 03:16:17 PM MainThread      INFO     APRSD Started version: 2.5.6                                                          server.py:52
+    12/07/2021 03:16:17 PM MainThread      INFO     Using CONFIG values:                                                                  server.py:55
+    12/07/2021 03:16:17 PM MainThread      INFO     ham.callsign = WB4BOR                                                                 server.py:60
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.login = WB4BOR-12                                                                server.py:60
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.password = XXXXXXXXXXXXXXXXXXX                                                   server.py:58
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.host = noam.aprs2.net                                                            server.py:60
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.port = 14580                                                                     server.py:60
+    12/07/2021 03:16:17 PM MainThread      INFO     aprs.logfile = /tmp/aprsd.log                                                         server.py:60
+
+
 
 
 send-message
@@ -299,30 +198,28 @@ test messages
 ::
 
     └─[$] > aprsd send-message -h
-    Usage: aprsd send-message [OPTIONS] TOCALLSIGN [COMMAND]...
+    Usage: aprsd send-message [OPTIONS] TOCALLSIGN COMMAND...
 
       Send a message to a callsign via APRS_IS.
 
     Options:
       --loglevel [CRITICAL|ERROR|WARNING|INFO|DEBUG]
                                       The log level to use for aprsd.log
-                                      [default: DEBUG]
-
-      --quiet                         Don't log to stdout
+                                      [default: INFO]
       -c, --config TEXT               The aprsd config file to use for options.
-                                      [default: ~/.config/aprsd/aprsd.yml]
-
+                                      [default:
+                                      /Users/i530566/.config/aprsd/aprsd.yml]
+      --quiet                         Don't log to stdout
       --aprs-login TEXT               What callsign to send the message from.
                                       [env var: APRS_LOGIN]
-
       --aprs-password TEXT            the APRS-IS password for APRS_LOGIN  [env
                                       var: APRS_PASSWORD]
-
+      -n, --no-ack                    Don't wait for an ack, just sent it to APRS-
+                                      IS and bail.  [default: False]
+      -w, --wait-response             Wait for a response to the message?
+                                      [default: False]
+      --raw TEXT                      Send a raw message.  Implies --no-ack
       -h, --help                      Show this message and exit.
-
-
-Example output:
-===============
 
 
 SEND EMAIL (radio to smtp server)
@@ -395,25 +292,35 @@ AND... ping, fortune, time.....
 Development
 ===========
 
-* git clone git@github.com:craigerl/aprsd.git
-* cd aprsd
-* make
+* ``git clone git@github.com:craigerl/aprsd.git``
+* ``cd aprsd``
+* ``make``
 
 Workflow
 ========
 
-While working aprsd, The workflow is as follows
+While working aprsd, The workflow is as follows:
 
-* checkout a new branch to work on
-* git checkout -b mybranch
-* Edit code
-* run tox -epep8
-* run tox -efmt
-* run tox -p
-* git commit  ( This will run the pre-commit hooks which does checks too )
+* Checkout a new branch to work on by running
+
+  ``git checkout -b mybranch``
+
+* Make your changes to the code
+* Run Tox with the following options:
+
+  - ``tox -epep8``
+  - ``tox -efmt``
+  - ``tox -p``
+
+* Commit your changes. This will run the pre-commit hooks which does checks too
+
+  ``git commit``
+
 * Once you are done with all of your commits, then push up the branch to
-  github
-* git push -u origin mybranch
+  github with:
+
+  ``git push -u origin mybranch``
+
 * Create a pull request from your branch so github tests can run and we can do
   a code review.
 
@@ -423,21 +330,21 @@ Release
 
 To do release to pypi:
 
-* Tag release with
+* Tag release with:
 
-   git tag -v1.XX -m "New release"
+  ``git tag -v1.XX -m "New release"``
 
-* push release tag up
+* Push release tag:
 
-  git push origin master --tags
+  ``git push origin master --tags``
 
-* Do a test build and verify build is valid
+* Do a test build and verify build is valid by running:
 
-  make build
+  ``make build``
 
-* Once twine is happy, upload release to pypi
+* Once twine is happy, upload release to pypi:
 
-  make upload
+  ``make upload``
 
 
 Docker Container
@@ -455,24 +362,62 @@ the repo.
 Official Build
 ==============
 
- docker build -t hemna6969/aprsd:latest .
+``docker build -t hemna6969/aprsd:latest .``
 
 Development Build
 =================
 
- docker build -t hemna6969/aprsd:latest -f Dockerfile-dev .
+``docker build -t hemna6969/aprsd:latest -f Dockerfile-dev .``
 
 
 Running the container
 =====================
 
-There is a docker-compose.yml file that can be used to run your container.
-There are 2 volumes defined that can be used to store your configuration
-and the plugins directory:  /config and /plugins
+There is a ``docker-compose.yml`` file in the ``docker/`` directory
+that can be used to run your container. To provide the container
+an ``aprsd.conf`` configuration file, change your
+``docker-compose.yml`` as shown below:
 
-If you want to install plugins at container start time, then use the
-environment var in docker-compose.yml specified as APRS_PLUGINS
-Provide a csv list of pypi installable plugins.  Then make sure the plugin
-python file is in your /plugins volume and the plugin will be installed at
-container startup.  The plugin may have dependencies that are required.
-The plugin file should be copied to /plugins for loading by aprsd
+::
+
+     volumes:
+         - $HOME/.config/aprsd:/config
+
+To install plugins at container start time, pass in a list of
+comma-separated list of plugins on PyPI using the ``APRSD_PLUGINS``
+environment variable in the ``docker-compose.yml`` file. Note that
+version constraints may also be provided. For example:
+
+::
+
+    environment:
+        - APRSD_PLUGINS=aprsd-slack-plugin>=1.0.2,aprsd-twitter-plugin
+
+
+.. badges
+
+.. |pypi| image:: https://badge.fury.io/py/aprsd.svg
+    :target: https://badge.fury.io/py/aprsd
+
+.. |pytest| image:: https://github.com/craigerl/aprsd/workflows/python/badge.svg
+    :target: https://github.com/craigerl/aprsd/actions
+
+.. |versions| image:: https://img.shields.io/pypi/pyversions/aprsd.svg
+    :target: https://pypi.org/pypi/aprsd
+
+.. |slack| image:: https://img.shields.io/badge/slack-@hemna/aprsd-blue.svg?logo=slack
+    :target: https://hemna.slack.com/app_redirect?channel=C01KQSCP5RP
+
+.. |imports| image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
+    :target: https://timothycrosley.github.io/isort/
+
+.. |issues| image:: https://img.shields.io/github/issues/craigerl/aprsd
+
+.. |commit| image:: https://img.shields.io/github/last-commit/craigerl/aprsd
+
+.. |down| image:: https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads
+     :target: https://pepy.tech/project/aprsd
+
+.. links
+.. _read the docs:
+ https://aprsd.readthedocs.io

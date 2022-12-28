@@ -1,4 +1,5 @@
 from functools import update_wrapper
+import logging
 from pathlib import Path
 import typing as t
 
@@ -61,6 +62,7 @@ def process_standard_options(f: F) -> F:
     def new_func(*args, **kwargs):
         ctx = args[0]
         ctx.ensure_object(dict)
+        config_file_found = True
         if kwargs["config_file"]:
             default_config_files = [kwargs["config_file"]]
         else:
@@ -71,7 +73,7 @@ def process_standard_options(f: F) -> F:
                 default_config_files=default_config_files,
             )
         except cfg.ConfigFilesNotFoundError:
-            pass
+            config_file_found = False
         ctx.obj["loglevel"] = kwargs["loglevel"]
         # ctx.obj["config_file"] = kwargs["config_file"]
         ctx.obj["quiet"] = kwargs["quiet"]
@@ -81,6 +83,10 @@ def process_standard_options(f: F) -> F:
         )
         if CONF.trace_enabled:
             trace.setup_tracing(["method", "api"])
+
+        if not config_file_found:
+            LOG = logging.getLogger("APRSD")   # noqa: N806
+            LOG.error("No config file found!! run 'aprsd sample-config'")
 
         del kwargs["loglevel"]
         del kwargs["config_file"]

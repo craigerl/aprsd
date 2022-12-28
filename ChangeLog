@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+* Decouple admin web interface from server command
+* Dockerfile now produces aprsd.conf
+* Fix some unit tests and loading of CONF w/o file
+* Added missing conf
+* Removed references to old custom config
+* Convert config to oslo\_config
 * Added rain formatting unit tests to WeatherPacket
 * Fix Rain reporting in WeatherPacket send
 * Removed Packet.send()

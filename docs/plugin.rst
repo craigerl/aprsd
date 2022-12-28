@@ -41,7 +41,7 @@ aprsd/examples/plugins/example_plugin.py
     LOG = logging.getLogger("APRSD")
 
 
-    class HelloPlugin(plugin.APRSDPluginBase):
+    class HelloPlugin(plugin.APRSDRegexCommandPluginBase):
         """Hello World."""
 
         version = "1.0"
@@ -49,7 +49,7 @@ aprsd/examples/plugins/example_plugin.py
         command_regex = "^[hH]"
         command_name = "hello"
 
-        def command(self, fromcall, message, ack):
+        def process(self, packet):
             LOG.info("HelloPlugin")
-            reply = "Hello '{}'".format(fromcall)
+            reply = "Hello '{}'".format(packet.from_call)
             return reply
