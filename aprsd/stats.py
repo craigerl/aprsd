@@ -63,7 +63,7 @@ class APRSDStats:
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            # any initializetion here
+            # any init here
             cls._instance.start_time = datetime.datetime.now()
             cls._instance._aprsis_keepalive = datetime.datetime.now()
         return cls._instance

@@ -23,10 +23,11 @@ beautifulsoup4
 wrapt
 # kiss3 uses attrs
 kiss3
-attrs==22.1.0
+attrs
 # for mobile checking
 user-agents
 pyopenssl
 dataclasses
 dacite2
 oslo.config
+rpyc

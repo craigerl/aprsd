@@ -107,13 +107,8 @@ function update_packets( data ) {
     if (size_dict(packet_list) == 0 && size_dict(data) > 0) {
         packetsdiv.html('')
     }
-    console.log("PACKET_LIST")
-    console.log(packet_list);
     jQuery.each(data, function(i, val) {
         pkt = JSON.parse(val);
-        console.log("PACKET");
-        console.log(pkt);
-        console.log(pkt.timestamp);
 
         update_watchlist_from_packet(pkt['from_call'], pkt);
         if ( packet_list.hasOwnProperty(pkt.timestamp) == false ) {

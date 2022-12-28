@@ -82,7 +82,6 @@
             <div class="item" data-tab="watch-tab">Watch List</div>
             <div class="item" data-tab="plugin-tab">Plugins</div>
             <div class="item" data-tab="config-tab">Config</div>
-            <div class="item" data-tab="send-tab">Send Message</div>
             <div class="item" data-tab="log-tab">LogFile</div>
             <div class="item" data-tab="raw-tab">Raw JSON</div>
         </div>
@@ -158,29 +157,6 @@
         <div class="ui bottom attached tab segment" data-tab="config-tab">
           <h3 class="ui dividing header">Config</h3>
           <pre id="configjson" class="language-json">{{ config_json|safe }}</pre>
-        </div>
-
-        <div class="ui bottom attached tab segment" data-tab="send-tab">
-            <h3 class="ui dividing header">Send Message</h3>
-            <div id="sendMsgDiv" class="ui mini text">
-                <form id="sendform" name="sendmsg" action="">
-                    <p><label for="from_call">From Callsign:</label>
-                        <input type="text" name="from_call" id="from"></p>
-                    <p><label for="from_call_password">Password:</label>
-                        <input type="password" name="from_call_password" id='password'></p>
-                    <p><label for="to_call">To Callsign:</label>
-                        <input type="text" name="to_call" id="to" ></p>
-                    <p><label for="message">Message:</label>
-                        <input type="text" name="message" id="message" ></p>
-                    <p><label for="wait">Wait for Reply?</label>
-                        <input type="checkbox" name="wait_reply" id="wait_reply" value="off" checked>
-                    </p>
-                    <input type="submit" name="submit" class="button" id="send_msg" value="Send" />
-                </form>
-                <div class="ui styled fluid accordion" id="accordion">
-                    <div id="sendMsgsDiv" class="ui mini text">Messages</div>
-                </div>
-            </div>
         </div>
 
         <div class="ui bottom attached tab segment" data-tab="log-tab">

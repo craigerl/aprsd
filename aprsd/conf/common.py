@@ -1,6 +1,8 @@
 from oslo_config import cfg
 
 
+APRSD_DEFAULT_MAGIC_WORD = "CHANGEME!!!"
+
 admin_group = cfg.OptGroup(
     name="admin",
     title="Admin web interface settings",
@@ -8,6 +10,10 @@ admin_group = cfg.OptGroup(
 watch_list_group = cfg.OptGroup(
     name="watch_list",
     title="Watch List settings",
+)
+rpc_group = cfg.OptGroup(
+    name="rpc_settings",
+    title="RPC Settings for admin <--> web",
 )
 
 
@@ -96,6 +102,29 @@ admin_opts = [
     ),
 ]
 
+rpc_opts = [
+    cfg.BoolOpt(
+        "enabled",
+        default=True,
+        help="Enable RPC calls",
+    ),
+    cfg.StrOpt(
+        "ip",
+        default="localhost",
+        help="The ip address to listen on",
+    ),
+    cfg.PortOpt(
+        "port",
+        default=18861,
+        help="The port to listen on",
+    ),
+    cfg.StrOpt(
+        "magic_word",
+        default=APRSD_DEFAULT_MAGIC_WORD,
+        help="Magic word to authenticate requests between client/server",
+    ),
+]
+
 enabled_plugins_opts = [
     cfg.ListOpt(
         "enabled_plugins",
@@ -123,6 +152,8 @@ def register_opts(config):
     config.register_opts(admin_opts, group=admin_group)
     config.register_group(watch_list_group)
     config.register_opts(watch_list_opts, group=watch_list_group)
+    config.register_group(rpc_group)
+    config.register_opts(rpc_opts, group=rpc_group)
 
 
 def list_opts():
@@ -130,4 +161,5 @@ def list_opts():
         "DEFAULT": (aprsd_opts + enabled_plugins_opts),
         admin_group.name: admin_opts,
         watch_list_group.name: watch_list_opts,
+        rpc_group.name: rpc_opts,
     }

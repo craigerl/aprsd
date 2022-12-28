@@ -49,7 +49,7 @@ pep8-naming==0.13.3       # via -r dev-requirements.in
 pip-tools==6.12.1         # via -r dev-requirements.in
 platformdirs==2.6.0       # via black, tox, virtualenv
 pluggy==1.0.0             # via pytest, tox
-pre-commit==2.20.0        # via -r dev-requirements.in
+pre-commit==2.21.0        # via -r dev-requirements.in
 pycodestyle==2.10.0       # via flake8
 pyflakes==3.0.1           # via autoflake, flake8
 pygments==2.13.0          # via rich, sphinx
@@ -71,9 +71,9 @@ sphinxcontrib-jsmath==1.0.1  # via sphinx
 sphinxcontrib-qthelp==1.0.3  # via sphinx
 sphinxcontrib-serializinghtml==1.1.5  # via sphinx
 tokenize-rt==5.0.0        # via add-trailing-comma, pyupgrade
-toml==0.10.2              # via autoflake, pre-commit
+toml==0.10.2              # via autoflake
 tomli==2.0.1              # via black, build, coverage, mypy, pep517, pyproject-api, pytest, tox
-tox==4.0.16               # via -r dev-requirements.in
+tox==4.0.18               # via -r dev-requirements.in
 typing-extensions==4.4.0  # via libcst, mypy, typing-inspect
 typing-inspect==0.8.0     # via libcst
 unify==0.5                # via gray

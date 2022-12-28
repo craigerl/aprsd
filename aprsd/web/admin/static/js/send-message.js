@@ -28,36 +28,6 @@ function init_messages() {
        update_msg(msg);
    });
 
-   $("#sendform").submit(function(event) {
-       event.preventDefault();
-
-       var $checkboxes = $(this).find('input[type=checkbox]');
-
-       //loop through the checkboxes and change to hidden fields
-       $checkboxes.each(function() {
-           if ($(this)[0].checked) {
-               $(this).attr('type', 'hidden');
-               $(this).val(1);
-           } else {
-               $(this).attr('type', 'hidden');
-               $(this).val(0);
-           }
-       });
-
-       msg = {'from': $('#from').val(),
-              'password': $('#password').val(),
-              'to': $('#to').val(),
-              'message': $('#message').val(),
-              'wait_reply': $('#wait_reply').val(),
-              }
-
-       socket.emit("send", msg);
-
-       //loop through the checkboxes and change to hidden fields
-       $checkboxes.each(function() {
-           $(this).attr('type', 'checkbox');
-       });
-   });
 }
 
 function add_msg(msg) {

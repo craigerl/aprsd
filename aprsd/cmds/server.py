@@ -6,8 +6,10 @@ import click
 from oslo_config import cfg
 
 import aprsd
+from aprsd import (
+    cli_helper, client, packets, plugin, rpc_server, threads, utils,
+)
 from aprsd import aprsd as aprsd_main
-from aprsd import cli_helper, client, flask, packets, plugin, threads, utils
 from aprsd.aprsd import cli
 from aprsd.threads import rx
 
@@ -32,14 +34,8 @@ LOG = logging.getLogger("APRSD")
 @cli_helper.process_standard_options
 def server(ctx, flush):
     """Start the aprsd server gateway process."""
-    loglevel = ctx.obj["loglevel"]
-    quiet = ctx.obj["quiet"]
-
     signal.signal(signal.SIGINT, aprsd_main.signal_handler)
     signal.signal(signal.SIGTERM, aprsd_main.signal_handler)
-
-    if not quiet:
-        click.echo("Load config")
 
     level, msg = utils._check_version()
     if level:
@@ -99,18 +95,10 @@ def server(ctx, flush):
     keepalive = threads.KeepAliveThread()
     keepalive.start()
 
-    web_enabled = CONF.admin.web_enabled
+    if CONF.rpc_settings.enabled:
+        rpc = rpc_server.APRSDRPCThread()
+        rpc.start()
+        log_monitor = threads.log_monitor.LogMonitorThread()
+        log_monitor.start()
 
-    if web_enabled:
-        aprsd_main.flask_enabled = True
-        (socketio, app) = flask.init_flask(loglevel, quiet)
-        socketio.run(
-            app,
-            allow_unsafe_werkzeug=True,
-            host=CONF.admin.web_ip,
-            port=CONF.admin.web_port,
-        )
-
-    # If there are items in the msgTracker, then save them
-    LOG.info("APRSD Exiting.")
     return 0
