@@ -21,6 +21,8 @@
 
 # python included libs
 import datetime
+from importlib.metadata import entry_points
+from importlib.metadata import version as metadata_version
 import logging
 import os
 import signal
@@ -29,19 +31,20 @@ import time
 
 import click
 import click_completion
+from oslo_config import cfg, generator
 
 # local imports here
 import aprsd
-from aprsd import cli_helper
-from aprsd import config as aprsd_config
-from aprsd import packets, stats, threads, utils
+from aprsd import cli_helper, packets, stats, threads, utils
 
 
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 flask_enabled = False
+rpc_serv = None
 
 
 def custom_startswith(string, incomplete):
@@ -91,6 +94,7 @@ def signal_handler(sig, frame):
         LOG.info(stats.APRSDStats())
         # signal.signal(signal.SIGTERM, sys.exit(0))
         # sys.exit(0)
+
     if flask_enabled:
         signal.signal(signal.SIGTERM, sys.exit(0))
 
@@ -111,8 +115,32 @@ def check_version(ctx):
 @cli.command()
 @click.pass_context
 def sample_config(ctx):
-    """This dumps the config to stdout."""
-    click.echo(aprsd_config.dump_default_cfg())
+    """Generate a sample Config file from aprsd and all installed plugins."""
+
+    def get_namespaces():
+        args = []
+
+        selected = entry_points(group="oslo.config.opts")
+        for entry in selected:
+            if "aprsd" in entry.name:
+                args.append("--namespace")
+                args.append(entry.name)
+
+        return args
+
+    args = get_namespaces()
+    config_version = metadata_version("oslo.config")
+    logging.basicConfig(level=logging.WARN)
+    conf = cfg.ConfigOpts()
+    generator.register_cli_opts(conf)
+    try:
+        conf(args, version=config_version)
+    except cfg.RequiredOptError:
+        conf.print_help()
+        if not sys.argv[1:]:
+            raise SystemExit
+        raise
+    generator.generate(conf)
 
 
 @cli.command()

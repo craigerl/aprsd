@@ -1,18 +1,24 @@
 from unittest import mock
 
+from oslo_config import cfg
+
+from aprsd import conf  # noqa: F401
 from aprsd.plugins import weather as weather_plugin
 
 from .. import fake, test_plugin
 
 
+CONF = cfg.CONF
+
+
 class TestUSWeatherPluginPlugin(test_plugin.TestPlugin):
 
-    @mock.patch("aprsd.config.Config.check_option")
-    def test_not_enabled_missing_aprs_fi_key(self, mock_check):
+    def test_not_enabled_missing_aprs_fi_key(self):
         # When the aprs.fi api key isn't set, then
         # the LocationPlugin will be disabled.
-        mock_check.side_effect = Exception
-        wx = weather_plugin.USWeatherPlugin(self.config)
+        CONF.aprs_fi.apiKey = None
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USWeatherPlugin()
         expected = "USWeatherPlugin isn't enabled"
         packet = fake.fake_packet(message="weather")
         actual = wx.filter(packet)
@@ -23,7 +29,9 @@ class TestUSWeatherPluginPlugin(test_plugin.TestPlugin):
         # When the aprs.fi api key isn't set, then
         # the Plugin will be disabled.
         mock_check.side_effect = Exception
-        wx = weather_plugin.USWeatherPlugin(self.config)
+        CONF.aprs_fi.apiKey = "abc123"
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USWeatherPlugin()
         expected = "Failed to fetch aprs.fi location"
         packet = fake.fake_packet(message="weather")
         actual = wx.filter(packet)
@@ -34,7 +42,10 @@ class TestUSWeatherPluginPlugin(test_plugin.TestPlugin):
         # When the aprs.fi api key isn't set, then
         # the Plugin will be disabled.
         mock_check.return_value = {"entries": []}
-        wx = weather_plugin.USWeatherPlugin(self.config)
+        CONF.aprs_fi.apiKey = "abc123"
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USWeatherPlugin()
+        wx.enabled = True
         expected = "Failed to fetch aprs.fi location"
         packet = fake.fake_packet(message="weather")
         actual = wx.filter(packet)
@@ -55,7 +66,10 @@ class TestUSWeatherPluginPlugin(test_plugin.TestPlugin):
             ],
         }
         mock_weather.side_effect = Exception
-        wx = weather_plugin.USWeatherPlugin(self.config)
+        CONF.aprs_fi.apiKey = "abc123"
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USWeatherPlugin()
+        wx.enabled = True
         expected = "Unable to get weather"
         packet = fake.fake_packet(message="weather")
         actual = wx.filter(packet)
@@ -83,7 +97,10 @@ class TestUSWeatherPluginPlugin(test_plugin.TestPlugin):
             },
             "time": {"startPeriodName": ["ignored", "sometime"]},
         }
-        wx = weather_plugin.USWeatherPlugin(self.config)
+        CONF.aprs_fi.apiKey = "abc123"
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USWeatherPlugin()
+        wx.enabled = True
         expected = "400F(10F/11F) test. sometime, another."
         packet = fake.fake_packet(message="weather")
         actual = wx.filter(packet)
@@ -92,12 +109,11 @@ class TestUSWeatherPluginPlugin(test_plugin.TestPlugin):
 
 class TestUSMetarPlugin(test_plugin.TestPlugin):
 
-    @mock.patch("aprsd.config.Config.check_option")
-    def test_not_enabled_missing_aprs_fi_key(self, mock_check):
+    def test_not_enabled_missing_aprs_fi_key(self):
         # When the aprs.fi api key isn't set, then
         # the LocationPlugin will be disabled.
-        mock_check.side_effect = Exception
-        wx = weather_plugin.USMetarPlugin(self.config)
+        CONF.aprs_fi.apiKey = None
+        wx = weather_plugin.USMetarPlugin()
         expected = "USMetarPlugin isn't enabled"
         packet = fake.fake_packet(message="metar")
         actual = wx.filter(packet)
@@ -108,7 +124,10 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
         # When the aprs.fi api key isn't set, then
         # the Plugin will be disabled.
         mock_check.side_effect = Exception
-        wx = weather_plugin.USMetarPlugin(self.config)
+        CONF.aprs_fi.apiKey = "abc123"
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USMetarPlugin()
+        wx.enabled = True
         expected = "Failed to fetch aprs.fi location"
         packet = fake.fake_packet(message="metar")
         actual = wx.filter(packet)
@@ -119,7 +138,10 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
         # When the aprs.fi api key isn't set, then
         # the Plugin will be disabled.
         mock_check.return_value = {"entries": []}
-        wx = weather_plugin.USMetarPlugin(self.config)
+        CONF.aprs_fi.apiKey = "abc123"
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USMetarPlugin()
+        wx.enabled = True
         expected = "Failed to fetch aprs.fi location"
         packet = fake.fake_packet(message="metar")
         actual = wx.filter(packet)
@@ -128,7 +150,10 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
     @mock.patch("aprsd.plugin_utils.get_weather_gov_metar")
     def test_gov_metar_fetch_fails(self, mock_metar):
         mock_metar.side_effect = Exception
-        wx = weather_plugin.USMetarPlugin(self.config)
+        CONF.aprs_fi.apiKey = "abc123"
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USMetarPlugin()
+        wx.enabled = True
         expected = "Unable to find station METAR"
         packet = fake.fake_packet(message="metar KPAO")
         actual = wx.filter(packet)
@@ -141,7 +166,10 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
             text = '{"properties": {"rawMessage": "BOGUSMETAR"}}'
         mock_metar.return_value = Response()
 
-        wx = weather_plugin.USMetarPlugin(self.config)
+        CONF.aprs_fi.apiKey = "abc123"
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USMetarPlugin()
+        wx.enabled = True
         expected = "BOGUSMETAR"
         packet = fake.fake_packet(message="metar KPAO")
         actual = wx.filter(packet)
@@ -169,7 +197,10 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
         }
         mock_metar.return_value = Response()
 
-        wx = weather_plugin.USMetarPlugin(self.config)
+        CONF.aprs_fi.apiKey = "abc123"
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USMetarPlugin()
+        wx.enabled = True
         expected = "BOGUSMETAR"
         packet = fake.fake_packet(message="metar")
         actual = wx.filter(packet)

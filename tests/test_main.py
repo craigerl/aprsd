@@ -17,6 +17,6 @@ class TestMain(unittest.TestCase):
         """Test to make sure we fail."""
         imap_mock.return_value = None
         smtp_mock.return_value = {"smaiof": "fire"}
-        config = mock.MagicMock()
+        mock.MagicMock()
 
-        email.validate_email_config(config, True)
+        email.validate_email_config(True)

@@ -2,11 +2,14 @@ import datetime
 import logging
 import re
 
+from oslo_config import cfg
+
 from aprsd import packets, plugin
 from aprsd.packets import tracker
 from aprsd.utils import trace
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -17,13 +20,19 @@ class QueryPlugin(plugin.APRSDRegexCommandPluginBase):
     command_name = "query"
     short_description = "APRSD Owner command to query messages in the MsgTrack"
 
+    def setup(self):
+        """Do any plugin setup here."""
+        if not CONF.query_plugin.callsign:
+            LOG.error("Config query_plugin.callsign not set.  Disabling plugin")
+            self.enabled = False
+        self.enabled = True
+
     @trace.trace
     def process(self, packet: packets.MessagePacket):
         LOG.info("Query COMMAND")
 
         fromcall = packet.from_call
         message = packet.get("message_text", None)
-        # ack = packet.get("msgNo", "0")
 
         pkt_tracker = tracker.PacketTrack()
         now = datetime.datetime.now()
@@ -32,7 +41,7 @@ class QueryPlugin(plugin.APRSDRegexCommandPluginBase):
             now.strftime("%H:%M:%S"),
         )
 
-        searchstring = "^" + self.config["ham"]["callsign"] + ".*"
+        searchstring = "^" + CONF.query_plugin.callsign + ".*"
         # only I can do admin commands
         if re.search(searchstring, fromcall):
 

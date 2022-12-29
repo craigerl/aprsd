@@ -10,11 +10,12 @@ import sys
 import time
 
 import click
+from oslo_config import cfg
 from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import cli_helper, client, packets, stats, threads, utils
+from aprsd import cli_helper, client, packets, stats, threads
 from aprsd.aprsd import cli
 from aprsd.threads import rx
 
@@ -22,6 +23,7 @@ from aprsd.threads import rx
 # setup the global logger
 # logging.basicConfig(level=logging.DEBUG) # level=10
 LOG = logging.getLogger("APRSD")
+CONF = cfg.CONF
 console = Console()
 
 
@@ -38,8 +40,8 @@ def signal_handler(sig, frame):
 
 
 class APRSDListenThread(rx.APRSDRXThread):
-    def __init__(self, config, packet_queue, packet_filter=None):
-        super().__init__(config, packet_queue)
+    def __init__(self, packet_queue, packet_filter=None):
+        super().__init__(packet_queue)
         self.packet_filter = packet_filter
 
     def process_packet(self, *args, **kwargs):
@@ -118,7 +120,6 @@ def listen(
     """
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    config = ctx.obj["config"]
 
     if not aprs_login:
         click.echo(ctx.get_help())
@@ -132,27 +133,19 @@ def listen(
         ctx.fail("Must set --aprs-password or APRS_PASSWORD")
         ctx.exit()
 
-    config["aprs"]["login"] = aprs_login
-    config["aprs"]["password"] = aprs_password
+    # CONF.aprs_network.login = aprs_login
+    # config["aprs"]["password"] = aprs_password
 
     LOG.info(f"APRSD Listen Started version: {aprsd.__version__}")
 
-    flat_config = utils.flatten_dict(config)
-    LOG.info("Using CONFIG values:")
-    for x in flat_config:
-        if "password" in x or "aprsd.web.users.admin" in x:
-            LOG.info(f"{x} = XXXXXXXXXXXXXXXXXXX")
-        else:
-            LOG.info(f"{x} = {flat_config[x]}")
-
-    stats.APRSDStats(config)
+    CONF.log_opt_values(LOG, logging.DEBUG)
 
     # Try and load saved MsgTrack list
     LOG.debug("Loading saved MsgTrack object.")
 
     # Initialize the client factory and create
     # The correct client object ready for use
-    client.ClientFactory.setup(config)
+    client.ClientFactory.setup()
     # Make sure we have 1 client transport enabled
     if not client.factory.is_client_enabled():
         LOG.error("No Clients are enabled in config.")
@@ -166,12 +159,11 @@ def listen(
     LOG.debug(f"Filter by '{filter}'")
     aprs_client.set_filter(filter)
 
-    keepalive = threads.KeepAliveThread(config=config)
+    keepalive = threads.KeepAliveThread()
     keepalive.start()
 
     LOG.debug("Create APRSDListenThread")
     listen_thread = APRSDListenThread(
-        config=config,
         packet_queue=threads.packet_queue,
         packet_filter=packet_filter,
     )

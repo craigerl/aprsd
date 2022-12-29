@@ -1,11 +1,15 @@
 from unittest import mock
 
+from oslo_config import cfg
 import pytz
 
 from aprsd.plugins import time as time_plugin
 from aprsd.utils import fuzzy
 
 from .. import fake, test_plugin
+
+
+CONF = cfg.CONF
 
 
 class TestTimePlugins(test_plugin.TestPlugin):
@@ -25,7 +29,8 @@ class TestTimePlugins(test_plugin.TestPlugin):
         h = int(local_t.strftime("%H"))
         m = int(local_t.strftime("%M"))
         fake_time.tm_sec = 13
-        time = time_plugin.TimePlugin(self.config)
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        time = time_plugin.TimePlugin()
 
         packet = fake.fake_packet(
             message="location",

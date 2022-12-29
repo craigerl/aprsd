@@ -1,25 +1,32 @@
 import unittest
 
+from oslo_config import cfg
+
+from aprsd import conf  # noqa: F401
 from aprsd.plugins import email
+
+
+CONF = cfg.CONF
 
 
 class TestEmail(unittest.TestCase):
     def test_get_email_from_shortcut(self):
-        config = {"aprsd": {"email": {"shortcuts": {}}}}
+        CONF.email_plugin.shortcuts = None
         email_address = "something@something.com"
         addr = f"-{email_address}"
-        actual = email.get_email_from_shortcut(config, addr)
+        actual = email.get_email_from_shortcut(addr)
         self.assertEqual(addr, actual)
 
-        config = {"aprsd": {"email": {"nothing": "nothing"}}}
-        actual = email.get_email_from_shortcut(config, addr)
+        CONF.email_plugin.shortcuts = None
+        actual = email.get_email_from_shortcut(addr)
         self.assertEqual(addr, actual)
 
-        config = {"aprsd": {"email": {"shortcuts": {"not_used": "empty"}}}}
-        actual = email.get_email_from_shortcut(config, addr)
+        CONF.email_plugin.shortcuts = None
+        actual = email.get_email_from_shortcut(addr)
         self.assertEqual(addr, actual)
 
-        config = {"aprsd": {"email": {"shortcuts": {"-wb": email_address}}}}
-        short = "-wb"
-        actual = email.get_email_from_shortcut(config, short)
+        CONF.email_plugin.email_shortcuts = ["wb=something@something.com"]
+        email.shortcuts_dict = None
+        short = "wb"
+        actual = email.get_email_from_shortcut(short)
         self.assertEqual(email_address, actual)

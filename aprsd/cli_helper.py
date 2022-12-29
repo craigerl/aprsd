@@ -1,11 +1,22 @@
 from functools import update_wrapper
+import logging
+from pathlib import Path
 import typing as t
 
 import click
+from oslo_config import cfg
 
-from aprsd import config as aprsd_config
+import aprsd
+from aprsd import conf  # noqa: F401
 from aprsd.logging import log
 from aprsd.utils import trace
+
+
+CONF = cfg.CONF
+home = str(Path.home())
+DEFAULT_CONFIG_DIR = f"{home}/.config/aprsd/"
+DEFAULT_SAVE_FILE = f"{home}/.config/aprsd/aprsd.p"
+DEFAULT_CONFIG_FILE = f"{home}/.config/aprsd/aprsd.conf"
 
 
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
@@ -27,7 +38,7 @@ common_options = [
         "--config",
         "config_file",
         show_default=True,
-        default=aprsd_config.DEFAULT_CONFIG_FILE,
+        default=DEFAULT_CONFIG_FILE,
         help="The aprsd config file to use for options.",
     ),
     click.option(
@@ -51,17 +62,31 @@ def process_standard_options(f: F) -> F:
     def new_func(*args, **kwargs):
         ctx = args[0]
         ctx.ensure_object(dict)
+        config_file_found = True
+        if kwargs["config_file"]:
+            default_config_files = [kwargs["config_file"]]
+        else:
+            default_config_files = None
+        try:
+            CONF(
+                [], project="aprsd", version=aprsd.__version__,
+                default_config_files=default_config_files,
+            )
+        except cfg.ConfigFilesNotFoundError:
+            config_file_found = False
         ctx.obj["loglevel"] = kwargs["loglevel"]
-        ctx.obj["config_file"] = kwargs["config_file"]
+        # ctx.obj["config_file"] = kwargs["config_file"]
         ctx.obj["quiet"] = kwargs["quiet"]
-        ctx.obj["config"] = aprsd_config.parse_config(kwargs["config_file"])
         log.setup_logging(
-            ctx.obj["config"],
             ctx.obj["loglevel"],
             ctx.obj["quiet"],
         )
-        if ctx.obj["config"]["aprsd"].get("trace", False):
+        if CONF.trace_enabled:
             trace.setup_tracing(["method", "api"])
+
+        if not config_file_found:
+            LOG = logging.getLogger("APRSD")   # noqa: N806
+            LOG.error("No config file found!! run 'aprsd sample-config'")
 
         del kwargs["loglevel"]
         del kwargs["config_file"]

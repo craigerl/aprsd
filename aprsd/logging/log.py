@@ -4,10 +4,13 @@ from logging.handlers import RotatingFileHandler
 import queue
 import sys
 
-from aprsd import config as aprsd_config
+from oslo_config import cfg
+
+from aprsd import conf
 from aprsd.logging import rich as aprsd_logging
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 logging_queue = queue.Queue()
 
@@ -15,13 +18,15 @@ logging_queue = queue.Queue()
 # Setup the logging faciility
 # to disable logging to stdout, but still log to file
 # use the --quiet option on the cmdln
-def setup_logging(config, loglevel, quiet):
-    log_level = aprsd_config.LOG_LEVELS[loglevel]
+def setup_logging(loglevel, quiet):
+    log_level = conf.log.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    date_format = config["aprsd"].get("dateformat", aprsd_config.DEFAULT_DATE_FORMAT)
+    date_format = CONF.logging.date_format
+    rh = None
+    fh = None
 
     rich_logging = False
-    if config["aprsd"].get("rich_logging", False) and not quiet:
+    if CONF.logging.get("rich_logging", False) and not quiet:
         log_format = "%(message)s"
         log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         rh = aprsd_logging.APRSDRichHandler(
@@ -32,8 +37,8 @@ def setup_logging(config, loglevel, quiet):
         LOG.addHandler(rh)
         rich_logging = True
 
-    log_file = config["aprsd"].get("logfile", None)
-    log_format = config["aprsd"].get("logformat", aprsd_config.DEFAULT_LOG_FORMAT)
+    log_file = CONF.logging.logfile
+    log_format = CONF.logging.logformat
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
 
     if log_file:
@@ -42,16 +47,19 @@ def setup_logging(config, loglevel, quiet):
         LOG.addHandler(fh)
 
     imap_logger = None
-    if config.get("aprsd.email.enabled", default=False) and config.get("aprsd.email.imap.debug", default=False):
+    if CONF.email_plugin.enabled and CONF.email_plugin.debug:
         imap_logger = logging.getLogger("imapclient.imaplib")
         imap_logger.setLevel(log_level)
-        imap_logger.addHandler(fh)
+        if rh:
+            imap_logger.addHandler(rh)
+        if fh:
+            imap_logger.addHandler(fh)
 
-    if config.get("aprsd.web.enabled", default=False):
+    if CONF.admin.web_enabled:
         qh = logging.handlers.QueueHandler(logging_queue)
         q_log_formatter = logging.Formatter(
-            fmt=aprsd_config.QUEUE_LOG_FORMAT,
-            datefmt=aprsd_config.QUEUE_DATE_FORMAT,
+            fmt=CONF.logging.logformat,
+            datefmt=CONF.logging.date_format,
         )
         qh.setFormatter(q_log_formatter)
         LOG.addHandler(qh)
@@ -65,10 +73,10 @@ def setup_logging(config, loglevel, quiet):
 
 
 def setup_logging_no_config(loglevel, quiet):
-    log_level = aprsd_config.LOG_LEVELS[loglevel]
+    log_level = conf.log.LOG_LEVELS[loglevel]
     LOG.setLevel(log_level)
-    log_format = aprsd_config.DEFAULT_LOG_FORMAT
-    date_format = aprsd_config.DEFAULT_DATE_FORMAT
+    log_format = CONF.logging.logformat
+    date_format = CONF.logging.date_format
     log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
     fh = NullHandler()
 

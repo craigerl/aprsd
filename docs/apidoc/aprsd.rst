@@ -7,10 +7,34 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   aprsd.clients
+   aprsd.cmds
+   aprsd.conf
+   aprsd.logging
+   aprsd.packets
    aprsd.plugins
+   aprsd.threads
+   aprsd.utils
+   aprsd.web
 
 Submodules
 ----------
+
+aprsd.aprsd module
+------------------
+
+.. automodule:: aprsd.aprsd
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.cli\_helper module
+------------------------
+
+.. automodule:: aprsd.cli_helper
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 aprsd.client module
 -------------------
@@ -20,18 +44,10 @@ aprsd.client module
    :undoc-members:
    :show-inheritance:
 
-aprsd.dev module
-----------------
+aprsd.exception module
+----------------------
 
-.. automodule:: aprsd.dev
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.fake\_aprs module
------------------------
-
-.. automodule:: aprsd.fake_aprs
+.. automodule:: aprsd.exception
    :members:
    :undoc-members:
    :show-inheritance:
@@ -44,58 +60,10 @@ aprsd.flask module
    :undoc-members:
    :show-inheritance:
 
-aprsd.fuzzyclock module
------------------------
-
-.. automodule:: aprsd.fuzzyclock
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.healthcheck module
-------------------------
-
-.. automodule:: aprsd.healthcheck
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.kissclient module
------------------------
-
-.. automodule:: aprsd.kissclient
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.listen module
--------------------
-
-.. automodule:: aprsd.listen
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.main module
------------------
-
-.. automodule:: aprsd.main
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 aprsd.messaging module
 ----------------------
 
 .. automodule:: aprsd.messaging
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.packets module
---------------------
-
-.. automodule:: aprsd.packets
    :members:
    :undoc-members:
    :show-inheritance:
@@ -116,34 +84,18 @@ aprsd.plugin\_utils module
    :undoc-members:
    :show-inheritance:
 
+aprsd.rpc\_server module
+------------------------
+
+.. automodule:: aprsd.rpc_server
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.stats module
 ------------------
 
 .. automodule:: aprsd.stats
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.threads module
---------------------
-
-.. automodule:: aprsd.threads
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.trace module
-------------------
-
-.. automodule:: aprsd.trace
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.utils module
-------------------
-
-.. automodule:: aprsd.utils
    :members:
    :undoc-members:
    :show-inheritance:

@@ -15,23 +15,24 @@ from flask.logging import default_handler
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
+from oslo_config import cfg
 from user_agents import parse as ua_parse
 from werkzeug.security import check_password_hash, generate_password_hash
 import wrapt
 
 import aprsd
-from aprsd import cli_helper, client
-from aprsd import config as aprsd_config
-from aprsd import packets, stats, threads, utils
+from aprsd import cli_helper, client, conf, packets, stats, threads, utils
 from aprsd.aprsd import cli
 from aprsd.logging import rich as aprsd_logging
 from aprsd.threads import rx, tx
 from aprsd.utils import objectstore, trace
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 auth = HTTPBasicAuth()
 users = None
+socketio = None
 
 
 def signal_handler(sig, frame):
@@ -128,16 +129,16 @@ class SentMessages(objectstore.ObjectStoreMixin):
 def verify_password(username, password):
     global users
 
-    if username in users and check_password_hash(users.get(username), password):
+    if username in users and check_password_hash(users[username], password):
         return username
 
 
 class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
     """Class that handles packets being sent to us."""
-    def __init__(self, config, packet_queue, socketio):
+    def __init__(self, packet_queue, socketio):
         self.socketio = socketio
         self.connected = False
-        super().__init__(config, packet_queue)
+        super().__init__(packet_queue)
 
     def process_ack_packet(self, packet: packets.AckPacket):
         super().process_ack_packet(packet)
@@ -174,21 +175,16 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
 
 
 class WebChatFlask(flask_classful.FlaskView):
-    config = None
 
-    def set_config(self, config):
+    def set_config(self):
         global users
-        self.config = config
         self.users = {}
-        for user in self.config["aprsd"]["web"]["users"]:
-            self.users[user] = generate_password_hash(
-                self.config["aprsd"]["web"]["users"][user],
-            )
-
+        user = CONF.admin.user
+        self.users[user] = generate_password_hash(CONF.admin.password)
         users = self.users
 
     def _get_transport(self, stats):
-        if self.config["aprs"].get("enabled", True):
+        if CONF.aprs_network.enabled:
             transport = "aprs-is"
             aprs_connection = (
                 "APRS-IS Server: <a href='http://status.aprs2.net' >"
@@ -196,27 +192,22 @@ class WebChatFlask(flask_classful.FlaskView):
             )
         else:
             # We might be connected to a KISS socket?
-            if client.KISSClient.is_enabled(self.config):
-                transport = client.KISSClient.transport(self.config)
+            if client.KISSClient.is_enabled():
+                transport = client.KISSClient.transport()
                 if transport == client.TRANSPORT_TCPKISS:
                     aprs_connection = (
                         "TCPKISS://{}:{}".format(
-                            self.config["kiss"]["tcp"]["host"],
-                            self.config["kiss"]["tcp"]["port"],
+                            CONF.kiss_tcp.host,
+                            CONF.kiss_tcp.port,
                         )
                     )
                 elif transport == client.TRANSPORT_SERIALKISS:
                     # for pep8 violation
-                    kiss_default = aprsd_config.DEFAULT_DATE_FORMAT["kiss"]
-                    default_baudrate = kiss_default["serial"]["baudrate"]
                     aprs_connection = (
                         "SerialKISS://{}@{} baud".format(
-                            self.config["kiss"]["serial"]["device"],
-                            self.config["kiss"]["serial"].get(
-                                "baudrate",
-                                default_baudrate,
-                            ),
-                        )
+                            CONF.kiss_serial.device,
+                            CONF.kiss_serial.baudrate,
+                        ),
                     )
 
         return transport, aprs_connection
@@ -250,7 +241,7 @@ class WebChatFlask(flask_classful.FlaskView):
             html_template,
             initial_stats=stats,
             aprs_connection=aprs_connection,
-            callsign=self.config["aprsd"]["callsign"],
+            callsign=CONF.callsign,
             version=aprsd.__version__,
         )
 
@@ -287,14 +278,12 @@ class WebChatFlask(flask_classful.FlaskView):
 
 class SendMessageNamespace(Namespace):
     """Class to handle the socketio interactions."""
-    _config = None
     got_ack = False
     reply_sent = False
     msg = None
     request = None
 
     def __init__(self, namespace=None, config=None):
-        self._config = config
         super().__init__(namespace)
 
     def on_connect(self):
@@ -312,7 +301,7 @@ class SendMessageNamespace(Namespace):
         global socketio
         LOG.debug(f"WS: on_send {data}")
         self.request = data
-        data["from"] = self._config["aprs"]["login"]
+        data["from"] = CONF.callsign
         pkt = packets.MessagePacket(
             from_call=data["from"],
             to_call=data["to"].upper(),
@@ -338,7 +327,7 @@ class SendMessageNamespace(Namespace):
 
         tx.send(
             packets.GPSPacket(
-                from_call=self._config["aprs"]["login"],
+                from_call=CONF.callsign,
                 to_call="APDW16",
                 latitude=lat,
                 longitude=long,
@@ -354,25 +343,16 @@ class SendMessageNamespace(Namespace):
         LOG.debug(f"WS json {data}")
 
 
-def setup_logging(config, flask_app, loglevel, quiet):
+def setup_logging(flask_app, loglevel, quiet):
     flask_log = logging.getLogger("werkzeug")
     flask_app.logger.removeHandler(default_handler)
     flask_log.removeHandler(default_handler)
 
-    log_level = aprsd_config.LOG_LEVELS[loglevel]
+    log_level = conf.log.LOG_LEVELS[loglevel]
     flask_log.setLevel(log_level)
-    date_format = config["aprsd"].get(
-        "dateformat",
-        aprsd_config.DEFAULT_DATE_FORMAT,
-    )
+    date_format = CONF.logging.date_format
 
-    if not config["aprsd"]["web"].get("logging_enabled", False):
-        # disable web logging
-        flask_log.disabled = True
-        flask_app.logger.disabled = True
-        # return
-
-    if config["aprsd"].get("rich_logging", False) and not quiet:
+    if CONF.logging.rich_logging and not quiet:
         log_format = "%(message)s"
         log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         rh = aprsd_logging.APRSDRichHandler(
@@ -382,13 +362,10 @@ def setup_logging(config, flask_app, loglevel, quiet):
         rh.setFormatter(log_formatter)
         flask_log.addHandler(rh)
 
-    log_file = config["aprsd"].get("logfile", None)
+    log_file = CONF.logging.logfile
 
     if log_file:
-        log_format = config["aprsd"].get(
-            "logformat",
-            aprsd_config.DEFAULT_LOG_FORMAT,
-        )
+        log_format = CONF.loging.logformat
         log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         fh = RotatingFileHandler(
             log_file, maxBytes=(10248576 * 5),
@@ -399,7 +376,7 @@ def setup_logging(config, flask_app, loglevel, quiet):
 
 
 @trace.trace
-def init_flask(config, loglevel, quiet):
+def init_flask(loglevel, quiet):
     global socketio
 
     flask_app = flask.Flask(
@@ -408,9 +385,9 @@ def init_flask(config, loglevel, quiet):
         static_folder="web/chat/static",
         template_folder="web/chat/templates",
     )
-    setup_logging(config, flask_app, loglevel, quiet)
+    setup_logging(flask_app, loglevel, quiet)
     server = WebChatFlask()
-    server.set_config(config)
+    server.set_config()
     flask_app.route("/", methods=["GET"])(server.index)
     flask_app.route("/stats", methods=["GET"])(server.stats)
     # flask_app.route("/send-message", methods=["GET"])(server.send_message)
@@ -427,7 +404,7 @@ def init_flask(config, loglevel, quiet):
 
     socketio.on_namespace(
         SendMessageNamespace(
-            "/sendmsg", config=config,
+            "/sendmsg",
         ),
     )
     return socketio, flask_app
@@ -457,16 +434,11 @@ def init_flask(config, loglevel, quiet):
 @cli_helper.process_standard_options
 def webchat(ctx, flush, port):
     """Web based HAM Radio chat program!"""
-    ctx.obj["config_file"]
     loglevel = ctx.obj["loglevel"]
     quiet = ctx.obj["quiet"]
-    config = ctx.obj["config"]
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-
-    if not quiet:
-        click.echo("Load config")
 
     level, msg = utils._check_version()
     if level:
@@ -475,19 +447,11 @@ def webchat(ctx, flush, port):
         LOG.info(msg)
     LOG.info(f"APRSD Started version: {aprsd.__version__}")
 
-    flat_config = utils.flatten_dict(config)
-    LOG.info("Using CONFIG values:")
-    for x in flat_config:
-        if "password" in x or "aprsd.web.users.admin" in x:
-            LOG.info(f"{x} = XXXXXXXXXXXXXXXXXXX")
-        else:
-            LOG.info(f"{x} = {flat_config[x]}")
-
-    stats.APRSDStats(config)
+    CONF.log_opt_values(LOG, logging.DEBUG)
 
     # Initialize the client factory and create
     # The correct client object ready for use
-    client.ClientFactory.setup(config)
+    client.ClientFactory.setup()
     # Make sure we have 1 client transport enabled
     if not client.factory.is_client_enabled():
         LOG.error("No Clients are enabled in config.")
@@ -497,32 +461,30 @@ def webchat(ctx, flush, port):
         LOG.error("APRS client is not properly configured in config file.")
         sys.exit(-1)
 
-    packets.PacketList(config=config)
-    packets.PacketTrack(config=config)
-    packets.WatchList(config=config)
-    packets.SeenList(config=config)
+    packets.PacketList()
+    packets.PacketTrack()
+    packets.WatchList()
+    packets.SeenList()
 
-    (socketio, app) = init_flask(config, loglevel, quiet)
+    (socketio, app) = init_flask(loglevel, quiet)
     rx_thread = rx.APRSDPluginRXThread(
-        config=config,
         packet_queue=threads.packet_queue,
     )
     rx_thread.start()
     process_thread = WebChatProcessPacketThread(
-        config=config,
         packet_queue=threads.packet_queue,
         socketio=socketio,
     )
     process_thread.start()
 
-    keepalive = threads.KeepAliveThread(config=config)
+    keepalive = threads.KeepAliveThread()
     LOG.info("Start KeepAliveThread")
     keepalive.start()
     LOG.info("Start socketio.run()")
     socketio.run(
         app,
         ssl_context="adhoc",
-        host=config["aprsd"]["web"]["host"],
+        host=CONF.admin.web_ip,
         port=port,
     )
 

@@ -3,10 +3,13 @@ import logging
 import time
 import tracemalloc
 
+from oslo_config import cfg
+
 from aprsd import client, packets, stats, utils
 from aprsd.threads import APRSDThread, APRSDThreadList
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -14,10 +17,9 @@ class KeepAliveThread(APRSDThread):
     cntr = 0
     checker_time = datetime.datetime.now()
 
-    def __init__(self, config):
+    def __init__(self):
         tracemalloc.start()
         super().__init__("KeepAlive")
-        self.config = config
         max_timeout = {"hours": 0.0, "minutes": 2, "seconds": 0}
         self.max_delta = datetime.timedelta(**max_timeout)
 
@@ -40,15 +42,9 @@ class KeepAliveThread(APRSDThread):
             stats_obj.set_memory(current)
             stats_obj.set_memory_peak(peak)
 
-            try:
-                login = self.config["aprsd"]["callsign"]
-            except KeyError:
-                login = self.config["ham"]["callsign"]
+            login = CONF.callsign
 
-            if pkt_tracker.is_initialized():
-                tracked_packets = len(pkt_tracker)
-            else:
-                tracked_packets = 0
+            tracked_packets = len(pkt_tracker)
 
             keepalive = (
                 "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
@@ -77,7 +73,7 @@ class KeepAliveThread(APRSDThread):
             if delta > self.max_delta:
                 #  We haven't gotten a keepalive from aprs-is in a while
                 # reset the connection.a
-                if not client.KISSClient.is_enabled(self.config):
+                if not client.KISSClient.is_enabled():
                     LOG.warning(f"Resetting connection to APRS-IS {delta}")
                     client.factory.create().reset()
 

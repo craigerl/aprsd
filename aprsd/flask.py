@@ -2,100 +2,42 @@ import datetime
 import json
 import logging
 from logging.handlers import RotatingFileHandler
-import threading
 import time
 
-import aprslib
-from aprslib.exceptions import LoginError
 import flask
-from flask import request
 from flask.logging import default_handler
 import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
+from oslo_config import cfg
+import rpyc
 from werkzeug.security import check_password_hash, generate_password_hash
-import wrapt
 
 import aprsd
-from aprsd import client
-from aprsd import config as aprsd_config
-from aprsd import packets, plugin, stats, threads, utils
-from aprsd.clients import aprsis
-from aprsd.logging import log
+from aprsd import cli_helper, client, conf, packets, plugin, threads
+from aprsd.conf import common
 from aprsd.logging import rich as aprsd_logging
-from aprsd.threads import tx
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 auth = HTTPBasicAuth()
 users = None
+app = None
 
 
-class SentMessages:
-    _instance = None
-    lock = threading.Lock()
+class AuthSocketStream(rpyc.SocketStream):
+    """Used to authenitcate the RPC stream to remote."""
 
-    msgs = {}
+    @classmethod
+    def connect(cls, *args, authorizer=None, **kwargs):
+        stream_obj = super().connect(*args, **kwargs)
 
-    def __new__(cls, *args, **kwargs):
-        """This magic turns this into a singleton."""
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            # Put any initialization here.
-        return cls._instance
+        if callable(authorizer):
+            authorizer(stream_obj.sock)
 
-    @wrapt.synchronized(lock)
-    def add(self, packet):
-        self.msgs[packet.msgNo] = self._create(packet.msgNo)
-        self.msgs[packet.msgNo]["from"] = packet.from_call
-        self.msgs[packet.msgNo]["to"] = packet.to_call
-        self.msgs[packet.msgNo]["message"] = packet.message_text.rstrip("\n")
-        packet._build_raw()
-        self.msgs[packet.msgNo]["raw"] = packet.raw.rstrip("\n")
-
-    def _create(self, id):
-        return {
-            "id": id,
-            "ts": time.time(),
-            "ack": False,
-            "from": None,
-            "to": None,
-            "raw": None,
-            "message": None,
-            "status": None,
-            "last_update": None,
-            "reply": None,
-        }
-
-    @wrapt.synchronized(lock)
-    def __len__(self):
-        return len(self.msgs.keys())
-
-    @wrapt.synchronized(lock)
-    def get(self, id):
-        if id in self.msgs:
-            return self.msgs[id]
-
-    @wrapt.synchronized(lock)
-    def get_all(self):
-        return self.msgs
-
-    @wrapt.synchronized(lock)
-    def set_status(self, id, status):
-        self.msgs[id]["last_update"] = str(datetime.datetime.now())
-        self.msgs[id]["status"] = status
-
-    @wrapt.synchronized(lock)
-    def ack(self, id):
-        """The message got an ack!"""
-        self.msgs[id]["last_update"] = str(datetime.datetime.now())
-        self.msgs[id]["ack"] = True
-
-    @wrapt.synchronized(lock)
-    def reply(self, id, packet):
-        """We got a packet back from the sent message."""
-        self.msgs[id]["reply"] = packet
+        return stream_obj
 
 
 # HTTPBasicAuth doesn't work on a class method.
@@ -109,215 +51,168 @@ def verify_password(username, password):
         return username
 
 
-class SendMessageThread(threads.APRSDRXThread):
-    """Thread for sending a message from web."""
+class RPCClient:
+    _instance = None
+    _rpc_client = None
 
-    aprsis_client = None
-    request = None
-    got_ack = False
-    got_reply = False
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
-    def __init__(self, config, info, packet, namespace):
-        self.config = config
-        self.request = info
-        self.packet = packet
-        self.namespace = namespace
-        self.start_time = datetime.datetime.now()
-        msg = "({} -> {}) : {}".format(
-            info["from"],
-            info["to"],
-            info["message"],
-        )
-        super().__init__(f"WEB_SEND_MSG-{msg}")
+    def __init__(self):
+        self._check_settings()
+        self.get_rpc_client()
 
-    def setup_connection(self):
-        user = self.request["from"]
-        password = self.request["password"]
-        host = self.config["aprs"].get("host", "rotate.aprs.net")
-        port = self.config["aprs"].get("port", 14580)
-        connected = False
-        backoff = 1
-        while not connected:
-            try:
-                LOG.info("Creating aprslib client")
+    def _check_settings(self):
+        if not CONF.rpc_settings.enabled:
+            LOG.error("RPC is not enabled, no way to get stats!!")
 
-                aprs_client = aprsis.Aprsdis(
-                    user,
-                    passwd=password,
-                    host=host,
-                    port=port,
-                )
-                # Force the logging to be the same
-                aprs_client.logger = LOG
-                aprs_client.connect()
-                connected = True
-                backoff = 1
-            except LoginError as e:
-                LOG.error(f"Failed to login to APRS-IS Server '{e}'")
-                connected = False
-                raise e
-            except Exception as e:
-                LOG.error(f"Unable to connect to APRS-IS server. '{e}' ")
-                time.sleep(backoff)
-                backoff = backoff * 2
-                continue
-        LOG.debug(f"Logging in to APRS-IS with user '{user}'")
-        return aprs_client
+        if CONF.rpc_settings.magic_word == common.APRSD_DEFAULT_MAGIC_WORD:
+            LOG.warning("You are using the default RPC magic word!!!")
+            LOG.warning("edit aprsd.conf and change rpc_settings.magic_word")
 
-    def run(self):
-        LOG.debug("Starting")
-        from_call = self.request["from"]
-        to_call = self.request["to"]
-        message = self.request["message"]
-        LOG.info(
-            "From: '{}' To: '{}'  Send '{}'".format(
-                from_call,
-                to_call,
-                message,
-            ),
-        )
+    def _rpyc_connect(
+        self, host, port,
+        service=rpyc.VoidService,
+        config={}, ipv6=False,
+        keepalive=False, authorizer=None,
+    ):
 
+        print(f"Connecting to RPC host {host}:{port}")
         try:
-            self.aprs_client = self.setup_connection()
-        except LoginError as e:
-            f"Failed to setup Connection {e}"
-
-        tx.send(
-            self.packet,
-            direct=True,
-            aprs_client=self.aprs_client,
-        )
-        SentMessages().set_status(self.packet.msgNo, "Sent")
-
-        while not self.thread_stop:
-            can_loop = self.loop()
-            if not can_loop:
-                self.stop()
-        threads.APRSDThreadList().remove(self)
-        LOG.debug("Exiting")
-
-    def process_ack_packet(self, packet):
-        global socketio
-        ack_num = packet.msgNo
-        LOG.info(f"We got ack for our sent message {ack_num}")
-        packet.log("RXACK")
-        SentMessages().ack(self.packet.msgNo)
-        stats.APRSDStats().ack_rx_inc()
-        socketio.emit(
-            "ack", SentMessages().get(self.packet.msgNo),
-            namespace="/sendmsg",
-        )
-        if self.request["wait_reply"] == "0" or self.got_reply:
-            # We aren't waiting for a reply, so we can bail
-            self.stop()
-            self.thread_stop = self.aprs_client.thread_stop = True
-
-    def process_our_message_packet(self, packet):
-        global socketio
-        packets.PacketList().rx(packet)
-        stats.APRSDStats().msgs_rx_inc()
-        msg_number = packet.msgNo
-        SentMessages().reply(self.packet.msgNo, packet)
-        SentMessages().set_status(self.packet.msgNo, "Got Reply")
-        socketio.emit(
-            "reply", SentMessages().get(self.packet.msgNo),
-            namespace="/sendmsg",
-        )
-        tx.send(
-            packets.AckPacket(
-                from_call=self.request["from"],
-                to_call=packet.from_call,
-                msgNo=msg_number,
-            ),
-            direct=True,
-            aprs_client=self.aprsis_client,
-        )
-        SentMessages().set_status(self.packet.msgNo, "Ack Sent")
-
-        # Now we can exit, since we are done.
-        self.got_reply = True
-        if self.got_ack:
-            self.stop()
-            self.thread_stop = self.aprs_client.thread_stop = True
-
-    def process_packet(self, *args, **kwargs):
-        packet = self._client.decode_packet(*args, **kwargs)
-        packet.log(header="RX Packet")
-
-        if isinstance(packet, packets.AckPacket):
-            self.process_ack_packet(packet)
-        else:
-            self.process_our_message_packet(packet)
-
-    def loop(self):
-        # we have a general time limit expecting results of
-        # around 120 seconds before we exit
-        now = datetime.datetime.now()
-        start_delta = str(now - self.start_time)
-        delta = utils.parse_delta_str(start_delta)
-        d = datetime.timedelta(**delta)
-        max_timeout = {"hours": 0.0, "minutes": 1, "seconds": 0}
-        max_delta = datetime.timedelta(**max_timeout)
-        if d > max_delta:
-            LOG.error("XXXXXX Haven't completed everything in 60 seconds.  BAIL!")
-            return False
-
-        if self.got_ack and self.got_reply:
-            LOG.warning("We got everything already. BAIL")
-            return False
-
-        try:
-            # This will register a packet consumer with aprslib
-            # When new packets come in the consumer will process
-            # the packet
-            self.aprs_client.consumer(
-                self.process_packet, raw=False, blocking=False,
+            s = AuthSocketStream.connect(
+                host, port, ipv6=ipv6, keepalive=keepalive,
+                authorizer=authorizer,
             )
-        except aprslib.exceptions.ConnectionDrop:
-            LOG.error("Connection dropped.")
-            return False
+            return rpyc.utils.factory.connect_stream(s, service, config=config)
+        except ConnectionRefusedError:
+            LOG.error(f"Failed to connect to RPC host {host}")
+            return None
 
-        return True
+    def get_rpc_client(self):
+        if not self._rpc_client:
+            magic = CONF.rpc_settings.magic_word
+            self._rpc_client = self._rpyc_connect(
+                CONF.rpc_settings.ip,
+                CONF.rpc_settings.port,
+                authorizer=lambda sock: sock.send(magic.encode()),
+            )
+        return self._rpc_client
+
+    def get_stats_dict(self):
+        cl = self.get_rpc_client()
+        result = {}
+        if not cl:
+            return result
+
+        try:
+            rpc_stats_dict = cl.root.get_stats()
+            result = json.loads(rpc_stats_dict)
+        except EOFError:
+            LOG.error("Lost connection to RPC Host")
+            self._rpc_client = None
+        return result
+
+    def get_packet_track(self):
+        cl = self.get_rpc_client()
+        result = None
+        if not cl:
+            return result
+        try:
+            result = cl.root.get_packet_track()
+        except EOFError:
+            LOG.error("Lost connection to RPC Host")
+            self._rpc_client = None
+        return result
+
+    def get_packet_list(self):
+        cl = self.get_rpc_client()
+        result = None
+        if not cl:
+            return result
+        try:
+            result = cl.root.get_packet_list()
+        except EOFError:
+            LOG.error("Lost connection to RPC Host")
+            self._rpc_client = None
+        return result
+
+    def get_watch_list(self):
+        cl = self.get_rpc_client()
+        result = None
+        if not cl:
+            return result
+        try:
+            result = cl.root.get_watch_list()
+        except EOFError:
+            LOG.error("Lost connection to RPC Host")
+            self._rpc_client = None
+        return result
+
+    def get_seen_list(self):
+        cl = self.get_rpc_client()
+        result = None
+        if not cl:
+            return result
+        try:
+            result = cl.root.get_seen_list()
+        except EOFError:
+            LOG.error("Lost connection to RPC Host")
+            self._rpc_client = None
+        return result
+
+    def get_log_entries(self):
+        cl = self.get_rpc_client()
+        result = None
+        if not cl:
+            return result
+        try:
+            result_str = cl.root.get_log_entries()
+            result = json.loads(result_str)
+        except EOFError:
+            LOG.error("Lost connection to RPC Host")
+            self._rpc_client = None
+        return result
 
 
 class APRSDFlask(flask_classful.FlaskView):
-    config = None
 
-    def set_config(self, config):
+    def set_config(self):
         global users
-        self.config = config
         self.users = {}
-        for user in self.config["aprsd"]["web"]["users"]:
-            self.users[user] = generate_password_hash(
-                self.config["aprsd"]["web"]["users"][user],
-            )
-
+        user = CONF.admin.user
+        self.users[user] = generate_password_hash(CONF.admin.password)
         users = self.users
 
     @auth.login_required
     def index(self):
         stats = self._stats()
+        print(stats)
         LOG.debug(
             "watch list? {}".format(
-                self.config["aprsd"]["watch_list"],
+                CONF.watch_list.callsigns,
             ),
         )
-        wl = packets.WatchList()
-        if wl.is_enabled():
+        wl = RPCClient().get_watch_list()
+        if wl and wl.is_enabled():
             watch_count = len(wl)
             watch_age = wl.max_delta()
         else:
             watch_count = 0
             watch_age = 0
 
-        sl = packets.SeenList()
-        seen_count = len(sl)
+        sl = RPCClient().get_seen_list()
+        if sl:
+            seen_count = len(sl)
+        else:
+            seen_count = 0
 
         pm = plugin.PluginManager()
         plugins = pm.get_plugins()
         plugin_count = len(plugins)
 
-        if self.config["aprs"].get("enabled", True):
+        if CONF.aprs_network.enabled:
             transport = "aprs-is"
             aprs_connection = (
                 "APRS-IS Server: <a href='http://status.aprs2.net' >"
@@ -325,33 +220,37 @@ class APRSDFlask(flask_classful.FlaskView):
             )
         else:
             # We might be connected to a KISS socket?
-            if client.KISSClient.kiss_enabled(self.config):
-                transport = client.KISSClient.transport(self.config)
+            if client.KISSClient.kiss_enabled():
+                transport = client.KISSClient.transport()
                 if transport == client.TRANSPORT_TCPKISS:
                     aprs_connection = (
                         "TCPKISS://{}:{}".format(
-                            self.config["kiss"]["tcp"]["host"],
-                            self.config["kiss"]["tcp"]["port"],
+                            CONF.kiss_tcp.host,
+                            CONF.kiss_tcp.port,
                         )
                     )
                 elif transport == client.TRANSPORT_SERIALKISS:
                     aprs_connection = (
                         "SerialKISS://{}@{} baud".format(
-                            self.config["kiss"]["serial"]["device"],
-                            self.config["kiss"]["serial"]["baudrate"],
+                            CONF.kiss_serial.device,
+                            CONF.kiss_serial.baudrate,
                         )
                     )
 
         stats["transport"] = transport
         stats["aprs_connection"] = aprs_connection
+        entries = conf.conf_to_dict()
 
         return flask.render_template(
             "index.html",
             initial_stats=stats,
             aprs_connection=aprs_connection,
-            callsign=self.config["aprs"]["login"],
+            callsign=CONF.callsign,
             version=aprsd.__version__,
-            config_json=json.dumps(self.config.data),
+            config_json=json.dumps(
+                entries, indent=4,
+                sort_keys=True, default=str,
+            ),
             watch_count=watch_count,
             watch_age=watch_age,
             seen_count=seen_count,
@@ -369,31 +268,17 @@ class APRSDFlask(flask_classful.FlaskView):
         return flask.render_template("messages.html", messages=json.dumps(msgs))
 
     @auth.login_required
-    def send_message_status(self):
-        LOG.debug(request)
-        msgs = SentMessages()
-        info = msgs.get_all()
-        return json.dumps(info)
-
-    @auth.login_required
-    def send_message(self):
-        LOG.debug(request)
-        if request.method == "GET":
-            return flask.render_template(
-                "send-message.html",
-                callsign=self.config["aprs"]["login"],
-                version=aprsd.__version__,
-            )
-
-    @auth.login_required
     def packets(self):
-        packet_list = packets.PacketList().get()
-        tmp_list = []
-        for pkt in packet_list:
-            tmp_list.append(pkt.json)
+        packet_list = RPCClient().get_packet_list()
+        if packet_list:
+            packets = packet_list.get()
+            tmp_list = []
+            for pkt in packets:
+                tmp_list.append(pkt.json)
 
-        LOG.info(f"PACKETS {tmp_list}")
-        return json.dumps(tmp_list)
+            return json.dumps(tmp_list)
+        else:
+            return json.dumps([])
 
     @auth.login_required
     def plugins(self):
@@ -410,39 +295,69 @@ class APRSDFlask(flask_classful.FlaskView):
         return json.dumps({"messages": "saved"})
 
     def _stats(self):
-        stats_obj = stats.APRSDStats()
-        track = packets.PacketTrack()
+        track = RPCClient().get_packet_track()
         now = datetime.datetime.now()
 
         time_format = "%m-%d-%Y %H:%M:%S"
 
-        stats_dict = stats_obj.stats()
-
-        # Convert the watch_list entries to age
-        wl = packets.WatchList()
-        new_list = {}
-        for call in wl.get_all():
-            # call_date = datetime.datetime.strptime(
-            #    str(wl.last_seen(call)),
-            #    "%Y-%m-%d %H:%M:%S.%f",
-            # )
-            new_list[call] = {
-                "last": wl.age(call),
-                "packets": wl.get(call)["packets"].get(),
+        stats_dict = RPCClient().get_stats_dict()
+        if not stats_dict:
+            stats_dict = {
+                "aprsd": {},
+                "aprs-is": {"server": ""},
+                "messages": {
+                    "sent": 0,
+                    "received": 0,
+                },
+                "email": {
+                    "sent": 0,
+                    "received": 0,
+                },
+                "seen_list": {
+                    "sent": 0,
+                    "received": 0,
+                },
             }
 
+        # Convert the watch_list entries to age
+        wl = RPCClient().get_watch_list()
+        new_list = {}
+        if wl:
+            for call in wl.get_all():
+                # call_date = datetime.datetime.strptime(
+                #    str(wl.last_seen(call)),
+                #    "%Y-%m-%d %H:%M:%S.%f",
+                # )
+
+                # We have to convert the RingBuffer to a real list
+                # so that json.dumps works.
+                # pkts = []
+                # for pkt in wl.get(call)["packets"].get():
+                #     pkts.append(pkt)
+
+                new_list[call] = {
+                    "last": wl.age(call),
+                    # "packets": pkts
+                }
+
         stats_dict["aprsd"]["watch_list"] = new_list
-        packet_list = packets.PacketList()
-        rx = packet_list.total_rx()
-        tx = packet_list.total_tx()
+        packet_list = RPCClient().get_packet_list()
+        rx = tx = 0
+        if packet_list:
+            rx = packet_list.total_rx()
+            tx = packet_list.total_tx()
         stats_dict["packets"] = {
             "sent": tx,
             "received": rx,
         }
+        if track:
+            size_tracker = len(track)
+        else:
+            size_tracker = 0
 
         result = {
             "time": now.strftime(time_format),
-            "size_tracker": len(track),
+            "size_tracker": size_tracker,
             "stats": stats_dict,
         }
 
@@ -452,139 +367,58 @@ class APRSDFlask(flask_classful.FlaskView):
         return json.dumps(self._stats())
 
 
-class SendMessageNamespace(Namespace):
-    _config = None
-    got_ack = False
-    reply_sent = False
-    packet = None
-    request = None
-
-    def __init__(self, namespace=None, config=None):
-        self._config = config
-        super().__init__(namespace)
-
-    def on_connect(self):
-        global socketio
-        LOG.debug("Web socket connected")
-        socketio.emit(
-            "connected", {"data": "/sendmsg Connected"},
-            namespace="/sendmsg",
-        )
-
-    def on_disconnect(self):
-        LOG.debug("WS Disconnected")
-
-    def on_send(self, data):
-        global socketio
-        LOG.debug(f"WS: on_send {data}")
-        self.request = data
-        self.packet = packets.MessagePacket(
-            from_call=data["from"],
-            to_call=data["to"],
-            message_text=data["message"],
-        )
-        msgs = SentMessages()
-        msgs.add(self.packet)
-        msgs.set_status(self.packet.msgNo, "Sending")
-        socketio.emit(
-            "sent", SentMessages().get(self.packet.msgNo),
-            namespace="/sendmsg",
-        )
-
-        socketio.start_background_task(
-            self._start, self._config, data,
-            self.packet, self,
-        )
-        LOG.warning("WS: on_send: exit")
-
-    def _start(self, config, data, packet, namespace):
-        msg_thread = SendMessageThread(self._config, data, packet, self)
-        msg_thread.start()
-
-    def handle_message(self, data):
-        LOG.debug(f"WS Data {data}")
-
-    def handle_json(self, data):
-        LOG.debug(f"WS json {data}")
-
-
-class LogMonitorThread(threads.APRSDThread):
+class LogUpdateThread(threads.APRSDThread):
 
     def __init__(self):
-        super().__init__("LogMonitorThread")
+        super().__init__("LogUpdate")
 
     def loop(self):
         global socketio
-        try:
-            record = log.logging_queue.get(block=True, timeout=5)
-            json_record = self.json_record(record)
-            socketio.emit(
-                "log_entry", json_record,
-                namespace="/logs",
-            )
-        except Exception:
-            # Just ignore thi
-            pass
 
+        if socketio:
+            log_entries = RPCClient().get_log_entries()
+
+            if log_entries:
+                for entry in log_entries:
+                    socketio.emit(
+                        "log_entry", entry,
+                        namespace="/logs",
+                    )
+
+        time.sleep(5)
         return True
-
-    def json_record(self, record):
-        entry = {}
-        entry["filename"] = record.filename
-        entry["funcName"] = record.funcName
-        entry["levelname"] = record.levelname
-        entry["lineno"] = record.lineno
-        entry["module"] = record.module
-        entry["name"] = record.name
-        entry["pathname"] = record.pathname
-        entry["process"] = record.process
-        entry["processName"] = record.processName
-        if hasattr(record, "stack_info"):
-            entry["stack_info"] = record.stack_info
-        else:
-            entry["stack_info"] = None
-        entry["thread"] = record.thread
-        entry["threadName"] = record.threadName
-        entry["message"] = record.getMessage()
-        return entry
 
 
 class LoggingNamespace(Namespace):
+    log_thread = None
 
     def on_connect(self):
         global socketio
-        LOG.debug("Web socket connected")
         socketio.emit(
             "connected", {"data": "/logs Connected"},
             namespace="/logs",
         )
-        self.log_thread = LogMonitorThread()
+        self.log_thread = LogUpdateThread()
         self.log_thread.start()
 
     def on_disconnect(self):
-        LOG.debug("WS Disconnected")
-        self.log_thread.stop()
+        LOG.debug("LOG Disconnected")
+        if self.log_thread:
+            self.log_thread.stop()
 
 
-def setup_logging(config, flask_app, loglevel, quiet):
+def setup_logging(flask_app, loglevel, quiet):
     flask_log = logging.getLogger("werkzeug")
     flask_app.logger.removeHandler(default_handler)
     flask_log.removeHandler(default_handler)
 
-    log_level = aprsd_config.LOG_LEVELS[loglevel]
+    log_level = conf.log.LOG_LEVELS[loglevel]
     flask_log.setLevel(log_level)
-    date_format = config["aprsd"].get(
-        "dateformat",
-        aprsd_config.DEFAULT_DATE_FORMAT,
-    )
+    date_format = CONF.logging.date_format
+    flask_log.disabled = True
+    flask_app.logger.disabled = True
 
-    if not config["aprsd"]["web"].get("logging_enabled", False):
-        # disable web logging
-        flask_log.disabled = True
-        flask_app.logger.disabled = True
-        return
-
-    if config["aprsd"].get("rich_logging", False) and not quiet:
+    if CONF.logging.rich_logging:
         log_format = "%(message)s"
         log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         rh = aprsd_logging.APRSDRichHandler(
@@ -594,13 +428,10 @@ def setup_logging(config, flask_app, loglevel, quiet):
         rh.setFormatter(log_formatter)
         flask_log.addHandler(rh)
 
-    log_file = config["aprsd"].get("logfile", None)
+    log_file = CONF.logging.logfile
 
     if log_file:
-        log_format = config["aprsd"].get(
-            "logformat",
-            aprsd_config.DEFAULT_LOG_FORMAT,
-        )
+        log_format = CONF.logging.logformat
         log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         fh = RotatingFileHandler(
             log_file, maxBytes=(10248576 * 5),
@@ -610,7 +441,7 @@ def setup_logging(config, flask_app, loglevel, quiet):
         flask_log.addHandler(fh)
 
 
-def init_flask(config, loglevel, quiet):
+def init_flask(loglevel, quiet):
     global socketio
 
     flask_app = flask.Flask(
@@ -619,15 +450,13 @@ def init_flask(config, loglevel, quiet):
         static_folder="web/admin/static",
         template_folder="web/admin/templates",
     )
-    setup_logging(config, flask_app, loglevel, quiet)
+    setup_logging(flask_app, loglevel, quiet)
     server = APRSDFlask()
-    server.set_config(config)
+    server.set_config()
     flask_app.route("/", methods=["GET"])(server.index)
     flask_app.route("/stats", methods=["GET"])(server.stats)
     flask_app.route("/messages", methods=["GET"])(server.messages)
     flask_app.route("/packets", methods=["GET"])(server.packets)
-    flask_app.route("/send-message", methods=["GET"])(server.send_message)
-    flask_app.route("/send-message-status", methods=["GET"])(server.send_message_status)
     flask_app.route("/save", methods=["GET"])(server.save)
     flask_app.route("/plugins", methods=["GET"])(server.plugins)
 
@@ -637,7 +466,21 @@ def init_flask(config, loglevel, quiet):
     )
     #    import eventlet
     #    eventlet.monkey_patch()
+    gunicorn_logger = logging.getLogger("gunicorn.error")
+    flask_app.logger.handlers = gunicorn_logger.handlers
+    flask_app.logger.setLevel(gunicorn_logger.level)
 
-    socketio.on_namespace(SendMessageNamespace("/sendmsg", config=config))
     socketio.on_namespace(LoggingNamespace("/logs"))
     return socketio, flask_app
+
+
+if __name__ == "aprsd.flask":
+    try:
+        default_config_file = cli_helper.DEFAULT_CONFIG_FILE
+        CONF(
+            [], project="aprsd", version=aprsd.__version__,
+            default_config_files=[default_config_file],
+        )
+    except cfg.ConfigFilesNotFoundError:
+        pass
+    sio, app = init_flask("DEBUG", False)

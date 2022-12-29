@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:focal as aprsd
+FROM ubuntu:22.04
 
 # Dockerfile for building a container during aprsd development.
 ARG BRANCH=master
@@ -55,7 +55,7 @@ RUN ls -al /usr/local/bin
 RUN ls -al /usr/bin
 RUN which aprsd
 RUN mkdir -p /config
-RUN aprsd sample-config > /config/aprsd.yml
+RUN aprsd sample-config > /config/aprsd.conf
 RUN chown -R $APRS_USER:$APRS_USER /config
 
 # override this to run another configuration
@@ -67,4 +67,4 @@ ADD bin/run.sh $HOME/
 ENTRYPOINT ["/home/aprs/run.sh"]
 
 HEALTHCHECK --interval=5m --timeout=12s --start-period=30s \
-    CMD aprsd healthcheck --config /config/aprsd.yml --url http://localhost:8001/stats
+    CMD aprsd healthcheck --config /config/aprsd.conf --url http://localhost:8001/stats

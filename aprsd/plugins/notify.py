@@ -1,8 +1,11 @@
 import logging
 
+from oslo_config import cfg
+
 from aprsd import packets, plugin
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -20,7 +23,7 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
     def process(self, packet: packets.MessagePacket):
         LOG.info("NotifySeenPlugin")
 
-        notify_callsign = self.config["aprsd"]["watch_list"]["alert_callsign"]
+        notify_callsign = CONF.watch_list.alert_callsign
         fromcall = packet.from_call
 
         wl = packets.WatchList()
@@ -38,7 +41,7 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                 packet_type = packet.__class__.__name__
                 # we shouldn't notify the alert user that they are online.
                 pkt = packets.MessagePacket(
-                    from_call=self.config["aprsd"]["callsign"],
+                    from_call=CONF.callsign,
                     to_call=notify_callsign,
                     message_text=(
                         f"{fromcall} was just seen by type:'{packet_type}'"

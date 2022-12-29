@@ -2,12 +2,14 @@ import logging
 import re
 import time
 
+from oslo_config import cfg
 import pytz
 
 from aprsd import packets, plugin, plugin_utils
 from aprsd.utils import fuzzy, trace
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -74,7 +76,7 @@ class TimeOWMPlugin(TimePlugin, plugin.APRSFIKEYMixin):
             # if no second argument, search for calling station
             searchcall = fromcall
 
-        api_key = self.config["services"]["aprs.fi"]["apiKey"]
+        api_key = CONF.aprs_fi.apiKey
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:

@@ -5,13 +5,16 @@ import time
 import aprslib
 from aprslib.exceptions import LoginError
 import click
+from oslo_config import cfg
 
 import aprsd
 from aprsd import cli_helper, client, packets
+from aprsd import conf  # noqa : F401
 from aprsd.aprsd import cli
 from aprsd.threads import tx
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -62,24 +65,24 @@ def send_message(
 ):
     """Send a message to a callsign via APRS_IS."""
     global got_ack, got_response
-    config = ctx.obj["config"]
     quiet = ctx.obj["quiet"]
 
     if not aprs_login:
-        if not config.exists("aprs.login"):
+        if CONF.aprs_network.login == conf.client.DEFAULT_LOGIN:
             click.echo("Must set --aprs_login or APRS_LOGIN")
             ctx.exit(-1)
             return
-    else:
-        config["aprs"]["login"] = aprs_login
+        else:
+            aprs_login = CONF.aprs_network.login
 
     if not aprs_password:
-        if not config.exists("aprs.password"):
+        LOG.warning(CONF.aprs_network.password)
+        if not CONF.aprs_network.password:
             click.echo("Must set --aprs-password or APRS_PASSWORD")
             ctx.exit(-1)
             return
-    else:
-        config["aprs"]["password"] = aprs_password
+        else:
+            aprs_password = CONF.aprs_network.password
 
     LOG.info(f"APRSD LISTEN Started version: {aprsd.__version__}")
     if type(command) is tuple:
@@ -90,9 +93,9 @@ def send_message(
         else:
             LOG.info(f"L'{aprs_login}' To'{tocallsign}' C'{command}'")
 
-    packets.PacketList(config=config)
-    packets.WatchList(config=config)
-    packets.SeenList(config=config)
+    packets.PacketList()
+    packets.WatchList()
+    packets.SeenList()
 
     got_ack = False
     got_response = False
@@ -109,7 +112,7 @@ def send_message(
         else:
             got_response = True
             from_call = packet.from_call
-            our_call = config["aprsd"]["callsign"].lower()
+            our_call = CONF.callsign.lower()
             tx.send(
                 packets.AckPacket(
                     from_call=our_call,
@@ -127,7 +130,7 @@ def send_message(
                 sys.exit(0)
 
     try:
-        client.ClientFactory.setup(config)
+        client.ClientFactory.setup()
         client.factory.create().client
     except LoginError:
         sys.exit(-1)

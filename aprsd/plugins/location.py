@@ -2,10 +2,13 @@ import logging
 import re
 import time
 
+from oslo_config import cfg
+
 from aprsd import packets, plugin, plugin_utils
 from aprsd.utils import trace
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
@@ -24,9 +27,8 @@ class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
         LOG.info("Location Plugin")
         fromcall = packet.from_call
         message = packet.get("message_text", None)
-        # ack = packet.get("msgNo", "0")
 
-        api_key = self.config["services"]["aprs.fi"]["apiKey"]
+        api_key = CONF.aprs_fi.apiKey
 
         # optional second argument is a callsign to search
         a = re.search(r"^.*\s+(.*)", message)

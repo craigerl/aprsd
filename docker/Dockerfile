@@ -41,7 +41,7 @@ RUN pip install aprsd==$APRSD_PIP_VERSION
 # Ensure /config is there with a default config file
 USER root
 RUN mkdir -p /config
-RUN aprsd sample-config > /config/aprsd.yml
+RUN aprsd sample-config > /config/aprsd.conf
 RUN chown -R $APRS_USER:$APRS_USER /config
 
 # override this to run another configuration
@@ -53,4 +53,4 @@ ADD bin/run.sh /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/run.sh"]
 
 HEALTHCHECK --interval=5m --timeout=12s --start-period=30s \
-    CMD aprsd healthcheck --config /config/aprsd.yml --url http://localhost:8001/stats
+    CMD aprsd healthcheck --config /config/aprsd.conf --url http://localhost:8001/stats
