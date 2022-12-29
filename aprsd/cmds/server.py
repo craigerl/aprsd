@@ -86,7 +86,6 @@ def server(ctx, flush):
         packets.WatchList().load()
         packets.SeenList().load()
 
-
     rx_thread = rx.APRSDPluginRXThread(
         packet_queue=threads.packet_queue,
     )

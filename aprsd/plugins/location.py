@@ -15,7 +15,7 @@ LOG = logging.getLogger("APRSD")
 class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
     """Location!"""
 
-    command_regex = "^[lL]"
+    command_regex = r"^([l]|[l]\s|location)"
     command_name = "location"
     short_description = "Where in the world is a CALLSIGN's last GPS beacon?"
 

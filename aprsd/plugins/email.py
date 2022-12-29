@@ -76,9 +76,24 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
         """Ensure that email is enabled and start the thread."""
         if CONF.email_plugin.enabled:
             self.enabled = True
+
+            if not CONF.email_plugin.callsign:
+                self.enabled = False
+                LOG.error("email_plugin.callsign is not set.")
+                return
+
+            if not CONF.email_plugin.imap_login:
+                LOG.error("email_plugin.imap_login not set. Disabling Plugin")
+                self.enabled = False
+                return
+
+            if not CONF.email_plugin.smtp_login:
+                LOG.error("email_plugin.smtp_login not set. Disabling Plugin")
+                self.enabled = False
+                return
+
             shortcuts = _build_shortcuts_dict()
             LOG.info(f"Email shortcuts {shortcuts}")
-
         else:
             LOG.info("Email services not enabled.")
             self.enabled = False

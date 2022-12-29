@@ -228,7 +228,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
             and isinstance(packet, packets.core.MessagePacket)
             and message
         ):
-            if re.search(self.command_regex, message):
+            if re.search(self.command_regex, message, re.IGNORECASE):
                 self.rx_inc()
                 try:
                     result = self.process(packet)
@@ -262,7 +262,6 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
     This plugin is in this file to prevent a circular import.
     """
 
-    version = "1.0"
     command_regex = "^[hH]"
     command_name = "help"
 

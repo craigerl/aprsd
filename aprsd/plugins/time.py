@@ -16,7 +16,8 @@ LOG = logging.getLogger("APRSD")
 class TimePlugin(plugin.APRSDRegexCommandPluginBase):
     """Time command."""
 
-    command_regex = "^[tT]"
+    # Look for t or t<space> or T<space> or time
+    command_regex = r"^([t]|[t]\s|time)"
     command_name = "time"
     short_description = "What is the current local time."
 
@@ -54,7 +55,7 @@ class TimePlugin(plugin.APRSDRegexCommandPluginBase):
 class TimeOWMPlugin(TimePlugin, plugin.APRSFIKEYMixin):
     """OpenWeatherMap based timezone fetching."""
 
-    command_regex = "^[tT]"
+    command_regex = r"^([t]|[t]\s|time)"
     command_name = "time"
     short_description = "Current time of GPS beacon's timezone. Uses OpenWeatherMap"
 

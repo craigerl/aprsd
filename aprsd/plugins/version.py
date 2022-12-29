@@ -10,7 +10,7 @@ LOG = logging.getLogger("APRSD")
 class VersionPlugin(plugin.APRSDRegexCommandPluginBase):
     """Version of APRSD Plugin."""
 
-    command_regex = "^[vV]"
+    command_regex = r"^([v]|[v]\s|version)"
     command_name = "version"
     short_description = "What is the APRSD Version"
 

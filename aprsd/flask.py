@@ -462,7 +462,7 @@ def init_flask(loglevel, quiet):
 
     socketio = SocketIO(
         flask_app, logger=False, engineio_logger=False,
-        async_mode="threading",
+        # async_mode="threading",
     )
     #    import eventlet
     #    eventlet.monkey_patch()
