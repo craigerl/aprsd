@@ -137,6 +137,7 @@ enabled_plugins_opts = [
             "aprsd.plugins.time.TimePlugin",
             "aprsd.plugins.weather.OWMWeatherPlugin",
             "aprsd.plugins.version.VersionPlugin",
+            "aprsd.plugins.notify.NotifySeenPlugin",
         ],
         help="Comma separated list of enabled plugins for APRSD."
              "To enable installed external plugins add them here."

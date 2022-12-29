@@ -44,11 +44,21 @@ def server(ctx, flush):
         LOG.info(msg)
     LOG.info(f"APRSD Started version: {aprsd.__version__}")
 
-    CONF.log_opt_values(LOG, logging.DEBUG)
-
     # Initialize the client factory and create
     # The correct client object ready for use
     client.ClientFactory.setup()
+
+    # Create the initial PM singleton and Register plugins
+    # We register plugins first here so we can register each
+    # plugins config options, so we can dump them all in the
+    # log file output.
+    LOG.info("Loading Plugin Manager and registering plugins")
+    plugin_manager = plugin.PluginManager()
+    plugin_manager.setup_plugins()
+
+    # Dump all the config options now.
+    CONF.log_opt_values(LOG, logging.DEBUG)
+
     # Make sure we have 1 client transport enabled
     if not client.factory.is_client_enabled():
         LOG.error("No Clients are enabled in config.")
@@ -59,16 +69,16 @@ def server(ctx, flush):
         sys.exit(-1)
 
     # Creates the client object
-    LOG.info("Creating client connection")
-    client.factory.create().client
+    # LOG.info("Creating client connection")
+    # client.factory.create().client
 
     # Now load the msgTrack from disk if any
     packets.PacketList()
     if flush:
         LOG.debug("Deleting saved MsgTrack.")
         packets.PacketTrack().flush()
-        packets.WatchList()
-        packets.SeenList()
+        packets.WatchList().flush()
+        packets.SeenList().flush()
     else:
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
@@ -76,10 +86,6 @@ def server(ctx, flush):
         packets.WatchList().load()
         packets.SeenList().load()
 
-    # Create the initial PM singleton and Register plugins
-    LOG.info("Loading Plugin Manager and registering plugins")
-    plugin_manager = plugin.PluginManager()
-    plugin_manager.setup_plugins()
 
     rx_thread = rx.APRSDPluginRXThread(
         packet_queue=threads.packet_queue,

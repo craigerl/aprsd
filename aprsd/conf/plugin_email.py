@@ -9,7 +9,6 @@ email_group = cfg.OptGroup(
 email_opts = [
     cfg.StrOpt(
         "callsign",
-        required=True,
         help="(Required) Callsign to validate for doing email commands."
              "Only this callsign can check email. This is also where the "
              "email notifications for new emails will be sent.",
