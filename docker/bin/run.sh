@@ -20,7 +20,7 @@ fi
 echo "Log level is set to ${LOG_LEVEL}";
 
 # check to see if there is a config file
-APRSD_CONFIG="/config/aprsd.yml"
+APRSD_CONFIG="/config/aprsd.conf"
 if [ ! -e "$APRSD_CONFIG" ]; then
     echo "'$APRSD_CONFIG' File does not exist. Creating."
     aprsd sample-config > $APRSD_CONFIG
