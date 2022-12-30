@@ -58,6 +58,10 @@ class APRSDStats:
             "tx": 0,
             "rx": 0,
         },
+        "ObjectPacket": {
+            "tx": 0,
+            "rx": 0,
+        },
     }
 
     def __new__(cls, *args, **kwargs):
@@ -110,12 +114,22 @@ class APRSDStats:
         self._aprsis_keepalive = datetime.datetime.now()
 
     def rx(self, packet):
-        type = packet.__class__.__name__
-        self._pkt_cnt[type]["rx"] += 1
+        pkt_type = packet.__class__.__name__
+        if pkt_type not in self._pkt_cnt:
+            self._pkt_cnt[pkt_type] = {
+                "tx": 0,
+                "rx": 0,
+            }
+        self._pkt_cnt[pkt_type]["rx"] += 1
 
     def tx(self, packet):
-        type = packet.__class__.__name__
-        self._pkt_cnt[type]["tx"] += 1
+        pkt_type = packet.__class__.__name__
+        if pkt_type not in self._pkt_cnt:
+            self._pkt_cnt[pkt_type] = {
+                "tx": 0,
+                "rx": 0,
+            }
+        self._pkt_cnt[pkt_type]["tx"] += 1
 
     @wrapt.synchronized(lock)
     @property
