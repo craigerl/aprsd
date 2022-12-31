@@ -10,13 +10,12 @@ import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
 from oslo_config import cfg
-import rpyc
 from werkzeug.security import check_password_hash, generate_password_hash
 
 import aprsd
 from aprsd import cli_helper, client, conf, packets, plugin, threads
-from aprsd.conf import common
 from aprsd.logging import rich as aprsd_logging
+from aprsd.rpc import client as aprsd_rpc_client
 
 
 CONF = cfg.CONF
@@ -25,19 +24,6 @@ LOG = logging.getLogger("APRSD")
 auth = HTTPBasicAuth()
 users = None
 app = None
-
-
-class AuthSocketStream(rpyc.SocketStream):
-    """Used to authenitcate the RPC stream to remote."""
-
-    @classmethod
-    def connect(cls, *args, authorizer=None, **kwargs):
-        stream_obj = super().connect(*args, **kwargs)
-
-        if callable(authorizer):
-            authorizer(stream_obj.sock)
-
-        return stream_obj
 
 
 # HTTPBasicAuth doesn't work on a class method.
@@ -49,131 +35,6 @@ def verify_password(username, password):
 
     if username in users and check_password_hash(users.get(username), password):
         return username
-
-
-class RPCClient:
-    _instance = None
-    _rpc_client = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self):
-        self._check_settings()
-        self.get_rpc_client()
-
-    def _check_settings(self):
-        if not CONF.rpc_settings.enabled:
-            LOG.error("RPC is not enabled, no way to get stats!!")
-
-        if CONF.rpc_settings.magic_word == common.APRSD_DEFAULT_MAGIC_WORD:
-            LOG.warning("You are using the default RPC magic word!!!")
-            LOG.warning("edit aprsd.conf and change rpc_settings.magic_word")
-
-    def _rpyc_connect(
-        self, host, port,
-        service=rpyc.VoidService,
-        config={}, ipv6=False,
-        keepalive=False, authorizer=None,
-    ):
-
-        print(f"Connecting to RPC host {host}:{port}")
-        try:
-            s = AuthSocketStream.connect(
-                host, port, ipv6=ipv6, keepalive=keepalive,
-                authorizer=authorizer,
-            )
-            return rpyc.utils.factory.connect_stream(s, service, config=config)
-        except ConnectionRefusedError:
-            LOG.error(f"Failed to connect to RPC host {host}")
-            return None
-
-    def get_rpc_client(self):
-        if not self._rpc_client:
-            magic = CONF.rpc_settings.magic_word
-            self._rpc_client = self._rpyc_connect(
-                CONF.rpc_settings.ip,
-                CONF.rpc_settings.port,
-                authorizer=lambda sock: sock.send(magic.encode()),
-            )
-        return self._rpc_client
-
-    def get_stats_dict(self):
-        cl = self.get_rpc_client()
-        result = {}
-        if not cl:
-            return result
-
-        try:
-            rpc_stats_dict = cl.root.get_stats()
-            result = json.loads(rpc_stats_dict)
-        except EOFError:
-            LOG.error("Lost connection to RPC Host")
-            self._rpc_client = None
-        return result
-
-    def get_packet_track(self):
-        cl = self.get_rpc_client()
-        result = None
-        if not cl:
-            return result
-        try:
-            result = cl.root.get_packet_track()
-        except EOFError:
-            LOG.error("Lost connection to RPC Host")
-            self._rpc_client = None
-        return result
-
-    def get_packet_list(self):
-        cl = self.get_rpc_client()
-        result = None
-        if not cl:
-            return result
-        try:
-            result = cl.root.get_packet_list()
-        except EOFError:
-            LOG.error("Lost connection to RPC Host")
-            self._rpc_client = None
-        return result
-
-    def get_watch_list(self):
-        cl = self.get_rpc_client()
-        result = None
-        if not cl:
-            return result
-        try:
-            result = cl.root.get_watch_list()
-        except EOFError:
-            LOG.error("Lost connection to RPC Host")
-            self._rpc_client = None
-        return result
-
-    def get_seen_list(self):
-        cl = self.get_rpc_client()
-        result = None
-        if not cl:
-            return result
-        try:
-            result = cl.root.get_seen_list()
-        except EOFError:
-            LOG.error("Lost connection to RPC Host")
-            self._rpc_client = None
-        return result
-
-    def get_log_entries(self):
-        cl = self.get_rpc_client()
-        result = None
-        if not cl:
-            return result
-        try:
-            result_str = cl.root.get_log_entries()
-            result = json.loads(result_str)
-        except EOFError:
-            LOG.error("Lost connection to RPC Host")
-            self._rpc_client = None
-        return result
 
 
 class APRSDFlask(flask_classful.FlaskView):
@@ -194,7 +55,7 @@ class APRSDFlask(flask_classful.FlaskView):
                 CONF.watch_list.callsigns,
             ),
         )
-        wl = RPCClient().get_watch_list()
+        wl = aprsd_rpc_client.RPCClient().get_watch_list()
         if wl and wl.is_enabled():
             watch_count = len(wl)
             watch_age = wl.max_delta()
@@ -202,7 +63,7 @@ class APRSDFlask(flask_classful.FlaskView):
             watch_count = 0
             watch_age = 0
 
-        sl = RPCClient().get_seen_list()
+        sl = aprsd_rpc_client.RPCClient().get_seen_list()
         if sl:
             seen_count = len(sl)
         else:
@@ -269,7 +130,7 @@ class APRSDFlask(flask_classful.FlaskView):
 
     @auth.login_required
     def packets(self):
-        packet_list = RPCClient().get_packet_list()
+        packet_list = aprsd_rpc_client.RPCClient().get_packet_list()
         if packet_list:
             packets = packet_list.get()
             tmp_list = []
@@ -295,12 +156,12 @@ class APRSDFlask(flask_classful.FlaskView):
         return json.dumps({"messages": "saved"})
 
     def _stats(self):
-        track = RPCClient().get_packet_track()
+        track = aprsd_rpc_client.RPCClient().get_packet_track()
         now = datetime.datetime.now()
 
         time_format = "%m-%d-%Y %H:%M:%S"
 
-        stats_dict = RPCClient().get_stats_dict()
+        stats_dict = aprsd_rpc_client.RPCClient().get_stats_dict()
         if not stats_dict:
             stats_dict = {
                 "aprsd": {},
@@ -320,7 +181,7 @@ class APRSDFlask(flask_classful.FlaskView):
             }
 
         # Convert the watch_list entries to age
-        wl = RPCClient().get_watch_list()
+        wl = aprsd_rpc_client.RPCClient().get_watch_list()
         new_list = {}
         if wl:
             for call in wl.get_all():
@@ -341,7 +202,7 @@ class APRSDFlask(flask_classful.FlaskView):
                 }
 
         stats_dict["aprsd"]["watch_list"] = new_list
-        packet_list = RPCClient().get_packet_list()
+        packet_list = aprsd_rpc_client.RPCClient().get_packet_list()
         rx = tx = 0
         if packet_list:
             rx = packet_list.total_rx()
@@ -376,7 +237,7 @@ class LogUpdateThread(threads.APRSDThread):
         global socketio
 
         if socketio:
-            log_entries = RPCClient().get_log_entries()
+            log_entries = aprsd_rpc_client.RPCClient().get_log_entries()
 
             if log_entries:
                 for entry in log_entries:

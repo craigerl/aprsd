@@ -53,4 +53,4 @@ ADD bin/run.sh /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/run.sh"]
 
 HEALTHCHECK --interval=5m --timeout=12s --start-period=30s \
-    CMD aprsd healthcheck --config /config/aprsd.conf --url http://localhost:8001/stats
+    CMD aprsd healthcheck --config /config/aprsd.conf
