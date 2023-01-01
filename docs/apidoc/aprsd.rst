@@ -13,6 +13,7 @@ Subpackages
    aprsd.logging
    aprsd.packets
    aprsd.plugins
+   aprsd.rpc
    aprsd.threads
    aprsd.utils
    aprsd.web
@@ -80,14 +81,6 @@ aprsd.plugin\_utils module
 --------------------------
 
 .. automodule:: aprsd.plugin_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.rpc\_server module
-------------------------
-
-.. automodule:: aprsd.rpc_server
    :members:
    :undoc-members:
    :show-inheritance:
