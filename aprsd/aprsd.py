@@ -21,7 +21,7 @@
 
 # python included libs
 import datetime
-from importlib.metadata import entry_points
+import importlib.metadata as imp
 from importlib.metadata import version as metadata_version
 import logging
 import os
@@ -112,6 +112,8 @@ def check_version(ctx):
         click.secho(msg, fg="green")
 
 
+
+
 @cli.command()
 @click.pass_context
 def sample_config(ctx):
@@ -120,7 +122,12 @@ def sample_config(ctx):
     def get_namespaces():
         args = []
 
-        selected = entry_points(group="oslo.config.opts")
+        all = imp.entry_points()
+        selected = []
+        if "oslo.config.opts" in all:
+            for x in all["oslo.config.opts"]:
+                if x.group == "oslo.config.opts":
+                    selected.append(x)
         for entry in selected:
             if "aprsd" in entry.name:
                 args.append("--namespace")
