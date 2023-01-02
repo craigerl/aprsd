@@ -38,7 +38,7 @@ aprs_opts = [
              "Get the passcode for your callsign here: "
              "https://apps.magicbug.co.uk/passcode",
     ),
-    cfg.HostnameOpt(
+    cfg.HostAddressOpt(
         "host",
         default="noam.aprs2.net",
         help="The APRS-IS hostname",
@@ -73,7 +73,7 @@ kiss_tcp_opts = [
         default=False,
         help="Enable Serial KISS interface connection.",
     ),
-    cfg.HostnameOpt(
+    cfg.HostAddressOpt(
         "host",
         help="The KISS TCP Host to connect to.",
     ),

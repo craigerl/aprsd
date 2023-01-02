@@ -199,16 +199,17 @@ class KISSClient(Client):
 
     def decode_packet(self, *args, **kwargs):
         """We get a frame, which has to be decoded."""
+        LOG.debug(f"kwargs {kwargs}")
         frame = kwargs["frame"]
         LOG.debug(f"Got an APRS Frame '{frame}'")
         # try and nuke the * from the fromcall sign.
-        frame.header._source._ch = False
-        payload = str(frame.payload.decode())
-        msg = f"{str(frame.header)}:{payload}"
+        # frame.header._source._ch = False
+        # payload = str(frame.payload.decode())
+        # msg = f"{str(frame.header)}:{payload}"
         # msg = frame.tnc2
-        LOG.debug(f"Decoding {msg}")
+        # LOG.debug(f"Decoding {msg}")
 
-        raw = aprslib.parse(msg)
+        raw = aprslib.parse(str(frame))
         return core.Packet.factory(raw)
 
     @trace.trace

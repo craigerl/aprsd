@@ -1,52 +1,47 @@
 import logging
 
-import aprslib
 from ax253 import Frame
 import kiss
+from oslo_config import cfg
 
+from aprsd import conf  # noqa
 from aprsd.packets import core
 from aprsd.utils import trace
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
 class KISS3Client:
-    def __init__(self, config):
-        self.config = config
+    def __init__(self):
         self.setup()
 
     def setup(self):
         # we can be TCP kiss or Serial kiss
-        if "serial" in self.config["kiss"] and self.config["kiss"]["serial"].get(
-            "enabled",
-            False,
-        ):
+        if CONF.kiss_serial.enabled:
             LOG.debug(
                 "KISS({}) Serial connection to {}".format(
                     kiss.__version__,
-                    self.config["kiss"]["serial"]["device"],
+                    CONF.kiss_serial.device,
                 ),
             )
             self.kiss = kiss.SerialKISS(
-                port=self.config["kiss"]["serial"]["device"],
-                speed=self.config["kiss"]["serial"].get("baudrate", 9600),
+                port=CONF.kiss_serial.device,
+                speed=CONF.kiss_serial.baudrate,
                 strip_df_start=True,
             )
-        elif "tcp" in self.config["kiss"] and self.config["kiss"]["tcp"].get(
-            "enabled",
-            False,
-        ):
+        elif CONF.kiss_tcp.enabled:
             LOG.debug(
                 "KISS({}) TCP Connection to {}:{}".format(
                     kiss.__version__,
-                    self.config["kiss"]["tcp"]["host"],
-                    self.config["kiss"]["tcp"]["port"],
+                    CONF.kiss_tcp.host,
+                    CONF.kiss_tcp.port,
                 ),
             )
             self.kiss = kiss.TCPKISS(
-                host=self.config["kiss"]["tcp"]["host"],
-                port=int(self.config["kiss"]["tcp"]["port"]),
+                host=CONF.kiss_tcp.host,
+                port=CONF.kiss_tcp.port,
                 strip_df_start=True,
             )
 
@@ -70,10 +65,8 @@ class KISS3Client:
     def parse_frame(self, frame_bytes):
         frame = Frame.from_bytes(frame_bytes)
         # Now parse it with aprslib
-        packet = aprslib.parse(str(frame))
         kwargs = {
-            "frame": str(frame),
-            "packet": packet,
+            "frame": frame,
         }
         self._parse_callback(**kwargs)
 
