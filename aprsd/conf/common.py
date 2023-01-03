@@ -1,6 +1,10 @@
+from pathlib import Path
+
 from oslo_config import cfg
 
 
+home = str(Path.home())
+DEFAULT_CONFIG_DIR = f"{home}/.config/aprsd/"
 APRSD_DEFAULT_MAGIC_WORD = "CHANGEME!!!"
 
 admin_group = cfg.OptGroup(
@@ -30,7 +34,7 @@ aprsd_opts = [
     ),
     cfg.StrOpt(
         "save_location",
-        default="~/.config/aprsd",
+        default=DEFAULT_CONFIG_DIR,
         help="Save location for packet tracking files.",
     ),
     cfg.BoolOpt(
