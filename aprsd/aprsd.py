@@ -112,8 +112,6 @@ def check_version(ctx):
         click.secho(msg, fg="green")
 
 
-
-
 @cli.command()
 @click.pass_context
 def sample_config(ctx):
