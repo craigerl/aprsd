@@ -17,7 +17,8 @@ update_checker
 flask-socketio
 eventlet
 tabulate
-rich
+# Pinned due to gray needing 12.6.0
+rich==12.6.0
 # For the list-plugins pypi.org search scraping
 beautifulsoup4
 wrapt
@@ -31,3 +32,7 @@ dataclasses
 dacite2
 oslo.config
 rpyc
+# Pin this here so it doesn't require a compile on
+# raspi
+cryptography==38.0.1
+shellingham==1.5.0.post1

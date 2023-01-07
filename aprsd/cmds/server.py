@@ -105,4 +105,7 @@ def server(ctx, flush):
         log_monitor = threads.log_monitor.LogMonitorThread()
         log_monitor.start()
 
+    rx_thread.join()
+    process_thread.join()
+
     return 0

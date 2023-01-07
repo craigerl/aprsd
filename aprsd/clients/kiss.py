@@ -63,12 +63,16 @@ class KISS3Client:
         pass
 
     def parse_frame(self, frame_bytes):
-        frame = Frame.from_bytes(frame_bytes)
-        # Now parse it with aprslib
-        kwargs = {
-            "frame": frame,
-        }
-        self._parse_callback(**kwargs)
+        try:
+            frame = Frame.from_bytes(frame_bytes)
+            # Now parse it with aprslib
+            kwargs = {
+                "frame": frame,
+            }
+            self._parse_callback(**kwargs)
+        except Exception as ex:
+            LOG.error("Failed to parse bytes received from KISS interface.")
+            LOG.exception(ex)
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
         LOG.debug("Start blocking KISS consumer")
