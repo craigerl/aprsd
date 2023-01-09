@@ -25,7 +25,7 @@ DEV=0
 REBUILD_BUILDX=0
 TAG="latest"
 BRANCH=${BRANCH:-master}
-VERSION="2.6.0"
+VERSION="3.0.0"
 
 while getopts “hdart:b:v:” OPTION
 do

@@ -6,7 +6,7 @@ FROM ubuntu:22.04 as aprsd
 ARG UID
 ARG GID
 ARG TZ
-ARG VERSION=2.6.0
+ARG VERSION=3.0.0
 ARG BUILDX_QEMU_ENV
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
@@ -24,6 +24,8 @@ RUN apt install -y git build-essential
 RUN apt install -y libffi-dev python3-dev libssl-dev libxml2-dev libxslt-dev
 RUN apt install -y python3 python3-pip python3-dev python3-lxml
 
+RUN pip3 install -U pip
+
 RUN addgroup --gid $GID $APRS_USER
 RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
 
@@ -36,7 +38,7 @@ RUN if [ "${BUILDX_QEMU_ENV}" = "true" -a "$(getconf LONG_BIT)" = "32" ]; then \
     fi
 
 # Install aprsd
-RUN pip install aprsd==$APRSD_PIP_VERSION
+RUN pip3 install aprsd==$APRSD_PIP_VERSION
 
 # Ensure /config is there with a default config file
 USER root
