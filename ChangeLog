@@ -1,6 +1,22 @@
 CHANGES
 =======
 
+v3.0.0
+------
+
+* Ensure server command main thread doesn't exit
+* Fixed save directory default
+* Fixed pep8 failure
+* Cleaned up KISS interfaces use of old config
+* reworked usage of importlib.metadata
+* Added new docs files for 3.0.0
+* Removed url option from healthcheck in dev
+* Updated Healthcheck to use rpc to call aprsd
+* Updated docker/bin/run.sh to use new conf
+* Added ObjectPacket
+* Update regex processing and regex for plugins
+* Change ordering of starting up of server command
+* Update documentation and README
 * Decouple admin web interface from server command
 * Dockerfile now produces aprsd.conf
 * Fix some unit tests and loading of CONF w/o file
