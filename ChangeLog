@@ -1,9 +1,16 @@
 CHANGES
 =======
 
+v3.0.1
+------
+
+* Add support to Reject messages
+* Update Docker builds for 3.0.0
+
 v3.0.0
 ------
 
+* Update Changelog for 3.0.0
 * Ensure server command main thread doesn't exit
 * Fixed save directory default
 * Fixed pep8 failure
