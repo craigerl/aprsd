@@ -18,6 +18,7 @@ LOG = logging.getLogger("APRSD")
 
 PACKET_TYPE_MESSAGE = "message"
 PACKET_TYPE_ACK = "ack"
+PACKET_TYPE_REJECT = "reject"
 PACKET_TYPE_MICE = "mic-e"
 PACKET_TYPE_WX = "weather"
 PACKET_TYPE_OBJECT = "object"
@@ -203,6 +204,23 @@ class AckPacket(PathPacket):
     def _build_raw(self):
         """Build the self.raw which is what is sent over the air."""
         self.raw = "{}>APZ100::{}:ack{}".format(
+            self.from_call,
+            self.to_call.ljust(9),
+            self.msgNo,
+        )
+
+
+@dataclass
+class RejectPacket(PathPacket):
+    response: str = None
+
+    def __post__init__(self):
+        if self.response:
+            LOG.warning("Response set!")
+
+    def _build_raw(self):
+        """Build the self.raw which is what is sent over the air."""
+        self.raw = "{}>APZ100::{} :rej{}".format(
             self.from_call,
             self.to_call.ljust(9),
             self.msgNo,
@@ -469,6 +487,7 @@ TYPE_LOOKUP = {
     PACKET_TYPE_WX: WeatherPacket,
     PACKET_TYPE_MESSAGE: MessagePacket,
     PACKET_TYPE_ACK: AckPacket,
+    PACKET_TYPE_REJECT: RejectPacket,
     PACKET_TYPE_MICE: MicEPacket,
     PACKET_TYPE_OBJECT: ObjectPacket,
     PACKET_TYPE_STATUS: StatusPacket,
@@ -485,6 +504,8 @@ def get_packet_type(packet: dict):
     packet_type = "unknown"
     if pkt_format == "message" and msg_response == "ack":
         packet_type = PACKET_TYPE_ACK
+    elif pkt_format == "message" and msg_response == "rej":
+        packet_type = PACKET_TYPE_REJECT
     elif pkt_format == "message":
         packet_type = PACKET_TYPE_MESSAGE
     elif pkt_format == "mic-e":

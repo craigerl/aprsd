@@ -87,11 +87,18 @@ class APRSDProcessPacketThread(APRSDThread):
         self._loop_cnt = 1
 
     def process_ack_packet(self, packet):
+        """We got an ack for a message, no need to resend it."""
         ack_num = packet.msgNo
         LOG.info(f"Got ack for message {ack_num}")
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
-        return
+
+    def process_reject_packet(self, packet):
+        """We got a reject message for a packet.  Stop sending the message."""
+        ack_num = packet.msgNo
+        LOG.info(f"Got REJECT for message {ack_num}")
+        pkt_tracker = packets.PacketTrack()
+        pkt_tracker.remove(ack_num)
 
     def loop(self):
         try:
@@ -124,6 +131,11 @@ class APRSDProcessPacketThread(APRSDThread):
             and packet.addresse.lower() == our_call
         ):
             self.process_ack_packet(packet)
+        elif (
+            isinstance(packet, packets.RejectPacket)
+            and packet.addresse.lower() == our_call
+        ):
+            self.process_reject_packet(packet)
         else:
             # Only ack messages that were sent directly to us
             if isinstance(packet, packets.MessagePacket):
