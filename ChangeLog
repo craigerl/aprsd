@@ -1,9 +1,15 @@
 CHANGES
 =======
 
+v3.0.2
+------
+
+* Import RejectPacket
+
 v3.0.1
 ------
 
+* 3.0.1
 * Add support to Reject messages
 * Update Docker builds for 3.0.0
 
