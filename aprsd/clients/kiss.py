@@ -17,6 +17,9 @@ class KISS3Client:
     def __init__(self):
         self.setup()
 
+    def is_alive(self):
+        return True
+
     def setup(self):
         # we can be TCP kiss or Serial kiss
         if CONF.kiss_serial.enabled:

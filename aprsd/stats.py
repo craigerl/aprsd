@@ -233,6 +233,7 @@ class APRSDStats:
             },
             "plugins": plugin_stats,
         }
+        LOG.debug(f"STATS = {stats}")
         return stats
 
     def __str__(self):

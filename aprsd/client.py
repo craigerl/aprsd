@@ -84,6 +84,8 @@ class Client:
 
 class APRSISClient(Client):
 
+    _client = None
+
     @staticmethod
     def is_enabled():
         # Defaults to True if the enabled flag is non existent
@@ -114,6 +116,12 @@ class APRSISClient(Client):
 
             return True
         return True
+
+    def is_alive(self):
+        if self._client:
+            return self._client.is_alive()
+        else:
+            return False
 
     @staticmethod
     def transport():
@@ -157,6 +165,8 @@ class APRSISClient(Client):
 
 class KISSClient(Client):
 
+    _client = None
+
     @staticmethod
     def is_enabled():
         """Return if tcp or serial KISS is enabled."""
@@ -189,6 +199,12 @@ class KISSClient(Client):
             return True
         return False
 
+    def is_alive(self):
+        if self._client:
+            return self._client.is_alive()
+        else:
+            return False
+
     @staticmethod
     def transport():
         if CONF.kiss_serial.enabled:
@@ -214,8 +230,8 @@ class KISSClient(Client):
 
     @trace.trace
     def setup_connection(self):
-        client = kiss.KISS3Client()
-        return client
+        self._client = kiss.KISS3Client()
+        return self._client
 
 
 class ClientFactory:
@@ -241,7 +257,6 @@ class ClientFactory:
             elif KISSClient.is_enabled():
                 key = KISSClient.transport()
 
-        LOG.debug(f"GET client '{key}'")
         builder = self._builders.get(key)
         if not builder:
             raise ValueError(key)

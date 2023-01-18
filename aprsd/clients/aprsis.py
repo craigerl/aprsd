@@ -37,6 +37,10 @@ class Aprsdis(aprslib.IS):
         """Send an APRS Message object."""
         self.sendall(packet.raw)
 
+    def is_alive(self):
+        """If the connection is alive or not."""
+        return self._connected
+
     def _socket_readlines(self, blocking=False):
         """
         Generator for complete lines, received from the server

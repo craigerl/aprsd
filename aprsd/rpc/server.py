@@ -62,6 +62,7 @@ class APRSDService(rpyc.Service):
     def get_stats(self):
         stat = stats.APRSDStats()
         stats_dict = stat.stats()
+        LOG.debug(stats_dict)
         return json.dumps(stats_dict, indent=4, sort_keys=True, default=str)
 
     @rpyc.exposed

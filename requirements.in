@@ -36,3 +36,4 @@ rpyc
 # raspi
 cryptography==38.0.1
 shellingham==1.5.0.post1
+ratelimiter

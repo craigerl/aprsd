@@ -66,6 +66,10 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
     def _cleanup(self):
         """Add code to subclass to do any cleanup"""
 
+    def __str__(self):
+        out = f"Thread <{self.__class__.__name__}({self.name}) Alive? {self.is_alive()}>"
+        return out
+
     def run(self):
         LOG.debug("Starting")
         while not self._should_quit():
