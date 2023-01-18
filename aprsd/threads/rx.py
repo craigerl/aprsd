@@ -65,6 +65,7 @@ class APRSDPluginRXThread(APRSDRXThread):
     receives packets from APRIS and then sends them for
     processing in the PluginProcessPacketThread.
     """
+
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)

@@ -64,22 +64,35 @@ class KeepAliveThread(APRSDThread):
                 len(thread_list),
             )
             LOG.info(keepalive)
+            thread_out = []
+            for thread in thread_list.threads_list:
+                alive = thread.is_alive()
+                thread_out.append(f"{thread.__class__.__name__}:{alive}")
+                if not alive:
+                    LOG.error(f"Thread {thread}")
+            LOG.info(",".join(thread_out))
 
-            # See if we should reset the aprs-is client
-            # Due to losing a keepalive from them
-            delta_dict = utils.parse_delta_str(last_msg_time)
-            delta = datetime.timedelta(**delta_dict)
+            # check the APRS connection
+            cl = client.factory.create()
+            if not cl.is_alive():
+                LOG.error(f"{cl.__class__.__name__} is not alive!!! Resetting")
+                client.factory.create().reset()
+            else:
+                # See if we should reset the aprs-is client
+                # Due to losing a keepalive from them
+                delta_dict = utils.parse_delta_str(last_msg_time)
+                delta = datetime.timedelta(**delta_dict)
 
-            if delta > self.max_delta:
-                #  We haven't gotten a keepalive from aprs-is in a while
-                # reset the connection.a
-                if not client.KISSClient.is_enabled():
-                    LOG.warning(f"Resetting connection to APRS-IS {delta}")
-                    client.factory.create().reset()
+                if delta > self.max_delta:
+                    #  We haven't gotten a keepalive from aprs-is in a while
+                    # reset the connection.a
+                    if not client.KISSClient.is_enabled():
+                        LOG.warning(f"Resetting connection to APRS-IS {delta}")
+                        client.factory.create().reset()
 
-            # Check version every hour
+            # Check version every day
             delta = now - self.checker_time
-            if delta > datetime.timedelta(hours=1):
+            if delta > datetime.timedelta(hours=24):
                 self.checker_time = now
                 level, msg = utils._check_version()
                 if level:

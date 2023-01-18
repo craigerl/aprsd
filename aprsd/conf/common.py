@@ -47,6 +47,20 @@ aprsd_opts = [
         default="imperial",
         help="Units for display, imperial or metric",
     ),
+    cfg.IntOpt(
+        "ack_rate_limit_period",
+        default=1,
+        help="The wait period in seconds per Ack packet being sent."
+             "1 means 1 ack packet per second allowed."
+             "2 means 1 pack packet every 2 seconds allowed",
+    ),
+    cfg.IntOpt(
+        "msg_rate_limit_period",
+        default=2,
+        help="Wait period in seconds per non AckPacket being sent."
+             "2 means 1 packet every 2 seconds allowed."
+             "5 means 1 pack packet every 5 seconds allowed",
+    ),
 ]
 
 watch_list_opts = [

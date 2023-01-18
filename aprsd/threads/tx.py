@@ -2,12 +2,21 @@ import datetime
 import logging
 import time
 
+from oslo_config import cfg
+from ratelimiter import RateLimiter
+
 from aprsd import client
 from aprsd import threads as aprsd_threads
 from aprsd.packets import core, tracker
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
+
+
+def limited(until):
+    duration = int(round(until - time.time()))
+    LOG.debug(f"Rate limited, sleeping for {duration:d} seconds")
 
 
 def send(packet: core.Packet, direct=False, aprs_client=None):
@@ -15,21 +24,39 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
     # prepare the packet for sending.
     # This constructs the packet.raw
     packet.prepare()
+    if isinstance(packet, core.AckPacket):
+        _send_ack(packet, direct=direct, aprs_client=aprs_client)
+    else:
+        _send_packet(packet, direct=direct, aprs_client=aprs_client)
+
+
+@RateLimiter(max_calls=1, period=CONF.msg_rate_limit_period, callback=limited)
+def _send_packet(packet: core.Packet, direct=False, aprs_client=None):
     if not direct:
-        if isinstance(packet, core.AckPacket):
-            thread = SendAckThread(packet=packet)
-        else:
-            thread = SendPacketThread(packet=packet)
+        thread = SendPacketThread(packet=packet)
         thread.start()
     else:
-        if aprs_client:
-            cl = aprs_client
-        else:
-            cl = client.factory.create()
+        _send_direct(packet, aprs_client=aprs_client)
 
-        packet.update_timestamp()
-        packet.log(header="TX")
-        cl.send(packet)
+
+@RateLimiter(max_calls=1, period=CONF.ack_rate_limit_period, callback=limited)
+def _send_ack(packet: core.AckPacket, direct=False, aprs_client=None):
+    if not direct:
+        thread = SendAckThread(packet=packet)
+        thread.start()
+    else:
+        _send_direct(packet, aprs_client=aprs_client)
+
+
+def _send_direct(packet, aprs_client=None):
+    if aprs_client:
+        cl = aprs_client
+    else:
+        cl = client.factory.create()
+
+    packet.update_timestamp()
+    packet.log(header="TX")
+    cl.send(packet)
 
 
 class SendPacketThread(aprsd_threads.APRSDThread):
