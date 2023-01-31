@@ -16,6 +16,7 @@ OPTIONS:
    -d      Use Dockerfile-dev for a git clone build
    -b      Branch to use (default = master)
    -r      Destroy and rebuild the buildx environment
+   -v      aprsd version to build
 EOF
 }
 
@@ -62,8 +63,9 @@ done
 
 if [ $ALL_PLATFORMS -eq 1 ]
 then
-    PLATFORMS="linux/arm/v7,linux/arm64,linux/amd64"
+    PLATFORMS="linux/arm64,linux/amd64"
     #PLATFORMS="linux/arm/v7,linux/arm/v6,linux/amd64"
+    #PLATFORMS="linux/arm64"
 else
     PLATFORMS="linux/amd64"
 fi

@@ -37,14 +37,14 @@ RUN if [ "${BUILDX_QEMU_ENV}" = "true" -a "$(getconf LONG_BIT)" = "32" ]; then \
         pip3 install cryptography ;\
     fi
 
-# Install aprsd
-RUN pip3 install aprsd==$APRSD_PIP_VERSION
-
 # Ensure /config is there with a default config file
 USER root
+# Install aprsd
+RUN pip3 install aprsd==$APRSD_PIP_VERSION
 RUN mkdir -p /config
 RUN aprsd sample-config > /config/aprsd.conf
 RUN chown -R $APRS_USER:$APRS_USER /config
+RUN chown -R $APRS_USER:$APRS_USER $HOME
 
 # override this to run another configuration
 ENV CONF default
