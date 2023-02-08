@@ -34,6 +34,6 @@ oslo.config
 rpyc
 # Pin this here so it doesn't require a compile on
 # raspi
-cryptography==38.0.1
+cryptography==39.0.1
 shellingham==1.5.0.post1
 ratelimiter
