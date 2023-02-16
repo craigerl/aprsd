@@ -2,7 +2,7 @@ aprslib>=0.7.0
 click
 click-completion
 flask==2.1.2
-werkzeug==2.1.2
+werkzeug==2.2.3
 flask-classful
 flask-httpauth
 imapclient
