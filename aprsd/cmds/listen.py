@@ -185,7 +185,7 @@ def listen(
     pm = plugin.PluginManager()
     if load_plugins:
         LOG.info("Loading plugins")
-        pm.setup_plugins()
+        pm.setup_plugins(load_help_plugin=False)
     else:
         LOG.warning(
             "Not Loading any plugins use --load-plugins to load what's "

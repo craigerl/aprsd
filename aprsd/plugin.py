@@ -455,13 +455,14 @@ class PluginManager:
             del self._pluggy_pm
             self.setup_plugins()
 
-    def setup_plugins(self):
+    def setup_plugins(self, load_help_plugin=True):
         """Create the plugin manager and register plugins."""
 
         LOG.info("Loading APRSD Plugins")
         # Help plugin is always enabled.
-        _help = HelpPlugin()
-        self._pluggy_pm.register(_help)
+        if load_help_plugin:
+            _help = HelpPlugin()
+            self._pluggy_pm.register(_help)
 
         enabled_plugins = CONF.enabled_plugins
         if enabled_plugins:
