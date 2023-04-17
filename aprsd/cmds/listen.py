@@ -107,9 +107,10 @@ class APRSDListenThread(rx.APRSDRXThread):
     help="Filter by packet type",
 )
 @click.option(
-    "--packet-plugins",
-    default=None,
-    help="CSV, List of aprsd plugins to enable",
+    "--load-plugins",
+    default=False,
+    is_flag=True,
+    help="Load plugins as enabled in aprsd.conf ?",
 )
 @click.argument(
     "filter",
@@ -123,7 +124,7 @@ def listen(
     aprs_login,
     aprs_password,
     packet_filter,
-    packet_plugins,
+    load_plugins,
     filter,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
@@ -180,14 +181,16 @@ def listen(
     keepalive = threads.KeepAliveThread()
     keepalive.start()
 
-    LOG.info(f"Packet plugins {packet_plugins}")
-
     pm = None
-    if packet_plugins:
-        LOG.info(f"Load plugins! {packet_plugins}")
-        pm = plugin.PluginManager()
-        for plugin_path in packet_plugins.split(","):
-            pm._load_plugin(plugin_path)
+    pm = plugin.PluginManager()
+    if load_plugins:
+        LOG.info("Loading plugins")
+        pm.setup_plugins()
+    else:
+        LOG.warning(
+            "Not Loading any plugins use --load-plugins to load what's "
+            "defined in the config file.",
+        )
 
     LOG.debug("Create APRSDListenThread")
     listen_thread = APRSDListenThread(

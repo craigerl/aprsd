@@ -213,7 +213,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
             return result
 
         if not isinstance(packet, packets.core.MessagePacket):
-            LOG.warning(f"Got a {packet.__class__.__name__} ignoring")
+            LOG.warning(f"{self.__class__.__name__} Got a {packet.__class__.__name__} ignoring")
             return packets.NULL_MESSAGE
 
         result = None
