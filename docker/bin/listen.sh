@@ -28,4 +28,4 @@ fi
 
 export COLUMNS=200
 python3 -m rich.diagnose
-exec aprsd listen -c $APRSD_CONFIG --loglevel ${LOG_LEVEL} ${EXTRA_ARGS}
+exec aprsd listen -c $APRSD_CONFIG --loglevel ${LOG_LEVEL} ${APRSD_LOAD_PLUGINS} ${APRSD_LISTEN_FILTER}
