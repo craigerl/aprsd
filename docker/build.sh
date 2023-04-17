@@ -89,7 +89,7 @@ then
     echo "Build -DEV- with tag=${TAG} BRANCH=${BRANCH} platforms?=${PLATFORMS}"
     # Use this script to locally build the docker image
     docker buildx build --push --platform $PLATFORMS \
-        -t harbor.hemna.com/hemna6969/aprsd:$TAG \
+        -t hemna6969/aprsd:$TAG \
         -f Dockerfile-dev --build-arg branch=$BRANCH \
         --build-arg BUILDX_QEMU_ENV=true \
         --no-cache .

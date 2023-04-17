@@ -64,6 +64,7 @@ USER $APRS_USER
 VOLUME ["/config", "/plugins"]
 
 ADD bin/run.sh $HOME/
+ADD bin/listen.sh $HOME/
 ENTRYPOINT ["/home/aprs/run.sh"]
 
 HEALTHCHECK --interval=5m --timeout=12s --start-period=30s \

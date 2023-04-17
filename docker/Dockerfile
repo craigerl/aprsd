@@ -52,6 +52,7 @@ VOLUME ["/config", "/plugins"]
 
 USER $APRS_USER
 ADD bin/run.sh /usr/local/bin
+ADD bin/listen.sh /usr/local/bin
 ENTRYPOINT ["/usr/local/bin/run.sh"]
 
 HEALTHCHECK --interval=5m --timeout=12s --start-period=30s \
