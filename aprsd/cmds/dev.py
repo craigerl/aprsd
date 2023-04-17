@@ -101,8 +101,6 @@ def test_plugin(
     pm = plugin.PluginManager()
     if load_all:
         pm.setup_plugins()
-    else:
-        pm._init()
     obj = pm._create_class(plugin_path, plugin.APRSDPluginBase)
     if not obj:
         click.echo(ctx.get_help())
@@ -116,7 +114,7 @@ def test_plugin(
             obj.__class__, obj.version,
         ),
     )
-    pm._pluggy_pm.register(obj)
+    pm.register_msg(obj)
 
     packet = packets.MessagePacket(
         from_call=fromcall,

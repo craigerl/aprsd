@@ -15,7 +15,7 @@ from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import cli_helper, client, packets, stats, threads
+from aprsd import cli_helper, client, packets, plugin, stats, threads
 from aprsd.aprsd import cli
 from aprsd.threads import rx
 
@@ -40,9 +40,12 @@ def signal_handler(sig, frame):
 
 
 class APRSDListenThread(rx.APRSDRXThread):
-    def __init__(self, packet_queue, packet_filter=None):
+    def __init__(self, packet_queue, packet_filter=None, plugin_manager=None):
         super().__init__(packet_queue)
         self.packet_filter = packet_filter
+        self.plugin_manager = plugin_manager
+        if self.plugin_manager:
+            LOG.info(f"Plugins {self.plugin_manager.get_message_plugins()}")
 
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
@@ -59,8 +62,17 @@ class APRSDListenThread(rx.APRSDRXThread):
             filter_class = filters[self.packet_filter]
             if isinstance(packet, filter_class):
                 packet.log(header="RX")
+                if self.plugin_manager:
+                    # Don't do anything with the reply
+                    # This is the listen only command.
+                    self.plugin_manager.run(packet)
         else:
-            packet.log(header="RX")
+            if self.plugin_manager:
+                # Don't do anything with the reply.
+                # This is the listen only command.
+                self.plugin_manager.run(packet)
+            else:
+                packet.log(header="RX")
 
         packets.PacketList().rx(packet)
 
@@ -94,6 +106,11 @@ class APRSDListenThread(rx.APRSDRXThread):
     ),
     help="Filter by packet type",
 )
+@click.option(
+    "--packet-plugins",
+    default=None,
+    help="CSV, List of aprsd plugins to enable",
+)
 @click.argument(
     "filter",
     nargs=-1,
@@ -106,6 +123,7 @@ def listen(
     aprs_login,
     aprs_password,
     packet_filter,
+    packet_plugins,
     filter,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
@@ -162,10 +180,20 @@ def listen(
     keepalive = threads.KeepAliveThread()
     keepalive.start()
 
+    LOG.info(f"Packet plugins {packet_plugins}")
+
+    pm = None
+    if packet_plugins:
+        LOG.info(f"Load plugins! {packet_plugins}")
+        pm = plugin.PluginManager()
+        for plugin_path in packet_plugins.split(","):
+            pm._load_plugin(plugin_path)
+
     LOG.debug("Create APRSDListenThread")
     listen_thread = APRSDListenThread(
         packet_queue=threads.packet_queue,
         packet_filter=packet_filter,
+        plugin_manager=pm,
     )
     LOG.debug("Start APRSDListenThread")
     listen_thread.start()

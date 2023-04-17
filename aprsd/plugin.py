@@ -338,6 +338,7 @@ class PluginManager:
         return cls._instance
 
     def __init__(self, config=None):
+        self._init()
         self.obj_list = []
         if config:
             self.config = config
@@ -422,13 +423,24 @@ class PluginManager:
                         self._watchlist_pm.register(plugin_obj)
                     else:
                         LOG.warning(f"Plugin {plugin_obj.__class__.__name__} is disabled")
-                else:
+                elif isinstance(plugin_obj, APRSDRegexCommandPluginBase):
                     if plugin_obj.enabled:
                         LOG.info(
-                            "Registering plugin '{}'({}) -- {}".format(
+                            "Registering Regex plugin '{}'({}) -- {}".format(
                                 plugin_name,
                                 plugin_obj.version,
                                 plugin_obj.command_regex,
+                            ),
+                        )
+                        self._pluggy_pm.register(plugin_obj)
+                    else:
+                        LOG.warning(f"Plugin {plugin_obj.__class__.__name__} is disabled")
+                elif isinstance(plugin_obj, APRSDPluginBase):
+                    if plugin_obj.enabled:
+                        LOG.info(
+                            "Registering Base plugin '{}'({})".format(
+                                plugin_name,
+                                plugin_obj.version,
                             ),
                         )
                         self._pluggy_pm.register(plugin_obj)
@@ -447,7 +459,6 @@ class PluginManager:
         """Create the plugin manager and register plugins."""
 
         LOG.info("Loading APRSD Plugins")
-        self._init()
         # Help plugin is always enabled.
         _help = HelpPlugin()
         self._pluggy_pm.register(_help)
@@ -465,7 +476,7 @@ class PluginManager:
         LOG.info("Completed Plugin Loading.")
 
     def run(self, packet: packets.core.MessagePacket):
-        """Execute all the pluguns run method."""
+        """Execute all the plugins run method."""
         with self.lock:
             return self._pluggy_pm.hook.filter(packet=packet)
 

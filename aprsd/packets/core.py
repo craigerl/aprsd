@@ -183,6 +183,16 @@ class Packet(metaclass=abc.ABCMeta):
         self.prepare()
         return self.raw
 
+    def __repr__(self):
+        """Build the repr version of the packet."""
+        repr = (
+            f"{self.__class__.__name__}:"
+            f" From: {self.from_call}  "
+            " To: "
+        )
+
+        return repr
+
 
 @dataclass
 class PathPacket(Packet):
