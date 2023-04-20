@@ -57,6 +57,14 @@ def server(ctx, flush):
 
     # Dump all the config options now.
     CONF.log_opt_values(LOG, logging.DEBUG)
+    message_plugins = plugin_manager.get_message_plugins()
+    watchlist_plugins = plugin_manager.get_watchlist_plugins()
+    LOG.info("Message Plugins enabled and running:")
+    for p in message_plugins:
+        LOG.info(p)
+    LOG.info("Watchlist Plugins enabled and running:")
+    for p in watchlist_plugins:
+        LOG.info(p)
 
     # Make sure we have 1 client transport enabled
     if not client.factory.is_client_enabled():

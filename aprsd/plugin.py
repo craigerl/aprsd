@@ -207,6 +207,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
 
     @hookimpl
     def filter(self, packet: packets.core.MessagePacket):
+        LOG.info(f"{self.__class__.__name__} called")
         if not self.enabled:
             result = f"{self.__class__.__name__} isn't enabled"
             LOG.warning(result)
@@ -324,9 +325,6 @@ class PluginManager:
     # the pluggy PluginManager for all WatchList plugins
     _watchlist_pm = None
 
-    # aprsd config dict
-    config = None
-
     lock = None
 
     def __new__(cls, *args, **kwargs):
@@ -335,13 +333,8 @@ class PluginManager:
             cls._instance = super().__new__(cls)
             # Put any initialization here.
             cls._instance.lock = threading.Lock()
+            cls._instance._init()
         return cls._instance
-
-    def __init__(self, config=None):
-        self._init()
-        self.obj_list = []
-        if config:
-            self.config = config
 
     def _init(self):
         self._pluggy_pm = pluggy.PluginManager("aprsd")
@@ -479,6 +472,8 @@ class PluginManager:
     def run(self, packet: packets.core.MessagePacket):
         """Execute all the plugins run method."""
         with self.lock:
+            LOG.info(f"PM {self}")
+            LOG.info(f" plugins {self.get_message_plugins()}")
             return self._pluggy_pm.hook.filter(packet=packet)
 
     def run_watchlist(self, packet: packets.core.Packet):
@@ -494,7 +489,8 @@ class PluginManager:
 
     def register_msg(self, obj):
         """Register the plugin."""
-        self._pluggy_pm.register(obj)
+        with self.lock:
+            self._pluggy_pm.register(obj)
 
     def get_plugins(self):
         plugin_list = []
