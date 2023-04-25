@@ -1,9 +1,23 @@
 CHANGES
 =======
 
+v3.0.3
+------
+
+* cleanup some debug messages
+* Fixed loading of plugins for server
+* Don't load help plugin for listen command
+* Added listen args
+* Change listen command plugins
+* Added listen.sh for docker
+* Update Listen command
+* Update Dockerfile
+* Add ratelimiting for acks and other packets
+
 v3.0.2
 ------
 
+* Update Changelog for 3.0.2
 * Import RejectPacket
 
 v3.0.1
