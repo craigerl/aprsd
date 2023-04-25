@@ -472,8 +472,6 @@ class PluginManager:
     def run(self, packet: packets.core.MessagePacket):
         """Execute all the plugins run method."""
         with self.lock:
-            LOG.info(f"PM {self}")
-            LOG.info(f" plugins {self.get_message_plugins()}")
             return self._pluggy_pm.hook.filter(packet=packet)
 
     def run_watchlist(self, packet: packets.core.Packet):
