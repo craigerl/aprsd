@@ -6,7 +6,7 @@ FROM ubuntu:22.04 as aprsd
 ARG UID
 ARG GID
 ARG TZ
-ARG VERSION=3.0.0
+ARG VERSION=3.0.3
 ARG BUILDX_QEMU_ENV
 ENV APRS_USER=aprs
 ENV HOME=/home/aprs
@@ -22,9 +22,12 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update
 RUN apt install -y git build-essential
 RUN apt install -y libffi-dev python3-dev libssl-dev libxml2-dev libxslt-dev
-RUN apt install -y python3 python3-pip python3-dev python3-lxml
+RUN apt install -y python3 python3-pip python3-dev python3-lxml python3-setuptools-rust
+RUN apt install -y libffi-dev cargo pkg-config
 
 RUN pip3 install -U pip
+RUN pip3 install -U setuptools_rust
+
 
 RUN addgroup --gid $GID $APRS_USER
 RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
