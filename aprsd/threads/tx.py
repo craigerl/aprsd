@@ -6,6 +6,7 @@ from oslo_config import cfg
 from ratelimiter import RateLimiter
 
 from aprsd import client
+from aprsd import conf  # noqa
 from aprsd import threads as aprsd_threads
 from aprsd.packets import core, tracker
 
