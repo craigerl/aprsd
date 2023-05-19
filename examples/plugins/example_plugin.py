@@ -14,7 +14,7 @@ class HelloPlugin(plugin.APRSDRegexCommandPluginBase):
     command_regex = "^[hH]"
     command_name = "hello"
 
-    def command(self, packet):
+    def process(self, packet):
         LOG.info("HelloPlugin")
         reply = f"Hello '{packet.from_call}'"
         return reply
