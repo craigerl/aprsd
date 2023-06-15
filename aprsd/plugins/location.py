@@ -2,6 +2,7 @@ import logging
 import re
 import time
 
+from geopy.geocoders import Nominatim
 from oslo_config import cfg
 
 from aprsd import packets, plugin, plugin_utils
@@ -50,8 +51,28 @@ class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
             LOG.error("Didn't get any entries from aprs.fi")
             return "Failed to fetch aprs.fi location"
 
-        lat = aprs_data["entries"][0]["lat"]
-        lon = aprs_data["entries"][0]["lng"]
+        lat = float(aprs_data["entries"][0]["lat"])
+        lon = float(aprs_data["entries"][0]["lng"])
+
+        # Get some information about their location
+        try:
+            tic = time.perf_counter()
+            geolocator = Nominatim(user_agent="APRSD")
+            coordinates = f"{lat:0.6f}, {lon:0.6f}"
+            location = geolocator.reverse(coordinates)
+            address = location.raw.get("address")
+            toc = time.perf_counter()
+            if address:
+                LOG.info(f"Geopy address {address} took {toc - tic:0.4f}")
+            if address.get("country_code") == "us":
+                area_info = f"{address.get('county')}, {address.get('state')}"
+            else:
+                # what to do for address for non US?
+                area_info = f"{address.get('country')}"
+        except Exception as ex:
+            LOG.error(f"Failed to fetch Geopy address {ex}")
+            area_info = ""
+
         try:  # altitude not always provided
             alt = float(aprs_data["entries"][0]["altitude"])
         except Exception:
@@ -64,22 +85,13 @@ class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
         delta_seconds = time.time() - int(aprs_lasttime_seconds)
         delta_hours = delta_seconds / 60 / 60
 
-        try:
-            wx_data = plugin_utils.get_weather_gov_for_gps(lat, lon)
-        except Exception as ex:
-            LOG.error(f"Couldn't fetch forecast.weather.gov '{ex}'")
-            wx_data = {"location": {"areaDescription": "Unknown Location"}}
-
-        if "location" not in wx_data:
-            LOG.error(f"Couldn't fetch forecast.weather.gov '{wx_data}'")
-            wx_data = {"location": {"areaDescription": "Unknown Location"}}
 
         reply = "{}: {} {}' {},{} {}h ago".format(
             searchcall,
-            wx_data["location"]["areaDescription"],
+            area_info,
             str(altfeet),
-            str(lat),
-            str(lon),
+            f"{lat:0.2f}",
+            f"{lon:0.2f}",
             str("%.1f" % round(delta_hours, 1)),
         ).rstrip()
 
