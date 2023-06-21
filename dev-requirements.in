@@ -3,7 +3,7 @@ isort
 mypy
 pep8-naming
 Sphinx
-tox
+tox==4.3.5
 # Twine is used for uploading packages to pypi
 # but it induces an install of cryptography
 # This is sucky for rpi systems.
