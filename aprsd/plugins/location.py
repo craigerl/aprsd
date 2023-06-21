@@ -85,7 +85,6 @@ class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
         delta_seconds = time.time() - int(aprs_lasttime_seconds)
         delta_hours = delta_seconds / 60 / 60
 
-
         reply = "{}: {} {}' {},{} {}h ago".format(
             searchcall,
             area_info,
