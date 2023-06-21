@@ -17,6 +17,7 @@ from rich.console import Console
 import aprsd
 from aprsd import cli_helper, client, packets, plugin, stats, threads
 from aprsd.aprsd import cli
+from aprsd.rpc import server as rpc_server
 from aprsd.threads import rx
 
 
@@ -181,6 +182,10 @@ def listen(
     keepalive = threads.KeepAliveThread()
     keepalive.start()
 
+    if CONF.rpc_settings.enabled:
+        rpc = rpc_server.APRSDRPCThread()
+        rpc.start()
+
     pm = None
     pm = plugin.PluginManager()
     if load_plugins:
@@ -204,3 +209,6 @@ def listen(
     keepalive.join()
     LOG.debug("listen_thread Join")
     listen_thread.join()
+
+    if CONF.rpc_settings.enabled:
+        rpc.join()
