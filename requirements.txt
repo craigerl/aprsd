@@ -31,7 +31,7 @@ geopy==2.3.0              # via -r requirements.in
 greenlet==2.0.2           # via eventlet
 idna==3.4                 # via requests
 imapclient==2.3.1         # via -r requirements.in
-importlib-metadata==6.6.0  # via ax253, kiss3
+importlib-metadata==6.7.0  # via ax253, kiss3
 itsdangerous==2.1.2       # via flask
 jinja2==3.1.2             # via click-completion, flask
 kiss3==8.0.0              # via -r requirements.in
@@ -40,7 +40,7 @@ netaddr==0.8.0            # via oslo-config
 oslo-config==9.1.1        # via -r requirements.in
 oslo-i18n==6.0.0          # via oslo-config
 pbr==5.11.1               # via -r requirements.in, oslo-i18n, stevedore
-pluggy==1.0.0             # via -r requirements.in
+pluggy==1.2.0             # via -r requirements.in
 plumbum==1.8.2            # via rpyc
 pycparser==2.21           # via cffi
 pygments==2.15.1          # via rich
