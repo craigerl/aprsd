@@ -68,10 +68,12 @@ class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
                 area_info = f"{address.get('county')}, {address.get('state')}"
             else:
                 # what to do for address for non US?
-                area_info = f"{address.get('country')}"
+                area_info = f"{address.get('country'), 'Unknown'}"
         except Exception as ex:
             LOG.error(f"Failed to fetch Geopy address {ex}")
-            area_info = ""
+            print("FUICK")
+            print(ex)
+            area_info = "Unknown Location"
 
         try:  # altitude not always provided
             alt = float(aprs_data["entries"][0]["altitude"])

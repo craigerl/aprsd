@@ -49,51 +49,61 @@ class TestLocationPlugin(test_plugin.TestPlugin):
         self.assertEqual(expected, actual)
 
     @mock.patch("aprsd.plugin_utils.get_aprs_fi")
-    @mock.patch("aprsd.plugin_utils.get_weather_gov_for_gps")
+    @mock.patch("geopy.geocoders.Nominatim.reverse")
     @mock.patch("time.time")
-    def test_location_unknown_gps(self, mock_time, mock_weather, mock_check_aprs):
+    def test_location_unknown_gps(self, mock_time, mock_geocode, mock_check_aprs):
         # When the aprs.fi api key isn't set, then
         # the LocationPlugin will be disabled.
         mock_check_aprs.return_value = {
             "entries": [
                 {
-                    "lat": 10,
-                    "lng": 11,
+                    "lat": 1,
+                    "lng": 1,
                     "lasttime": 10,
                 },
             ],
         }
-        mock_weather.side_effect = Exception
+        mock_geocode.side_effect = Exception
         mock_time.return_value = 10
         CONF.callsign = fake.FAKE_TO_CALLSIGN
         fortune = location_plugin.LocationPlugin()
-        expected = "KFAKE: Unknown Location 0' 10,11 0.0h ago"
+        expected = "KFAKE: Unknown Location 0' 1.00,1.00 0.0h ago"
         packet = fake.fake_packet(message="location")
         actual = fortune.filter(packet)
         self.assertEqual(expected, actual)
 
     @mock.patch("aprsd.plugin_utils.get_aprs_fi")
-    @mock.patch("aprsd.plugin_utils.get_weather_gov_for_gps")
+    @mock.patch("geopy.geocoders.Nominatim.reverse")
     @mock.patch("time.time")
-    def test_location_works(self, mock_time, mock_weather, mock_check_aprs):
+    def test_location_works(self, mock_time, mock_geocode, mock_check_aprs):
         # When the aprs.fi api key isn't set, then
         # the LocationPlugin will be disabled.
         mock_check_aprs.return_value = {
             "entries": [
                 {
-                    "lat": 10,
-                    "lng": 11,
+                    "lat": 1,
+                    "lng": 1,
                     "lasttime": 10,
                 },
             ],
         }
-        expected_town = "Appomattox, VA"
-        wx_data = {"location": {"areaDescription": expected_town}}
-        mock_weather.return_value = wx_data
+        expected = "Appomattox"
+        state = "VA"
+
+        class TempLocation:
+            raw = {
+                "address": {
+                    "county": expected,
+                    "country_code": "us",
+                    "state": state,
+                    "country": "United States",
+                },
+            }
+        mock_geocode.return_value = TempLocation()
         mock_time.return_value = 10
         CONF.callsign = fake.FAKE_TO_CALLSIGN
         fortune = location_plugin.LocationPlugin()
-        expected = f"KFAKE: {expected_town} 0' 10,11 0.0h ago"
+        expected = f"KFAKE: {expected}, {state} 0' 1.00,1.00 0.0h ago"
         packet = fake.fake_packet(message="location")
         actual = fortune.filter(packet)
         self.assertEqual(expected, actual)
