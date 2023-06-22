@@ -11,19 +11,6 @@ on:
   pull_request:
       branches:
         - "master"
-  workflow_dispatch:
-    inputs:
-      branches:
-        - "master"
-      logLevel:
-        description: 'Log level'
-        required: true
-        default: 'warning'
-        type: choice
-        options:
-        - info
-        - warning
-        - debug
 
 jobs:
   tox:
