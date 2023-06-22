@@ -72,7 +72,7 @@ sphinxcontrib-serializinghtml==1.1.5  # via sphinx
 tokenize-rt==5.1.0        # via add-trailing-comma, pyupgrade
 toml==0.10.2              # via autoflake
 tomli==2.0.1              # via black, build, coverage, mypy, pyproject-api, pyproject-hooks, pytest, tox
-tox==4.3.5                # via -r dev-requirements.in
+tox==4.6.3                # via -r dev-requirements.in
 typing-extensions==4.6.3  # via libcst, mypy, typing-inspect
 typing-inspect==0.9.0     # via libcst
 unify==0.5                # via gray
