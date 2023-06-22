@@ -1,0 +1,44 @@
+name: Manual master-dev docker container
+
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+        type: choice
+        options:
+        - info
+        - warning
+        - debug
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Get Branch Name
+      id: branch-name
+      uses: tj-actions/branch-names@v6
+    - name: Setup QEMU
+      uses: docker/setup-qemu-action@v2
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Login to Docker HUB
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Build the Docker image
+      uses: docker/build-push-action@v3
+      with:
+        context: "{{defaultContext}}:docker"
+        platforms: linux/amd64
+        file: ./Dockerfile-dev
+        build-args: |
+            BRANCH=master
+            BUILDX_QEMU_ENV=true
+        push: true
+        tags: |
+          hemna6969/aprsd:master-dev
