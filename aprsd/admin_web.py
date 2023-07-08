@@ -335,13 +335,29 @@ def init_flask(loglevel, quiet):
     return socketio, flask_app
 
 
+def create_app(config_file=None, log_level=None, gunicorn=False):
+    global socketio
+    global app
+
+    default_config_file = cli_helper.DEFAULT_CONFIG_FILE
+    if not config_file:
+        config_file = default_config_file
+
+    CONF(
+        [], project="aprsd", version=aprsd.__version__,
+        default_config_files=[config_file],
+    )
+
+    if not log_level:
+        log_level = CONF.logging.log_level
+
+    if gunicorn:
+        socketio, app = init_flask(log_level, False)
+        setup_logging(app, log_level, False)
+        return app
+    else:
+        return socketio
+
+
 if __name__ == "aprsd.flask":
-    try:
-        default_config_file = cli_helper.DEFAULT_CONFIG_FILE
-        CONF(
-            [], project="aprsd", version=aprsd.__version__,
-            default_config_files=[default_config_file],
-        )
-    except cfg.ConfigFilesNotFoundError:
-        pass
-    sio, app = init_flask("DEBUG", False)
+    sio, app = create_app()

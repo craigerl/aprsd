@@ -6,8 +6,8 @@ from click.testing import CliRunner
 from oslo_config import cfg
 
 from aprsd import conf  # noqa : F401
-from aprsd.aprsd import cli
 from aprsd.cmds import send_message  # noqa
+from aprsd.main import cli
 
 from .. import fake
 

@@ -3,7 +3,10 @@ import logging
 import time
 
 from oslo_config import cfg
-from ratelimiter import RateLimiter
+from rush import quota, throttle
+from rush.contrib import decorator
+from rush.limiters import periodic
+from rush.stores import dictionary
 
 from aprsd import client
 from aprsd import conf  # noqa
@@ -14,10 +17,25 @@ from aprsd.packets import core, tracker
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
+msg_t = throttle.Throttle(
+    limiter=periodic.PeriodicLimiter(
+        store=dictionary.DictionaryStore(),
+    ),
+    rate=quota.Quota.per_second(
+        count=CONF.msg_rate_limit_period,
+    ),
+)
+ack_t = throttle.Throttle(
+    limiter=periodic.PeriodicLimiter(
+        store=dictionary.DictionaryStore(),
+    ),
+    rate=quota.Quota.per_second(
+        count=CONF.ack_rate_limit_period,
+    ),
+)
 
-def limited(until):
-    duration = int(round(until - time.time()))
-    LOG.debug(f"Rate limited, sleeping for {duration:d} seconds")
+msg_throttle_decorator = decorator.ThrottleDecorator(throttle=msg_t)
+ack_throttle_decorator = decorator.ThrottleDecorator(throttle=ack_t)
 
 
 def send(packet: core.Packet, direct=False, aprs_client=None):
@@ -31,7 +49,7 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
         _send_packet(packet, direct=direct, aprs_client=aprs_client)
 
 
-@RateLimiter(max_calls=1, period=CONF.msg_rate_limit_period, callback=limited)
+@msg_throttle_decorator.sleep_and_retry
 def _send_packet(packet: core.Packet, direct=False, aprs_client=None):
     if not direct:
         thread = SendPacketThread(packet=packet)
@@ -40,7 +58,7 @@ def _send_packet(packet: core.Packet, direct=False, aprs_client=None):
         _send_direct(packet, aprs_client=aprs_client)
 
 
-@RateLimiter(max_calls=1, period=CONF.ack_rate_limit_period, callback=limited)
+@ack_throttle_decorator.sleep_and_retry
 def _send_ack(packet: core.AckPacket, direct=False, aprs_client=None):
     if not direct:
         thread = SendAckThread(packet=packet)

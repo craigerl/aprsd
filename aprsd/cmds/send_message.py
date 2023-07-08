@@ -10,7 +10,7 @@ from oslo_config import cfg
 import aprsd
 from aprsd import cli_helper, client, packets
 from aprsd import conf  # noqa : F401
-from aprsd.aprsd import cli
+from aprsd.main import cli
 from aprsd.threads import tx
 
 

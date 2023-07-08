@@ -19,7 +19,7 @@ from thesmuggler import smuggle
 
 from aprsd import cli_helper
 from aprsd import plugin as aprsd_plugin
-from aprsd.aprsd import cli
+from aprsd.main import cli
 from aprsd.plugins import (
     email, fortune, location, notify, ping, query, time, version, weather,
 )

@@ -10,7 +10,7 @@ from oslo_config import cfg
 
 # local imports here
 from aprsd import cli_helper, client, conf, packets, plugin
-from aprsd.aprsd import cli
+from aprsd.main import cli
 from aprsd.utils import trace
 
 

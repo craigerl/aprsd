@@ -6,9 +6,10 @@ import click
 from oslo_config import cfg
 
 import aprsd
-from aprsd import aprsd as aprsd_main
-from aprsd import cli_helper, client, packets, plugin, threads, utils
-from aprsd.aprsd import cli
+from aprsd import cli_helper, client
+from aprsd import main as aprsd_main
+from aprsd import packets, plugin, threads, utils
+from aprsd.main import cli
 from aprsd.rpc import server as rpc_server
 from aprsd.threads import rx
 

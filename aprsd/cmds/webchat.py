@@ -22,8 +22,8 @@ import wrapt
 
 import aprsd
 from aprsd import cli_helper, client, conf, packets, stats, threads, utils
-from aprsd.aprsd import cli
 from aprsd.logging import rich as aprsd_logging
+from aprsd.main import cli
 from aprsd.threads import rx, tx
 from aprsd.utils import objectstore, trace
 

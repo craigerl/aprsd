@@ -1,7 +1,7 @@
 import click
 import click_completion
 
-from aprsd.aprsd import cli
+from aprsd.main import cli
 
 
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])

@@ -16,7 +16,7 @@ import aprsd
 from aprsd import cli_helper, utils
 from aprsd import conf  # noqa
 # local imports here
-from aprsd.aprsd import cli
+from aprsd.main import cli
 from aprsd.rpc import client as aprsd_rpc_client
 
 

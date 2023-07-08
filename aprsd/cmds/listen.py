@@ -16,7 +16,7 @@ from rich.console import Console
 # local imports here
 import aprsd
 from aprsd import cli_helper, client, packets, plugin, stats, threads
-from aprsd.aprsd import cli
+from aprsd.main import cli
 from aprsd.rpc import server as rpc_server
 from aprsd.threads import rx
 
