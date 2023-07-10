@@ -50,7 +50,7 @@ def fetch_stats(ctx, ip_address, port, magic_word):
     msg = f"Fetching stats from {ip_address}:{port} with magic word '{magic_word}'"
 
     console = Console()
-    with console.status(msg) as status:
+    with console.status(msg):
         client = rpc_client.RPCClient(ip_address, port, magic_word)
         stats = client.get_stats_dict()
         console.print_json(data=stats)
@@ -109,7 +109,6 @@ def fetch_stats(ctx, ip_address, port, magic_word):
         packets_table.add_row(key, str(value["tx"]), str(value["rx"]))
 
     console.print(packets_table)
-
 
     if "plugins" in stats:
         count = len(stats["plugins"])

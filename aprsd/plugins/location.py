@@ -71,8 +71,6 @@ class LocationPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
                 area_info = f"{address.get('country'), 'Unknown'}"
         except Exception as ex:
             LOG.error(f"Failed to fetch Geopy address {ex}")
-            print("FUICK")
-            print(ex)
             area_info = "Unknown Location"
 
         try:  # altitude not always provided
