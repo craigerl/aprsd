@@ -15,6 +15,7 @@ ENV APRSD_BRANCH=${BRANCH:-master}
 ENV VIRTUAL_ENV=$HOME/.venv3
 ENV UID=${UID:-1000}
 ENV GID=${GID:-1000}
+ENV PATH=$PATH:/home/aprs/.local/bin
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV INSTALL=$HOME/install
@@ -41,6 +42,8 @@ RUN echo "export PATH=\$PATH:\$HOME/.local/bin" >> $HOME/.bashrc
 RUN cat $HOME/.bashrc
 
 USER root
+RUN mkdir -p /config
+RUN chown -R $APRS_USER:$APRS_USER /config
 WORKDIR $HOME
 # Handle an extremely specific issue when building the cryptography package for
 # 32-bit architectures within QEMU running on a 64-bit host (issue #30).
@@ -49,15 +52,13 @@ RUN if [ "${BUILDX_QEMU_ENV}" = "true" -a "$(getconf LONG_BIT)" = "32" ]; then \
     else \
         pip3 install cryptography ;\
     fi
+USER $APRS_USER
 RUN mkdir $INSTALL
 RUN git clone -b $BRANCH $APRSD $INSTALL/aprsd
-RUN    cd $INSTALL/aprsd && pip3 install -v .
-RUN ls -al /usr/local/bin
-RUN ls -al /usr/bin
+RUN cd $INSTALL/aprsd && pip3 install -v --user .
+RUN ls -al /home/aprs/.local/bin
 RUN which aprsd
-RUN mkdir -p /config
 RUN aprsd sample-config > /config/aprsd.conf
-RUN chown -R $APRS_USER:$APRS_USER /config
 
 # override this to run another configuration
 ENV CONF default
