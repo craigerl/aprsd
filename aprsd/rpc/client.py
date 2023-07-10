@@ -16,22 +16,31 @@ class RPCClient:
     _instance = None
     _rpc_client = None
 
+    ip = None
+    port = None
+    magic_word = None
+
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, ip=None, port=None, magic_word=None):
+        self.ip = str(ip) or CONF.rpc_settings.ip
+        self.port = int(port) or CONF.rpc_settings.port
+        self.magic_word = magic_word or CONF.rpc_settings.magic_word
         self._check_settings()
         self.get_rpc_client()
 
     def _check_settings(self):
         if not CONF.rpc_settings.enabled:
-            LOG.error("RPC is not enabled, no way to get stats!!")
+            LOG.warning("RPC is not enabled, no way to get stats!!")
 
-        if CONF.rpc_settings.magic_word == conf.common.APRSD_DEFAULT_MAGIC_WORD:
+        if self.magic_word == conf.common.APRSD_DEFAULT_MAGIC_WORD:
             LOG.warning("You are using the default RPC magic word!!!")
             LOG.warning("edit aprsd.conf and change rpc_settings.magic_word")
+
+        LOG.debug(f"RPC Client: {self.ip}:{self.port} {self.magic_word}")
 
     def _rpyc_connect(
         self, host, port,
@@ -53,11 +62,11 @@ class RPCClient:
 
     def get_rpc_client(self):
         if not self._rpc_client:
-            magic = CONF.rpc_settings.magic_word
+            CONF.rpc_settings.magic_word
             self._rpc_client = self._rpyc_connect(
-                CONF.rpc_settings.ip,
-                CONF.rpc_settings.port,
-                authorizer=lambda sock: sock.send(magic.encode()),
+                self.ip,
+                self.port,
+                authorizer=lambda sock: sock.send(self.magic_word.encode()),
             )
         return self._rpc_client
 
