@@ -53,7 +53,7 @@ def fetch_stats(ctx, ip_address, port, magic_word):
     with console.status(msg) as status:
         client = rpc_client.RPCClient(ip_address, port, magic_word)
         stats = client.get_stats_dict()
-        console.print_json(data=stats)
+        # console.print_json(data=stats)
     aprsd_title = (
         "APRSD "
         f"[bold cyan]v{stats['aprsd']['version']}[/] "
@@ -94,7 +94,8 @@ def fetch_stats(ctx, ip_address, port, magic_word):
     console.print(packets_table)
 
     if "plugins" in stats:
-        plugins_table = Table(title="Plugins")
+        count = len(stats["plugins"])
+        plugins_table = Table(title=f"Plugins ({count})")
         plugins_table.add_column("Plugin")
         plugins_table.add_column("Enabled")
         plugins_table.add_column("Version")
@@ -112,7 +113,8 @@ def fetch_stats(ctx, ip_address, port, magic_word):
         console.print(plugins_table)
 
     if "seen_list" in stats["aprsd"]:
-        seen_table = Table(title="Seen List")
+        count = len(stats["aprsd"]["seen_list"])
+        seen_table = Table(title=f"Seen List ({count})")
         seen_table.add_column("Callsign")
         seen_table.add_column("Message Count")
         seen_table.add_column("Last Heard")
@@ -122,7 +124,8 @@ def fetch_stats(ctx, ip_address, port, magic_word):
         console.print(seen_table)
 
     if "watch_list" in stats["aprsd"]:
-        watch_table = Table(title="Watch List")
+        count = len(stats["aprsd"]["watch_list"])
+        watch_table = Table(title=f"Watch List ({count})")
         watch_table.add_column("Callsign")
         watch_table.add_column("Last Heard")
         for key, value in stats["aprsd"]["watch_list"].items():
