@@ -65,12 +65,15 @@ class KeepAliveThread(APRSDThread):
             )
             LOG.info(keepalive)
             thread_out = []
+            thread_info = {}
             for thread in thread_list.threads_list:
                 alive = thread.is_alive()
                 thread_out.append(f"{thread.__class__.__name__}:{alive}")
+                thread_info[thread.__class__.__name__] = alive
                 if not alive:
                     LOG.error(f"Thread {thread}")
             LOG.info(",".join(thread_out))
+            stats_obj.set_thread_info(thread_info)
 
             # check the APRS connection
             cl = client.factory.create()

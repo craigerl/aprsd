@@ -29,6 +29,8 @@ class APRSDStats:
     _mem_current = 0
     _mem_peak = 0
 
+    _thread_info = {}
+
     _pkt_cnt = {
         "Packet": {
             "tx": 0,
@@ -94,6 +96,15 @@ class APRSDStats:
     @wrapt.synchronized(lock)
     def set_memory_peak(self, memory):
         self._mem_peak = memory
+
+    @wrapt.synchronized(lock)
+    def set_thread_info(self, thread_info):
+        self._thread_info = thread_info
+
+    @wrapt.synchronized(lock)
+    @property
+    def thread_info(self):
+        return self._thread_info
 
     @wrapt.synchronized(lock)
     @property
@@ -207,6 +218,7 @@ class APRSDStats:
                 "memory_current_str": utils.human_size(self.memory),
                 "memory_peak": int(self.memory_peak),
                 "memory_peak_str": utils.human_size(self.memory_peak),
+                "threads": self._thread_info,
                 "watch_list": wl.get_all(),
                 "seen_list": sl.get_all(),
             },
@@ -216,9 +228,10 @@ class APRSDStats:
                 "last_update": last_aprsis_keepalive,
             },
             "packets": {
-                "tracked": int(pl.total_tx() + pl.total_rx()),
-                "sent": int(pl.total_tx()),
-                "received": int(pl.total_rx()),
+                "total_tracked": int(pl.total_tx() + pl.total_rx()),
+                "total_sent": int(pl.total_tx()),
+                "total_received": int(pl.total_rx()),
+                "by_type": self._pkt_cnt,
             },
             "messages": {
                 "sent": self._pkt_cnt["MessagePacket"]["tx"],
@@ -234,6 +247,7 @@ class APRSDStats:
             "plugins": plugin_stats,
         }
         LOG.debug(f"STATS = {stats}")
+        LOG.info("APRSD Stats: DONE")
         return stats
 
     def __str__(self):

@@ -53,7 +53,7 @@ def fetch_stats(ctx, ip_address, port, magic_word):
     with console.status(msg) as status:
         client = rpc_client.RPCClient(ip_address, port, magic_word)
         stats = client.get_stats_dict()
-        # console.print_json(data=stats)
+        console.print_json(data=stats)
     aprsd_title = (
         "APRSD "
         f"[bold cyan]v{stats['aprsd']['version']}[/] "
@@ -76,6 +76,13 @@ def fetch_stats(ctx, ip_address, port, magic_word):
             table.add_row(key, value)
         console.print(table)
 
+    threads_table = Table(title="Threads")
+    threads_table.add_column("Name")
+    threads_table.add_column("Alive?")
+    for name, alive in stats["aprsd"]["threads"].items():
+        threads_table.add_row(name, str(alive))
+
+    console.print(threads_table)
 
     msgs_table = Table(title="Messages")
     msgs_table.add_column("Key")
@@ -85,13 +92,24 @@ def fetch_stats(ctx, ip_address, port, magic_word):
 
     console.print(msgs_table)
 
-    packets_table = Table(title="Packets")
-    packets_table.add_column("Key")
-    packets_table.add_column("Value")
-    for key, value in stats["packets"].items():
-        packets_table.add_row(key, str(value))
+    packet_totals = Table(title="Packet Totals")
+    packet_totals.add_column("Key")
+    packet_totals.add_column("Value")
+    packet_totals.add_row("Total Received", str(stats["packets"]["total_received"]))
+    packet_totals.add_row("Total Sent", str(stats["packets"]["total_sent"]))
+    packet_totals.add_row("Total Tracked", str(stats["packets"]["total_tracked"]))
+    console.print(packet_totals)
+
+    # Show each of the packet types
+    packets_table = Table(title="Packets By Type")
+    packets_table.add_column("Packet Type")
+    packets_table.add_column("TX")
+    packets_table.add_column("RX")
+    for key, value in stats["packets"]["by_type"].items():
+        packets_table.add_row(key, str(value["tx"]), str(value["rx"]))
 
     console.print(packets_table)
+
 
     if "plugins" in stats:
         count = len(stats["plugins"])
