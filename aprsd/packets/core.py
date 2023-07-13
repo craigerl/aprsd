@@ -491,16 +491,13 @@ class WeatherPacket(GPSPacket):
         """
         time_zulu = self._build_time_zulu()
 
-        course = "%03u" % self.course
-
         contents = [
             f"{self.from_call}>{self.to_call},WIDE1-1,WIDE2-1:",
             f"@{time_zulu}z{self.latitude}{self.symbol_table}",
             f"{self.longitude}{self.symbol}",
-            # Add CSE = Course
-            f"{course}",
+            f"{self.wind_direction:03d}",
             # Speed = sustained 1 minute wind speed in mph
-            f"{self.symbol_table}", f"{self.speed:03.0f}",
+            f"{self.symbol_table}", f"{self.wind_speed:03.0f}",
             # wind gust (peak wind speed in mph in the last 5 minutes)
             f"g{self.wind_gust:03.0f}",
             # Temperature in degrees F

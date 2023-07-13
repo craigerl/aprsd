@@ -26,9 +26,18 @@ class RPCClient:
         return cls._instance
 
     def __init__(self, ip=None, port=None, magic_word=None):
-        self.ip = str(ip) or CONF.rpc_settings.ip
-        self.port = int(port) or CONF.rpc_settings.port
-        self.magic_word = magic_word or CONF.rpc_settings.magic_word
+        if ip:
+            self.ip = ip
+        else:
+            self.ip = CONF.rpc_settings.ip
+        if port:
+            self.port = int(port)
+        else:
+            self.port = CONF.rpc_settings.port
+        if magic_word:
+            self.magic_word = magic_word
+        else:
+            self.magic_word = CONF.rpc_settings.magic_word
         self._check_settings()
         self.get_rpc_client()
 
