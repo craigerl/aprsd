@@ -126,8 +126,32 @@ class Packet(metaclass=abc.ABCMeta):
         if packet_type == PACKET_TYPE_WX:
             # the weather information is in a dict
             # this brings those values out to the outer dict
+
             for key in raw["weather"]:
                 raw[key] = raw["weather"][key]
+
+            # If we have the broken aprslib, then we need to
+            # Convert the course and speed to wind_speed and wind_direction
+            # aprslib issue #80
+            # https://github.com/rossengeorgiev/aprs-python/issues/80
+            # Wind speed and course is option in the SPEC.
+            # For some reason aprslib multiplies the speed by 1.852.
+            if "wind_speed" not in raw and "wind_direction" not in raw:
+                # Most likely this is the broken aprslib
+                # So we need to convert the wind_gust speed
+                raw["wind_gust"] = raw.get("wind_gust", 0) / 0.44704
+            if "wind_speed" not in raw:
+                wind_speed = raw.get("speed")
+                if wind_speed:
+                    raw["wind_speed"] = wind_speed / 1.852
+                if "speed" in raw:
+                    del raw["speed"]
+            if "wind_direction" not in raw:
+                wind_direction = raw.get("course")
+                if wind_direction:
+                    raw["wind_direction"] = wind_direction
+                if "course" in raw:
+                    del raw["course"]
 
         return dacite.from_dict(data_class=class_name, data=raw)
 
@@ -281,10 +305,6 @@ class GPSPacket(PathPacket):
     comment: str = None
     symbol: str = field(default="l")
     symbol_table: str = field(default="/")
-    # in MPH
-    speed: float = 0.00
-    # 0 to 360
-    course: int = 0
 
     def decdeg2dms(self, degrees_decimal):
         is_positive = degrees_decimal >= 0
@@ -387,6 +407,10 @@ class MicEPacket(GPSPacket):
     messagecapable: bool = False
     mbits: str = None
     mtype: str = None
+    # in MPH
+    speed: float = 0.00
+    # 0 to 360
+    course: int = 0
 
     def _build_raw(self):
         raise NotImplementedError
@@ -397,6 +421,10 @@ class ObjectPacket(GPSPacket):
     alive: bool = True
     raw_timestamp: str = None
     symbol: str = field(default="r")
+    # in MPH
+    speed: float = 0.00
+    # 0 to 360
+    course: int = 0
 
     def _build_raw(self):
         """
@@ -424,6 +452,8 @@ class ObjectPacket(GPSPacket):
 @dataclass()
 class WeatherPacket(GPSPacket):
     symbol: str = "_"
+    wind_speed: float = 0.00
+    wind_direction: int = 0
     wind_gust: float = 0.00
     temperature: float = 0.00
     # in inches.  1.04 means 1.04 inches
