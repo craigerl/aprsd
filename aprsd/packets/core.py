@@ -139,20 +139,20 @@ class Packet(metaclass=abc.ABCMeta):
             if "wind_speed" not in raw and "wind_direction" not in raw:
                 # Most likely this is the broken aprslib
                 # So we need to convert the wind_gust speed
-                raw["wind_gust"] = raw.get("wind_gust", 0) / 0.44704
+                raw["wind_gust"] = round(raw.get("wind_gust", 0) / 0.44704, 3)
             if "wind_speed" not in raw:
                 wind_speed = raw.get("speed")
                 if wind_speed:
-                    raw["wind_speed"] = wind_speed / 1.852
+                    raw["wind_speed"] = round(wind_speed / 1.852, 3)
                     raw["weather"]["wind_speed"] = raw["wind_speed"]
                 if "speed" in raw:
                     del raw["speed"]
                 # Let's adjust the rain numbers as well, since it's wrong
-                raw["rain_1h"] = (raw.get("rain_1h", 0) / .254) * .01
+                raw["rain_1h"] = round((raw.get("rain_1h", 0) / .254) * .01, 3)
                 raw["weather"]["rain_1h"] = raw["rain_1h"]
-                raw["rain_24h"] = (raw.get("rain_24h", 0) / .254) * .01
+                raw["rain_24h"] = round((raw.get("rain_24h", 0) / .254) * .01, 3)
                 raw["weather"]["rain_24h"] = raw["rain_24h"]
-                raw["rain_since_midnight"] = (raw.get("rain_since_midnight", 0) / .254) * .01
+                raw["rain_since_midnight"] = round((raw.get("rain_since_midnight", 0) / .254) * .01, 3)
                 raw["weather"]["rain_since_midnight"] = raw["rain_since_midnight"]
 
             if "wind_direction" not in raw:
