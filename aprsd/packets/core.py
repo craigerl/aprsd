@@ -144,12 +144,22 @@ class Packet(metaclass=abc.ABCMeta):
                 wind_speed = raw.get("speed")
                 if wind_speed:
                     raw["wind_speed"] = wind_speed / 1.852
+                    raw["weather"]["wind_speed"] = raw["wind_speed"]
                 if "speed" in raw:
                     del raw["speed"]
+                # Let's adjust the rain numbers as well, since it's wrong
+                raw["rain_1h"] = (raw.get("rain_1h", 0) / .254) * .01
+                raw["weather"]["rain_1h"] = raw["rain_1h"]
+                raw["rain_24h"] = (raw.get("rain_24h", 0) / .254) * .01
+                raw["weather"]["rain_24h"] = raw["rain_24h"]
+                raw["rain_since_midnight"] = (raw.get("rain_since_midnight", 0) / .254) * .01
+                raw["weather"]["rain_since_midnight"] = raw["rain_since_midnight"]
+
             if "wind_direction" not in raw:
                 wind_direction = raw.get("course")
                 if wind_direction:
                     raw["wind_direction"] = wind_direction
+                    raw["weather"]["wind_direction"] = raw["wind_direction"]
                 if "course" in raw:
                     del raw["course"]
 
