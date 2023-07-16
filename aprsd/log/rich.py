@@ -130,7 +130,7 @@ class APRSDRichHandler(RichHandler):
         """Render log for display.
 
         Args:
-            record (LogRecord): logging Record.
+            record (LogRecord): log Record.
             traceback (Optional[Traceback]): Traceback instance or None for no Traceback.
             message_renderable (ConsoleRenderable): Renderable (typically Text) containing log message contents.
 

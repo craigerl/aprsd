@@ -28,7 +28,7 @@ def set_lib_defaults():
 
 
 def set_log_defaults():
-    # logging.set_defaults(default_log_levels=logging.get_default_log_levels())
+    # log.set_defaults(default_log_levels=log.get_default_log_levels())
     pass
 
 

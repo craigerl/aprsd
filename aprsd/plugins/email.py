@@ -666,7 +666,7 @@ class APRSDEmailThread(threads.APRSDThread):
                     EmailInfo().delay = 60
 
             # reset clock
-            LOG.debug("Done looping over Server.fetch, logging out.")
+            LOG.debug("Done looping over Server.fetch, log out.")
             self.past = datetime.datetime.now()
             try:
                 server.logout()

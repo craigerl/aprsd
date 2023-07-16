@@ -1,5 +1,5 @@
 """
-The options for logging setup
+The options for log setup
 """
 import logging
 
@@ -33,7 +33,7 @@ logging_opts = [
     cfg.BoolOpt(
         "rich_logging",
         default=True,
-        help="Enable Rich logging",
+        help="Enable Rich log",
     ),
     cfg.StrOpt(
         "logfile",
@@ -44,6 +44,12 @@ logging_opts = [
         "logformat",
         default=DEFAULT_LOG_FORMAT,
         help="Log file format, unless rich_logging enabled.",
+    ),
+    cfg.StrOpt(
+        "log_level",
+        default="INFO",
+        choices=LOG_LEVELS.keys(),
+        help="Log level for logging of events.",
     ),
 ]
 

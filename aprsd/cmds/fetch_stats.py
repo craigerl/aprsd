@@ -17,7 +17,7 @@ from aprsd.rpc import client as rpc_client
 
 
 # setup the global logger
-# logging.basicConfig(level=logging.DEBUG) # level=10
+# log.basicConfig(level=log.DEBUG) # level=10
 LOG = logging.getLogger("APRSD")
 CONF = cfg.CONF
 

@@ -1,5 +1,5 @@
 """
-The options for logging setup
+The options for log setup
 """
 
 from oslo_config import cfg

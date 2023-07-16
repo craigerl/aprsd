@@ -144,7 +144,7 @@ class APRSISClient(Client):
             try:
                 LOG.info("Creating aprslib client")
                 aprs_client = aprsis.Aprsdis(user, passwd=password, host=host, port=port)
-                # Force the logging to be the same
+                # Force the log to be the same
                 aprs_client.logger = LOG
                 aprs_client.connect()
                 connected = True

@@ -4,7 +4,7 @@ import threading
 import wrapt
 
 from aprsd import threads
-from aprsd.logging import log
+from aprsd.log import log
 
 
 LOG = logging.getLogger("APRSD")

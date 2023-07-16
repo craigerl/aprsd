@@ -32,7 +32,7 @@ class TestSendMessageCommand(unittest.TestCase):
         CONF.admin.user = "admin"
         CONF.admin.password = "password"
 
-    @mock.patch("aprsd.logging.log.setup_logging")
+    @mock.patch("aprsd.log.log.setup_logging")
     def test_init_flask(self, mock_logging):
         """Make sure we get an error if there is no login and config."""
 

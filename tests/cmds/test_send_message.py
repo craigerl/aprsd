@@ -30,7 +30,7 @@ class TestSendMessageCommand(unittest.TestCase):
         CONF.admin.user = "admin"
         CONF.admin.password = "password"
 
-    @mock.patch("aprsd.logging.log.setup_logging")
+    @mock.patch("aprsd.log.log.setup_logging")
     def test_no_tocallsign(self, mock_logging):
         """Make sure we get an error if there is no tocallsign."""
 
@@ -47,7 +47,7 @@ class TestSendMessageCommand(unittest.TestCase):
         assert result.exit_code == 2
         assert "Error: Missing argument 'TOCALLSIGN'" in result.output
 
-    @mock.patch("aprsd.logging.log.setup_logging")
+    @mock.patch("aprsd.log.log.setup_logging")
     def test_no_command(self, mock_logging):
         """Make sure we get an error if there is no command."""
 

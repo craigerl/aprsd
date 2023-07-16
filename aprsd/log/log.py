@@ -7,7 +7,7 @@ import sys
 from oslo_config import cfg
 
 from aprsd import conf
-from aprsd.logging import rich as aprsd_logging
+from aprsd.log import rich as aprsd_logging
 
 
 CONF = cfg.CONF
@@ -15,8 +15,8 @@ LOG = logging.getLogger("APRSD")
 logging_queue = queue.Queue()
 
 
-# Setup the logging faciility
-# to disable logging to stdout, but still log to file
+# Setup the log faciility
+# to disable log to stdout, but still log to file
 # use the --quiet option on the cmdln
 def setup_logging(loglevel, quiet):
     log_level = conf.log.LOG_LEVELS[loglevel]

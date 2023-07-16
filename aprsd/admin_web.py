@@ -14,7 +14,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 import aprsd
 from aprsd import cli_helper, client, conf, packets, plugin, threads
-from aprsd.logging import rich as aprsd_logging
+from aprsd.log import rich as aprsd_logging
 from aprsd.rpc import client as aprsd_rpc_client
 
 
@@ -335,7 +335,7 @@ def init_flask(loglevel, quiet):
     return socketio, flask_app
 
 
-def create_app(config_file=None, log_level=None, gunicorn=False):
+def create_app(config_file=None, log_level=None):
     global socketio
     global app
 
@@ -351,12 +351,9 @@ def create_app(config_file=None, log_level=None, gunicorn=False):
     if not log_level:
         log_level = CONF.logging.log_level
 
-    if gunicorn:
-        socketio, app = init_flask(log_level, False)
-        setup_logging(app, log_level, False)
-        return app
-    else:
-        return socketio
+    socketio, app = init_flask(log_level, False)
+    setup_logging(app, log_level, False)
+    return app
 
 
 if __name__ == "aprsd.flask":

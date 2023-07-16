@@ -289,6 +289,20 @@ LOCATION
 AND... ping, fortune, time.....
 
 
+Web Admin Interface
+===================
+To start the web admin interface, You have to install gunicorn in your virtualenv that already has aprsd installed.
+
+::
+
+  source <path to APRSD's virtualenv>/bin/activate
+  pip install gunicorn
+  gunicorn --bind 0.0.0.0:8080 "aprsd.wsgi:app"
+
+The web admin interface will be running on port 8080 on the local machine.  http://localhost:8080
+
+
+
 Development
 ===========
 

@@ -39,7 +39,7 @@ from aprsd import cli_helper, packets, stats, threads, utils
 
 
 # setup the global logger
-# logging.basicConfig(level=logging.DEBUG) # level=10
+# log.basicConfig(level=log.DEBUG) # level=10
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
