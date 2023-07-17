@@ -1,73 +1,52 @@
-# syntax=docker/dockerfile:1
-FROM ubuntu:22.04
+FROM python:3.11-slim as build
 
-# Dockerfile for building a container during aprsd development.
-ARG BRANCH=master
-ARG UID
-ARG GID
+ENV PIP_DEFAULT_TIMEOUT=100 \
+    # Allow statements and log messages to immediately appear
+    PYTHONUNBUFFERED=1 \
+    # disable a pip version check to reduce run-time & log-spam
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    # cache is useless in docker image, so disable to reduce image size
+    PIP_NO_CACHE_DIR=1
 
-ARG BUILDX_QEMU_ENV
+WORKDIR /app
 
-ENV APRS_USER=aprs
-ENV HOME=/home/aprs
-ENV APRSD=http://github.com/craigerl/aprsd.git
-ENV APRSD_BRANCH=${BRANCH:-master}
-ENV VIRTUAL_ENV=$HOME/.venv3
-ENV UID=${UID:-1000}
-ENV GID=${GID:-1000}
-ENV PATH=$PATH:/home/aprs/.local/bin
+RUN set -ex \
+    # Create a non-root user
+    && addgroup --system --gid 1001 appgroup \
+    && adduser --system --uid 1001 --gid 1001 --no-create-home appuser \
+    # Upgrade the package index and install security upgrades
+    && apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y git build-essential curl vim \
+    # Install dependencies
+    # Clean up
+    && apt-get autoremove -y \
+    && apt-get clean -y
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV INSTALL=$HOME/install
-RUN apt update
-RUN apt install -y --no-install-recommends git build-essential bash fortune
-RUN apt install -y libffi-dev python3-dev libssl-dev libxml2-dev libxslt-dev
-RUN apt install -y telnet vim sudo
-RUN apt install -y python3 python3-pip python3-dev python3-lxml
-#RUN apt-get clean
-RUN apt-get -o Dpkg::Options::="--force-confmiss" install --reinstall netbase
 
-RUN addgroup --gid 1001 $APRS_USER
-RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
+### Final stage
+FROM build as final
 
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
-
-WORKDIR $HOME
-USER $APRS_USER
-RUN pip install wheel
-#RUN python3 -m venv $VIRTUAL_ENV
-#ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-RUN echo "export PATH=\$PATH:\$HOME/.local/bin" >> $HOME/.bashrc
-RUN cat $HOME/.bashrc
-
-USER root
-RUN mkdir -p /config
-RUN chown -R $APRS_USER:$APRS_USER /config
-WORKDIR $HOME
-# Handle an extremely specific issue when building the cryptography package for
-# 32-bit architectures within QEMU running on a 64-bit host (issue #30).
-RUN if [ "${BUILDX_QEMU_ENV}" = "true" -a "$(getconf LONG_BIT)" = "32" ]; then \
-        pip3 install -U cryptography==3.3.2; \
-    else \
-        pip3 install cryptography ;\
-    fi
-USER $APRS_USER
-RUN mkdir $INSTALL
-RUN git clone -b $BRANCH $APRSD $INSTALL/aprsd
-RUN cd $INSTALL/aprsd && pip3 install -v --user .
-RUN ls -al /home/aprs/.local/bin
+RUN git clone https://github.com/craigerl/aprsd
+RUN cd aprsd && pip install --no-cache-dir .
+RUN pip install gunicorn
+RUN which aprsd
+RUN mkdir /config
+RUN chown -R appuser:appgroup /app
+RUN chown -R appuser:appgroup /config
+USER appuser
 RUN which aprsd
 RUN aprsd sample-config > /config/aprsd.conf
 
-# override this to run another configuration
-ENV CONF default
-USER $APRS_USER
-VOLUME ["/config", "/plugins"]
+ADD bin/run.sh /app
+ADD bin/listen.sh /app
+ADD bin/admin.sh /app
 
-ADD bin/run.sh $HOME/
-ADD bin/listen.sh $HOME/
-ENTRYPOINT ["/home/aprs/run.sh"]
+EXPOSE 8000
 
-HEALTHCHECK --interval=5m --timeout=12s --start-period=30s \
-    CMD aprsd healthcheck --config /config/aprsd.conf
+# CMD ["gunicorn", "aprsd.wsgi:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/run.sh"]
+VOLUME ["/config"]
+
+# Set the user to run the application
+USER appuser
