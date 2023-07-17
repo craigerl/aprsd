@@ -1,5 +1,9 @@
 FROM python:3.11-slim as build
 
+ARG BRANCH=master
+ARG BUILDX_QEMU_ENV
+ENV APRSD_BRANCH=${BRANCH:-master}
+
 ENV PIP_DEFAULT_TIMEOUT=100 \
     # Allow statements and log messages to immediately appear
     PYTHONUNBUFFERED=1 \
@@ -28,7 +32,7 @@ RUN set -ex \
 ### Final stage
 FROM build as final
 
-RUN git clone https://github.com/craigerl/aprsd
+RUN git clone -b $APRSD_BRANCH https://github.com/craigerl/aprsd
 RUN cd aprsd && pip install --no-cache-dir .
 RUN pip install gunicorn
 RUN which aprsd
