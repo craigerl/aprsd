@@ -1,4 +1,4 @@
-name: Manual master-dev docker container
+name: Manual Build docker container
 
 on:
   workflow_dispatch:
@@ -14,13 +14,21 @@ on:
         - debug
 jobs:
 
+
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
     - name: Get Branch Name
       id: branch-name
-      uses: tj-actions/branch-names@v6
+      uses: tj-actions/branch-names@v7
+    - name: Extract Branch
+      id: extract_branch
+      run: |
+        echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+    - name: What is the selected branch?
+      run: |
+        echo "Selected Branch '${{ steps.extract_branch.outputs.branch }}'"
     - name: Setup QEMU
       uses: docker/setup-qemu-action@v2
     - name: Setup Docker Buildx
@@ -37,8 +45,8 @@ jobs:
         platforms: linux/amd64,linux/arm64
         file: ./Dockerfile-dev
         build-args: |
-            BRANCH=master
+            BRANCH=${{ steps.extract_branch.outputs.branch }}
             BUILDX_QEMU_ENV=true
         push: true
         tags: |
-          hemna6969/aprsd:master-dev
+          hemna6969/aprsd:${{ steps.extract_branch.outputs.branch }}
