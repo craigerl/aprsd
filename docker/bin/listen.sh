@@ -9,7 +9,7 @@ if [ ! -z "${APRSD_PLUGINS}" ]; then
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$plugin'"
-        pip3 install $plugin
+        pip3 install --user $plugin
     done
 fi
 

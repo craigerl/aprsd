@@ -12,12 +12,11 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
     # cache is useless in docker image, so disable to reduce image size
     PIP_NO_CACHE_DIR=1
 
-WORKDIR /app
 
 RUN set -ex \
     # Create a non-root user
     && addgroup --system --gid 1001 appgroup \
-    && adduser --system --uid 1001 --gid 1001 --no-create-home appuser \
+    && useradd --uid 1001 --gid 1001 -s /usr/bin/bash -m -d /app appuser \
     # Upgrade the package index and install security upgrades
     && apt-get update \
     && apt-get upgrade -y \
@@ -31,6 +30,7 @@ RUN set -ex \
 
 ### Final stage
 FROM build as final
+WORKDIR /app
 
 RUN git clone -b $APRSD_BRANCH https://github.com/craigerl/aprsd
 RUN cd aprsd && pip install --no-cache-dir .
