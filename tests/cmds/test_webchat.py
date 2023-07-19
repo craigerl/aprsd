@@ -39,9 +39,9 @@ class TestSendMessageCommand(unittest.TestCase):
         CliRunner()
         self.config_and_init()
 
-        socketio, flask_app = webchat.init_flask("DEBUG", False)
+        socketio = webchat.init_flask("DEBUG", False)
         self.assertIsInstance(socketio, flask_socketio.SocketIO)
-        self.assertIsInstance(flask_app, flask.Flask)
+        self.assertIsInstance(webchat.flask_app, flask.Flask)
 
     @mock.patch("aprsd.packets.tracker.PacketTrack.remove")
     @mock.patch("aprsd.cmds.webchat.socketio")

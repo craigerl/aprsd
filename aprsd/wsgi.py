@@ -187,6 +187,7 @@ def index():
         plugin_count=plugin_count,
     )
 
+
 @auth.login_required
 def messages():
     track = packets.PacketTrack()
@@ -197,9 +198,10 @@ def messages():
 
     return flask.render_template("messages.html", messages=json.dumps(msgs))
 
+
 @auth.login_required
 @app.route("/packets")
-def packets():
+def get_packets():
     LOG.debug("/packets called")
     packet_list = aprsd_rpc_client.RPCClient().get_packet_list()
     if packet_list:
@@ -212,6 +214,7 @@ def packets():
     else:
         return json.dumps([])
 
+
 @auth.login_required
 @app.route("/plugins")
 def plugins():
@@ -221,6 +224,7 @@ def plugins():
 
     return "reloaded"
 
+
 @auth.login_required
 @app.route("/save")
 def save():
@@ -228,7 +232,6 @@ def save():
     track = packets.PacketTrack()
     track.save()
     return json.dumps({"messages": "saved"})
-
 
 
 class LogUpdateThread(threads.APRSDThread):

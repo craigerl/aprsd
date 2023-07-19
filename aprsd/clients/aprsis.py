@@ -112,22 +112,22 @@ class Aprsdis(aprslib.IS):
             self._sendall(login_str)
             self.sock.settimeout(5)
             test = self.sock.recv(len(login_str) + 100)
+            self.logger.debug("Server: '%s'", test)
             if is_py3:
                 test = test.decode("latin-1")
             test = test.rstrip()
 
-            self.logger.debug("Server: %s", test)
+            self.logger.debug("Server: '%s'", test)
 
-            a, b, callsign, status, e = test.split(" ", 4)
+            if not test:
+                raise LoginError(f"Server Response Empty: '{test}'")
+
+            _, _, callsign, status, e = test.split(" ", 4)
             s = e.split(",")
             if len(s):
                 server_string = s[0].replace("server ", "")
             else:
                 server_string = e.replace("server ", "")
-
-            self.logger.info(f"Connected to {server_string}")
-            self.server_string = server_string
-            stats.APRSDStats().set_aprsis_server(server_string)
 
             if callsign == "":
                 raise LoginError("Server responded with empty callsign???")
@@ -141,6 +141,10 @@ class Aprsdis(aprslib.IS):
             else:
                 self.logger.info("Login successful")
 
+            self.logger.info(f"Connected to {server_string}")
+            self.server_string = server_string
+            stats.APRSDStats().set_aprsis_server(server_string)
+
         except LoginError as e:
             self.logger.error(str(e))
             self.close()
@@ -148,6 +152,7 @@ class Aprsdis(aprslib.IS):
         except Exception as e:
             self.close()
             self.logger.error(f"Failed to login '{e}'")
+            self.logger.exception(e)
             raise LoginError("Failed to login")
 
     def consumer(self, callback, blocking=True, immortal=False, raw=False):

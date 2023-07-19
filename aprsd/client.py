@@ -152,9 +152,10 @@ class APRSISClient(Client):
             except LoginError as e:
                 LOG.error(f"Failed to login to APRS-IS Server '{e}'")
                 connected = False
-                raise e
+                time.sleep(backoff)
             except Exception as e:
                 LOG.error(f"Unable to connect to APRS-IS server. '{e}' ")
+                connected = False
                 time.sleep(backoff)
                 backoff = backoff * 2
                 continue

@@ -12,7 +12,6 @@ import click
 import flask
 from flask import request
 from flask.logging import default_handler
-import flask_classful
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
 from oslo_config import cfg
@@ -31,8 +30,15 @@ from aprsd.utils import objectstore, trace
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 auth = HTTPBasicAuth()
-users = None
+users = {}
 socketio = None
+
+flask_app = flask.Flask(
+    "aprsd",
+    static_url_path="/static",
+    static_folder="web/chat/static",
+    template_folder="web/chat/templates",
+)
 
 
 def signal_handler(sig, frame):
@@ -174,106 +180,108 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         )
 
 
-class WebChatFlask(flask_classful.FlaskView):
+def set_config():
+    global users
 
-    def set_config(self):
-        global users
-        self.users = {}
-        user = CONF.admin.user
-        self.users[user] = generate_password_hash(CONF.admin.password)
-        users = self.users
 
-    def _get_transport(self, stats):
-        if CONF.aprs_network.enabled:
-            transport = "aprs-is"
-            aprs_connection = (
-                "APRS-IS Server: <a href='http://status.aprs2.net' >"
-                "{}</a>".format(stats["stats"]["aprs-is"]["server"])
-            )
-        else:
-            # We might be connected to a KISS socket?
-            if client.KISSClient.is_enabled():
-                transport = client.KISSClient.transport()
-                if transport == client.TRANSPORT_TCPKISS:
-                    aprs_connection = (
-                        "TCPKISS://{}:{}".format(
-                            CONF.kiss_tcp.host,
-                            CONF.kiss_tcp.port,
-                        )
-                    )
-                elif transport == client.TRANSPORT_SERIALKISS:
-                    # for pep8 violation
-                    aprs_connection = (
-                        "SerialKISS://{}@{} baud".format(
-                            CONF.kiss_serial.device,
-                            CONF.kiss_serial.baudrate,
-                        ),
-                    )
-
-        return transport, aprs_connection
-
-    @auth.login_required
-    def index(self):
-        ua_str = request.headers.get("User-Agent")
-        # this takes about 2 seconds :(
-        user_agent = ua_parse(ua_str)
-        LOG.debug(f"Is mobile? {user_agent.is_mobile}")
-        stats = self._stats()
-
-        if user_agent.is_mobile:
-            html_template = "mobile.html"
-        else:
-            html_template = "index.html"
-
-        # For development
-        # html_template = "mobile.html"
-
-        LOG.debug(f"Template {html_template}")
-
-        transport, aprs_connection = self._get_transport(stats)
-        LOG.debug(f"transport {transport} aprs_connection {aprs_connection}")
-
-        stats["transport"] = transport
-        stats["aprs_connection"] = aprs_connection
-        LOG.debug(f"initial stats = {stats}")
-
-        return flask.render_template(
-            html_template,
-            initial_stats=stats,
-            aprs_connection=aprs_connection,
-            callsign=CONF.callsign,
-            version=aprsd.__version__,
+def _get_transport(stats):
+    if CONF.aprs_network.enabled:
+        transport = "aprs-is"
+        aprs_connection = (
+            "APRS-IS Server: <a href='http://status.aprs2.net' >"
+            "{}</a>".format(stats["stats"]["aprs-is"]["server"])
         )
+    else:
+        # We might be connected to a KISS socket?
+        if client.KISSClient.is_enabled():
+            transport = client.KISSClient.transport()
+            if transport == client.TRANSPORT_TCPKISS:
+                aprs_connection = (
+                    "TCPKISS://{}:{}".format(
+                        CONF.kiss_tcp.host,
+                        CONF.kiss_tcp.port,
+                    )
+                )
+            elif transport == client.TRANSPORT_SERIALKISS:
+                # for pep8 violation
+                aprs_connection = (
+                    "SerialKISS://{}@{} baud".format(
+                        CONF.kiss_serial.device,
+                        CONF.kiss_serial.baudrate,
+                    ),
+                )
 
-    @auth.login_required
-    def send_message_status(self):
-        LOG.debug(request)
-        msgs = SentMessages()
-        info = msgs.get_all()
-        return json.dumps(info)
+    return transport, aprs_connection
 
-    def _stats(self):
-        stats_obj = stats.APRSDStats()
-        now = datetime.datetime.now()
 
-        time_format = "%m-%d-%Y %H:%M:%S"
-        stats_dict = stats_obj.stats()
-        # Webchat doesnt need these
-        del stats_dict["aprsd"]["watch_list"]
-        del stats_dict["aprsd"]["seen_list"]
-        # del stats_dict["email"]
-        # del stats_dict["plugins"]
-        # del stats_dict["messages"]
+@auth.login_required
+@flask_app.route("/")
+def index():
+    ua_str = request.headers.get("User-Agent")
+    # this takes about 2 seconds :(
+    user_agent = ua_parse(ua_str)
+    LOG.debug(f"Is mobile? {user_agent.is_mobile}")
+    stats = _stats()
 
-        result = {
-            "time": now.strftime(time_format),
-            "stats": stats_dict,
-        }
+    if user_agent.is_mobile:
+        html_template = "mobile.html"
+    else:
+        html_template = "index.html"
 
-        return result
+    # For development
+    # html_template = "mobile.html"
 
-    def stats(self):
-        return json.dumps(self._stats())
+    LOG.debug(f"Template {html_template}")
+
+    transport, aprs_connection = _get_transport(stats)
+    LOG.debug(f"transport {transport} aprs_connection {aprs_connection}")
+
+    stats["transport"] = transport
+    stats["aprs_connection"] = aprs_connection
+    LOG.debug(f"initial stats = {stats}")
+
+    return flask.render_template(
+        html_template,
+        initial_stats=stats,
+        aprs_connection=aprs_connection,
+        callsign=CONF.callsign,
+        version=aprsd.__version__,
+    )
+
+
+@auth.login_required
+@flask_app.route("//send-message-status")
+def send_message_status():
+    LOG.debug(request)
+    msgs = SentMessages()
+    info = msgs.get_all()
+    return json.dumps(info)
+
+
+def _stats():
+    stats_obj = stats.APRSDStats()
+    now = datetime.datetime.now()
+
+    time_format = "%m-%d-%Y %H:%M:%S"
+    stats_dict = stats_obj.stats()
+    # Webchat doesnt need these
+    del stats_dict["aprsd"]["watch_list"]
+    del stats_dict["aprsd"]["seen_list"]
+    # del stats_dict["email"]
+    # del stats_dict["plugins"]
+    # del stats_dict["messages"]
+
+    result = {
+        "time": now.strftime(time_format),
+        "stats": stats_dict,
+    }
+
+    return result
+
+
+@flask_app.route("/stats")
+def get_stats():
+    return json.dumps(_stats())
 
 
 class SendMessageNamespace(Namespace):
@@ -377,21 +385,9 @@ def setup_logging(flask_app, loglevel, quiet):
 
 @trace.trace
 def init_flask(loglevel, quiet):
-    global socketio
+    global socketio, flask_app
 
-    flask_app = flask.Flask(
-        "aprsd",
-        static_url_path="/static",
-        static_folder="web/chat/static",
-        template_folder="web/chat/templates",
-    )
     setup_logging(flask_app, loglevel, quiet)
-    server = WebChatFlask()
-    server.set_config()
-    flask_app.route("/", methods=["GET"])(server.index)
-    flask_app.route("/stats", methods=["GET"])(server.stats)
-    # flask_app.route("/send-message", methods=["GET"])(server.send_message)
-    flask_app.route("/send-message-status", methods=["GET"])(server.send_message_status)
 
     socketio = SocketIO(
         flask_app, logger=False, engineio_logger=False,
@@ -407,7 +403,7 @@ def init_flask(loglevel, quiet):
             "/sendmsg",
         ),
     )
-    return socketio, flask_app
+    return socketio
 
 
 # main() ###
@@ -448,6 +444,8 @@ def webchat(ctx, flush, port):
     LOG.info(f"APRSD Started version: {aprsd.__version__}")
 
     CONF.log_opt_values(LOG, logging.DEBUG)
+    user = CONF.admin.user
+    users[user] = generate_password_hash(CONF.admin.password)
 
     # Initialize the client factory and create
     # The correct client object ready for use
@@ -466,7 +464,7 @@ def webchat(ctx, flush, port):
     packets.WatchList()
     packets.SeenList()
 
-    (socketio, app) = init_flask(loglevel, quiet)
+    socketio = init_flask(loglevel, quiet)
     rx_thread = rx.APRSDPluginRXThread(
         packet_queue=threads.packet_queue,
     )
@@ -482,7 +480,7 @@ def webchat(ctx, flush, port):
     keepalive.start()
     LOG.info("Start socketio.run()")
     socketio.run(
-        app,
+        flask_app,
         ssl_context="adhoc",
         host=CONF.admin.web_ip,
         port=port,
