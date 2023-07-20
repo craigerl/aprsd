@@ -332,6 +332,6 @@ if __name__ == "__main__":
     socket_io.run(app)
 
 if __name__ == "aprsd.wsgi":
-    log_level = init_app(config_file="~/.config/aprsd/aprsd.conf", log_level="DEBUG")
+    log_level = init_app(config_file="/config/aprsd.conf", log_level="DEBUG")
     socket_io.on_namespace(LoggingNamespace("/logs"))
     setup_logging(app, log_level)
