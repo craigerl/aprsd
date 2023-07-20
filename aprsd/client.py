@@ -62,6 +62,8 @@ class Client:
         """Call this to force a rebuild/reconnect."""
         if self._client:
             del self._client
+        else:
+            LOG.warning("Client not initialized, nothing to reset.")
 
     @abc.abstractmethod
     def setup_connection(self):

@@ -68,8 +68,13 @@ class KeepAliveThread(APRSDThread):
             thread_info = {}
             for thread in thread_list.threads_list:
                 alive = thread.is_alive()
-                thread_out.append(f"{thread.__class__.__name__}:{alive}")
-                thread_info[thread.__class__.__name__] = alive
+                age = thread.loop_age()
+                key = thread.__class__.__name__
+                thread_out.append(f"{key}:{alive}:{age}")
+                if key not in thread_info:
+                    thread_info[key] = {}
+                thread_info[key]["alive"] = alive
+                thread_info[key]["age"] = age
                 if not alive:
                     LOG.error(f"Thread {thread}")
             LOG.info(",".join(thread_out))
