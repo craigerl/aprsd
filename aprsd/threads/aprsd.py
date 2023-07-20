@@ -1,4 +1,5 @@
 import abc
+import datetime
 import logging
 import threading
 
@@ -50,6 +51,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         super().__init__(name=name)
         self.thread_stop = False
         APRSDThreadList().add(self)
+        self._last_loop = datetime.datetime.now()
 
     def _should_quit(self):
         """ see if we have a quit message from the global queue."""
@@ -70,10 +72,15 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         out = f"Thread <{self.__class__.__name__}({self.name}) Alive? {self.is_alive()}>"
         return out
 
+    def loop_age(self):
+        """How old is the last loop call?"""
+        return datetime.datetime.now() - self._last_loop
+
     def run(self):
         LOG.debug("Starting")
         while not self._should_quit():
             can_loop = self.loop()
+            self._last_loop = datetime.datetime.now()
             if not can_loop:
                 self.stop()
         self._cleanup()

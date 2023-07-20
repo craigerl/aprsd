@@ -27,5 +27,6 @@ if [ ! -e "$APRSD_CONFIG" ]; then
 fi
 
 export COLUMNS=200
-exec gunicorn -b :8000 --workers 4 "aprsd.admin_web:create_app(config_file='$APRSD_CONFIG', log_level='$LOG_LEVEL')"
+#exec gunicorn -b :8000 --workers 4 "aprsd.admin_web:create_app(config_file='$APRSD_CONFIG', log_level='$LOG_LEVEL')"
+exec gunicorn -b :8000 --workers 4 "aprsd.wsgi:app"
 #exec aprsd listen -c $APRSD_CONFIG --loglevel ${LOG_LEVEL} ${APRSD_LOAD_PLUGINS} ${APRSD_LISTEN_FILTER}
