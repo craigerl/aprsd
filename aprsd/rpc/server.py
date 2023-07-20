@@ -60,32 +60,40 @@ class APRSDService(rpyc.Service):
 
     @rpyc.exposed
     def get_stats(self):
+        LOG.info("get_stats")
         stat = stats.APRSDStats()
         stats_dict = stat.stats()
-        LOG.debug(stats_dict)
-        return json.dumps(stats_dict, indent=4, sort_keys=True, default=str)
+        return_str = json.dumps(stats_dict, indent=4, sort_keys=True, default=str)
+        LOG.info(f"get_stats: return size {len(return_str)}")
+        return return_str
 
     @rpyc.exposed
     def get_stats_obj(self):
+        LOG.info("get_stats_obj")
         return stats.APRSDStats()
 
     @rpyc.exposed
     def get_packet_list(self):
+        LOG.info("get_packet_list")
         return packets.PacketList()
 
     @rpyc.exposed
     def get_packet_track(self):
+        LOG.info("get_packet_track")
         return packets.PacketTrack()
 
     @rpyc.exposed
     def get_watch_list(self):
+        LOG.info("get_watch_list")
         return packets.WatchList()
 
     @rpyc.exposed
     def get_seen_list(self):
+        LOG.info("get_seen_list")
         return packets.SeenList()
 
     @rpyc.exposed
     def get_log_entries(self):
+        LOG.info("get_log_entries")
         entries = log_monitor.LogEntries().get_all_and_purge()
         return json.dumps(entries, default=str)
