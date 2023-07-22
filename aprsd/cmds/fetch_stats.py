@@ -4,7 +4,6 @@
 import logging
 
 import click
-from click_params import IP_ADDRESS
 from oslo_config import cfg
 from rich.console import Console
 from rich.table import Table
@@ -25,33 +24,39 @@ CONF = cfg.CONF
 @cli.command()
 @cli_helper.add_options(cli_helper.common_options)
 @click.option(
-    "--ip-address", type=IP_ADDRESS,
-    default=CONF.rpc_settings.ip,
+    "--host", type=str,
+    default=None,
     help="IP address of the remote aprsd server to fetch stats from.",
 )
 @click.option(
     "--port", type=int,
-    default=CONF.rpc_settings.port,
+    default=None,
     help="Port of the remote aprsd server rpc port to fetch stats from.",
 )
 @click.option(
     "--magic-word", type=str,
-    default=CONF.rpc_settings.magic_word,
+    default=None,
     help="Magic word of the remote aprsd server rpc port to fetch stats from.",
 )
 @click.pass_context
 @cli_helper.process_standard_options
-def fetch_stats(ctx, ip_address, port, magic_word):
+def fetch_stats(ctx, host, port, magic_word):
     """Fetch stats from a remote running instance of aprsd server."""
     LOG.info(f"APRSD Fetch-Stats started version: {aprsd.__version__}")
 
     CONF.log_opt_values(LOG, logging.DEBUG)
+    if not host:
+        host = CONF.rpc_settings.ip
+    if not port:
+        port = CONF.rpc_settings.port
+    if not magic_word:
+        magic_word = CONF.rpc_settings.magic_word
 
-    msg = f"Fetching stats from {ip_address}:{port} with magic word '{magic_word}'"
-
+    msg = f"Fetching stats from {host}:{port} with magic word '{magic_word}'"
     console = Console()
+    console.print(msg)
     with console.status(msg):
-        client = rpc_client.RPCClient(str(ip_address), port, magic_word)
+        client = rpc_client.RPCClient(host, port, magic_word)
         stats = client.get_stats_dict()
         console.print_json(data=stats)
     aprsd_title = (
@@ -61,7 +66,7 @@ def fetch_stats(ctx, ip_address, port, magic_word):
         f"Uptime [bold yellow]{stats['aprsd']['uptime']}[/]"
     )
 
-    console.rule(f"Stats from {ip_address}:{port} with magic word '{magic_word}'")
+    console.rule(f"Stats from {host}:{port} with magic word '{magic_word}'")
     console.print("\n\n")
     console.rule(aprsd_title)
 
