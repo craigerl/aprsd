@@ -52,11 +52,9 @@ class RPCClient:
         LOG.debug(f"RPC Client: {self.ip}:{self.port} {self.magic_word}")
 
     def _rpyc_connect(
-        self, host, port,
-        service=rpyc.VoidService,
+        self, host, port, service=rpyc.VoidService,
         config={}, ipv6=False,
-        keepalive=False, authorizer=None,
-    ):
+        keepalive=False, authorizer=None, ):
 
         print(f"Connecting to RPC host {host}:{port}")
         try:
@@ -71,7 +69,6 @@ class RPCClient:
 
     def get_rpc_client(self):
         if not self._rpc_client:
-            CONF.rpc_settings.magic_word
             self._rpc_client = self._rpyc_connect(
                 self.ip,
                 self.port,

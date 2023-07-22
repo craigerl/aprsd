@@ -51,7 +51,7 @@ def fetch_stats(ctx, ip_address, port, magic_word):
 
     console = Console()
     with console.status(msg):
-        client = rpc_client.RPCClient(ip_address, port, magic_word)
+        client = rpc_client.RPCClient(str(ip_address), port, magic_word)
         stats = client.get_stats_dict()
         console.print_json(data=stats)
     aprsd_title = (
