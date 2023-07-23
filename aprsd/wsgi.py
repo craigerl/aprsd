@@ -8,8 +8,8 @@ import flask
 from flask import Flask
 from flask.logging import default_handler
 from flask_httpauth import HTTPBasicAuth
-from flask_socketio import Namespace, SocketIO
 from oslo_config import cfg
+import socketio
 from werkzeug.security import check_password_hash
 
 import aprsd
@@ -29,7 +29,8 @@ app = Flask(
     static_folder="web/admin/static",
     template_folder="web/admin/templates",
 )
-socket_io = SocketIO(app)
+bg_thread = None
+app.config["SECRET_KEY"] = "secret!"
 
 
 # HTTPBasicAuth doesn't work on a class method.
@@ -119,7 +120,6 @@ def stats():
     return json.dumps(_stats())
 
 
-@auth.login_required
 @app.route("/")
 def index():
     stats = _stats()
@@ -240,51 +240,46 @@ class LogUpdateThread(threads.APRSDThread):
         super().__init__("LogUpdate")
 
     def loop(self):
-        global socket_io
-
-        if socket_io:
+        if sio:
             log_entries = aprsd_rpc_client.RPCClient().get_log_entries()
 
             if log_entries:
+                LOG.info(f"Sending log entries! {len(log_entries)}")
                 for entry in log_entries:
-                    socket_io.emit(
+                    sio.emit(
                         "log_entry", entry,
                         namespace="/logs",
                     )
-
         time.sleep(5)
         return True
 
 
-class LoggingNamespace(Namespace):
+class LoggingNamespace(socketio.Namespace):
     log_thread = None
 
-    def on_connect(self):
-        global socket_io
-        socket_io.emit(
+    def on_connect(self, sid, environ):
+        global sio
+        LOG.debug(f"LOG on_connect {sid}")
+        sio.emit(
             "connected", {"data": "/logs Connected"},
             namespace="/logs",
         )
         self.log_thread = LogUpdateThread()
         self.log_thread.start()
 
-    def on_disconnect(self):
-        LOG.debug("LOG Disconnected")
+    def on_disconnect(self, sid):
+        LOG.debug(f"LOG Disconnected {sid}")
         if self.log_thread:
             self.log_thread.stop()
 
 
 def setup_logging(flask_app, loglevel):
-    flask_log = logging.getLogger("werkzeug")
-    flask_app.logger.removeHandler(default_handler)
-    flask_log.removeHandler(default_handler)
-    LOG.handlers = []
-
+    global app, LOG
     log_level = conf.log.LOG_LEVELS[loglevel]
-    LOG.setLevel(log_level)
+    app.logger.setLevel(log_level)
+    flask_app.logger.removeHandler(default_handler)
+
     date_format = CONF.logging.date_format
-    flask_app.logger.disabled = True
-    gunicorn_err = logging.getLogger("gunicorn.error")
 
     if CONF.logging.rich_logging:
         log_format = "%(message)s"
@@ -294,7 +289,7 @@ def setup_logging(flask_app, loglevel):
             rich_tracebacks=True, omit_repeated_times=False,
         )
         rh.setFormatter(log_formatter)
-        LOG.addHandler(rh)
+        app.logger.addHandler(rh)
 
     log_file = CONF.logging.logfile
 
@@ -306,9 +301,9 @@ def setup_logging(flask_app, loglevel):
             backupCount=4,
         )
         fh.setFormatter(log_formatter)
-        LOG.addHandler(fh)
+        app.logger.addHandler(fh)
 
-    gunicorn_err.handlers = LOG.handlers
+    LOG = app.logger
 
 
 def init_app(config_file=None, log_level=None):
@@ -327,11 +322,41 @@ def init_app(config_file=None, log_level=None):
     return log_level
 
 
-print(f"APP {__name__}")
 if __name__ == "__main__":
-    socket_io.run(app)
+    async_mode = "threading"
+    sio = socketio.Server(logger=True, async_mode=async_mode)
+    app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
+    log_level = init_app(log_level="DEBUG")
+    setup_logging(app, log_level)
+    sio.register_namespace(LoggingNamespace("/logs"))
+    CONF.log_opt_values(LOG, logging.DEBUG)
+    app.run(threaded=True, debug=True, port=8100)
+
+
+if __name__ == "uwsgi_file_aprsd_wsgi":
+    # Start with
+    # uwsgi --http :8000 --gevent 1000 --http-websockets --master -w aprsd.wsgi --callable app
+
+    async_mode = "gevent_uwsgi"
+    sio = socketio.Server(logger=True, async_mode=async_mode)
+    app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
+    log_level = init_app(
+        log_level="DEBUG",
+        config_file="/config/aprsd.conf",
+    )
+    setup_logging(app, log_level)
+    sio.register_namespace(LoggingNamespace("/logs"))
+    CONF.log_opt_values(LOG, logging.DEBUG)
+
 
 if __name__ == "aprsd.wsgi":
+    # set async_mode to 'threading', 'eventlet', 'gevent' or 'gevent_uwsgi' to
+    # force a mode else, the best mode is selected automatically from what's
+    # installed
+    async_mode = "threading"
+    sio = socketio.Server(logger=True, async_mode=async_mode)
+    app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
+
     log_level = init_app(config_file="/config/aprsd.conf", log_level="DEBUG")
-    socket_io.on_namespace(LoggingNamespace("/logs"))
+    sio.on_namespace(LoggingNamespace("/logs"))
     setup_logging(app, log_level)

@@ -10,12 +10,12 @@ attrs==23.1.0             # via -r requirements.in, ax253, kiss3, rush
 ax253==0.1.5.post1        # via kiss3
 beautifulsoup4==4.12.2    # via -r requirements.in
 bidict==0.22.1            # via python-socketio
-bitarray==2.7.6           # via ax253, kiss3
+bitarray==2.8.0           # via ax253, kiss3
 blinker==1.6.2            # via flask
-certifi==2023.5.7         # via httpcore, requests
+certifi==2023.7.22        # via httpcore, requests
 cffi==1.15.1              # via cryptography
 charset-normalizer==3.2.0  # via requests
-click==8.1.5              # via -r requirements.in, click-completion, click-params, flask
+click==8.1.6              # via -r requirements.in, click-completion, click-params, flask
 click-completion==0.5.2   # via -r requirements.in
 click-params==0.4.1       # via -r requirements.in
 commonmark==0.9.1         # via rich
@@ -32,7 +32,8 @@ flask-httpauth==4.8.0     # via -r requirements.in
 flask-socketio==5.3.4     # via -r requirements.in
 geographiclib==2.0        # via geopy
 geopy==2.3.0              # via -r requirements.in
-greenlet==2.0.2           # via eventlet
+gevent==23.7.0            # via -r requirements.in
+greenlet==2.0.2           # via eventlet, gevent
 h11==0.14.0               # via httpcore
 httpcore==0.17.3          # via dnspython
 idna==3.4                 # via anyio, requests
@@ -54,7 +55,7 @@ pyopenssl==23.2.0         # via -r requirements.in
 pyserial==3.5             # via pyserial-asyncio
 pyserial-asyncio==0.6     # via kiss3
 python-engineio==4.5.1    # via python-socketio
-python-socketio==5.8.0    # via flask-socketio
+python-socketio==5.8.0    # via -r requirements.in, flask-socketio
 pytz==2023.3              # via -r requirements.in
 pyyaml==6.0.1             # via -r requirements.in, oslo-config
 requests==2.31.0          # via -r requirements.in, oslo-config, update-checker
@@ -71,9 +72,14 @@ tabulate==0.9.0           # via -r requirements.in
 thesmuggler==1.0.1        # via -r requirements.in
 ua-parser==0.18.0         # via user-agents
 update-checker==0.18.0    # via -r requirements.in
-urllib3==2.0.3            # via requests
+urllib3==2.0.4            # via requests
 user-agents==2.2.0        # via -r requirements.in
 validators==0.20.0        # via click-params
 werkzeug==2.3.6           # via -r requirements.in, flask
 wrapt==1.15.0             # via -r requirements.in, debtcollector
 zipp==3.16.2              # via importlib-metadata
+zope-event==5.0           # via gevent
+zope-interface==6.0       # via gevent
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools

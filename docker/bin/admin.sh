@@ -13,6 +13,8 @@ if [ ! -z "${APRSD_PLUGINS}" ]; then
     done
 fi
 
+pip3 install gevent uwsgi
+
 if [ -z "${LOG_LEVEL}" ] || [[ ! "${LOG_LEVEL}" =~ ^(CRITICAL|ERROR|WARNING|INFO)$ ]]; then
     LOG_LEVEL="DEBUG"
 fi
@@ -28,5 +30,6 @@ fi
 
 export COLUMNS=200
 #exec gunicorn -b :8000 --workers 4 "aprsd.admin_web:create_app(config_file='$APRSD_CONFIG', log_level='$LOG_LEVEL')"
-exec gunicorn -b :8000 --workers 4 "aprsd.wsgi:app"
+# exec gunicorn -b :8000 --workers 4 "aprsd.wsgi:app"
+exec uwsgi --http :8000 --gevent 1000 --http-websockets --master -w aprsd.wsgi --callable app
 #exec aprsd listen -c $APRSD_CONFIG --loglevel ${LOG_LEVEL} ${APRSD_LOAD_PLUGINS} ${APRSD_LISTEN_FILTER}

@@ -56,7 +56,7 @@ class RPCClient:
         config={}, ipv6=False,
         keepalive=False, authorizer=None, ):
 
-        print(f"Connecting to RPC host {host}:{port}")
+        LOG.info(f"Connecting to RPC host '{host}:{port}'")
         try:
             s = rpc.AuthSocketStream.connect(
                 host, port, ipv6=ipv6, keepalive=keepalive,
@@ -64,7 +64,7 @@ class RPCClient:
             )
             return rpyc.utils.factory.connect_stream(s, service, config=config)
         except ConnectionRefusedError:
-            LOG.error(f"Failed to connect to RPC host {host}")
+            LOG.error(f"Failed to connect to RPC host '{host}:{port}'")
             return None
 
     def get_rpc_client(self):
