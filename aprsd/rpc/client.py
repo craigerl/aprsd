@@ -52,11 +52,11 @@ class RPCClient:
         LOG.debug(f"RPC Client: {self.ip}:{self.port} {self.magic_word}")
 
     def _rpyc_connect(
-        self, host, port, service=rpyc.VoidService,
-        config={}, ipv6=False,
-        keepalive=False, authorizer=None, ):
+            self, host, port, service=rpyc.VoidService,
+            config={}, ipv6=False,
+            keepalive=False, authorizer=None, ):
 
-        print(f"Connecting to RPC host {host}:{port}")
+        LOG.info(f"Connecting to RPC host '{host}:{port}'")
         try:
             s = rpc.AuthSocketStream.connect(
                 host, port, ipv6=ipv6, keepalive=keepalive,
@@ -64,7 +64,7 @@ class RPCClient:
             )
             return rpyc.utils.factory.connect_stream(s, service, config=config)
         except ConnectionRefusedError:
-            LOG.error(f"Failed to connect to RPC host {host}")
+            LOG.error(f"Failed to connect to RPC host '{host}:{port}'")
             return None
 
     def get_rpc_client(self):
