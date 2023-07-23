@@ -330,7 +330,7 @@ if __name__ == "__main__":
     setup_logging(app, log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
     CONF.log_opt_values(LOG, logging.DEBUG)
-    app.run(threaded=True, debug=True, port=8100)
+    app.run(threaded=True, debug=True, port=8000)
 
 
 if __name__ == "uwsgi_file_aprsd_wsgi":
