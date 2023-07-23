@@ -52,9 +52,9 @@ class RPCClient:
         LOG.debug(f"RPC Client: {self.ip}:{self.port} {self.magic_word}")
 
     def _rpyc_connect(
-        self, host, port, service=rpyc.VoidService,
-        config={}, ipv6=False,
-        keepalive=False, authorizer=None, ):
+            self, host, port, service=rpyc.VoidService,
+            config={}, ipv6=False,
+            keepalive=False, authorizer=None, ):
 
         LOG.info(f"Connecting to RPC host '{host}:{port}'")
         try:
