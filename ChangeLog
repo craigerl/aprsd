@@ -1,9 +1,65 @@
 CHANGES
 =======
 
+v3.1.0
+------
+
+* Use CONF.admin.web\_port for single launch web admin
+* Fixed sio namespace registration
+* Update Dockerfile-dev to include uwsgi
+* Fixed pep8
+* change port to 8000
+* replacement of flask-socketio with python-socketio
+* Change how fetch-stats gets it's defaults
+* Ensure fetch-stats ip is a string
+* Add info logging for rpc server calls
+* updated wsgi config default /config/aprsd.conf
+* Added timing after each thread loop
+* Update docker bin/admin.sh
+* Removed flask-classful from webchat
+* Remove flask pinning
+* removed linux/arm/v8
+* Update master build to include linux/arm/v8
+* Update Dockerfile-dev to fix plugin permissions
+* update manual build github
+* Update requirements for upgraded cryptography
+* Added more libs for Dockerfile-dev
+* Replace Dockerfile-dev with python3 slim
+* Moved logging to log for wsgi.py
+* Changed weather plugin regex pattern
+* Limit the float values to 3 decimal places
+* Fixed rain numbers from aprslib
+* Fixed rpc client initialization
+* Fix in for aprslib issue #80
+* Try and fix Dockerfile-dev
+* Fixed pep8 errors
+* Populate stats object with threads info
+* added counts to the fetch-stats table
+* Added the fetch-stats command
+* Replace ratelimiter with rush
+* Added some utilities to Dockerfile-dev
+* add arm64 for manual github build
+* Added manual master build
+* Update master-build.yml
+* Add github manual trigger for master build
+* Fixed unit tests for Location plugin
+* USe new tox and update githubworkflows
+* Updated requirements
+* force tox to 4.3.5
+* Update github workflows
+* Fixed pep8 violation
+* Added rpc server for listen
+* Update location plugin and reworked requirements
+* Fixed .readthedocs.yaml format
+* Add .readthedocs.yaml
+* Example plugin wrong function
+* Ensure conf is imported for threads/tx
+* Update Dockerfile to help build cryptography
+
 v3.0.3
 ------
 
+* Update Changelog to 3.0.3
 * cleanup some debug messages
 * Fixed loading of plugins for server
 * Don't load help plugin for listen command
