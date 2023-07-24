@@ -1,62 +1,61 @@
-#FROM python:3-bullseye as aprsd
-FROM ubuntu:22.04 as aprsd
+FROM python:3.11-slim as build
 
-# Dockerfile for building a container during aprsd development.
-
-ARG UID
-ARG GID
-ARG TZ
-ARG VERSION=3.0.3
-ARG BUILDX_QEMU_ENV
-ENV APRS_USER=aprs
-ENV HOME=/home/aprs
+ARG VERSION=3.1.0
 ENV TZ=${TZ:-US/Eastern}
-ENV UID=${UID:-1000}
-ENV GID=${GID:-1000}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 ENV APRSD_PIP_VERSION=${VERSION}
 
-
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update
-RUN apt install -y git build-essential
-RUN apt install -y libffi-dev python3-dev libssl-dev libxml2-dev libxslt-dev
-RUN apt install -y python3 python3-pip python3-dev python3-lxml python3-setuptools-rust
-RUN apt install -y libffi-dev cargo pkg-config
-
-RUN pip3 install -U pip
-RUN pip3 install -U setuptools_rust
+ENV PIP_DEFAULT_TIMEOUT=100 \
+    # Allow statements and log messages to immediately appear
+    PYTHONUNBUFFERED=1 \
+    # disable a pip version check to reduce run-time & log-spam
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    # cache is useless in docker image, so disable to reduce image size
+    PIP_NO_CACHE_DIR=1
 
 
-RUN addgroup --gid $GID $APRS_USER
-RUN useradd -m -u $UID -g $APRS_USER $APRS_USER
+RUN set -ex \
+    # Create a non-root user
+    && addgroup --system --gid 1001 appgroup \
+    && useradd --uid 1001 --gid 1001 -s /usr/bin/bash -m -d /app appuser \
+    # Upgrade the package index and install security upgrades
+    && apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y git build-essential curl vim libffi-dev \
+    python3-dev libssl-dev libxml2-dev libxslt-dev telnet sudo \
+    # Install dependencies
+    # Clean up
+    && apt-get autoremove -y \
+    && apt-get clean -y
 
-# Handle an extremely specific issue when building the cryptography package for
-# 32-bit architectures within QEMU running on a 64-bit host (issue #30).
-RUN if [ "${BUILDX_QEMU_ENV}" = "true" -a "$(getconf LONG_BIT)" = "32" ]; then \
-        pip3 install -U cryptography==3.3.2; \
-    else \
-        pip3 install cryptography ;\
-    fi
 
-# Ensure /config is there with a default config file
-USER root
-# Install aprsd
+### Final stage
+FROM build as final
+WORKDIR /app
+
 RUN pip3 install aprsd==$APRSD_PIP_VERSION
-RUN mkdir -p /config
+RUN pip install gevent uwsgi
+RUN which aprsd
+RUN mkdir /config
+RUN chown -R appuser:appgroup /app
+RUN chown -R appuser:appgroup /config
+USER appuser
+RUN which aprsd
 RUN aprsd sample-config > /config/aprsd.conf
-RUN chown -R $APRS_USER:$APRS_USER /config
-RUN chown -R $APRS_USER:$APRS_USER $HOME
 
-# override this to run another configuration
-ENV CONF default
-VOLUME ["/config", "/plugins"]
+ADD bin/run.sh /app
+ADD bin/listen.sh /app
+ADD bin/admin.sh /app
 
-USER $APRS_USER
-ADD bin/run.sh /usr/local/bin
-ADD bin/listen.sh /usr/local/bin
-ENTRYPOINT ["/usr/local/bin/run.sh"]
+# For the web admin interface
+EXPOSE 8001
+
+ENTRYPOINT ["/app/run.sh"]
+VOLUME ["/config"]
+
+# Set the user to run the application
+USER appuser
 
 HEALTHCHECK --interval=5m --timeout=12s --start-period=30s \
     CMD aprsd healthcheck --config /config/aprsd.conf
