@@ -13,8 +13,6 @@ if [ ! -z "${APRSD_PLUGINS}" ]; then
     done
 fi
 
-pip3 install gevent uwsgi
-
 if [ -z "${LOG_LEVEL}" ] || [[ ! "${LOG_LEVEL}" =~ ^(CRITICAL|ERROR|WARNING|INFO)$ ]]; then
     LOG_LEVEL="DEBUG"
 fi

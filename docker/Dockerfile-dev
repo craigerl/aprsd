@@ -21,7 +21,7 @@ RUN set -ex \
     && apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y git build-essential curl vim libffi-dev \
-    python3-dev libssl-dev libxml2-dev libxslt-dev \
+    python3-dev libssl-dev libxml2-dev libxslt-dev telnet sudo \
     # Install dependencies
     # Clean up
     && apt-get autoremove -y \
@@ -34,7 +34,7 @@ WORKDIR /app
 
 RUN git clone -b $APRSD_BRANCH https://github.com/craigerl/aprsd
 RUN cd aprsd && pip install --no-cache-dir .
-RUN pip install gunicorn
+RUN pip install gevent uwsgi
 RUN which aprsd
 RUN mkdir /config
 RUN chown -R appuser:appgroup /app
