@@ -353,10 +353,11 @@ if __name__ == "aprsd.wsgi":
     # set async_mode to 'threading', 'eventlet', 'gevent' or 'gevent_uwsgi' to
     # force a mode else, the best mode is selected automatically from what's
     # installed
-    async_mode = "threading"
+    async_mode = "gevent_uwsgi"
     sio = socketio.Server(logger=True, async_mode=async_mode)
     app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
     log_level = init_app(config_file="/config/aprsd.conf", log_level="DEBUG")
-    sio.on_namespace(LoggingNamespace("/logs"))
     setup_logging(app, log_level)
+    sio.register_namespace(LoggingNamespace("/logs"))
+    CONF.log_opt_values(LOG, logging.DEBUG)
