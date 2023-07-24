@@ -18,7 +18,10 @@ LOG = logging.getLogger("APRSD")
 def magic_word_authenticator(sock):
     magic = sock.recv(len(CONF.rpc_settings.magic_word)).decode()
     if magic != CONF.rpc_settings.magic_word:
-        raise AuthenticationError(f"wrong magic word {magic}")
+        raise AuthenticationError(
+            f"wrong magic word passed in '{magic}'"
+            f" != '{CONF.rpc_settings.magic_word}'",
+        )
     return sock, None
 
 

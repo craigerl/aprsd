@@ -265,8 +265,12 @@ def _stats():
     time_format = "%m-%d-%Y %H:%M:%S"
     stats_dict = stats_obj.stats()
     # Webchat doesnt need these
-    del stats_dict["aprsd"]["watch_list"]
-    del stats_dict["aprsd"]["seen_list"]
+    if "watch_list" in stats_dict["aprsd"]:
+        del stats_dict["aprsd"]["watch_list"]
+    if "seen_list" in stats_dict["aprsd"]:
+        del stats_dict["aprsd"]["seen_list"]
+    if "threads" in stats_dict["aprsd"]:
+        del stats_dict["aprsd"]["threads"]
     # del stats_dict["email"]
     # del stats_dict["plugins"]
     # del stats_dict["messages"]

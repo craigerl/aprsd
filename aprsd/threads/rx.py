@@ -25,6 +25,7 @@ class APRSDRXThread(APRSDThread):
         client.factory.create().client.stop()
 
     def loop(self):
+        LOG.info(f"APRSDRXThread Loop {self._client}:{self._client.client}")
         # setup the consumer of messages and block until a messages
         try:
             # This will register a packet consumer with aprslib

@@ -49,8 +49,10 @@ class Client:
     @property
     def client(self):
         if not self._client:
+            LOG.info("Creating APRS client")
             self._client = self.setup_connection()
             if self.filter:
+                LOG.info("Creating APRS client filter")
                 self._client.set_filter(self.filter)
         return self._client
 
@@ -159,7 +161,11 @@ class APRSISClient(Client):
                 LOG.error(f"Unable to connect to APRS-IS server. '{e}' ")
                 connected = False
                 time.sleep(backoff)
-                backoff = backoff * 2
+                # Don't allow the backoff to go to inifinity.
+                if backoff > 5:
+                    backoff = 5
+                else:
+                    backoff += 1
                 continue
         LOG.debug(f"Logging in to APRS-IS with user '{user}'")
         self._client = aprs_client

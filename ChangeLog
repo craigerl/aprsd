@@ -4,6 +4,7 @@ CHANGES
 v3.1.0
 ------
 
+* Changelog updates for v3.1.0
 * Use CONF.admin.web\_port for single launch web admin
 * Fixed sio namespace registration
 * Update Dockerfile-dev to include uwsgi
