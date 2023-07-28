@@ -246,7 +246,6 @@ class APRSDStats:
             },
             "plugins": plugin_stats,
         }
-        LOG.debug(f"STATS = {stats}")
         LOG.info("APRSD Stats: DONE")
         return stats
 
