@@ -81,27 +81,18 @@ class KISS3Client:
         LOG.debug("Start blocking KISS consumer")
         self._parse_callback = callback
         self.kiss.read(callback=self.parse_frame, min_frames=None)
-        LOG.debug("END blocking KISS consumer")
+        LOG.debug(f"END blocking KISS consumer {self.kiss}")
 
     def send(self, packet):
         """Send an APRS Message object."""
 
-        # payload = (':%-9s:%s' % (
-        #     msg.tocall,
-        #     payload
-        # )).encode('US-ASCII'),
-        # payload = str(msg).encode('US-ASCII')
         payload = None
         path = ["WIDE1-1", "WIDE2-1"]
-        if isinstance(packet, core.AckPacket):
-            msg_payload = f"ack{packet.msgNo}"
-        elif isinstance(packet, core.Packet):
-            payload = packet.raw.encode("US-ASCII")
-            path = ["WIDE2-1"]
+        if isinstance(packet, core.Packet):
+            packet.prepare()
+            payload = packet.payload.encode("US-ASCII")
         else:
             msg_payload = f"{packet.raw}{{{str(packet.msgNo)}"
-
-        if not payload:
             payload = (
                 ":{:<9}:{}".format(
                     packet.to_call,
@@ -109,9 +100,12 @@ class KISS3Client:
                 )
             ).encode("US-ASCII")
 
-        LOG.debug(f"Send '{payload}' TO KISS")
+        LOG.debug(
+            f"KISS Send '{payload}' TO '{packet.to_call}' From "
+            f"'{packet.from_call}' with PATH '{path}'",
+        )
         frame = Frame.ui(
-            destination=packet.to_call,
+            destination="APZ100",
             source=packet.from_call,
             path=path,
             info=payload,

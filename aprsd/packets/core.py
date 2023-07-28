@@ -57,6 +57,8 @@ class Packet(metaclass=abc.ABCMeta):
     # or holds the raw string from input packet
     raw: str = None
     raw_dict: dict = field(repr=False, default_factory=lambda: {})
+    # Built by calling prepare().  raw needs this built first.
+    payload: str = None
 
     # Fields related to sending packets out
     send_count: int = field(repr=False, default=0)
@@ -92,11 +94,24 @@ class Packet(metaclass=abc.ABCMeta):
     def prepare(self):
         """Do stuff here that is needed prior to sending over the air."""
         # now build the raw message for sending
+        self._build_payload()
         self._build_raw()
 
+    def _build_payload(self):
+        """The payload is the non headers portion of the packet."""
+        msg = self._filter_for_send().rstrip("\n")
+        self.payload = (
+            f":{self.to_call.ljust(9)}"
+            f":{msg}"
+        )
+
     def _build_raw(self):
-        """Build the self.raw string which is what is sent over the air."""
-        self.raw = self._filter_for_send().rstrip("\n")
+        """Build the self.raw which is what is sent over the air."""
+        self.raw = "{}>APZ100:{}".format(
+            self.from_call,
+            self.payload,
+        )
+        LOG.debug(f"_build_raw: payload '{self.payload}' raw '{self.raw}'")
 
     @staticmethod
     def factory(raw_packet):
@@ -233,7 +248,7 @@ class PathPacket(Packet):
     path: List[str] = field(default_factory=list)
     via: str = None
 
-    def _build_raw(self):
+    def _build_payload(self):
         raise NotImplementedError
 
 
@@ -245,13 +260,8 @@ class AckPacket(PathPacket):
         if self.response:
             LOG.warning("Response set!")
 
-    def _build_raw(self):
-        """Build the self.raw which is what is sent over the air."""
-        self.raw = "{}>APZ100::{}:ack{}".format(
-            self.from_call,
-            self.to_call.ljust(9),
-            self.msgNo,
-        )
+    def _build_payload(self):
+        self.payload = f":{self.to_call.ljust(9)}:ack{self.msgNo}"
 
 
 @dataclass
@@ -262,13 +272,8 @@ class RejectPacket(PathPacket):
         if self.response:
             LOG.warning("Response set!")
 
-    def _build_raw(self):
-        """Build the self.raw which is what is sent over the air."""
-        self.raw = "{}>APZ100::{} :rej{}".format(
-            self.from_call,
-            self.to_call.ljust(9),
-            self.msgNo,
-        )
+    def _build_payload(self):
+        self.payload = f":{self.to_call.ljust(9)} :rej{self.msgNo}"
 
 
 @dataclass
@@ -285,10 +290,8 @@ class MessagePacket(PathPacket):
         # We all miss George Carlin
         return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
 
-    def _build_raw(self):
-        """Build the self.raw which is what is sent over the air."""
-        self.raw = "{}>APZ100::{}:{}{{{}".format(
-            self.from_call,
+    def _build_payload(self):
+        self.payload = ":{}:{}{{{}".format(
             self.to_call.ljust(9),
             self._filter_for_send().rstrip("\n"),
             str(self.msgNo),
@@ -301,7 +304,7 @@ class StatusPacket(PathPacket):
     messagecapable: bool = False
     comment: str = None
 
-    def _build_raw(self):
+    def _build_payload(self):
         raise NotImplementedError
 
 
@@ -400,16 +403,24 @@ class GPSPacket(PathPacket):
         time_zulu = result_utc_datetime.strftime("%d%H%M")
         return time_zulu
 
-    def _build_raw(self):
+    def _build_payload(self):
+        """The payload is the non headers portion of the packet."""
         time_zulu = self._build_time_zulu()
+        lat = self.latitude
+        long = self.longitude
+        self.payload = (
+            f"@{time_zulu}z{lat}{self.symbol_table}"
+            f"{long}{self.symbol}"
+        )
 
+        if self.comment:
+            self.payload = f"{self.payload}{self.comment}"
+
+    def _build_raw(self):
         self.raw = (
             f"{self.from_call}>{self.to_call},WIDE2-1:"
-            f"@{time_zulu}z{self.latitude}{self.symbol_table}"
-            f"{self.longitude}{self.symbol}"
+            f"{self.payload}"
         )
-        if self.comment:
-            self.raw = f"{self.raw}{self.comment}"
 
 
 @dataclass
@@ -422,7 +433,7 @@ class MicEPacket(GPSPacket):
     # 0 to 360
     course: int = 0
 
-    def _build_raw(self):
+    def _build_payload(self):
         raise NotImplementedError
 
 
@@ -436,6 +447,19 @@ class ObjectPacket(GPSPacket):
     # 0 to 360
     course: int = 0
 
+    def _build_payload(self):
+        time_zulu = self._build_time_zulu()
+        lat = self.convert_latitude(self.latitude)
+        long = self.convert_longitude(self.longitude)
+
+        self.payload = (
+            f"*{time_zulu}z{lat}{self.symbol_table}"
+            f"{long}{self.symbol}"
+        )
+
+        if self.comment:
+            self.payload = f"{self.payload}{self.comment}"
+
     def _build_raw(self):
         """
         REPEAT builds packets like
@@ -446,17 +470,11 @@ class ObjectPacket(GPSPacket):
         callsign is the station callsign for the object
         The frequency, uplink_tone, offset is part of the comment
         """
-        time_zulu = self._build_time_zulu()
-        lat = self.convert_latitude(self.latitude)
-        long = self.convert_longitude(self.longitude)
 
         self.raw = (
             f"{self.from_call}>APZ100:;{self.to_call:9s}"
-            f"*{time_zulu}z{lat}{self.symbol_table}"
-            f"{long}{self.symbol}"
+            f"{self.payload}"
         )
-        if self.comment:
-            self.raw = f"{self.raw}{self.comment}"
 
 
 @dataclass()
@@ -474,7 +492,7 @@ class WeatherPacket(GPSPacket):
     pressure: float = 0.00
     comment: str = None
 
-    def _build_raw(self):
+    def _build_payload(self):
         """Build an uncompressed weather packet
 
         Format =
@@ -502,7 +520,6 @@ class WeatherPacket(GPSPacket):
         time_zulu = self._build_time_zulu()
 
         contents = [
-            f"{self.from_call}>{self.to_call},WIDE1-1,WIDE2-1:",
             f"@{time_zulu}z{self.latitude}{self.symbol_table}",
             f"{self.longitude}{self.symbol}",
             f"{self.wind_direction:03d}",
@@ -523,11 +540,16 @@ class WeatherPacket(GPSPacket):
             # Barometric pressure (in tenths of millibars/tenths of hPascal)
             f"b{self.pressure:05.0f}",
         ]
-
         if self.comment:
             contents.append(self.comment)
+        self.payload = "".join(contents)
 
-        self.raw = "".join(contents)
+    def _build_raw(self):
+
+        self.raw = (
+            f"{self.from_call}>{self.to_call},WIDE1-1,WIDE2-1:"
+            f"{self.payload}"
+        )
 
 
 TYPE_LOOKUP = {
