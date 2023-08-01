@@ -37,11 +37,18 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
     def process(self, packet):
         LOG.info("Weather Plugin")
         fromcall = packet.from_call
+        message = packet.get("message_text", None)
         # message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
+        a = re.search(r"^.*\s+(.*)", message)
+        if a is not None:
+            searchcall = a.group(1)
+            searchcall = searchcall.upper()
+        else:
+            searchcall = fromcall
         api_key = CONF.aprs_fi.apiKey
         try:
-            aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
+            aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
             LOG.error(f"Failed to fetch aprs.fi data {ex}")
             return "Failed to fetch aprs.fi location"
