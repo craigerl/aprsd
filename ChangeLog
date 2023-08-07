@@ -1,6 +1,17 @@
 CHANGES
 =======
 
+v3.1.1
+------
+
+* Fixed pep8 failures
+* re-enable USWeatherPlugin to use mapClick
+* Fix sending packets over KISS interface
+* Use config web\_ip for running admin ui from module
+* remove loop log
+* Max out the client reconnect backoff to 5
+* Update the Dockerfile
+
 v3.1.0
 ------
 
