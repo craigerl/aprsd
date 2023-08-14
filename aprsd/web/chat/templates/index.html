@@ -26,6 +26,11 @@
                 start_update();
                 init_chat();
                 reset_Tabs();
+
+                if (location.protocol != 'https:') {
+                    // Have to disable the beacon button.
+                    $('#send_beacon').prop('disabled', true);
+                }
             });
         </script>
     </head>
