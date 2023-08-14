@@ -485,7 +485,9 @@ def webchat(ctx, flush, port):
     LOG.info("Start socketio.run()")
     socketio.run(
         flask_app,
-        ssl_context="adhoc",
+        # This is broken for now after removing cryptography
+        # and pyopenssl
+        # ssl_context="adhoc",
         host=CONF.admin.web_ip,
         port=port,
     )

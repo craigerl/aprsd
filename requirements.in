@@ -29,14 +29,12 @@ kiss3
 attrs
 # for mobile checking
 user-agents
-pyopenssl
 dataclasses
 dacite2
 oslo.config
 rpyc
 # Pin this here so it doesn't require a compile on
 # raspi
-cryptography
 shellingham
 geopy
 rush
