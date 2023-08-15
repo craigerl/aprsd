@@ -1,9 +1,17 @@
 CHANGES
 =======
 
+v3.1.2
+------
+
+* Added support for ThirdParty packet types
+* Disable the Send GPS Beacon button
+* Removed adhoc ssl support in webchat
+
 v3.1.1
 ------
 
+* Updated Changelog for v3.1.1
 * Fixed pep8 failures
 * re-enable USWeatherPlugin to use mapClick
 * Fix sending packets over KISS interface
