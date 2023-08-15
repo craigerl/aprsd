@@ -490,6 +490,7 @@ def webchat(ctx, flush, port):
         # ssl_context="adhoc",
         host=CONF.admin.web_ip,
         port=port,
+        allow_unsafe_werkzeug=True,
     )
 
     LOG.info("WebChat exiting!!!!  Bye.")
