@@ -235,7 +235,11 @@ class KISSClient(Client):
         # LOG.debug(f"Decoding {msg}")
 
         raw = aprslib.parse(str(frame))
-        return core.Packet.factory(raw)
+        packet = core.Packet.factory(raw)
+        if isinstance(packet, core.ThirdParty):
+            return packet.subpacket
+        else:
+            return packet
 
     @trace.trace
     def setup_connection(self):
