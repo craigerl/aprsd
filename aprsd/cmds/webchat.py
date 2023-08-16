@@ -377,7 +377,7 @@ def setup_logging(flask_app, loglevel, quiet):
     log_file = CONF.logging.logfile
 
     if log_file:
-        log_format = CONF.loging.logformat
+        log_format = CONF.logging.logformat
         log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
         fh = RotatingFileHandler(
             log_file, maxBytes=(10248576 * 5),
