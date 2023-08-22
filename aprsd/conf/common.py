@@ -19,6 +19,10 @@ rpc_group = cfg.OptGroup(
     name="rpc_settings",
     title="RPC Settings for admin <--> web",
 )
+webchat_group = cfg.OptGroup(
+    name="webchat",
+    title="Settings specific to the webchat command",
+)
 
 
 aprsd_opts = [
@@ -163,6 +167,29 @@ enabled_plugins_opts = [
     ),
 ]
 
+webchat_opts = [
+    cfg.IPOpt(
+        "web_ip",
+        default="0.0.0.0",
+        help="The ip address to listen on",
+    ),
+    cfg.PortOpt(
+        "web_port",
+        default=8001,
+        help="The port to listen on",
+    ),
+    cfg.StrOpt(
+        "latitude",
+        default=None,
+        help="Latitude for the GPS Beacon button.  If not set, the button will not be enabled.",
+    ),
+    cfg.StrOpt(
+        "longitude",
+        default=None,
+        help="Longitude for the GPS Beacon button.  If not set, the button will not be enabled.",
+    ),
+]
+
 
 def register_opts(config):
     config.register_opts(aprsd_opts)
@@ -173,6 +200,8 @@ def register_opts(config):
     config.register_opts(watch_list_opts, group=watch_list_group)
     config.register_group(rpc_group)
     config.register_opts(rpc_opts, group=rpc_group)
+    config.register_group(webchat_group)
+    config.register_opts(webchat_opts, group=webchat_group)
 
 
 def list_opts():
@@ -181,4 +210,5 @@ def list_opts():
         admin_group.name: admin_opts,
         watch_list_group.name: watch_list_opts,
         rpc_group.name: rpc_opts,
+        webchat_group.name: webchat_opts,
     }

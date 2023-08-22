@@ -427,8 +427,8 @@ def init_flask(loglevel, quiet):
     "--port",
     "port",
     show_default=True,
-    default=80,
-    help="Port to listen to web requests",
+    default=None,
+    help="Port to listen to web requests.  This overrides the config.webchat.web_port setting.",
 )
 @click.pass_context
 @cli_helper.process_standard_options
@@ -450,6 +450,8 @@ def webchat(ctx, flush, port):
     CONF.log_opt_values(LOG, logging.DEBUG)
     user = CONF.admin.user
     users[user] = generate_password_hash(CONF.admin.password)
+    if not port:
+        port = CONF.webchat.web_port
 
     # Initialize the client factory and create
     # The correct client object ready for use
@@ -488,7 +490,7 @@ def webchat(ctx, flush, port):
         # This is broken for now after removing cryptography
         # and pyopenssl
         # ssl_context="adhoc",
-        host=CONF.admin.web_ip,
+        host=CONF.webchat.web_ip,
         port=port,
         allow_unsafe_werkzeug=True,
     )

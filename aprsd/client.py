@@ -24,7 +24,7 @@ TRANSPORT_SERIALKISS = "serialkiss"
 factory = None
 
 
-class Client:
+class Client(metaclass=trace.TraceWrapperMetaclass):
     """Singleton client class that constructs the aprslib connection."""
 
     _instance = None
@@ -86,7 +86,7 @@ class Client:
         pass
 
 
-class APRSISClient(Client):
+class APRSISClient(Client, metaclass=trace.TraceWrapperMetaclass):
 
     _client = None
 
@@ -135,7 +135,6 @@ class APRSISClient(Client):
         """APRS lib already decodes this."""
         return core.Packet.factory(args[0])
 
-    @trace.trace
     def setup_connection(self):
         user = CONF.aprs_network.login
         password = CONF.aprs_network.password
@@ -172,7 +171,7 @@ class APRSISClient(Client):
         return aprs_client
 
 
-class KISSClient(Client):
+class KISSClient(Client, metaclass=trace.TraceWrapperMetaclass):
 
     _client = None
 
@@ -241,7 +240,6 @@ class KISSClient(Client):
         else:
             return packet
 
-    @trace.trace
     def setup_connection(self):
         self._client = kiss.KISS3Client()
         return self._client
