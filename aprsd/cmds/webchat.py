@@ -163,7 +163,7 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
 
         message = packet.get("message_text", None)
         msg = {
-            "id": 0,
+            "id": packet.msgNo,
             "ts": packet.get("timestamp", time.time()),
             "ack": False,
             "from": fromcall,

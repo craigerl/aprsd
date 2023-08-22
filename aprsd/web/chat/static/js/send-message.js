@@ -1,6 +1,7 @@
 var cleared = false;
 var callsign_list = {};
 var message_list = {};
+var from_msg_list = {};
 const socket = io("/sendmsg");
 
 function size_dict(d){c=0; for (i in d) ++c; return c}
@@ -111,8 +112,9 @@ function append_message_html(callsign, msg_html, new_callsign) {
   $(divname).animate({scrollTop: $(divname)[0].scrollHeight}, "slow");
 }
 
-function create_message_html(time, from, to, message, ack) {
-    msg_html = '<div class="item">';
+function create_message_html(time, from, to, message, ack, msg) {
+    div_id = from + "_" + msg.id;
+    msg_html = '<div class="item" id="'+div_id+'">';
     msg_html += '<div class="tiny text">'+time+'</div>';
     msg_html += '<div class="middle aligned content">';
     msg_html += '<div class="tiny red header">'+from+'</div>';
@@ -129,6 +131,13 @@ function create_message_html(time, from, to, message, ack) {
     return msg_html
 }
 
+function flash_message(msg) {
+    // Callback function to bring a hidden box back
+    id = msg.from + "_" + msg.id;
+    var msgid = $('#'+id);
+    msgid.effect("pulsate", { times:3 }, 2000);
+}
+
 function sent_msg(msg) {
     var msgsdiv = $("#sendMsgsDiv");
 
@@ -140,12 +149,27 @@ function sent_msg(msg) {
     var d = new Date(ts).toLocaleDateString("en-US")
     var t = new Date(ts).toLocaleTimeString("en-US")
 
-    msg_html = create_message_html(t, msg['from'], msg['to'], msg['message'], ack_id);
+    msg_html = create_message_html(t, msg['from'], msg['to'], msg['message'], ack_id, msg);
     append_message(msg['to'], msg, msg_html);
 }
 
 function from_msg(msg) {
    var msgsdiv = $("#sendMsgsDiv");
+   console.log(msg);
+   if (!from_msg_list.hasOwnProperty(msg.from)) {
+        from_msg_list[msg.from] = new Array();
+   }
+
+   if (msg.id in from_msg_list[msg.from]) {
+       // We already have this message
+       console.log("We already have this message " + msg);
+       // Do some flashy thing?
+       flash_message(msg);
+       return false
+   } else {
+       console.log("Adding message " + msg.id + " to " + msg.from);
+       from_msg_list[msg.from][msg.id] = msg
+   }
 
    // We have an existing entry
    ts_str = msg["ts"].toString();
@@ -157,7 +181,7 @@ function from_msg(msg) {
    var t = new Date(ts).toLocaleTimeString("en-US")
 
    from = msg['from']
-   msg_html = create_message_html(t, from, false, msg['message'], false);
+   msg_html = create_message_html(t, from, false, msg['message'], false, msg);
    append_message(from, msg, msg_html);
 }
 
