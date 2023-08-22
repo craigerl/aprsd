@@ -239,6 +239,13 @@ def index():
     stats["transport"] = transport
     stats["aprs_connection"] = aprs_connection
     LOG.debug(f"initial stats = {stats}")
+    latitude = CONF.webchat.latitude
+    if latitude:
+        latitude = float(CONF.webchat.latitude)
+
+    longitude = CONF.webchat.longitude
+    if longitude:
+        longitude = float(longitude)
 
     return flask.render_template(
         html_template,
@@ -246,6 +253,8 @@ def index():
         aprs_connection=aprs_connection,
         callsign=CONF.callsign,
         version=aprsd.__version__,
+        latitude=latitude,
+        longitude=longitude,
     )
 
 

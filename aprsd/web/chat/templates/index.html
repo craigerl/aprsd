@@ -17,6 +17,8 @@
 
         <script type="text/javascript">
             var initial_stats = {{ initial_stats|tojson|safe }};
+            var latitude = parseFloat('{{ latitude|safe }}');
+            var longitude = parseFloat('{{ longitude|safe }}');
 
             var memory_chart = null
             var message_chart = null
@@ -27,7 +29,10 @@
                 init_chat();
                 reset_Tabs();
 
-                if (location.protocol != 'https:') {
+                console.log("latitude", latitude);
+                console.log("longitude", longitude);
+
+                if (isNaN(latitude) || isNaN(longitude) && location.protocol != 'https:') {
                     // Have to disable the beacon button.
                     $('#send_beacon').prop('disabled', true);
                 }

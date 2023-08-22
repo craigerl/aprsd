@@ -43,7 +43,6 @@ function init_chat() {
               }
        socket.emit("send", msg);
        $('#message').val('');
-       $('#to_call').val('');
    });
 
    init_gps();

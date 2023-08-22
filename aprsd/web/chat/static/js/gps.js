@@ -1,9 +1,17 @@
 
 function init_gps() {
    console.log("init_gps Called.")
+   console.log("latitude: "+latitude)
+   console.log("longitude: "+longitude)
    $("#send_beacon").click(function() {
        console.log("Send a beacon!")
-       getLocation();
+       if (!isNaN(latitude) && !isNaN(longitude)) {
+           // webchat admin has hard coded lat/long in the config file
+           showPosition({'coords': {'latitude': latitude, 'longitude': longitude}})
+       } else {
+           // Try to get the current location from the browser
+           getLocation();
+       }
    });
 }
 
