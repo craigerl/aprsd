@@ -110,6 +110,7 @@ function append_message_html(callsign, msg_html, new_callsign) {
   }
 
   $(divname).animate({scrollTop: $(divname)[0].scrollHeight}, "slow");
+  $(divname).trigger('click');
 }
 
 function create_message_html(time, from, to, message, ack, msg) {
