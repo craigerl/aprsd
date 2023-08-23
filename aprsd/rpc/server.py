@@ -16,8 +16,13 @@ LOG = logging.getLogger("APRSD")
 
 
 def magic_word_authenticator(sock):
+    client_ip = sock.getpeername()[0]
     magic = sock.recv(len(CONF.rpc_settings.magic_word)).decode()
     if magic != CONF.rpc_settings.magic_word:
+        LOG.error(
+            f"wrong magic word passed from {client_ip} "
+            "'{magic}' != '{CONF.rpc_settings.magic_word}'",
+        )
         raise AuthenticationError(
             f"wrong magic word passed in '{magic}'"
             f" != '{CONF.rpc_settings.magic_word}'",
