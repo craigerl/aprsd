@@ -2,11 +2,11 @@ var cleared = false;
 var callsign_list = {};
 var message_list = {};
 var from_msg_list = {};
+const socket = io("/sendmsg");
 
 function size_dict(d){c=0; for (i in d) ++c; return c}
 
 function init_chat() {
-   const socket = io("/sendmsg");
    socket.on('connect', function () {
        console.log("Connected to socketio");
    });
