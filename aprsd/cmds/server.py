@@ -94,6 +94,9 @@ def server(ctx, flush):
         packets.WatchList().load()
         packets.SeenList().load()
 
+    keepalive = threads.KeepAliveThread()
+    keepalive.start()
+
     rx_thread = rx.APRSDPluginRXThread(
         packet_queue=threads.packet_queue,
     )
@@ -104,9 +107,6 @@ def server(ctx, flush):
     process_thread.start()
 
     packets.PacketTrack().restart()
-
-    keepalive = threads.KeepAliveThread()
-    keepalive.start()
 
     if CONF.rpc_settings.enabled:
         rpc = rpc_server.APRSDRPCThread()

@@ -479,6 +479,10 @@ def webchat(ctx, flush, port):
     packets.WatchList()
     packets.SeenList()
 
+    keepalive = threads.KeepAliveThread()
+    LOG.info("Start KeepAliveThread")
+    keepalive.start()
+
     socketio = init_flask(loglevel, quiet)
     rx_thread = rx.APRSDPluginRXThread(
         packet_queue=threads.packet_queue,
@@ -490,9 +494,6 @@ def webchat(ctx, flush, port):
     )
     process_thread.start()
 
-    keepalive = threads.KeepAliveThread()
-    LOG.info("Start KeepAliveThread")
-    keepalive.start()
     LOG.info("Start socketio.run()")
     socketio.run(
         flask_app,
