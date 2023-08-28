@@ -111,14 +111,14 @@ function update_packets( data ) {
         pkt = JSON.parse(val);
 
         update_watchlist_from_packet(pkt['from_call'], pkt);
-        if ( packet_list.hasOwnProperty(pkt.timestamp) == false ) {
+        if ( packet_list.hasOwnProperty(pkt['timestamp']) == false ) {
             // Store the packet
-            packet_list[pkt.timestamp] = pkt;
+            packet_list[pkt['timestamp']] = pkt;
             //ts_str = val["timestamp"].toString();
             //ts = ts_str.split(".")[0]*1000;
-            ts = pkt.timestamp
-            var d = new Date(ts).toLocaleDateString("en-US");
-            var t = new Date(ts).toLocaleTimeString("en-US");
+            ts = pkt['timestamp'] * 1000;
+            var d = new Date(ts).toLocaleDateString();
+            var t = new Date(ts).toLocaleTimeString();
             var from_call = pkt.from_call;
             if (from_call == our_callsign) {
                 title_id = 'title_tx';
