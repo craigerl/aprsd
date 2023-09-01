@@ -20,6 +20,14 @@ aprsd.cmds.dev module
    :undoc-members:
    :show-inheritance:
 
+aprsd.cmds.fetch\_stats module
+------------------------------
+
+.. automodule:: aprsd.cmds.fetch_stats
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.cmds.healthcheck module
 -----------------------------
 

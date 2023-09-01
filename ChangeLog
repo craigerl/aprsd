@@ -1,6 +1,20 @@
 CHANGES
 =======
 
+* Removed admin\_web.py
+* Removed some RPC server log noise
+* Fixed admin page packet date
+* RPC Server logs the client IP on failed auth
+* Start keepalive thread first
+* fixed an issue in the mobile webchat
+* Added dupe checkig code to webchat mobile
+* click on the div after added
+* Webchat suppress to display of dupe messages
+* Convert webchat internet urls to local static urls
+* Make use of webchat gps config options
+* Added new webchat config section
+* fixed webchat logging.logformat typeoh
+
 v3.1.3
 ------
 

@@ -10,7 +10,7 @@ Subpackages
    aprsd.clients
    aprsd.cmds
    aprsd.conf
-   aprsd.logging
+   aprsd.log
    aprsd.packets
    aprsd.plugins
    aprsd.rpc
@@ -20,14 +20,6 @@ Subpackages
 
 Submodules
 ----------
-
-aprsd.aprsd module
-------------------
-
-.. automodule:: aprsd.aprsd
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 aprsd.cli\_helper module
 ------------------------
@@ -53,10 +45,10 @@ aprsd.exception module
    :undoc-members:
    :show-inheritance:
 
-aprsd.flask module
-------------------
+aprsd.main module
+-----------------
 
-.. automodule:: aprsd.flask
+.. automodule:: aprsd.main
    :members:
    :undoc-members:
    :show-inheritance:
@@ -89,6 +81,14 @@ aprsd.stats module
 ------------------
 
 .. automodule:: aprsd.stats
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.wsgi module
+-----------------
+
+.. automodule:: aprsd.wsgi
    :members:
    :undoc-members:
    :show-inheritance:
