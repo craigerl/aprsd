@@ -6,8 +6,7 @@ on:
       aprsd_version:
         required: true
         options:
-          - 2.5.9
-          - 2.6.0
+          - 3.0.0
       logLevel:
         description: 'Log level'
         required: true
