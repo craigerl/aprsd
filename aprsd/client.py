@@ -67,6 +67,9 @@ class Client(metaclass=trace.TraceWrapperMetaclass):
         else:
             LOG.warning("Client not initialized, nothing to reset.")
 
+        # Recreate the client
+        LOG.info(f"Creating new client {self.client}")
+
     @abc.abstractmethod
     def setup_connection(self):
         pass
