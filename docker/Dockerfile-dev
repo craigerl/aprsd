@@ -20,7 +20,7 @@ RUN set -ex \
     # Upgrade the package index and install security upgrades
     && apt-get update \
     && apt-get upgrade -y \
-    && apt-get install -y git build-essential curl vim libffi-dev \
+    && apt-get install -y git build-essential curl libffi-dev \
     python3-dev libssl-dev libxml2-dev libxslt-dev telnet sudo \
     # Install dependencies
     # Clean up
