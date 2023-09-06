@@ -117,13 +117,14 @@ function init_messages() {
             msg = message_list[callsign][id];
             info = time_ack_from_msg(msg);
             t = info['time'];
+            d = info['date'];
             ack_id = false;
             acked = false;
             if (msg['type'] == MSG_TYPE_TX) {
                 ack_id = info['ack_id'];
                 acked = msg['ack'];
             }
-            msg_html = create_message_html(t, msg['from'], msg['to'], msg['message'], ack_id, msg, acked);
+            msg_html = create_message_html(d, t, msg['from'], msg['to'], msg['message'], ack_id, msg, acked);
             append_message_html(callsign, msg_html, new_callsign);
             new_callsign = false;
         }
@@ -204,7 +205,7 @@ function append_message_html(callsign, msg_html, new_callsign) {
   if (new_callsign) {
       // we have to add a new DIV
       console.log("new callsign, create msg_div_html ");
-      msg_div_html = '<div class="tabcontent" id="'+divname_str+'" style="height:450px;">'+msg_html+'</div>';
+      msg_div_html = '<div class="speech-wrapper" id="'+divname_str+'">'+msg_html+'</div>';
       console.log(msg_div_html);
       msgsTabs.append(msg_div_html);
   } else {
@@ -218,30 +219,45 @@ function append_message_html(callsign, msg_html, new_callsign) {
   console.log($(divname).length);
 
   if ($(divname).length > 0) {
-      $(divname).animate({scrollTop: $(divname)[0].scrollHeight}, "slow");
+      $(divname).animate({scrollTop: $(divname)[0].scrollHeight}, "fast");
   }
   $(divname).trigger('click');
 }
 
-function create_message_html(time, from, to, message, ack_id, msg, acked=false) {
+function create_message_html(date, time, from, to, message, ack_id, msg, acked=false) {
     div_id = from + "_" + msg.id;
-    msg_html = '<div class="item" id="'+div_id+'">';
-    msg_html += '<div class="tiny text">'+time+'</div>';
-    msg_html += '<div class="middle aligned content">';
-    msg_html += '<div class="tiny red header">'+from+'</div>';
+    if (ack_id) {
+      bubble_class = "bubble alt"
+      bubble_name_class = "bubble-name alt"
+    } else {
+      bubble_class = "bubble"
+      bubble_name_class = "bubble-name"
+    }
+
+    date_str = date + " " + time;
+
+    msg_html = '<div class="'+ bubble_class + '">';
+    msg_html += '<div class="bubble-text">';
+    msg_html += '<p class="'+ bubble_name_class +'">'+from+'&nbsp;&nbsp;';
+    msg_html += '<span class="bubble-timestamp">'+date_str+'</span>';
     if (ack_id) {
         if (acked) {
-            msg_html += '<div class="middle aligned content"><i class="thumbs up outline icon" id="' + ack_id + '" data-content="Message ACKed"></i></div>';
+            msg_html += '<span class="material-symbols-rounded" id="' + ack_id + '">thumb_up</span>';
         } else {
-            msg_html += '<div class="middle aligned content"><i class="thumbs down outline icon" id="' + ack_id + '" data-content="Waiting for ACK"></i></div>';
+            msg_html += '<span class="material-symbols-rounded" id="' + ack_id + '">thumb_down</span>';
         }
-    } else {
-        msg_html += '<i class="phone volume icon" data-content="Recieved Message"></i>';
     }
-    msg_html += '<div class="middle aligned content">>&nbsp;&nbsp;&nbsp;</div>';
-    msg_html += '</div>';
-    msg_html += '<div class="middle aligned content">'+message+'</div>';
-    msg_html += '</div><br>';
+    msg_html += "</p>";
+    bubble_msg_class = "bubble-message"
+    if (ack_id) {
+      bubble_arrow_class = "bubble-arrow alt"
+    } else {
+      bubble_arrow_class = "bubble-arrow"
+    }
+
+    msg_html += '<p class="' +bubble_msg_class+ '">'+message+'</p>';
+    msg_html += '<div class="'+ bubble_arrow_class + '"></div>';
+    msg_html += "</div></div>";
 
     return msg_html
 }
@@ -257,9 +273,10 @@ function flash_message(msg) {
 function sent_msg(msg) {
     info = time_ack_from_msg(msg);
     t = info['time'];
+    d = info['date'];
     ack_id = info['ack_id'];
 
-    msg_html = create_message_html(t, msg['from'], msg['to'], msg['message'], ack_id, msg, false);
+    msg_html = create_message_html(d, t, msg['from'], msg['to'], msg['message'], ack_id, msg, false);
     append_message(msg['to'], msg, msg_html);
     save_data();
 }
@@ -283,10 +300,11 @@ function from_msg(msg) {
 
    info = time_ack_from_msg(msg);
    t = info['time'];
+   d = info['date'];
    ack_id = info['ack_id'];
 
    from = msg['from']
-   msg_html = create_message_html(t, from, false, msg['message'], false, msg, false);
+   msg_html = create_message_html(d, t, from, false, msg['message'], false, msg, false);
    append_message(from, msg, msg_html);
    save_data();
 }
@@ -324,8 +342,9 @@ function ack_msg(msg) {
    if (msg['ack'] == true) {
        var ack_div = $('#' + ack_id);
        //ack_div.removeClass('thumbs up outline icon');
-       ack_div.removeClass('thumbs down outline icon');
-       ack_div.addClass('thumbs up outline icon');
+       ack_div.html('thumb_up');
+       //ack_div.removeClass('thumbs down outline icon');
+       //ack_div.addClass('thumbs up outline icon');
    }
 
    $('.ui.accordion').accordion('refresh');
@@ -338,30 +357,31 @@ function callsign_select(callsign) {
 }
 
 function reset_Tabs() {
-  tabcontent = document.getElementsByClassName("tabcontent");
+  tabcontent = document.getElementsByClassName("speech-wrapper");
   for (i = 0; i < tabcontent.length; i++) {
     tabcontent[i].style.display = "none";
   }
 }
-
-
 
 function openCallsign(evt, callsign) {
   // This is called when a callsign tab is clicked
   var i, tabcontent, tablinks;
 
   tab_content = tab_content_name(callsign);
+  console.log("openCallsign " + tab_content);
 
-  tabcontent = document.getElementsByClassName("tabcontent");
-  console.log(tabcontent);
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
+  tabs = document.getElementsByClassName("speech-wrapper");
+  console.log(tabs);
+  for (i = 0; i < tabs.length; i++) {
+    tabs[i].style.display = "none";
   }
   tablinks = document.getElementsByClassName("tablinks");
   console.log(tablinks);
   for (i = 0; i < tablinks.length; i++) {
     tablinks[i].className = tablinks[i].className.replace(" active", "");
   }
+
+  //$(tab_content).style.display = "block";
   document.getElementById(tab_content).style.display = "block";
   evt.target.className += " active";
   callsign_select(callsign);
