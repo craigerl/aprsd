@@ -216,16 +216,7 @@ def _get_transport(stats):
 @auth.login_required
 @flask_app.route("/")
 def index():
-    # ua_str = request.headers.get("User-Agent")
-    # this takes about 2 seconds :(
-    # user_agent = ua_parse(ua_str)
-    # LOG.debug(f"Is mobile? {user_agent.is_mobile}")
     stats = _stats()
-
-    # if user_agent.is_mobile:
-    #    html_template = "mobile.html"
-    # else:
-    #    html_template = "index.html"
 
     # For development
     html_template = "index.html"

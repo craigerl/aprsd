@@ -27,8 +27,6 @@ wrapt
 # kiss3 uses attrs
 kiss3
 attrs
-# for mobile checking
-user-agents
 dataclasses
 dacite2
 oslo.config
