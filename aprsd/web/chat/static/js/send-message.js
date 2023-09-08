@@ -105,9 +105,12 @@ function init_messages() {
         console.log("Adding callsign " + callsign);
         if (first_callsign === null) {
             first_callsign = callsign;
+            active = true;
             console.log("first_callsign " + first_callsign)
+        } else {
+            active = false;
         }
-        create_callsign_tab(callsign);
+        create_callsign_tab(callsign, active);
     }
     // and then populate the messages in order
     for (callsign in message_list) {
@@ -131,27 +134,54 @@ function init_messages() {
     }
 
     //Click on the very first tab
+    /*
     if (first_callsign !== null) {
-        click_div = '#'+tab_string(first_callsign);
+        callsign_tab_id = callsign_tab(first_callsign);
         var click_timer = setTimeout(function() {
-            console.log("Click on first tab " + click_div);
-            $(click_div).click();
+            console.log("Click on first tab " + callsign_tab_id);
+            $(callsign_tab_id).click();
             clearTimeout(click_timer);
         }, 500);
     }
+    */
 }
 
-function create_callsign_tab(callsign) {
+function create_callsign_tab(callsign, active=false) {
   //Create the html for the callsign tab and insert it into the DOM
   console.log("create_callsign_tab " + callsign)
-  var callsignTabs = $("#callsignTabs");
-  tab_name = tab_string(callsign);
+  var callsignTabs = $("#msgsTabList");
+  tab_id = tab_string(callsign);
   tab_content = tab_content_name(callsign);
-  divname = content_divname(callsign);
+  if (active) {
+    active_str = "active";
+  } else {
+    active_str = "";
+  }
 
-  item_html = '<div class="tablinks" id="'+tab_name+'" onclick="openCallsign(event, \''+callsign+'\');">'+callsign+'</div>';
+  item_html = '<li class="nav-item" role="presentation">';
+  item_html += '<button class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">'+callsign+'</button>';
+  item_html += '</li>';
   console.log(item_html);
   callsignTabs.append(item_html);
+  create_callsign_tab_content(callsign, active);
+}
+
+function create_callsign_tab_content(callsign, active=false) {
+  console.log("create_callsign_tab_content for CALLSIGN=" + callsign)
+  var callsignTabsContent = $("#msgsTabContent");
+  tab_id = tab_string(callsign);
+  tab_content = tab_content_name(callsign);
+  wrapper_id = tab_content_speech_wrapper(callsign);
+  if (active) {
+    active_str = "show active";
+  } else {
+    active_str = '';
+  }
+
+  item_html = '<div class="tab-pane fade '+active_str+'" id="'+tab_content+'" role="tabpanel" aria-labelledby="'+tab_id+'">';
+  item_html += '<div class="speech-wrapper" id="'+wrapper_id+'"></div>';
+  item_html += '</div>';
+  callsignTabsContent.append(item_html);
 }
 
 function add_callsign(callsign) {
@@ -159,7 +189,13 @@ function add_callsign(callsign) {
   if (callsign in callsign_list) {
       return false
   }
-  create_callsign_tab(callsign);
+  len = Object.keys(callsign_list).length;
+  if (len == 0) {
+      active = true;
+  } else {
+      active = false;
+  }
+  create_callsign_tab(callsign, active);
   callsign_list[callsign] = true;
   return true
 }
@@ -179,9 +215,9 @@ function append_message(callsign, msg, msg_html) {
   new_callsign = add_callsign(callsign);
   append_message_html(callsign, msg_html, new_callsign);
   if (new_callsign) {
-      //click on the new tab
-      click_div = '#'+tab_string(callsign);
-      $(click_div).click();
+      //Now click the tab
+      callsign_tab_id = callsign_tab(callsign);
+      $(callsign_tab_id).click();
   }
 }
 
@@ -193,50 +229,57 @@ function tab_content_name(callsign) {
    return tab_string(callsign)+"Content";
 }
 
+function tab_content_speech_wrapper(callsign) {
+    return tab_string(callsign)+"SpeechWrapper";
+}
+
+function tab_content_speech_wrapper_id(callsign) {
+    return "#"+tab_content_speech_wrapper(callsign);
+}
+
 function content_divname(callsign) {
     return "#"+tab_content_name(callsign);
 }
 
+function callsign_tab(callsign) {
+    return "#"+tab_string(callsign);
+}
+
 function append_message_html(callsign, msg_html, new_callsign) {
   var msgsTabs = $('#msgsTabsDiv');
-  console.log("append_message_html " + callsign + " " + msg_html + " " + new_callsign);
+  console.log("append_message_html " + callsign + " new callsign? " + new_callsign);
   divname_str = tab_content_name(callsign);
   divname = content_divname(callsign);
-  if (new_callsign) {
-      // we have to add a new DIV
-      console.log("new callsign, create msg_div_html ");
-      msg_div_html = '<div class="speech-wrapper" id="'+divname_str+'">'+msg_html+'</div>';
-      console.log(msg_div_html);
-      msgsTabs.append(msg_div_html);
-  } else {
-      var msgDiv = $(divname);
-      console.log("Appending ("+ msg_html + ") to " + divname);
-      console.log(msgDiv);
-      msgDiv.append(msg_html);
-      console.log(msgDiv);
-  }
-  console.log("divname " + divname);
-  console.log($(divname).length);
+  tab_content = tab_content_name(callsign);
+  wrapper_id = tab_content_speech_wrapper_id(callsign);
 
-  if ($(divname).length > 0) {
-      $(divname).animate({scrollTop: $(divname)[0].scrollHeight}, "fast");
+  console.log("Appending ("+ msg_html + ") to " + wrapper_id);
+  $(wrapper_id).append(msg_html);
+  console.log($(wrapper_id).html());
+
+  console.log("wrapper_id " + wrapper_id);
+  console.log($(wrapper_id).children().length);
+
+  if ($(wrapper_id).children().length > 0) {
+      $(wrapper_id).animate({scrollTop: $(wrapper_id)[0].scrollHeight}, "fast");
   }
-  $(divname).trigger('click');
+
 }
 
 function create_message_html(date, time, from, to, message, ack_id, msg, acked=false) {
     div_id = from + "_" + msg.id;
     if (ack_id) {
-      bubble_class = "bubble alt"
-      bubble_name_class = "bubble-name alt"
+      alt = " alt"
     } else {
-      bubble_class = "bubble"
-      bubble_name_class = "bubble-name"
+      alt = ""
     }
 
+    bubble_class = "bubble" + alt
+    bubble_name_class = "bubble-name" + alt
     date_str = date + " " + time;
 
-    msg_html = '<div class="'+ bubble_class + '">';
+    msg_html = '<div class="bubble-row'+alt+'">';
+    msg_html += '<div class="'+ bubble_class + '">';
     msg_html += '<div class="bubble-text">';
     msg_html += '<p class="'+ bubble_name_class +'">'+from+'&nbsp;&nbsp;';
     msg_html += '<span class="bubble-timestamp">'+date_str+'</span>';
@@ -257,7 +300,7 @@ function create_message_html(date, time, from, to, message, ack_id, msg, acked=f
 
     msg_html += '<p class="' +bubble_msg_class+ '">'+message+'</p>';
     msg_html += '<div class="'+ bubble_arrow_class + '"></div>';
-    msg_html += "</div></div>";
+    msg_html += "</div></div></div>";
 
     return msg_html
 }
@@ -354,35 +397,4 @@ function ack_msg(msg) {
 function callsign_select(callsign) {
    var tocall = $("#to_call");
    tocall.val(callsign);
-}
-
-function reset_Tabs() {
-  tabcontent = document.getElementsByClassName("speech-wrapper");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
-  }
-}
-
-function openCallsign(evt, callsign) {
-  // This is called when a callsign tab is clicked
-  var i, tabcontent, tablinks;
-
-  tab_content = tab_content_name(callsign);
-  console.log("openCallsign " + tab_content);
-
-  tabs = document.getElementsByClassName("speech-wrapper");
-  console.log(tabs);
-  for (i = 0; i < tabs.length; i++) {
-    tabs[i].style.display = "none";
-  }
-  tablinks = document.getElementsByClassName("tablinks");
-  console.log(tablinks);
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].className = tablinks[i].className.replace(" active", "");
-  }
-
-  //$(tab_content).style.display = "block";
-  document.getElementById(tab_content).style.display = "block";
-  evt.target.className += " active";
-  callsign_select(callsign);
 }
