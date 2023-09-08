@@ -59,6 +59,35 @@ function init_chat() {
    init_messages();
 }
 
+function tab_string(callsign, id=false) {
+    name = "msgs"+callsign;
+    if (id) {
+        return "#"+name;
+    } else {
+        return name;
+    }
+}
+
+function tab_content_name(callsign, id=false) {
+   return tab_string(callsign, id)+"Content";
+}
+
+function tab_content_speech_wrapper(callsign, id=false) {
+    return tab_string(callsign, id)+"SpeechWrapper";
+}
+
+function tab_content_speech_wrapper_id(callsign) {
+    return "#"+tab_content_speech_wrapper(callsign);
+}
+
+function content_divname(callsign) {
+    return "#"+tab_content_name(callsign);
+}
+
+function callsign_tab(callsign) {
+    return "#"+tab_string(callsign);
+}
+
 function message_ts_id(msg) {
     //Create a 'id' from the message timestamp
     ts_str = msg["ts"].toString();
@@ -89,7 +118,6 @@ function init_messages() {
     // This tries to load any previous conversations from local storage
     callsign_list = JSON.parse(localStorage.getItem('callsign_list'));
     message_list = JSON.parse(localStorage.getItem('message_list'));
-    console.log("init_messages");
     if (callsign_list == null) {
        callsign_list = {};
     }
@@ -102,11 +130,9 @@ function init_messages() {
     // Now loop through each callsign and add the tabs
     first_callsign = null;
     for (callsign in callsign_list) {
-        console.log("Adding callsign " + callsign);
         if (first_callsign === null) {
             first_callsign = callsign;
             active = true;
-            console.log("first_callsign " + first_callsign)
         } else {
             active = false;
         }
@@ -132,23 +158,10 @@ function init_messages() {
             new_callsign = false;
         }
     }
-
-    //Click on the very first tab
-    /*
-    if (first_callsign !== null) {
-        callsign_tab_id = callsign_tab(first_callsign);
-        var click_timer = setTimeout(function() {
-            console.log("Click on first tab " + callsign_tab_id);
-            $(callsign_tab_id).click();
-            clearTimeout(click_timer);
-        }, 500);
-    }
-    */
 }
 
 function create_callsign_tab(callsign, active=false) {
   //Create the html for the callsign tab and insert it into the DOM
-  console.log("create_callsign_tab " + callsign)
   var callsignTabs = $("#msgsTabList");
   tab_id = tab_string(callsign);
   tab_content = tab_content_name(callsign);
@@ -159,15 +172,15 @@ function create_callsign_tab(callsign, active=false) {
   }
 
   item_html = '<li class="nav-item" role="presentation">';
-  item_html += '<button class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">'+callsign+'</button>';
-  item_html += '</li>';
-  console.log(item_html);
+  item_html += '<button class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
+  item_html += callsign+'&nbsp;&nbsp;';
+  item_html += '<span onclick="delete_tab(\''+callsign+'\');">×</span>';
+  item_html += '</button></li>'
   callsignTabs.append(item_html);
   create_callsign_tab_content(callsign, active);
 }
 
 function create_callsign_tab_content(callsign, active=false) {
-  console.log("create_callsign_tab_content for CALLSIGN=" + callsign)
   var callsignTabsContent = $("#msgsTabContent");
   tab_id = tab_string(callsign);
   tab_content = tab_content_name(callsign);
@@ -182,6 +195,21 @@ function create_callsign_tab_content(callsign, active=false) {
   item_html += '<div class="speech-wrapper" id="'+wrapper_id+'"></div>';
   item_html += '</div>';
   callsignTabsContent.append(item_html);
+}
+
+function delete_tab(callsign) {
+    // User asked to delete the tab and the conversation
+    tab_id = tab_string(callsign, true);
+    tab_content = tab_content_name(callsign, true);
+    $(tab_id).remove();
+    $(tab_content).remove();
+    delete callsign_list[callsign];
+    delete message_list[callsign];
+
+    // Now select the first tab
+    first_tab = $("#msgsTabList").children().first().children().first();
+    $(first_tab).click();
+    save_data();
 }
 
 function add_callsign(callsign) {
@@ -201,7 +229,6 @@ function add_callsign(callsign) {
 }
 
 function append_message(callsign, msg, msg_html) {
-  console.log("append_message " + callsign + " " + msg + " " + msg_html);
   new_callsign = false
   if (!message_list.hasOwnProperty(callsign)) {
        //message_list[callsign] = new Array();
@@ -221,44 +248,15 @@ function append_message(callsign, msg, msg_html) {
   }
 }
 
-function tab_string(callsign) {
-  return "msgs"+callsign;
-}
-
-function tab_content_name(callsign) {
-   return tab_string(callsign)+"Content";
-}
-
-function tab_content_speech_wrapper(callsign) {
-    return tab_string(callsign)+"SpeechWrapper";
-}
-
-function tab_content_speech_wrapper_id(callsign) {
-    return "#"+tab_content_speech_wrapper(callsign);
-}
-
-function content_divname(callsign) {
-    return "#"+tab_content_name(callsign);
-}
-
-function callsign_tab(callsign) {
-    return "#"+tab_string(callsign);
-}
 
 function append_message_html(callsign, msg_html, new_callsign) {
   var msgsTabs = $('#msgsTabsDiv');
-  console.log("append_message_html " + callsign + " new callsign? " + new_callsign);
   divname_str = tab_content_name(callsign);
   divname = content_divname(callsign);
   tab_content = tab_content_name(callsign);
   wrapper_id = tab_content_speech_wrapper_id(callsign);
 
-  console.log("Appending ("+ msg_html + ") to " + wrapper_id);
   $(wrapper_id).append(msg_html);
-  console.log($(wrapper_id).html());
-
-  console.log("wrapper_id " + wrapper_id);
-  console.log($(wrapper_id).children().length);
 
   if ($(wrapper_id).children().length > 0) {
       $(wrapper_id).animate({scrollTop: $(wrapper_id)[0].scrollHeight}, "fast");
@@ -325,7 +323,6 @@ function sent_msg(msg) {
 }
 
 function from_msg(msg) {
-   console.log(msg);
    if (!from_msg_list.hasOwnProperty(msg.from)) {
         from_msg_list[msg.from] = new Array();
    }
@@ -355,8 +352,6 @@ function from_msg(msg) {
 function ack_msg(msg) {
    // Acknowledge a message
    console.log("ack_msg ");
-   console.log(msg);
-   console.log(message_list);
 
    // We have an existing entry
    ts_id = message_ts_id(msg);
@@ -384,10 +379,7 @@ function ack_msg(msg) {
 
    if (msg['ack'] == true) {
        var ack_div = $('#' + ack_id);
-       //ack_div.removeClass('thumbs up outline icon');
        ack_div.html('thumb_up');
-       //ack_div.removeClass('thumbs down outline icon');
-       //ack_div.addClass('thumbs up outline icon');
    }
 
    $('.ui.accordion').accordion('refresh');
