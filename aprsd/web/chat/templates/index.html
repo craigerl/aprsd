@@ -49,6 +49,15 @@
                     localStorage.clear();
                 });
             });
+
+            // When a tab is clicked, populate the to_call form field.
+            $(document).on('shown.bs.tab', 'button[data-bs-toggle="tab"]', function (e) {
+                var tab = $(e.target);
+                var callsign = tab.attr("callsign");
+                var to_call = $('#to_call');
+                console.log("Tab clicked on " + callsign);
+                to_call.val(callsign);
+            });
         </script>
     </head>
 
