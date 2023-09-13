@@ -70,10 +70,11 @@ function showPosition(position) {
   }
   console.log(msg);
   $.toast({
-      title: 'Sending GPS Beacon',
-      message: "Latitude: "+position.coords.latitude+"<br>Longitude: "+position.coords.longitude,
-      showProgress: 'bottom',
-      classProgress: 'red'
+      heading: 'Sending GPS Beacon',
+      text: "Latitude: "+position.coords.latitude+"<br>Longitude: "+position.coords.longitude,
+      loader: true,
+      loaderBg: '#9EC600',
+      position: 'top-center',
   });
 
   console.log("Sending GPS msg")
