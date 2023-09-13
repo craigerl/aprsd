@@ -246,7 +246,6 @@ class APRSDStats:
             },
             "plugins": plugin_stats,
         }
-        LOG.info("APRSD Stats: DONE")
         return stats
 
     def __str__(self):

@@ -15,7 +15,6 @@ from flask.logging import default_handler
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
 from oslo_config import cfg
-from user_agents import parse as ua_parse
 from werkzeug.security import check_password_hash, generate_password_hash
 import wrapt
 
@@ -217,20 +216,10 @@ def _get_transport(stats):
 @auth.login_required
 @flask_app.route("/")
 def index():
-    ua_str = request.headers.get("User-Agent")
-    # this takes about 2 seconds :(
-    user_agent = ua_parse(ua_str)
-    LOG.debug(f"Is mobile? {user_agent.is_mobile}")
     stats = _stats()
 
-    if user_agent.is_mobile:
-        html_template = "mobile.html"
-    else:
-        html_template = "index.html"
-
     # For development
-    # html_template = "mobile.html"
-
+    html_template = "index.html"
     LOG.debug(f"Template {html_template}")
 
     transport, aprs_connection = _get_transport(stats)
