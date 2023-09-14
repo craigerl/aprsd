@@ -82,7 +82,12 @@ class KeepAliveThread(APRSDThread):
 
             # check the APRS connection
             cl = client.factory.create()
-            if not cl.is_alive():
+            # Reset the connection if it's dead and this isn't our
+            # First time through the loop.
+            # The first time through the loop can happen at startup where
+            # The keepalive thread starts before the client has a chance
+            # to make it's connection the first time.
+            if not cl.is_alive() and self.cntr > 0:
                 LOG.error(f"{cl.__class__.__name__} is not alive!!! Resetting")
                 client.factory.create().reset()
             else:
