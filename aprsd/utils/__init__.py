@@ -126,4 +126,8 @@ def parse_delta_str(s):
         )
     else:
         m = re.match(r"(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)", s)
-    return {key: float(val) for key, val in m.groupdict().items()}
+
+    if m:
+        return {key: float(val) for key, val in m.groupdict().items()}
+    else:
+        return {}
