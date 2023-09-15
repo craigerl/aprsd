@@ -178,7 +178,7 @@ function create_callsign_tab(callsign, active=false) {
   }
 
   item_html = '<li class="nav-item" role="presentation" callsign="'+callsign+'" id="'+tab_id_li+'">';
-  item_html += '<button onClick="$(\'#to_call\').val(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
+  item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
   item_html += callsign+'&nbsp;&nbsp;';
   item_html += '<span onclick="delete_tab(\''+callsign+'\');">×</span>';
   item_html += '</button></li>'
@@ -397,4 +397,6 @@ function ack_msg(msg) {
 function callsign_select(callsign) {
    var tocall = $("#to_call");
    tocall.val(callsign);
+   var d = $('#wc-content');
+   d.animate({ scrollTop: d.prop('scrollHeight') }, 500);
 }

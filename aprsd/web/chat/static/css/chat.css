@@ -3,11 +3,8 @@ input[type=search]::-webkit-search-cancel-button {
 }
 
 .speech-wrapper {
+  padding-top: 0px;
   padding: 5px 30px;
-  border: 1px solid #ccc;
-  height: 450px;
-  overflow-y: scroll;
-  overflow-x: none;
   background-color: #CCCCCC;
 }
 
@@ -42,7 +39,7 @@ input[type=search]::-webkit-search-cancel-button {
     width: 280px;
     font-weight: 600;
     font-size: 12px;
-    margin: 0 0 4px;
+    margin: 0 0 0px;
     color: #3498db;
     display: flex;
     align-items: center;
@@ -66,8 +63,9 @@ input[type=search]::-webkit-search-cancel-button {
 .bubble-message {
     font-size: 16px;
     margin: 0px;
-    padding: 0px 5px 5px 0px;
+    padding: 0px 0px 0px 0px;
     color: #2b2b2b;
+    text-align: left;
 }
 
 .bubble-arrow {

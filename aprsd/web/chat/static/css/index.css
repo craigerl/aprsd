@@ -1,14 +1,9 @@
 body {
     background: #eeeeee;
-    margin: 1em;
+    /*margin: 1em;*/
     text-align: center;
     font-family: system-ui, sans-serif;
-}
-
-footer {
-    padding: 2em;
-    text-align: center;
-    height: 10vh;
+    height: 100%;
 }
 
 #title {
@@ -44,4 +39,28 @@ footer {
     background-position: -160px -48px;
     width: 16px;
     height: 16px;
+}
+
+.wc-container {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+}
+.wc-container .wc-row {
+  /*border: 1px dotted #0313fc;*/
+  padding: 2px;
+}
+.wc-container .wc-row.header {
+  flex: 0 1 auto;
+}
+.wc-container .wc-row.content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+.wc-container .wc-row.footer {
+  flex: 0 1 0px;
+}
+
+.material-symbols-rounded.md-10 {
+  font-size: 18px !important;
 }

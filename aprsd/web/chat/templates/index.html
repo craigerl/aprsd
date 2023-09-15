@@ -64,51 +64,56 @@
     </head>
 
     <body>
-        <div class='container text-center'>
-            <div class="row">
-                <div class="column">
-                    <h1>APRSD WebChat {{ version }}</h1>
+        <div class="wc-container">
+            <div class="wc-row header">
+               <div class="container-sm">
+                   <div class="row">
+                       <div class="column">
+                            <h1>APRSD WebChat {{ version }}</h1>
+                       </div>
+                   </div>
+                   <div class="row">
+                        <div class="column">
+                            <span style='color: green'>{{ callsign }}</span>
+                            connected to
+                            <span style='color: blue' id='aprs_connection'>{{ aprs_connection|safe }}</span>
+                            <span id='uptime'>NONE</span>
+                        </div>
+                   </div>
+                    <div class="row">
+                        <form class="row gx-1 gy-1 justify-content-center align-items-center" id="sendform" name="sendmsg" action="">
+                            <div class="col-sm-3">
+                                <label for="to_call" class="visually-hidden">Callsign</label>
+                                <input type="search" class="form-control mb-2 mr-sm-2" name="to_call" id="to_call" placeholder="To Callsign" size="11" maxlength="9">
+                            </div>
+                            <div class="col-sm-3">
+                              <label for="message" class="visually-hidden">Message</label>
+                              <input type="text" class="form-control mb-2 mr-sm-2" name="message" id="message" size="40" maxlength="40" placeholder="Message">
+                            </div>
+                            <div class="col-auto">
+                            <input type="submit" name="submit" class="btn btn-primary mb-2" id="send_msg" value="Send" />
+                            <button type="button" class="btn btn-primary mb-2" id="send_beacon" value="Send GPS Beacon">Send GPS Beacon</button>
+                            <!-- <button type="button" class="btn btn-primary mb-2" id="wipe_local" value="wipe local storage">Wipe LocalStorage</button> -->
+                            </div>
+                        </form>
+                    </div>
+               </div>
+               <div class="container-sm" style="max-width: 800px">
+                    <ul class="nav nav-tabs" id="msgsTabList" role="tablist"></ul>
+               </div>
+            </div>
+            <div class="wc-row content" id="wc-content">
+                <div class="container" style="max-width: 800px;">
+                    <div class="tab-content" id="msgsTabContent" style="height: 100%">
+                    </div>
                 </div>
             </div>
-            <div class="row">
-                <div class="column">
-                    <span style='color: green'>{{ callsign }}</span>
-                    connected to
-                    <span style='color: blue' id='aprs_connection'>{{ aprs_connection|safe }}</span>
-                    <span id='uptime'>NONE</span>
+            <div class="wc-row footer">
+                <div class="container-sm" style="padding-top: 40px">
+                    <a href="https://badge.fury.io/py/aprsd"><img src="https://badge.fury.io/py/aprsd.svg" alt="PyPI version" height="18"></a>
+                    <a href="https://github.com/craigerl/aprsd"><img src="https://img.shields.io/badge/Made%20with-Python-1f425f.svg" height="18"></a>
                 </div>
             </div>
-            <div class="row">
-                <form class="row gx-1 gy-1 justify-content-center align-items-center" id="sendform" name="sendmsg" action="">
-                    <div class="col-sm-3">
-                        <label for="to_call" class="visually-hidden">Callsign</label>
-                        <input type="search" class="form-control mb-2 mr-sm-2" name="to_call" id="to_call" placeholder="To Callsign" size="11" maxlength="9">
-                    </div>
-                    <div class="col-sm-3">
-                      <label for="message" class="visually-hidden">Message</label>
-                      <input type="text" class="form-control mb-2 mr-sm-2" name="message" id="message" size="40" maxlength="40" placeholder="Message">
-                    </div>
-                    <div class="col-auto">
-                    <input type="submit" name="submit" class="btn btn-primary mb-2" id="send_msg" value="Send" />
-                    <button type="button" class="btn btn-primary mb-2" id="send_beacon" value="Send GPS Beacon">Send GPS Beacon</button>
-                    <!-- <button type="button" class="btn btn-primary mb-2" id="wipe_local" value="wipe local storage">Wipe LocalStorage</button> -->
-                    </div>
-                </form>
-            </div>
-
-            <div class="row">
-                <div class="container-sm" style="max-width: 800px;">
-                    <ul class="nav nav-tabs" id="msgsTabList" role="tablist">
-                    </ul>
-                    <div class="tab-content" id="msgsTabContent">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="ui text container" style="padding-top: 40px">
-            <a href="https://badge.fury.io/py/aprsd"><img src="https://badge.fury.io/py/aprsd.svg" alt="PyPI version" height="18"></a>
-            <a href="https://github.com/craigerl/aprsd"><img src="https://img.shields.io/badge/Made%20with-Python-1f425f.svg" height="18"></a>
         </div>
     </body>
 </html>
