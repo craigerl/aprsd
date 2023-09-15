@@ -10,6 +10,16 @@ MSG_TYPE_ACK = "ack";
 
 function size_dict(d){c=0; for (i in d) ++c; return c}
 
+function raise_error(msg) {
+   $.toast({
+       heading: 'Error',
+       text: msg,
+       loader: true,
+       loaderBg: '#9EC600',
+       position: 'top-center',
+   });
+}
+
 function init_chat() {
    socket.on('connect', function () {
        console.log("Connected to socketio");
@@ -47,11 +57,20 @@ function init_chat() {
 
    $("#sendform").submit(function(event) {
        event.preventDefault();
-       msg = {'to': $('#to_call').val(),
-              'message': $('#message').val(),
-              }
-       socket.emit("send", msg);
-       $('#message').val('');
+       to_call = $('#to_call').val();
+       message = $('#message').val();
+       if (to_call == "") {
+           raise_error("You must enter a callsign to send a message")
+           return false;
+       } else {
+           if (message == "") {
+               raise_error("You must enter a message to send")
+               return false;
+           }
+           msg = {'to': to_call, 'message': message, }
+           socket.emit("send", msg);
+           $('#message').val('');
+       }
    });
 
    init_gps();
@@ -163,6 +182,10 @@ function init_messages() {
             new_callsign = false;
         }
     }
+
+    if (first_callsign !== null) {
+      callsign_select(first_callsign);
+    }
 }
 
 function scroll_main_content(callsign=false) {
@@ -268,7 +291,7 @@ function add_callsign(callsign) {
   }
   create_callsign_tab(callsign, active);
   callsign_list[callsign] = true;
-  return true
+  return true;
 }
 
 function append_message(callsign, msg, msg_html) {
@@ -288,6 +311,7 @@ function append_message(callsign, msg, msg_html) {
       //Now click the tab
       callsign_tab_id = callsign_tab(callsign);
       $(callsign_tab_id).click();
+      callsign_select(callsign);
   }
 }
 
@@ -304,7 +328,6 @@ function append_message_html(callsign, msg_html, new_callsign) {
   if ($(wrapper_id).children().length > 0) {
       $(wrapper_id).animate({scrollTop: $(wrapper_id)[0].scrollHeight}, "fast");
   }
-
 }
 
 function create_message_html(date, time, from, to, message, ack_id, msg, acked=false) {
@@ -433,6 +456,7 @@ function ack_msg(msg) {
 }
 
 function callsign_select(callsign) {
+   console.log("callsign_select " + callsign);
    var tocall = $("#to_call");
    tocall.val(callsign);
    scroll_main_content(callsign);
