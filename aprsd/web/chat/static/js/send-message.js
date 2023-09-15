@@ -68,6 +68,11 @@ function tab_string(callsign, id=false) {
     }
 }
 
+function tab_li_string(callsign, id=false) {
+    //The id of the LI containing the tab
+    return tab_string(callsign,id)+"Li";
+}
+
 function tab_content_name(callsign, id=false) {
    return tab_string(callsign, id)+"Content";
 }
@@ -164,6 +169,7 @@ function create_callsign_tab(callsign, active=false) {
   //Create the html for the callsign tab and insert it into the DOM
   var callsignTabs = $("#msgsTabList");
   tab_id = tab_string(callsign);
+  tab_id_li = tab_li_string(callsign);
   tab_content = tab_content_name(callsign);
   if (active) {
     active_str = "active";
@@ -171,7 +177,7 @@ function create_callsign_tab(callsign, active=false) {
     active_str = "";
   }
 
-  item_html = '<li class="nav-item" role="presentation">';
+  item_html = '<li class="nav-item" role="presentation" callsign="'+callsign+'" id="'+tab_id_li+'">';
   item_html += '<button onClick="$(\'#to_call\').val(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
   item_html += callsign+'&nbsp;&nbsp;';
   item_html += '<span onclick="delete_tab(\''+callsign+'\');">×</span>';
@@ -200,14 +206,16 @@ function create_callsign_tab_content(callsign, active=false) {
 function delete_tab(callsign) {
     // User asked to delete the tab and the conversation
     tab_id = tab_string(callsign, true);
+    tab_id_li = tab_li_string(callsign, true);
     tab_content = tab_content_name(callsign, true);
-    $(tab_id).remove();
+    $(tab_id_li).remove();
     $(tab_content).remove();
     delete callsign_list[callsign];
     delete message_list[callsign];
 
     // Now select the first tab
     first_tab = $("#msgsTabList").children().first().children().first();
+    console.log(first_tab);
     $(first_tab).click();
     save_data();
 }
@@ -382,7 +390,7 @@ function ack_msg(msg) {
        ack_div.html('thumb_up');
    }
 
-   $('.ui.accordion').accordion('refresh');
+   //$('.ui.accordion').accordion('refresh');
    save_data();
 }
 
