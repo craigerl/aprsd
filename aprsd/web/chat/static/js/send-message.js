@@ -165,6 +165,41 @@ function init_messages() {
     }
 }
 
+function scroll_main_content(callsign=false) {
+   var wc = $('#wc-content');
+   var d = $('#msgsTabContent');
+   var scrollHeight = wc.prop('scrollHeight');
+   var clientHeight = wc.prop('clientHeight');
+   //console.log("#wc-content clientHeight " + clientHeight + " scrollHeight " + scrollHeight);
+   //console.log("#msgsTabContent clientHeight "+ d.prop('clientHeight') + " scrollHeight " + d.prop('scrollHeight'));
+
+   if (callsign) {
+       div_id = content_divname(callsign);
+       c_div = $(content_divname(callsign));
+       //console.log("c_div("+div_id+") " + c_div);
+       c_height = c_div.height();
+       c_scroll_height = c_div.prop('scrollHeight');
+       //console.log("callsign height " + c_height + " scrollHeight " + c_scroll_height);
+       if (c_height === undefined) {
+           console.log("c_height is undefined");
+           return false;
+       }
+       if (c_height > clientHeight) {
+           wc.animate({ scrollTop: c_scroll_height }, 500);
+       } else {
+           console.log("scroll to 0 " + callsign)
+           wc.animate({ scrollTop: 0 }, 500);
+       }
+   } else {
+       if (scrollHeight > clientHeight) {
+           wc.animate({ scrollTop: wc.prop('scrollHeight') }, 500);
+       } else {
+           console.log("scroll to 0 " + callsign)
+           wc.animate({ scrollTop: 0 }, 500);
+       }
+   }
+}
+
 function create_callsign_tab(callsign, active=false) {
   //Create the html for the callsign tab and insert it into the DOM
   var callsignTabs = $("#msgsTabList");
@@ -328,6 +363,7 @@ function sent_msg(msg) {
     msg_html = create_message_html(d, t, msg['from'], msg['to'], msg['message'], ack_id, msg, false);
     append_message(msg['to'], msg, msg_html);
     save_data();
+    scroll_main_content(msg['from']);
 }
 
 function from_msg(msg) {
@@ -355,6 +391,7 @@ function from_msg(msg) {
    msg_html = create_message_html(d, t, from, false, msg['message'], false, msg, false);
    append_message(from, msg, msg_html);
    save_data();
+   scroll_main_content(from);
 }
 
 function ack_msg(msg) {
@@ -392,11 +429,11 @@ function ack_msg(msg) {
 
    //$('.ui.accordion').accordion('refresh');
    save_data();
+   scroll_main_content();
 }
 
 function callsign_select(callsign) {
    var tocall = $("#to_call");
    tocall.val(callsign);
-   var d = $('#wc-content');
-   d.animate({ scrollTop: d.prop('scrollHeight') }, 500);
+   scroll_main_content(callsign);
 }
