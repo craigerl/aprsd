@@ -57,7 +57,6 @@ def signal_handler(sig, frame):
         signal.signal(signal.SIGTERM, sys.exit(0))
 
 
-#class SentMessages(objectstore.ObjectStoreMixin):
 class SentMessages:
 
     _instance = None
@@ -141,22 +140,6 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
 
     def process_our_message_packet(self, packet: packets.MessagePacket):
         LOG.info(f"process MessagePacket {repr(packet)}")
-        packet.get("addresse", None)
-        fromcall = packet.from_call
-
-        message = packet.get("message_text", None)
-        msg = {
-            "id": packet.msgNo,
-            "ts": packet.get("timestamp", time.time()),
-            "ack": False,
-            "from": fromcall,
-            "to": packet.to_call,
-            "raw": packet.raw,
-            "message": message,
-            "status": None,
-            "last_update": None,
-            "reply": None,
-        }
         self.socketio.emit(
             "new", packet.__dict__,
             namespace="/sendmsg",
