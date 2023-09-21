@@ -2,6 +2,7 @@ var cleared = false;
 var callsign_list = {};
 var message_list = {};
 var from_msg_list = {};
+var selected_tab_callsign = null;
 const socket = io("/sendmsg");
 
 MSG_TYPE_TX = "tx";
@@ -30,6 +31,8 @@ function init_chat() {
    });
 
    socket.on("sent", function(msg) {
+       console.log("SENT: ");
+       console.log(msg);
        if (cleared === false) {
            console.log("CLEARING #msgsTabsDiv");
            var msgsdiv = $("#msgsTabsDiv");
@@ -42,6 +45,8 @@ function init_chat() {
 
    socket.on("ack", function(msg) {
        msg["type"] = MSG_TYPE_ACK;
+       console.log("ACK MESSAGE")
+       console.log(msg)
        ack_msg(msg);
    });
 
@@ -51,6 +56,8 @@ function init_chat() {
            msgsdiv.html('')
            cleared = true;
        }
+       console.log("NEW MESSAGE")
+       console.log(msg)
        msg["type"] = MSG_TYPE_RX;
        from_msg(msg);
    });
@@ -92,6 +99,11 @@ function tab_li_string(callsign, id=false) {
     return tab_string(callsign,id)+"Li";
 }
 
+function tab_notification_id(callsign, id=false) {
+    // The ID of the span that contains the notification count
+    return tab_string(callsign, id)+"notify";
+}
+
 function tab_content_name(callsign, id=false) {
    return tab_string(callsign, id)+"Content";
 }
@@ -114,7 +126,7 @@ function callsign_tab(callsign) {
 
 function message_ts_id(msg) {
     //Create a 'id' from the message timestamp
-    ts_str = msg["ts"].toString();
+    ts_str = msg["timestamp"].toString();
     ts = ts_str.split(".")[0]*1000;
     id = ts_str.split('.')[0];
     return {'timestamp': ts, 'id': id};
@@ -148,8 +160,8 @@ function init_messages() {
     if (message_list == null) {
        message_list = {};
     }
-    console.log(callsign_list);
-    console.log(message_list);
+    //console.log(callsign_list);
+    //console.log(message_list);
 
     // Now loop through each callsign and add the tabs
     first_callsign = null;
@@ -177,7 +189,8 @@ function init_messages() {
                 ack_id = info['ack_id'];
                 acked = msg['ack'];
             }
-            msg_html = create_message_html(d, t, msg['from'], msg['to'], msg['message'], ack_id, msg, acked);
+            msg_html = create_message_html(d, t, msg['from_call'], msg['to_call'],
+                                           msg['message_text'], ack_id, msg, acked);
             append_message_html(callsign, msg_html, new_callsign);
             new_callsign = false;
         }
@@ -204,20 +217,17 @@ function scroll_main_content(callsign=false) {
        c_scroll_height = c_div.prop('scrollHeight');
        //console.log("callsign height " + c_height + " scrollHeight " + c_scroll_height);
        if (c_height === undefined) {
-           console.log("c_height is undefined");
            return false;
        }
        if (c_height > clientHeight) {
            wc.animate({ scrollTop: c_scroll_height }, 500);
        } else {
-           console.log("scroll to 0 " + callsign)
            wc.animate({ scrollTop: 0 }, 500);
        }
    } else {
        if (scrollHeight > clientHeight) {
            wc.animate({ scrollTop: wc.prop('scrollHeight') }, 500);
        } else {
-           console.log("scroll to 0 " + callsign)
            wc.animate({ scrollTop: 0 }, 500);
        }
    }
@@ -228,6 +238,7 @@ function create_callsign_tab(callsign, active=false) {
   var callsignTabs = $("#msgsTabList");
   tab_id = tab_string(callsign);
   tab_id_li = tab_li_string(callsign);
+  tab_notify_id = tab_notification_id(callsign);
   tab_content = tab_content_name(callsign);
   if (active) {
     active_str = "active";
@@ -236,8 +247,10 @@ function create_callsign_tab(callsign, active=false) {
   }
 
   item_html = '<li class="nav-item" role="presentation" callsign="'+callsign+'" id="'+tab_id_li+'">';
-  item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
+  //item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
+  item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link position-relative '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
   item_html += callsign+'&nbsp;&nbsp;';
+  item_html += '<span id="'+tab_notify_id+'" class="position-absolute top-0 start-80 translate-middle badge bg-danger border border-light rounded-pill visually-hidden">0</span>';
   item_html += '<span onclick="delete_tab(\''+callsign+'\');">×</span>';
   item_html += '</button></li>'
   callsignTabs.append(item_html);
@@ -303,6 +316,15 @@ function append_message(callsign, msg, msg_html) {
   ts_id = message_ts_id(msg);
   id = ts_id['id']
   message_list[callsign][id] = msg;
+  if (selected_tab_callsign != callsign) {
+      // We need to update the notification for the tab
+      tab_notify_id = tab_notification_id(callsign, true);
+      // get the current count of notifications
+      count = parseInt($(tab_notify_id).text());
+      count += 1;
+      $(tab_notify_id).text(count);
+      $(tab_notify_id).removeClass('visually-hidden');
+  }
 
   // Find the right div to place the html
   new_callsign = add_callsign(callsign);
@@ -310,8 +332,8 @@ function append_message(callsign, msg, msg_html) {
   if (new_callsign) {
       //Now click the tab
       callsign_tab_id = callsign_tab(callsign);
-      $(callsign_tab_id).click();
-      callsign_select(callsign);
+      //$(callsign_tab_id).click();
+      //callsign_select(callsign);
   }
 }
 
@@ -338,35 +360,42 @@ function create_message_html(date, time, from, to, message, ack_id, msg, acked=f
       alt = ""
     }
 
-    bubble_class = "bubble" + alt
+    bubble_class = "bubble" + alt + " text-nowrap"
     bubble_name_class = "bubble-name" + alt
     date_str = date + " " + time;
+    sane_date_str = date_str.replace(/ /g,"").replaceAll("/","").replaceAll(":","");
 
     msg_html = '<div class="bubble-row'+alt+'">';
-    msg_html += '<div class="'+ bubble_class + '">';
+    msg_html += '<div class="'+ bubble_class + '" data-bs-toggle="popover" data-bs-content="'+msg['raw']+'">';
     msg_html += '<div class="bubble-text">';
     msg_html += '<p class="'+ bubble_name_class +'">'+from+'&nbsp;&nbsp;';
     msg_html += '<span class="bubble-timestamp">'+date_str+'</span>';
     if (ack_id) {
         if (acked) {
-            msg_html += '<span class="material-symbols-rounded" id="' + ack_id + '">thumb_up</span>';
+            msg_html += '<span class="material-symbols-rounded md-10" id="' + ack_id + '">thumb_up</span>';
         } else {
-            msg_html += '<span class="material-symbols-rounded" id="' + ack_id + '">thumb_down</span>';
+            msg_html += '<span class="material-symbols-rounded md-10" id="' + ack_id + '">thumb_down</span>';
         }
     }
     msg_html += "</p>";
     bubble_msg_class = "bubble-message"
     if (ack_id) {
       bubble_arrow_class = "bubble-arrow alt"
+      popover_placement = "left"
     } else {
       bubble_arrow_class = "bubble-arrow"
+      popover_placement = "right"
     }
 
     msg_html += '<p class="' +bubble_msg_class+ '">'+message+'</p>';
     msg_html += '<div class="'+ bubble_arrow_class + '"></div>';
     msg_html += "</div></div></div>";
 
-    return msg_html
+    popover_html = '\n<script>$(function () {$(\'[data-bs-toggle="popover"]\').popover('
+    popover_html += '{title: "APRS Raw Packet", html: false, trigger: \'hover\', placement: \''+popover_placement+'\'});})';
+    popover_html += '</script>'
+
+    return msg_html+popover_html
 }
 
 function flash_message(msg) {
@@ -383,35 +412,34 @@ function sent_msg(msg) {
     d = info['date'];
     ack_id = info['ack_id'];
 
-    msg_html = create_message_html(d, t, msg['from'], msg['to'], msg['message'], ack_id, msg, false);
-    append_message(msg['to'], msg, msg_html);
+    msg_html = create_message_html(d, t, msg['from_call'], msg['to_call'], msg['message_text'], ack_id, msg, false);
+    append_message(msg['to_call'], msg, msg_html);
     save_data();
-    scroll_main_content(msg['from']);
+    scroll_main_content(msg['from_call']);
 }
 
 function from_msg(msg) {
    if (!from_msg_list.hasOwnProperty(msg.from)) {
-        from_msg_list[msg.from] = new Array();
+        from_msg_list[msg.from_call] = new Array();
    }
 
-   if (msg.id in from_msg_list[msg.from]) {
+   if (msg.id in from_msg_list[msg.from_call]) {
        // We already have this message
        console.log("We already have this message " + msg);
        // Do some flashy thing?
        flash_message(msg);
        return false
    } else {
-       console.log("Adding message " + msg.id + " to " + msg.from);
-       from_msg_list[msg.from][msg.id] = msg
+       console.log("Adding message " + msg.msgNo + " to " + msg.from_call);
+       from_msg_list[msg.from_call][msg.msgNo] = msg
    }
-
    info = time_ack_from_msg(msg);
    t = info['time'];
    d = info['date'];
    ack_id = info['ack_id'];
 
-   from = msg['from']
-   msg_html = create_message_html(d, t, from, false, msg['message'], false, msg, false);
+   from = msg['from_call']
+   msg_html = create_message_html(d, t, from, false, msg['message_text'], false, msg, false);
    append_message(from, msg, msg_html);
    save_data();
    scroll_main_content(from);
@@ -419,14 +447,11 @@ function from_msg(msg) {
 
 function ack_msg(msg) {
    // Acknowledge a message
-   console.log("ack_msg ");
-
    // We have an existing entry
    ts_id = message_ts_id(msg);
-   console.log(ts_id)
    id = ts_id['id'];
    //Mark the message as acked
-   callsign = msg['to'];
+   callsign = msg['to_call'];
    // Ensure the message_list has this callsign
    if (!message_list.hasOwnProperty(callsign)) {
        console.log("No message_list for " + callsign);
@@ -456,8 +481,11 @@ function ack_msg(msg) {
 }
 
 function callsign_select(callsign) {
-   console.log("callsign_select " + callsign);
-   var tocall = $("#to_call");
-   tocall.val(callsign);
-   scroll_main_content(callsign);
+    var tocall = $("#to_call");
+    tocall.val(callsign);
+    scroll_main_content(callsign);
+    selected_tab_callsign = callsign;
+    tab_notify_id = tab_notification_id(callsign, true);
+    $(tab_notify_id).addClass('visually-hidden');
+    $(tab_notify_id).text(0);
 }

@@ -93,3 +93,19 @@ input[type=search]::-webkit-search-cancel-button {
 .bubble-arrow.alt:after {
   transform: rotate(45deg) scaleY(-1);
 }
+
+.popover {
+  max-width: 400px;
+}
+.popover-header {
+  font-size: 8pt;
+  max-width: 400px;
+  padding: 5px;
+  background-color: #ee;
+}
+
+.popover-body {
+  white-space: pre-line;
+  max-width: 400px;
+  padding: 5px;
+}

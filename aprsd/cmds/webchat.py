@@ -23,7 +23,7 @@ from aprsd import cli_helper, client, conf, packets, stats, threads, utils
 from aprsd.log import rich as aprsd_logging
 from aprsd.main import cli
 from aprsd.threads import rx, tx
-from aprsd.utils import objectstore, trace
+from aprsd.utils import trace
 
 
 CONF = cfg.CONF
@@ -57,7 +57,9 @@ def signal_handler(sig, frame):
         signal.signal(signal.SIGTERM, sys.exit(0))
 
 
-class SentMessages(objectstore.ObjectStoreMixin):
+#class SentMessages(objectstore.ObjectStoreMixin):
+class SentMessages:
+
     _instance = None
     lock = threading.Lock()
 
@@ -74,25 +76,7 @@ class SentMessages(objectstore.ObjectStoreMixin):
 
     @wrapt.synchronized(lock)
     def add(self, msg):
-        self.data[msg.msgNo] = self.create(msg.msgNo)
-        self.data[msg.msgNo]["from"] = msg.from_call
-        self.data[msg.msgNo]["to"] = msg.to_call
-        self.data[msg.msgNo]["message"] = msg.message_text.rstrip("\n")
-        self.data[msg.msgNo]["raw"] = msg.message_text.rstrip("\n")
-
-    def create(self, id):
-        return {
-            "id": id,
-            "ts": time.time(),
-            "ack": False,
-            "from": None,
-            "to": None,
-            "raw": None,
-            "message": None,
-            "status": None,
-            "last_update": None,
-            "reply": None,
-        }
+        self.data[msg.msgNo] = msg.__dict__
 
     @wrapt.synchronized(lock)
     def __len__(self):
@@ -174,7 +158,7 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
             "reply": None,
         }
         self.socketio.emit(
-            "new", msg,
+            "new", packet.__dict__,
             namespace="/sendmsg",
         )
 
@@ -317,6 +301,7 @@ class SendMessageNamespace(Namespace):
             to_call=data["to"].upper(),
             message_text=data["message"],
         )
+        pkt.prepare()
         self.msg = pkt
         msgs = SentMessages()
         msgs.add(pkt)
