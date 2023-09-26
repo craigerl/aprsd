@@ -1,6 +1,39 @@
 CHANGES
 =======
 
+v3.2.0
+------
+
+* minor cleanup prior to release
+* Webchat: fix input maxlength
+* WebChat: cleanup some console.logs
+* WebChat: flash a dupe message
+* Webchat: Fix issue accessing msg.id
+* Webchat: Fix chat css on older browsers
+* WebChat: new tab should get focus
+* Bump gevent from 23.9.0.post1 to 23.9.1
+* Webchat: Fix pep8 errors
+* Webchat: Added tab notifications and raw packet
+* WebChat: Prevent sending message without callsign
+* WebChat: fixed content area scrolling
+* Webchat: tweaks to UI for expanding chat
+* Webchat: Fixed bug deleteing first tab
+* Ensure Keepalive doesn't reset client at startup
+* Ensure parse\_delta\_str doesn't puke
+* WebChat: Send GPS Beacon working
+* webchat: got active tab onclick working
+* webchat: set to\_call to value of tab when selected
+* Center the webchat input form
+* Update index.html to use chat.css
+* Deleted webchat mobile pages
+* Added close X on webchat tabs
+* Reworked webchat with new UI
+* Updated the webchat UI to look like iMessage
+* Restore previous conversations in webchat
+* Remove VIM from Dockerfile
+* recreate client during reset()
+* updated github workflows
+* Updated documentation build
 * Removed admin\_web.py
 * Removed some RPC server log noise
 * Fixed admin page packet date
