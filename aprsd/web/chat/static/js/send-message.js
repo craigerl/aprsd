@@ -332,8 +332,8 @@ function append_message(callsign, msg, msg_html) {
   if (new_callsign) {
       //Now click the tab
       callsign_tab_id = callsign_tab(callsign);
-      //$(callsign_tab_id).click();
-      //callsign_select(callsign);
+      $(callsign_tab_id).click();
+      callsign_select(callsign);
   }
 }
 
