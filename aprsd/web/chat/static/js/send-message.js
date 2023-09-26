@@ -353,7 +353,7 @@ function append_message_html(callsign, msg_html, new_callsign) {
 }
 
 function create_message_html(date, time, from, to, message, ack_id, msg, acked=false) {
-    div_id = from + "_" + msg.id;
+    div_id = from + "_" + msg.msgNo;
     if (ack_id) {
       alt = " alt"
     } else {
@@ -400,7 +400,7 @@ function create_message_html(date, time, from, to, message, ack_id, msg, acked=f
 
 function flash_message(msg) {
     // Callback function to bring a hidden box back
-    id = msg.from + "_" + msg.id;
+    id = msg.from + "_" + msg.msgNo;
     var msgid = $('#'+id);
     msgid.effect("pulsate", { times:3 }, 2000);
 }
@@ -423,7 +423,7 @@ function from_msg(msg) {
         from_msg_list[msg.from_call] = new Array();
    }
 
-   if (msg.id in from_msg_list[msg.from_call]) {
+   if (msg.msgNo in from_msg_list[msg.from_call]) {
        // We already have this message
        console.log("We already have this message " + msg);
        // Do some flashy thing?
