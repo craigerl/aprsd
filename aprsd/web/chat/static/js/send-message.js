@@ -45,8 +45,6 @@ function init_chat() {
 
    socket.on("ack", function(msg) {
        msg["type"] = MSG_TYPE_ACK;
-       console.log("ACK MESSAGE")
-       console.log(msg)
        ack_msg(msg);
    });
 
@@ -56,8 +54,6 @@ function init_chat() {
            msgsdiv.html('')
            cleared = true;
        }
-       console.log("NEW MESSAGE")
-       console.log(msg)
        msg["type"] = MSG_TYPE_RX;
        from_msg(msg);
    });
@@ -430,10 +426,6 @@ function from_msg(msg) {
         from_msg_list[msg["from_call"]] = new Array();
    }
 
-   console.log(from_msg_list);
-   console.log("Does " + msg["msgNo"] + " exist in " + msg["from_call"] + "?")
-   console.log(msg["msgNo"] in from_msg_list[msg["from_call"]]);
-   console.log(from_msg_list[msg["from_call"]].includes(msg["msgNo"]));
    if (msg["msgNo"] in from_msg_list[msg["from_call"]]) {
        // We already have this message
        console.log("We already have this message msgNo=" + msg["msgNo"]);
@@ -465,17 +457,13 @@ function ack_msg(msg) {
    callsign = msg['to_call'];
    // Ensure the message_list has this callsign
    if (!message_list.hasOwnProperty(callsign)) {
-       console.log("No message_list for " + callsign);
        return false
    }
    // Ensure the message_list has this id
    if (!message_list[callsign].hasOwnProperty(id)) {
-       console.log("No message_list for " + callsign + " " + id);
        return false
    }
-   console.log("Marking message as acked " + callsign + " " + id)
    if (message_list[callsign][id]['ack'] == true) {
-       console.log("Message already acked");
        return false;
    }
    message_list[callsign][id]['ack'] = true;
