@@ -125,8 +125,6 @@ class APRSDProcessPacketThread(APRSDThread):
 
         # We don't put ack packets destined for us through the
         # plugins.
-        wl = packets.WatchList()
-        wl.update_seen(packet)
         if (
             isinstance(packet, packets.AckPacket)
             and packet.addresse.lower() == our_call
@@ -214,9 +212,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             to_call = packet.addresse
         else:
             to_call = None
-        # msg = packet.get("message_text", None)
-        # packet.get("msgNo", "0")
-        # packet.get("response", None)
+
         pm = plugin.PluginManager()
         try:
             results = pm.run(packet)

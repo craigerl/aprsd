@@ -57,5 +57,5 @@ VOLUME ["/config"]
 # Set the user to run the application
 USER appuser
 
-HEALTHCHECK --interval=5m --timeout=12s --start-period=30s \
-    CMD aprsd healthcheck --config /config/aprsd.conf
+HEALTHCHECK --interval=1m --timeout=12s --start-period=30s \
+    CMD aprsd healthcheck --config /config/aprsd.conf --loglevel DEBUG
