@@ -124,6 +124,16 @@ function callsign_tab(callsign) {
     return "#"+tab_string(callsign);
 }
 
+function bubble_msg_id(msg, id=false) {
+    // The id of the div that contains a specific message
+    name = msg["from_call"] + "_" + msg["msgNo"];
+    if (id) {
+        return "#"+name;
+    } else {
+        return name;
+    }
+}
+
 function message_ts_id(msg) {
     //Create a 'id' from the message timestamp
     ts_str = msg["timestamp"].toString();
@@ -206,8 +216,6 @@ function scroll_main_content(callsign=false) {
    var d = $('#msgsTabContent');
    var scrollHeight = wc.prop('scrollHeight');
    var clientHeight = wc.prop('clientHeight');
-   //console.log("#wc-content clientHeight " + clientHeight + " scrollHeight " + scrollHeight);
-   //console.log("#msgsTabContent clientHeight "+ d.prop('clientHeight') + " scrollHeight " + d.prop('scrollHeight'));
 
    if (callsign) {
        div_id = content_divname(callsign);
@@ -362,11 +370,12 @@ function create_message_html(date, time, from, to, message, ack_id, msg, acked=f
 
     bubble_class = "bubble" + alt + " text-nowrap"
     bubble_name_class = "bubble-name" + alt
+    bubble_msgid = bubble_msg_id(msg);
     date_str = date + " " + time;
     sane_date_str = date_str.replace(/ /g,"").replaceAll("/","").replaceAll(":","");
 
     msg_html = '<div class="bubble-row'+alt+'">';
-    msg_html += '<div class="'+ bubble_class + '" data-bs-toggle="popover" data-bs-content="'+msg['raw']+'">';
+    msg_html += '<div id="'+bubble_msgid+'" class="'+ bubble_class + '" data-bs-toggle="popover" data-bs-content="'+msg['raw']+'">';
     msg_html += '<div class="bubble-text">';
     msg_html += '<p class="'+ bubble_name_class +'">'+from+'&nbsp;&nbsp;';
     msg_html += '<span class="bubble-timestamp">'+date_str+'</span>';
@@ -400,11 +409,9 @@ function create_message_html(date, time, from, to, message, ack_id, msg, acked=f
 
 function flash_message(msg) {
     // Callback function to bring a hidden box back
-    id = msg.from + "_" + msg.msgNo;
-    var msgid = $('#'+id);
-    msgid.effect("pulsate", { times:3 }, 2000);
+    msg_id = bubble_msg_id(msg, true);
+    $(msg_id).fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100);
 }
-
 
 function sent_msg(msg) {
     info = time_ack_from_msg(msg);
@@ -419,19 +426,23 @@ function sent_msg(msg) {
 }
 
 function from_msg(msg) {
-   if (!from_msg_list.hasOwnProperty(msg.from)) {
-        from_msg_list[msg.from_call] = new Array();
+   if (!from_msg_list.hasOwnProperty(msg["from_call"])) {
+        from_msg_list[msg["from_call"]] = new Array();
    }
 
-   if (msg.msgNo in from_msg_list[msg.from_call]) {
+   console.log(from_msg_list);
+   console.log("Does " + msg["msgNo"] + " exist in " + msg["from_call"] + "?")
+   console.log(msg["msgNo"] in from_msg_list[msg["from_call"]]);
+   console.log(from_msg_list[msg["from_call"]].includes(msg["msgNo"]));
+   if (msg["msgNo"] in from_msg_list[msg["from_call"]]) {
        // We already have this message
-       console.log("We already have this message " + msg);
+       console.log("We already have this message msgNo=" + msg["msgNo"]);
        // Do some flashy thing?
        flash_message(msg);
        return false
    } else {
-       console.log("Adding message " + msg.msgNo + " to " + msg.from_call);
-       from_msg_list[msg.from_call][msg.msgNo] = msg
+       console.log("Adding message " + msg["msgNo"] + " to " + msg["from_call"]);
+       from_msg_list[msg["from_call"]][msg["msgNo"]] = msg
    }
    info = time_ack_from_msg(msg);
    t = info['time'];
