@@ -78,6 +78,8 @@ class APRSDPluginRXThread(APRSDRXThread):
             # we send the 3 acks for the packet.
             packets.PacketList().rx(packet)
             self.packet_queue.put(packet)
+        else:
+            LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
 
 
 class APRSDProcessPacketThread(APRSDThread):
