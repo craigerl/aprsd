@@ -70,8 +70,14 @@ class APRSDPluginRXThread(APRSDRXThread):
         packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)
         packet.log(header="RX")
-        packets.PacketList().rx(packet)
-        self.packet_queue.put(packet)
+        tracked = packets.PacketTrack().get(packet.msgNo)
+        if not tracked:
+            # If we are in the process of already ack'ing
+            # a packet, we should drop the packet
+            # because it's a dupe within the time that
+            # we send the 3 acks for the packet.
+            packets.PacketList().rx(packet)
+            self.packet_queue.put(packet)
 
 
 class APRSDProcessPacketThread(APRSDThread):

@@ -72,18 +72,17 @@ class PacketTrack(objectstore.ObjectStoreMixin):
 
     @wrapt.synchronized(lock)
     def add(self, packet):
-        key = int(packet.msgNo)
+        key = packet.msgNo
         self.data[key] = packet
         self.total_tracked += 1
 
     @wrapt.synchronized(lock)
-    def get(self, id):
-        if id in self.data:
-            return self.data[id]
+    def get(self, key):
+        if key in self.data:
+            return self.data[key]
 
     @wrapt.synchronized(lock)
-    def remove(self, id):
-        key = int(id)
+    def remove(self, key):
         if key in self.data.keys():
             del self.data[key]
 

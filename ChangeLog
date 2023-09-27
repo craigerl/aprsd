@@ -4,6 +4,7 @@ CHANGES
 v3.2.0
 ------
 
+* Update Changelog for 3.2.0
 * minor cleanup prior to release
 * Webchat: fix input maxlength
 * WebChat: cleanup some console.logs
