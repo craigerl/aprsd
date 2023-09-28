@@ -1,4 +1,5 @@
-from collections import MutableMapping, OrderedDict
+from collections import OrderedDict
+from collections.abc import MutableMapping
 import logging
 import threading
 
