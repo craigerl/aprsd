@@ -85,7 +85,7 @@ class APRSDPluginRXThread(APRSDRXThread):
             pkt_list.rx(packet)
             self.packet_queue.put(packet)
         elif packet.timestamp - found.timestamp < 60:
-                LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
+            LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
         else:
             LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked but older than 60 seconds. processing.")
             pkt_list.rx(packet)

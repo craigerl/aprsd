@@ -33,6 +33,7 @@ def _init_timestamp():
     """Build a unix style timestamp integer"""
     return int(round(time.time()))
 
+
 def _init_msgNo():    # noqa: N802
     """For some reason __post__init doesn't get called.
 

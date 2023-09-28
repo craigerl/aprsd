@@ -60,7 +60,7 @@ class PacketList(MutableMapping):
         return self.get(key)
 
     def __getitem__(self, key):
-        #self.d.move_to_end(key)
+        # self.d.move_to_end(key)
         return self.d[key]
 
     def __setitem__(self, key, value):
