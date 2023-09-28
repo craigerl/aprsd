@@ -7,7 +7,7 @@ from aprslib.exceptions import LoginError
 from oslo_config import cfg
 
 from aprsd import exception
-from aprsd.clients import aprsis, kiss
+from aprsd.clients import aprsis, fake, kiss
 from aprsd.packets import core, packet_list
 from aprsd.utils import trace
 
@@ -17,6 +17,7 @@ LOG = logging.getLogger("APRSD")
 TRANSPORT_APRSIS = "aprsis"
 TRANSPORT_TCPKISS = "tcpkiss"
 TRANSPORT_SERIALKISS = "serialkiss"
+TRANSPORT_FAKE = "fake"
 
 # Main must create this from the ClientFactory
 # object such that it's populated with the
@@ -248,6 +249,35 @@ class KISSClient(Client, metaclass=trace.TraceWrapperMetaclass):
         return self._client
 
 
+class APRSDFakeClient(Client, metaclass=trace.TraceWrapperMetaclass):
+
+    @staticmethod
+    def is_enabled():
+        if CONF.fake_client.enabled:
+            return True
+        return False
+
+    @staticmethod
+    def is_configured():
+        return APRSDFakeClient.is_enabled()
+
+    def is_alive(self):
+        return True
+
+    def setup_connection(self):
+        return fake.APRSDFakeClient()
+
+    @staticmethod
+    def transport():
+        return TRANSPORT_FAKE
+
+    def decode_packet(self, *args, **kwargs):
+        LOG.debug(f"kwargs {kwargs}")
+        pkt = kwargs["packet"]
+        LOG.debug(f"Got an APRS Fake Packet '{pkt}'")
+        return pkt
+
+
 class ClientFactory:
     _instance = None
 
@@ -270,8 +300,11 @@ class ClientFactory:
                 key = TRANSPORT_APRSIS
             elif KISSClient.is_enabled():
                 key = KISSClient.transport()
+            elif APRSDFakeClient.is_enabled():
+                key = TRANSPORT_FAKE
 
         builder = self._builders.get(key)
+        LOG.debug(f"Creating client {key}")
         if not builder:
             raise ValueError(key)
         return builder()
@@ -312,3 +345,4 @@ class ClientFactory:
         factory.register(TRANSPORT_APRSIS, APRSISClient)
         factory.register(TRANSPORT_TCPKISS, KISSClient)
         factory.register(TRANSPORT_SERIALKISS, KISSClient)
+        factory.register(TRANSPORT_FAKE, APRSDFakeClient)

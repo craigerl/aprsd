@@ -70,16 +70,26 @@ class APRSDPluginRXThread(APRSDRXThread):
         packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)
         packet.log(header="RX")
-        tracked = packets.PacketTrack().get(packet.msgNo)
-        if not tracked:
+        found = False
+        pkt_list = packets.PacketList()
+        try:
+            found = pkt_list.find(packet)
+        except KeyError:
+            found = False
+
+        if not found:
             # If we are in the process of already ack'ing
             # a packet, we should drop the packet
             # because it's a dupe within the time that
             # we send the 3 acks for the packet.
-            packets.PacketList().rx(packet)
+            pkt_list.rx(packet)
             self.packet_queue.put(packet)
+        elif packet.timestamp - found.timestamp < 60:
+                LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
         else:
-            LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
+            LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked but older than 60 seconds. processing.")
+            pkt_list.rx(packet)
+            self.packet_queue.put(packet)
 
 
 class APRSDProcessPacketThread(APRSDThread):

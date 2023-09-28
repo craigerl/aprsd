@@ -19,6 +19,11 @@ kiss_tcp_group = cfg.OptGroup(
     name="kiss_tcp",
     title="KISS TCP/IP Device connection",
 )
+
+fake_client_group = cfg.OptGroup(
+    name="fake_client",
+    title="Fake Client settings",
+)
 aprs_opts = [
     cfg.BoolOpt(
         "enabled",
@@ -84,6 +89,14 @@ kiss_tcp_opts = [
     ),
 ]
 
+fake_client_opts = [
+    cfg.BoolOpt(
+        "enabled",
+        default=False,
+        help="Enable fake client connection.",
+    ),
+]
+
 
 def register_opts(config):
     config.register_group(aprs_group)
@@ -93,10 +106,14 @@ def register_opts(config):
     config.register_opts(kiss_serial_opts, group=kiss_serial_group)
     config.register_opts(kiss_tcp_opts, group=kiss_tcp_group)
 
+    config.register_group(fake_client_group)
+    config.register_opts(fake_client_opts, group=fake_client_group)
+
 
 def list_opts():
     return {
         aprs_group.name: aprs_opts,
         kiss_serial_group.name: kiss_serial_opts,
         kiss_tcp_group.name: kiss_tcp_opts,
+        fake_client_group.name: fake_client_opts,
     }

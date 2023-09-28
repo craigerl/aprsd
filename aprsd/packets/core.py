@@ -29,10 +29,9 @@ PACKET_TYPE_THIRDPARTY = "thirdparty"
 PACKET_TYPE_UNCOMPRESSED = "uncompressed"
 
 
-def _int_timestamp():
+def _init_timestamp():
     """Build a unix style timestamp integer"""
     return int(round(time.time()))
-
 
 def _init_msgNo():    # noqa: N802
     """For some reason __post__init doesn't get called.
@@ -45,7 +44,7 @@ def _init_msgNo():    # noqa: N802
     return c.value
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Packet(metaclass=abc.ABCMeta):
     from_call: str
     to_call: str
@@ -53,11 +52,11 @@ class Packet(metaclass=abc.ABCMeta):
     format: str = None
     msgNo: str = field(default_factory=_init_msgNo)   # noqa: N815
     packet_type: str = None
-    timestamp: float = field(default_factory=_int_timestamp)
+    timestamp: float = field(default_factory=_init_timestamp)
     # Holds the raw text string to be sent over the wire
     # or holds the raw string from input packet
     raw: str = None
-    raw_dict: dict = field(repr=False, default_factory=lambda: {})
+    raw_dict: dict = field(repr=False, default_factory=lambda: {}, compare=False)
     # Built by calling prepare().  raw needs this built first.
     payload: str = None
 
@@ -89,8 +88,12 @@ class Packet(metaclass=abc.ABCMeta):
         else:
             return default
 
+    def key(self):
+        """Build a key for finding this packet in a dict."""
+        return f"{self.from_call}:{self.addresse}:{self.msgNo}"
+
     def update_timestamp(self):
-        self.timestamp = _int_timestamp()
+        self.timestamp = _init_timestamp()
 
     def prepare(self):
         """Do stuff here that is needed prior to sending over the air."""
@@ -258,16 +261,16 @@ class Packet(metaclass=abc.ABCMeta):
         return repr
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class PathPacket(Packet):
-    path: List[str] = field(default_factory=list)
+    path: List[str] = field(default_factory=list, compare=False)
     via: str = None
 
     def _build_payload(self):
         raise NotImplementedError
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class AckPacket(PathPacket):
     response: str = None
 
@@ -279,7 +282,7 @@ class AckPacket(PathPacket):
         self.payload = f":{self.to_call.ljust(9)}:ack{self.msgNo}"
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class RejectPacket(PathPacket):
     response: str = None
 
@@ -291,7 +294,7 @@ class RejectPacket(PathPacket):
         self.payload = f":{self.to_call.ljust(9)} :rej{self.msgNo}"
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class MessagePacket(PathPacket):
     message_text: str = None
 
@@ -313,7 +316,7 @@ class MessagePacket(PathPacket):
         )
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class StatusPacket(PathPacket):
     status: str = None
     messagecapable: bool = False
@@ -323,7 +326,7 @@ class StatusPacket(PathPacket):
         raise NotImplementedError
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class GPSPacket(PathPacket):
     latitude: float = 0.00
     longitude: float = 0.00
