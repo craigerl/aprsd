@@ -34,7 +34,6 @@ function init_chat() {
        console.log("SENT: ");
        console.log(msg);
        if (cleared === false) {
-           console.log("CLEARING #msgsTabsDiv");
            var msgsdiv = $("#msgsTabsDiv");
            msgsdiv.html('');
            cleared = true;
