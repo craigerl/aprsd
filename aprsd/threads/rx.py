@@ -67,29 +67,55 @@ class APRSDPluginRXThread(APRSDRXThread):
     """
 
     def process_packet(self, *args, **kwargs):
+        """This handles the processing of an inbound packet.
+
+        When a packet is received by the connected client object,
+        it sends the raw packet into this function.  This function then
+        decodes the packet via the client, and then processes the packet.
+        Ack Packets are sent to the PluginProcessPacketThread for processing.
+        All other packets have to be checked as a dupe, and then only after
+        we haven't seen this packet before, do we send it to the
+        PluginProcessPacketThread for processing.
+        """
         packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)
         packet.log(header="RX")
-        found = False
-        pkt_list = packets.PacketList()
-        try:
-            found = pkt_list.find(packet)
-        except KeyError:
-            found = False
 
-        if not found:
-            # If we are in the process of already ack'ing
-            # a packet, we should drop the packet
-            # because it's a dupe within the time that
-            # we send the 3 acks for the packet.
-            pkt_list.rx(packet)
+        if isinstance(packet, packets.AckPacket):
+            # We don't need to drop AckPackets, those should be
+            # processed.
             self.packet_queue.put(packet)
-        elif packet.timestamp - found.timestamp < 60:
-            LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
         else:
-            LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked but older than 60 seconds. processing.")
-            pkt_list.rx(packet)
-            self.packet_queue.put(packet)
+            # Make sure we aren't re-processing the same packet
+            # For RF based APRS Clients we can get duplicate packets
+            # So we need to track them and not process the dupes.
+            found = False
+            pkt_list = packets.PacketList()
+            try:
+                # Find the packet in the list of already seen packets
+                # Based on the packet.key()
+                found = pkt_list.find(packet)
+            except KeyError:
+                found = False
+
+            if not found:
+                # If we are in the process of already ack'ing
+                # a packet, we should drop the packet
+                # because it's a dupe within the time that
+                # we send the 3 acks for the packet.
+                pkt_list.rx(packet)
+                self.packet_queue.put(packet)
+            elif packet.timestamp - found.timestamp < 60:
+                # If the packet came in within 60 seconds of the
+                # Last time seeing the packet, then we drop it as a dupe.
+                LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
+            else:
+                LOG.warning(
+                    f"Packet {packet.from_call}:{packet.msgNo} already tracked "
+                    "but older than 60 seconds. processing.",
+                )
+                pkt_list.rx(packet)
+                self.packet_queue.put(packet)
 
 
 class APRSDProcessPacketThread(APRSDThread):
