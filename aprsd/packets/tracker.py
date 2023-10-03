@@ -63,29 +63,21 @@ class PacketTrack(objectstore.ObjectStoreMixin):
         return len(self.data)
 
     @wrapt.synchronized(lock)
-    def __str__(self):
-        result = "{"
-        for key in self.data.keys():
-            result += f"{key}: {str(self.data[key])}, "
-        result += "}"
-        return result
-
-    @wrapt.synchronized(lock)
     def add(self, packet):
-        key = int(packet.msgNo)
+        key = packet.msgNo
         self.data[key] = packet
         self.total_tracked += 1
 
     @wrapt.synchronized(lock)
-    def get(self, id):
-        if id in self.data:
-            return self.data[id]
+    def get(self, key):
+        return self.data.get(key, None)
 
     @wrapt.synchronized(lock)
-    def remove(self, id):
-        key = int(id)
-        if key in self.data.keys():
+    def remove(self, key):
+        try:
             del self.data[key]
+        except KeyError:
+            pass
 
     def restart(self):
         """Walk the list of messages and restart them if any."""

@@ -131,9 +131,9 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
     def process_ack_packet(self, packet: packets.AckPacket):
         super().process_ack_packet(packet)
         ack_num = packet.get("msgNo")
-        SentMessages().ack(int(ack_num))
+        SentMessages().ack(ack_num)
         self.socketio.emit(
-            "ack", SentMessages().get(int(ack_num)),
+            "ack", SentMessages().get(ack_num),
             namespace="/sendmsg",
         )
         self.got_ack = True

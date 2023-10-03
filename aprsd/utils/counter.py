@@ -37,7 +37,7 @@ class PacketCounter:
     @property
     @wrapt.synchronized(lock)
     def value(self):
-        return self.val.value
+        return str(self.val.value)
 
     @wrapt.synchronized(lock)
     def __repr__(self):
