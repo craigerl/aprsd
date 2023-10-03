@@ -47,26 +47,28 @@ def _init_msgNo():    # noqa: N802
 
 @dataclass(unsafe_hash=True)
 class Packet(metaclass=abc.ABCMeta):
-    from_call: str
-    to_call: str
-    addresse: str = None
-    format: str = None
+    from_call: str = field(default=None)
+    to_call: str = field(default=None)
+    addresse: str = field(default=None)
+    format: str = field(default=None)
     msgNo: str = field(default_factory=_init_msgNo)   # noqa: N815
-    packet_type: str = None
-    timestamp: float = field(default_factory=_init_timestamp)
+    packet_type: str = field(default=None)
+    timestamp: float = field(default_factory=_init_timestamp, compare=False, hash=False)
     # Holds the raw text string to be sent over the wire
     # or holds the raw string from input packet
-    raw: str = None
-    raw_dict: dict = field(repr=False, default_factory=lambda: {}, compare=False)
+    raw: str = field(default=None, compare=False, hash=False)
+    raw_dict: dict = field(repr=False, default_factory=lambda: {}, compare=False, hash=False)
     # Built by calling prepare().  raw needs this built first.
-    payload: str = None
+    payload: str = field(default=None)
 
     # Fields related to sending packets out
-    send_count: int = field(repr=False, default=0)
-    retry_count: int = field(repr=False, default=3)
-    last_send_time: datetime.timedelta = field(repr=False, default=None)
+    send_count: int = field(repr=False, default=0, compare=False, hash=False)
+    retry_count: int = field(repr=False, default=3, compare=False, hash=False)
+    last_send_time: datetime.timedelta = field(repr=False, default=None, compare=False, hash=False)
     # Do we allow this packet to be saved to send later?
-    allow_delay: bool = field(repr=False, default=True)
+    allow_delay: bool = field(repr=False, default=True, compare=False, hash=False)
+    path: List[str] = field(default_factory=list, compare=False, hash=False)
+    via: str = field(default=None, compare=False, hash=False)
 
     def __post__init__(self):
         LOG.warning(f"POST INIT {self}")
@@ -89,6 +91,7 @@ class Packet(metaclass=abc.ABCMeta):
         else:
             return default
 
+    @property
     def key(self):
         """Build a key for finding this packet in a dict."""
         return f"{self.from_call}:{self.addresse}:{self.msgNo}"
@@ -263,17 +266,8 @@ class Packet(metaclass=abc.ABCMeta):
 
 
 @dataclass(unsafe_hash=True)
-class PathPacket(Packet):
-    path: List[str] = field(default_factory=list, compare=False)
-    via: str = None
-
-    def _build_payload(self):
-        raise NotImplementedError
-
-
-@dataclass(unsafe_hash=True)
-class AckPacket(PathPacket):
-    response: str = None
+class AckPacket(Packet):
+    response: str = field(default=None)
 
     def __post__init__(self):
         if self.response:
@@ -284,8 +278,8 @@ class AckPacket(PathPacket):
 
 
 @dataclass(unsafe_hash=True)
-class RejectPacket(PathPacket):
-    response: str = None
+class RejectPacket(Packet):
+    response: str = field(default=None)
 
     def __post__init__(self):
         if self.response:
@@ -296,8 +290,8 @@ class RejectPacket(PathPacket):
 
 
 @dataclass(unsafe_hash=True)
-class MessagePacket(PathPacket):
-    message_text: str = None
+class MessagePacket(Packet):
+    message_text: str = field(default=None)
 
     def _filter_for_send(self) -> str:
         """Filter and format message string for FCC."""
@@ -318,23 +312,23 @@ class MessagePacket(PathPacket):
 
 
 @dataclass(unsafe_hash=True)
-class StatusPacket(PathPacket):
-    status: str = None
-    messagecapable: bool = False
-    comment: str = None
+class StatusPacket(Packet):
+    status: str = field(default=None)
+    messagecapable: bool = field(default=False)
+    comment: str = field(default=None)
 
     def _build_payload(self):
         raise NotImplementedError
 
 
 @dataclass(unsafe_hash=True)
-class GPSPacket(PathPacket):
-    latitude: float = 0.00
-    longitude: float = 0.00
-    altitude: float = 0.00
-    rng: float = 0.00
-    posambiguity: int = 0
-    comment: str = None
+class GPSPacket(Packet):
+    latitude: float = field(default=0.00)
+    longitude: float = field(default=0.00)
+    altitude: float = field(default=0.00)
+    rng: float = field(default=0.00)
+    posambiguity: int = field(default=0)
+    comment: str = field(default=None)
     symbol: str = field(default="l")
     symbol_table: str = field(default="/")
 

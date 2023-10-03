@@ -93,7 +93,7 @@ class APRSDPluginRXThread(APRSDRXThread):
             pkt_list = packets.PacketList()
             try:
                 # Find the packet in the list of already seen packets
-                # Based on the packet.key()
+                # Based on the packet.key
                 found = pkt_list.find(packet)
             except KeyError:
                 found = False

@@ -48,8 +48,7 @@ class PacketList(MutableMapping):
         self._add(packet)
 
     def _add(self, packet):
-        key = packet.key()
-        self[key] = packet
+        self[packet.key] = packet
 
     @property
     def maxlen(self):
@@ -57,8 +56,7 @@ class PacketList(MutableMapping):
 
     @wrapt.synchronized(lock)
     def find(self, packet):
-        key = packet.key()
-        return self.get(key)
+        return self.get(packet.key)
 
     def __getitem__(self, key):
         # self.d.move_to_end(key)
