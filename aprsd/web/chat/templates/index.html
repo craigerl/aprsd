@@ -90,9 +90,18 @@
                 </div>
                 <div class="row">
                     <form class="row gx-1 gy-1 justify-content-center align-items-center" id="sendform" name="sendmsg" action="">
-                        <div class="col-sm-3">
+                        <div class="col-sm-2" style="width:150px;">
                             <label for="to_call" class="visually-hidden">Callsign</label>
                             <input type="search" class="form-control mb-2 mr-sm-2" name="to_call" id="to_call" placeholder="To Callsign" size="11" maxlength="9">
+                        </div>
+                        <div class="col-auto">
+                            <label for="pkt_path" class="visually-hidden">PATH</label>
+                            <select class="form-control mb-2 mr-sm-2" name="pkt_path" id="pkt_path" style="width:auto;">
+                                <option value="">Default Path</option>
+                                <option value="WIDE1-1,WIDE2-2" selected>WIDE1-1,WIDE2-2</option>
+                                <option value="WIDE1-1">WIDE1-1</option>
+                                <option value="ARISS">ARISS</option>
+                            </select>
                         </div>
                         <div class="col-sm-3">
                             <label for="message" class="visually-hidden">Message</label>

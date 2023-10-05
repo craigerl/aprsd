@@ -14,6 +14,8 @@ LOG = logging.getLogger("APRSD")
 
 
 class KISS3Client:
+    path = []
+
     def __init__(self):
         self.setup()
 
@@ -34,6 +36,7 @@ class KISS3Client:
                 speed=CONF.kiss_serial.baudrate,
                 strip_df_start=True,
             )
+            self.path = CONF.kiss_serial.path
         elif CONF.kiss_tcp.enabled:
             LOG.debug(
                 "KISS({}) TCP Connection to {}:{}".format(
@@ -47,6 +50,7 @@ class KISS3Client:
                 port=CONF.kiss_tcp.port,
                 strip_df_start=True,
             )
+            self.path = CONF.kiss_serial.path
 
         LOG.debug("Starting KISS interface connection")
         self.kiss.start()
@@ -87,10 +91,12 @@ class KISS3Client:
         """Send an APRS Message object."""
 
         payload = None
-        path = ["WIDE1-1", "WIDE2-1"]
+        self.path
         if isinstance(packet, core.Packet):
             packet.prepare()
             payload = packet.payload.encode("US-ASCII")
+            if packet.path:
+                packet.path
         else:
             msg_payload = f"{packet.raw}{{{str(packet.msgNo)}"
             payload = (
@@ -102,12 +108,12 @@ class KISS3Client:
 
         LOG.debug(
             f"KISS Send '{payload}' TO '{packet.to_call}' From "
-            f"'{packet.from_call}' with PATH '{path}'",
+            f"'{packet.from_call}' with PATH '{self.path}'",
         )
         frame = Frame.ui(
             destination="APZ100",
             source=packet.from_call,
-            path=path,
+            path=self.path,
             info=payload,
         )
         self.kiss.write(frame)

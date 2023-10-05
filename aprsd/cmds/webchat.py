@@ -157,25 +157,26 @@ def _get_transport(stats):
             "APRS-IS Server: <a href='http://status.aprs2.net' >"
             "{}</a>".format(stats["stats"]["aprs-is"]["server"])
         )
-    else:
-        # We might be connected to a KISS socket?
-        if client.KISSClient.is_enabled():
-            transport = client.KISSClient.transport()
-            if transport == client.TRANSPORT_TCPKISS:
-                aprs_connection = (
-                    "TCPKISS://{}:{}".format(
-                        CONF.kiss_tcp.host,
-                        CONF.kiss_tcp.port,
-                    )
+    elif client.KISSClient.is_enabled():
+        transport = client.KISSClient.transport()
+        if transport == client.TRANSPORT_TCPKISS:
+            aprs_connection = (
+                "TCPKISS://{}:{}".format(
+                    CONF.kiss_tcp.host,
+                    CONF.kiss_tcp.port,
                 )
-            elif transport == client.TRANSPORT_SERIALKISS:
-                # for pep8 violation
-                aprs_connection = (
-                    "SerialKISS://{}@{} baud".format(
-                        CONF.kiss_serial.device,
-                        CONF.kiss_serial.baudrate,
-                    ),
-                )
+            )
+        elif transport == client.TRANSPORT_SERIALKISS:
+            # for pep8 violation
+            aprs_connection = (
+                "SerialKISS://{}@{} baud".format(
+                    CONF.kiss_serial.device,
+                    CONF.kiss_serial.baudrate,
+                ),
+            )
+    elif CONF.fake_client.enabled:
+        transport = client.TRANSPORT_FAKE
+        aprs_connection = "Fake Client"
 
     return transport, aprs_connection
 
@@ -279,10 +280,18 @@ class SendMessageNamespace(Namespace):
         LOG.debug(f"WS: on_send {data}")
         self.request = data
         data["from"] = CONF.callsign
+        path = data.get("path", None)
+        if "," in path:
+            path_opts = path.split(",")
+            path = [x.strip() for x in path_opts]
+        else:
+            path = [path]
+
         pkt = packets.MessagePacket(
             from_call=data["from"],
             to_call=data["to"].upper(),
             message_text=data["message"],
+            path=path,
         )
         pkt.prepare()
         self.msg = pkt

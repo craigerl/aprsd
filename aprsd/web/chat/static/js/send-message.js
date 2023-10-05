@@ -61,6 +61,7 @@ function init_chat() {
        event.preventDefault();
        to_call = $('#to_call').val();
        message = $('#message').val();
+       path = $('#pkt_path option:selected').val();
        if (to_call == "") {
            raise_error("You must enter a callsign to send a message")
            return false;
@@ -69,7 +70,8 @@ function init_chat() {
                raise_error("You must enter a message to send")
                return false;
            }
-           msg = {'to': to_call, 'message': message, }
+           msg = {'to': to_call, 'message': message, 'path': path};
+           console.log(msg);
            socket.emit("send", msg);
            $('#message').val('');
        }
@@ -294,7 +296,7 @@ function delete_tab(callsign) {
     save_data();
 }
 
-function add_callsign(callsign) {
+function add_callsign(callsign, msg) {
    /* Ensure a callsign exists in the left hand nav */
   if (callsign in callsign_list) {
       return false
@@ -306,8 +308,17 @@ function add_callsign(callsign) {
       active = false;
   }
   create_callsign_tab(callsign, active);
-  callsign_list[callsign] = true;
+  callsign_list[callsign] = '';
   return true;
+}
+
+function update_callsign_path(callsign, path) {
+  //Get the selected path to save for this callsign
+  path = msg['path']
+  console.log("Path is " + path);
+  $('#pkt_path').val(path);
+  callsign_list[callsign] = path;
+
 }
 
 function append_message(callsign, msg, msg_html) {
@@ -330,7 +341,9 @@ function append_message(callsign, msg, msg_html) {
   }
 
   // Find the right div to place the html
-  new_callsign = add_callsign(callsign);
+
+  new_callsign = add_callsign(callsign, msg);
+  update_callsign_path(callsign, msg['path']);
   append_message_html(callsign, msg_html, new_callsign);
   if (new_callsign) {
       //Now click the tab
@@ -486,4 +499,6 @@ function callsign_select(callsign) {
     tab_notify_id = tab_notification_id(callsign, true);
     $(tab_notify_id).addClass('visually-hidden');
     $(tab_notify_id).text(0);
+    // Now update the path
+    $('#pkt_path').val(callsign_list[callsign]);
 }

@@ -11,10 +11,12 @@ aprs_group = cfg.OptGroup(
     name="aprs_network",
     title="APRS-IS Network settings",
 )
+
 kiss_serial_group = cfg.OptGroup(
     name="kiss_serial",
     title="KISS Serial device connection",
 )
+
 kiss_tcp_group = cfg.OptGroup(
     name="kiss_tcp",
     title="KISS TCP/IP Device connection",
@@ -70,6 +72,11 @@ kiss_serial_opts = [
         default=9600,
         help="The Serial device baud rate for communication",
     ),
+    cfg.MultiStrOpt(
+        "path",
+        default=["WIDE1-1", "WIDE2-1"],
+        help="The APRS path to use for wide area coverage.",
+    ),
 ]
 
 kiss_tcp_opts = [
@@ -86,6 +93,11 @@ kiss_tcp_opts = [
         "port",
         default=8001,
         help="The KISS TCP/IP network port",
+    ),
+    cfg.MultiStrOpt(
+        "path",
+        default=["WIDE1-1", "WIDE2-1"],
+        help="The APRS path to use for wide area coverage.",
     ),
 ]
 
