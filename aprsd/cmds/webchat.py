@@ -281,7 +281,9 @@ class SendMessageNamespace(Namespace):
         self.request = data
         data["from"] = CONF.callsign
         path = data.get("path", None)
-        if "," in path:
+        if not path:
+            path = []
+        elif "," in path:
             path_opts = path.split(",")
             path = [x.strip() for x in path_opts]
         else:

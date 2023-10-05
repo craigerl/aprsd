@@ -65,6 +65,11 @@ aprsd_opts = [
              "2 means 1 packet every 2 seconds allowed."
              "5 means 1 pack packet every 5 seconds allowed",
     ),
+    cfg.IntOpt(
+        "packet_dupe_timeout",
+        default=60,
+        help="The number of seconds before a packet is not considered a duplicate.",
+    ),
 ]
 
 watch_list_opts = [

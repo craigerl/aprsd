@@ -105,7 +105,7 @@ class APRSDPluginRXThread(APRSDRXThread):
                 # we send the 3 acks for the packet.
                 pkt_list.rx(packet)
                 self.packet_queue.put(packet)
-            elif packet.timestamp - found.timestamp < 60:
+            elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
                 # If the packet came in within 60 seconds of the
                 # Last time seeing the packet, then we drop it as a dupe.
                 LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
