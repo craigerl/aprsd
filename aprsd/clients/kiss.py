@@ -91,12 +91,12 @@ class KISS3Client:
         """Send an APRS Message object."""
 
         payload = None
-        self.path
+        path = self.path
         if isinstance(packet, core.Packet):
             packet.prepare()
             payload = packet.payload.encode("US-ASCII")
             if packet.path:
-                packet.path
+                path = packet.path
         else:
             msg_payload = f"{packet.raw}{{{str(packet.msgNo)}"
             payload = (
@@ -108,12 +108,12 @@ class KISS3Client:
 
         LOG.debug(
             f"KISS Send '{payload}' TO '{packet.to_call}' From "
-            f"'{packet.from_call}' with PATH '{self.path}'",
+            f"'{packet.from_call}' with PATH '{path}'",
         )
         frame = Frame.ui(
             destination="APZ100",
             source=packet.from_call,
-            path=self.path,
+            path=path,
             info=payload,
         )
         self.kiss.write(frame)
