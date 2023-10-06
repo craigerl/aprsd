@@ -50,7 +50,7 @@ class KISS3Client:
                 port=CONF.kiss_tcp.port,
                 strip_df_start=True,
             )
-            self.path = CONF.kiss_serial.path
+            self.path = CONF.kiss_tcp.path
 
         LOG.debug("Starting KISS interface connection")
         self.kiss.start()
