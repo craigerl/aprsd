@@ -106,7 +106,7 @@ class Aprsdis(aprslib.IS):
             aprsd.__version__,
         )
 
-        self.logger.info("Sending login information")
+        self.logger.debug("Sending login information")
 
         try:
             self._sendall(login_str)
