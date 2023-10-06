@@ -124,6 +124,7 @@ admin_opts = [
     ),
     cfg.StrOpt(
         "password",
+        default="password",
         secret=True,
         help="Admin interface password",
     ),
