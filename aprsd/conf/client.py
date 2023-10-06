@@ -72,7 +72,7 @@ kiss_serial_opts = [
         default=9600,
         help="The Serial device baud rate for communication",
     ),
-    cfg.MultiStrOpt(
+    cfg.ListOpt(
         "path",
         default=["WIDE1-1", "WIDE2-1"],
         help="The APRS path to use for wide area coverage.",
@@ -94,7 +94,7 @@ kiss_tcp_opts = [
         default=8001,
         help="The KISS TCP/IP network port",
     ),
-    cfg.MultiStrOpt(
+    cfg.ListOpt(
         "path",
         default=["WIDE1-1", "WIDE2-1"],
         help="The APRS path to use for wide area coverage.",
