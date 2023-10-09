@@ -1,6 +1,29 @@
 CHANGES
 =======
 
+v3.2.1
+------
+
+* Update index.html disable form autocomplete
+* Update the packet\_dupe\_timeout warning
+* Update the webchat paths
+* Changed the path option to a ListOpt
+* Fixed default path for tcp\_kiss client
+* Set a default password for admin
+* Fix path for KISS clients
+* Added packet\_dupe\_timeout conf
+* Add ability to change path on every TX packet
+* Make Packet objects hashable
+* Bump urllib3 from 2.0.4 to 2.0.6
+* Don't process AckPackets as dupes
+* Fixed another msgNo int issue
+* Fixed issue with packet tracker and msgNO Counter
+* Fixed import of Mutablemapping
+* pep8 fixes
+* rewrote packet\_list and drop dupe packets
+* Log a warning on dupe
+* Fix for dupe packets
+
 v3.2.0
 ------
 
