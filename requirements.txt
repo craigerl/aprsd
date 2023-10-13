@@ -4,6 +4,7 @@
 #
 #    pip-compile --annotation-style=line requirements.in
 #
+dataclasses-json
 aprslib==0.7.2
     # via -r requirements.in
 attrs==23.1.0

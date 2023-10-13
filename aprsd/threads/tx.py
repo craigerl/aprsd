@@ -1,4 +1,3 @@
-import datetime
 import logging
 import time
 
@@ -128,10 +127,10 @@ class SendPacketThread(aprsd_threads.APRSDThread):
             # Message is still outstanding and needs to be acked.
             if packet.last_send_time:
                 # Message has a last send time tracking
-                now = datetime.datetime.now()
+                now = int(round(time.time()))
                 sleeptime = (packet.send_count + 1) * 31
                 delta = now - packet.last_send_time
-                if delta > datetime.timedelta(seconds=sleeptime):
+                if delta > sleeptime:
                     # It's time to try to send it again
                     send_now = True
             else:
@@ -140,7 +139,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
             if send_now:
                 # no attempt time, so lets send it, and start
                 # tracking the time.
-                packet.last_send_time = datetime.datetime.now()
+                packet.last_send_time = int(round(time.time()))
                 send(packet, direct=True)
                 packet.send_count += 1
 
@@ -173,13 +172,13 @@ class SendAckThread(aprsd_threads.APRSDThread):
 
         if self.packet.last_send_time:
             # Message has a last send time tracking
-            now = datetime.datetime.now()
+            now = int(round(time.time()))
 
             # aprs duplicate detection is 30 secs?
             # (21 only sends first, 28 skips middle)
             sleep_time = 31
             delta = now - self.packet.last_send_time
-            if delta > datetime.timedelta(seconds=sleep_time):
+            if delta > sleep_time:
                 # It's time to try to send it again
                 send_now = True
             elif self.loop_count % 10 == 0:
@@ -190,7 +189,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
         if send_now:
             send(self.packet, direct=True)
             self.packet.send_count += 1
-            self.packet.last_send_time = datetime.datetime.now()
+            self.packet.last_send_time = int(round(time.time()))
 
         time.sleep(1)
         self.loop_count += 1

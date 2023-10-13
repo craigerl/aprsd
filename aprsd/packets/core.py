@@ -1,7 +1,6 @@
 import abc
 from dataclasses import asdict, dataclass, field
-import datetime
-import json
+from datetime import datetime
 import logging
 import re
 import time
@@ -9,9 +8,9 @@ import time
 from typing import List
 
 import dacite
+from dataclasses_json import dataclass_json
 
 from aprsd.utils import counter
-from aprsd.utils import json as aprsd_json
 
 
 LOG = logging.getLogger("APRSD")
@@ -28,10 +27,18 @@ PACKET_TYPE_BEACON = "beacon"
 PACKET_TYPE_THIRDPARTY = "thirdparty"
 PACKET_TYPE_UNCOMPRESSED = "uncompressed"
 
+NO_DATE = datetime(1900, 10, 24)
+
 
 def _init_timestamp():
     """Build a unix style timestamp integer"""
     return int(round(time.time()))
+
+
+def _init_send_time():
+    # We have to use a datetime here, or the json encoder
+    # Fails on a NoneType.
+    return NO_DATE
 
 
 def _init_msgNo():    # noqa: N802
@@ -45,6 +52,32 @@ def _init_msgNo():    # noqa: N802
     return c.value
 
 
+def factory_from_dict(packet_dict):
+    pkt_type = get_packet_type(packet_dict)
+#    print(f"pkt_type {pkt_type}")
+    if pkt_type:
+#        if pkt_type == 'unknown':
+#            # try to determine it by the raw
+#            raw = packet_dict.get('raw')
+#            if raw:
+#                import aprslib
+#                type = get_packet_type(aprslib.parse(raw))
+#                print(f"raw type {type}")
+
+        cls = TYPE_LOOKUP[pkt_type]
+#        print(f"CLS {cls}")
+
+        return cls.from_dict(packet_dict)
+
+
+
+def factory_from_json(packet_dict):
+    pkt_type = get_packet_type(packet_dict)
+    if pkt_type:
+        return TYPE_LOOKUP[pkt_type].from_json(packet_dict)
+
+
+@dataclass_json
 @dataclass(unsafe_hash=True)
 class Packet(metaclass=abc.ABCMeta):
     from_call: str = field(default=None)
@@ -64,7 +97,17 @@ class Packet(metaclass=abc.ABCMeta):
     # Fields related to sending packets out
     send_count: int = field(repr=False, default=0, compare=False, hash=False)
     retry_count: int = field(repr=False, default=3, compare=False, hash=False)
-    last_send_time: datetime.timedelta = field(repr=False, default=None, compare=False, hash=False)
+    #last_send_time: datetime = field(
+    #    metadata=dc_json_config(
+    #        encoder=datetime.isoformat,
+    #        decoder=datetime.fromisoformat,
+    #    ),
+    #    repr=True,
+    #    default_factory=_init_send_time,
+    #    compare=False,
+    #    hash=False
+    #)
+    last_send_time: float = field(repr=False, default=0, compare=False, hash=False)
     # Do we allow this packet to be saved to send later?
     allow_delay: bool = field(repr=False, default=True, compare=False, hash=False)
     path: List[str] = field(default_factory=list, compare=False, hash=False)
@@ -74,15 +117,12 @@ class Packet(metaclass=abc.ABCMeta):
         LOG.warning(f"POST INIT {self}")
 
     @property
-    def __dict__(self):
-        return asdict(self)
-
-    @property
     def json(self):
         """
         get the json formated string
         """
-        return json.dumps(self.__dict__, cls=aprsd_json.EnhancedJSONEncoder)
+        #return json.dumps(self.__dict__, cls=aprsd_json.EnhancedJSONEncoder)
+        return self.to_json()
 
     def get(self, key, default=None):
         """Emulate a getter on a dict."""
@@ -288,7 +328,7 @@ class RejectPacket(Packet):
     def _build_payload(self):
         self.payload = f":{self.to_call.ljust(9)} :rej{self.msgNo}"
 
-
+@dataclass_json
 @dataclass(unsafe_hash=True)
 class MessagePacket(Packet):
     message_text: str = field(default=None)
@@ -437,6 +477,13 @@ class GPSPacket(Packet):
 
 
 @dataclass
+class StatusPacket(Packet):
+    status: str = None
+    messagecapable: bool = False
+    comment: str = None
+
+
+@dataclass
 class MicEPacket(GPSPacket):
     messagecapable: bool = False
     mbits: str = None
@@ -567,7 +614,7 @@ class WeatherPacket(GPSPacket):
 
 class ThirdParty(Packet):
     # Holds the encapsulated packet
-    subpacket: Packet = None
+    subpacket: Packet = field(default=None, compare=True, hash=False)
 
     def __repr__(self):
         """Build the repr version of the packet."""
@@ -600,7 +647,7 @@ def get_packet_type(packet: dict):
 
     pkt_format = packet.get("format", None)
     msg_response = packet.get("response", None)
-    packet_type = "unknown"
+    packet_type = PACKET_TYPE_UNKNOWN
     if pkt_format == "message" and msg_response == "ack":
         packet_type = PACKET_TYPE_ACK
     elif pkt_format == "message" and msg_response == "rej":
@@ -620,6 +667,10 @@ def get_packet_type(packet: dict):
             packet_type = PACKET_TYPE_WX
     elif pkt_format == PACKET_TYPE_THIRDPARTY:
         packet_type = PACKET_TYPE_THIRDPARTY
+
+    if packet_type == PACKET_TYPE_UNKNOWN:
+        if "latitude" in packet:
+            packet_type = PACKET_TYPE_BEACON
     return packet_type
 
 
