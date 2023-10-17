@@ -157,7 +157,7 @@ thesmuggler==1.0.1
     # via -r requirements.in
 update-checker==0.18.0
     # via -r requirements.in
-urllib3==2.0.6
+urllib3==2.0.7
     # via requests
 validators==0.20.0
     # via click-params
