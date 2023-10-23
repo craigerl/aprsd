@@ -27,9 +27,10 @@ pip install -e .
 
 # CONFIGURE
 # Now configure aprsd HERE
-./aprsd sample-config    # generates a config.yml template
+mkdir -p ~/.config/aprsd
+./aprsd sample-config > ~/.config/aprsd/aprsd.conf   # generates a config template
 
-vi ~/.config/aprsd/config.yml   # copy/edit config here
+vi ~/.config/aprsd/aprsd.conf  # copy/edit config here
 
 aprsd server
 
