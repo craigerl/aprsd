@@ -144,7 +144,7 @@ def listen(
     if not aprs_login:
         click.echo(ctx.get_help())
         click.echo("")
-        ctx.fail("Must set --aprs_login or APRS_LOGIN")
+        ctx.fail("Must set --aprs-login or APRS_LOGIN")
         ctx.exit()
 
     if not aprs_password:
