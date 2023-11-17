@@ -54,21 +54,9 @@ def _init_msgNo():    # noqa: N802
 
 def factory_from_dict(packet_dict):
     pkt_type = get_packet_type(packet_dict)
-#    print(f"pkt_type {pkt_type}")
     if pkt_type:
-#        if pkt_type == 'unknown':
-#            # try to determine it by the raw
-#            raw = packet_dict.get('raw')
-#            if raw:
-#                import aprslib
-#                type = get_packet_type(aprslib.parse(raw))
-#                print(f"raw type {type}")
-
         cls = TYPE_LOOKUP[pkt_type]
-#        print(f"CLS {cls}")
-
         return cls.from_dict(packet_dict)
-
 
 
 def factory_from_json(packet_dict):
@@ -97,7 +85,7 @@ class Packet(metaclass=abc.ABCMeta):
     # Fields related to sending packets out
     send_count: int = field(repr=False, default=0, compare=False, hash=False)
     retry_count: int = field(repr=False, default=3, compare=False, hash=False)
-    #last_send_time: datetime = field(
+    # last_send_time: datetime = field(
     #    metadata=dc_json_config(
     #        encoder=datetime.isoformat,
     #        decoder=datetime.fromisoformat,
@@ -106,7 +94,7 @@ class Packet(metaclass=abc.ABCMeta):
     #    default_factory=_init_send_time,
     #    compare=False,
     #    hash=False
-    #)
+    # )
     last_send_time: float = field(repr=False, default=0, compare=False, hash=False)
     last_send_attempt: int = field(repr=False, default=0, compare=False, hash=False)
 
@@ -123,7 +111,6 @@ class Packet(metaclass=abc.ABCMeta):
         """
         get the json formated string
         """
-        #return json.dumps(self.__dict__, cls=aprsd_json.EnhancedJSONEncoder)
         return self.to_json()
 
     def get(self, key, default=None):
@@ -330,6 +317,7 @@ class RejectPacket(Packet):
     def _build_payload(self):
         self.payload = f":{self.to_call.ljust(9)} :rej{self.msgNo}"
 
+
 @dataclass_json
 @dataclass(unsafe_hash=True)
 class MessagePacket(Packet):
@@ -476,13 +464,6 @@ class GPSPacket(Packet):
             f"{self.from_call}>{self.to_call},WIDE2-1:"
             f"{self.payload}"
         )
-
-
-@dataclass
-class StatusPacket(Packet):
-    status: str = None
-    messagecapable: bool = False
-    comment: str = None
 
 
 @dataclass

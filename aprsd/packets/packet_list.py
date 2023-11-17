@@ -62,7 +62,6 @@ class PacketList(MutableMapping):
     def copy(self):
         return self.d.copy()
 
-
     @property
     def maxlen(self):
         return self._maxlen
