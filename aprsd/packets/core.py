@@ -448,12 +448,12 @@ class GPSPacket(Packet):
     def _build_time_zulu(self):
         """Build the timestamp in UTC/zulu."""
         if self.timestamp:
-            local_dt = datetime.datetime.fromtimestamp(self.timestamp)
+            local_dt = datetime.fromtimestamp(self.timestamp)
         else:
-            local_dt = datetime.datetime.now()
-            self.timestamp = datetime.datetime.timestamp(local_dt)
+            local_dt = datetime.now()
+            self.timestamp = datetime.timestamp(local_dt)
 
-        utc_offset_timedelta = datetime.datetime.utcnow() - local_dt
+        utc_offset_timedelta = datetime.utcnow() - local_dt
         result_utc_datetime = local_dt + utc_offset_timedelta
         time_zulu = result_utc_datetime.strftime("%d%H%M")
         return time_zulu
