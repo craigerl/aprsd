@@ -65,6 +65,7 @@ class PacketTrack(objectstore.ObjectStoreMixin):
     @wrapt.synchronized(lock)
     def add(self, packet):
         key = packet.msgNo
+        packet._last_send_attempt = 0
         self.data[key] = packet
         self.total_tracked += 1
 
@@ -83,7 +84,7 @@ class PacketTrack(objectstore.ObjectStoreMixin):
         """Walk the list of messages and restart them if any."""
         for key in self.data.keys():
             pkt = self.data[key]
-            if pkt.last_send_attempt < pkt.retry_count:
+            if pkt._last_send_attempt < pkt.retry_count:
                 tx.send(pkt)
 
     def _resend(self, packet):

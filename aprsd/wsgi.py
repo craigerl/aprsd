@@ -1,4 +1,6 @@
 import datetime
+import importlib.metadata as imp
+import io
 import json
 import logging
 from logging.handlers import RotatingFileHandler
@@ -8,7 +10,7 @@ import flask
 from flask import Flask
 from flask.logging import default_handler
 from flask_httpauth import HTTPBasicAuth
-from oslo_config import cfg
+from oslo_config import cfg, generator
 import socketio
 from werkzeug.security import check_password_hash
 
@@ -96,9 +98,17 @@ def _stats():
     if packet_list:
         rx = packet_list.total_rx()
         tx = packet_list.total_tx()
+    types = {}
+
+    types_copy = packet_list.types.copy()
+
+    for key in types_copy:
+        types[str(key)] = dict(types_copy[key])
+
     stats_dict["packets"] = {
         "sent": tx,
         "received": rx,
+        "types": types,
     }
     if track:
         size_tracker = len(track)
@@ -123,7 +133,6 @@ def stats():
 @app.route("/")
 def index():
     stats = _stats()
-    LOG.debug(stats)
     wl = aprsd_rpc_client.RPCClient().get_watch_list()
     if wl and wl.is_enabled():
         watch_count = len(wl)
@@ -185,6 +194,7 @@ def index():
         watch_age=watch_age,
         seen_count=seen_count,
         plugin_count=plugin_count,
+        # oslo_out=generate_oslo()
     )
 
 
@@ -205,10 +215,12 @@ def get_packets():
     LOG.debug("/packets called")
     packet_list = aprsd_rpc_client.RPCClient().get_packet_list()
     if packet_list:
-        packets = packet_list.get()
         tmp_list = []
-        for pkt in packets:
-            tmp_list.append(pkt.json)
+        pkts = packet_list.copy()
+        for key in pkts:
+            pkt = packet_list.get(key)
+            if pkt:
+                tmp_list.append(pkt.json)
 
         return json.dumps(tmp_list)
     else:
@@ -223,6 +235,36 @@ def plugins():
     pm.reload_plugins()
 
     return "reloaded"
+
+
+def _get_namespaces():
+    args = []
+
+    all = imp.entry_points()
+    selected = []
+    if "oslo.config.opts" in all:
+        for x in all["oslo.config.opts"]:
+            if x.group == "oslo.config.opts":
+                selected.append(x)
+    for entry in selected:
+        if "aprsd" in entry.name:
+            args.append("--namespace")
+            args.append(entry.name)
+
+    return args
+
+
+def generate_oslo():
+    CONF.namespace = _get_namespaces()
+    string_out = io.StringIO()
+    generator.generate(CONF, string_out)
+    return string_out.getvalue()
+
+
+@auth.login_required
+@app.route("/oslo")
+def oslo():
+    return generate_oslo()
 
 
 @auth.login_required
@@ -348,6 +390,8 @@ if __name__ == "uwsgi_file_aprsd_wsgi":
     log_level = init_app(
         log_level="DEBUG",
         config_file="/config/aprsd.conf",
+        # Commented out for local development.
+        # config_file=cli_helper.DEFAULT_CONFIG_FILE
     )
     setup_logging(app, log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
@@ -362,7 +406,11 @@ if __name__ == "aprsd.wsgi":
     sio = socketio.Server(logger=True, async_mode=async_mode)
     app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
-    log_level = init_app(config_file="/config/aprsd.conf", log_level="DEBUG")
+    log_level = init_app(
+        log_level="DEBUG",
+        # config_file="/config/aprsd.conf",
+        config_file=cli_helper.DEFAULT_CONFIG_FILE,
+    )
     setup_logging(app, log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
     CONF.log_opt_values(LOG, logging.DEBUG)
