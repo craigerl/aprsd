@@ -36,3 +36,4 @@ rpyc
 shellingham
 geopy
 rush
+dataclasses-json
