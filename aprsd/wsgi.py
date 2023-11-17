@@ -95,15 +95,14 @@ def _stats():
     stats_dict["aprsd"]["watch_list"] = new_list
     packet_list = aprsd_rpc_client.RPCClient().get_packet_list()
     rx = tx = 0
+    types = {}
     if packet_list:
         rx = packet_list.total_rx()
         tx = packet_list.total_tx()
-    types = {}
+        types_copy = packet_list.types.copy()
 
-    types_copy = packet_list.types.copy()
-
-    for key in types_copy:
-        types[str(key)] = dict(types_copy[key])
+        for key in types_copy:
+            types[str(key)] = dict(types_copy[key])
 
     stats_dict["packets"] = {
         "sent": tx,
