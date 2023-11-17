@@ -70,7 +70,7 @@ def main():
     # First import all the possible commands for the CLI
     # The commands themselves live in the cmds directory
     from .cmds import (  # noqa
-        completion, config, dev, fetch_stats, healthcheck, list_plugins, listen,
+        completion, dev, fetch_stats, healthcheck, list_plugins, listen,
         send_message, server, webchat,
     )
     cli(auto_envvar_prefix="APRSD")
