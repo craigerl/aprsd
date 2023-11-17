@@ -19,11 +19,12 @@ class PacketList(MutableMapping):
     lock = threading.Lock()
     _total_rx: int = 0
     _total_tx: int = 0
+    types = {}
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._maxlen = 1000
+            cls._maxlen = 100
             cls.d = OrderedDict()
         return cls._instance
 
@@ -32,6 +33,10 @@ class PacketList(MutableMapping):
         """Add a packet that was received."""
         self._total_rx += 1
         self._add(packet)
+        ptype = packet.__class__.__name__
+        if not ptype in self.types:
+            self.types[ptype] = {"tx": 0, "rx": 0}
+        self.types[ptype]["rx"] += 1
         seen_list.SeenList().update_seen(packet)
         stats.APRSDStats().rx(packet)
 
@@ -40,6 +45,10 @@ class PacketList(MutableMapping):
         """Add a packet that was received."""
         self._total_tx += 1
         self._add(packet)
+        ptype = packet.__class__.__name__
+        if not ptype in self.types:
+            self.types[ptype] = {"tx": 0, "rx": 0}
+        self.types[ptype]["tx"] += 1
         seen_list.SeenList().update_seen(packet)
         stats.APRSDStats().tx(packet)
 
@@ -49,6 +58,10 @@ class PacketList(MutableMapping):
 
     def _add(self, packet):
         self[packet.key] = packet
+
+    def copy(self):
+        return self.d.copy()
+
 
     @property
     def maxlen(self):

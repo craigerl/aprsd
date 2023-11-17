@@ -108,6 +108,8 @@ class Packet(metaclass=abc.ABCMeta):
     #    hash=False
     #)
     last_send_time: float = field(repr=False, default=0, compare=False, hash=False)
+    last_send_attempt: int = field(repr=False, default=0, compare=False, hash=False)
+
     # Do we allow this packet to be saved to send later?
     allow_delay: bool = field(repr=False, default=True, compare=False, hash=False)
     path: List[str] = field(default_factory=list, compare=False, hash=False)

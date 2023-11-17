@@ -6,6 +6,7 @@
         <script src="https://cdn.socket.io/4.7.1/socket.io.min.js" integrity="sha512-+NaO7d6gQ1YPxvc/qHIqZEchjGm207SszoNeMgppoqD/67fEqmc1edS8zrbxPD+4RQI3gDgT/83ihpFW61TG/Q==" crossorigin="anonymous"></script>
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.bundle.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
         <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
@@ -15,7 +16,7 @@
         <link rel="stylesheet" href="/static/css/prism.css">
         <script src="/static/js/prism.js"></script>
         <script src="/static/js/main.js"></script>
-        <script src="/static/js/charts.js"></script>
+        <script src="/static/js/echarts.js"></script>
         <script src="/static/js/tabs.js"></script>
         <script src="/static/js/send-message.js"></script>
         <script src="/static/js/logs.js"></script>
@@ -83,6 +84,7 @@
             <div class="item" data-tab="plugin-tab">Plugins</div>
             <div class="item" data-tab="config-tab">Config</div>
             <div class="item" data-tab="log-tab">LogFile</div>
+            <!-- <div class="item" data-tab="oslo-tab">OSLO CONFIG</div> //-->
             <div class="item" data-tab="raw-tab">Raw JSON</div>
         </div>
 
@@ -92,25 +94,25 @@
             <div class="ui equal width relaxed grid">
                 <div class="row">
                     <div class="column">
-                        <div class="ui segment" style="height: 300px">
-                            <canvas id="packetsChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="column">
-                        <div class="ui segment" style="height: 300px">
-                            <canvas id="messageChart"></canvas>
-                        </div>
+                        <div class="ui segment" style="height: 300px" id="packetsChart"></div>
                     </div>
                 </div>
                 <div class="row">
                     <div class="column">
-                        <div class="ui segment" style="height: 300px">
-                            <canvas id="emailChart"></canvas>
-                        </div>
+                        <div class="ui segment" style="height: 300px" id="packetTypesChart"></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="column">
+                        <div class="ui segment" style="height: 300px" id="messagesChart"></div>
                     </div>
                     <div class="column">
-                        <div class="ui segment" style="height: 300px">
-                            <canvas id="memChart"></canvas>
+                        <div class="ui segment" style="height: 300px" id="acksChart"></div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="column">
+                        <div class="ui segment" style="height: 300px" id="memChart">
                         </div>
                     </div>
                 </div>
@@ -118,7 +120,7 @@
                     <div id="stats" class="two column">
                         <button class="ui button" id="toggleStats">Toggle raw json</button>
                         <pre id="jsonstats" class="language-json">{{ stats }}</pre>
-                    </div> --!>
+                    </div> //-->
                 </div>
             </div>
 
@@ -164,9 +166,15 @@
             <pre id="logContainer" style="height: 600px;overflow-y:auto;overflow-x:auto;"><code id="logtext" class="language-log" ></code></pre>
         </div>
 
+        <!--
+        <div class="ui bottom attached tab segment" data-tab="oslo-tab">
+            <h3 class="ui dividing header">OSLO</h3>
+            <pre id="osloContainer" style="height:600px;overflow-y:auto;" class="language-json">{{ oslo_out|safe }}</pre>
+        </div> //-->
+
         <div class="ui bottom attached tab segment" data-tab="raw-tab">
           <h3 class="ui dividing header">Raw JSON</h3>
-          <pre id="jsonstats" class="language-json">{{ stats|safe }}</pre>
+          <pre id="jsonstats" class="language-yaml" style="height:600px;overflow-y:auto;">{{ stats|safe }}</pre>
         </div>
 
         <div class="ui text container">
