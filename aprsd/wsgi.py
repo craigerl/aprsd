@@ -408,8 +408,8 @@ if __name__ == "aprsd.wsgi":
 
     log_level = init_app(
         log_level="DEBUG",
-        # config_file="/config/aprsd.conf",
-        config_file=cli_helper.DEFAULT_CONFIG_FILE,
+        config_file="/config/aprsd.conf",
+        # config_file=cli_helper.DEFAULT_CONFIG_FILE,
     )
     setup_logging(app, log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
