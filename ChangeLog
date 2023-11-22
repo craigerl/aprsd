@@ -1,9 +1,28 @@
 CHANGES
 =======
 
+v3.2.2
+------
+
+* Fix for types
+* Fix wsgi for prod
+* pep8 fixes
+* remove python 3.12 from github builds
+* Fixed datetime access in core.py
+* removed invalid reference to config.py
+* Updated requirements
+* Reworked the admin graphs
+* Test new packet serialization
+* Try to localize js libs and css for no internet
+* Normalize listen --aprs-login
+* Bump werkzeug from 2.3.7 to 3.0.1
+* Update INSTALL with new conf files
+* Bump urllib3 from 2.0.6 to 2.0.7
+
 v3.2.1
 ------
 
+* Changelog for 3.2.1
 * Update index.html disable form autocomplete
 * Update the packet\_dupe\_timeout warning
 * Update the webchat paths
