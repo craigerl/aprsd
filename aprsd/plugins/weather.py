@@ -211,7 +211,7 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     @trace.trace
     def process(self, packet):
-        fromcall = packet.get("from")
+        fromcall = packet.get("from_call")
         message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
         LOG.info(f"OWMWeather Plugin '{message}'")
