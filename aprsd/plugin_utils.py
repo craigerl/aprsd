@@ -76,6 +76,7 @@ def fetch_openweathermap(api_key, lat, lon, units="metric", exclude=None):
                 exclude,
             )
         )
+        LOG.debug(f"Fetching OWM weather '{url}'")
         response = requests.get(url)
     except Exception as e:
         LOG.error(e)
