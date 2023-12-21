@@ -26,7 +26,7 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
     "weather" - returns weather near the calling callsign
     """
 
-#    command_regex = r"^([w][x]|[w][x]\s|weather)"
+    # command_regex = r"^([w][x]|[w][x]\s|weather)"
     command_regex = r"^[wW]"
 
     command_name = "USWeather"
@@ -191,9 +191,9 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     """
 
-#    command_regex = r"^([w][x]|[w][x]\s|weather)"
+    # command_regex = r"^([w][x]|[w][x]\s|weather)"
     command_regex = r"^[wW]"
-    
+
     command_name = "OpenWeatherMap"
     short_description = "OpenWeatherMap weather of GPS Beacon location"
 
