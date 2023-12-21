@@ -191,7 +191,9 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     """
 
-    command_regex = r"^([w][x]|[w][x]\s|weather)"
+#    command_regex = r"^([w][x]|[w][x]\s|weather)"
+    command_regex = r"^[wW]"
+    
     command_name = "OpenWeatherMap"
     short_description = "OpenWeatherMap weather of GPS Beacon location"
 
