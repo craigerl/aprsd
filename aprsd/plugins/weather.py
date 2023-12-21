@@ -26,7 +26,9 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
     "weather" - returns weather near the calling callsign
     """
 
-    command_regex = r"^([w][x]|[w][x]\s|weather)"
+#    command_regex = r"^([w][x]|[w][x]\s|weather)"
+    command_regex = r"^[wW]"
+
     command_name = "USWeather"
     short_description = "Provide USA only weather of GPS Beacon location"
 
