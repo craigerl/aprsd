@@ -146,8 +146,8 @@ def sample_config(ctx):
             raise SystemExit
         raise
     LOG.warning(conf.namespace)
-    return
     generator.generate(conf)
+    return
 
 
 @cli.command()
