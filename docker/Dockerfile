@@ -23,7 +23,7 @@ RUN set -ex \
     && apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y git build-essential curl libffi-dev \
-    python3-dev libssl-dev libxml2-dev libxslt-dev telnet sudo \
+    python3-dev libssl-dev libxml2-dev libxslt-dev telnet sudo fortune \
     # Install dependencies
     # Clean up
     && apt-get autoremove -y \
