@@ -41,6 +41,7 @@ RUN mkdir /config
 RUN chown -R appuser:appgroup /app
 RUN chown -R appuser:appgroup /config
 USER appuser
+RUN echo "PATH=\$PATH:/usr/games" >> /app/.bashrc
 RUN which aprsd
 RUN aprsd sample-config > /config/aprsd.conf
 
