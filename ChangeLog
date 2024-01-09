@@ -1,9 +1,24 @@
 CHANGES
 =======
 
+v3.2.3
+------
+
+* Force fortune path during setup test
+* added /usr/games to path
+* Added fortune to Dockerfile-dev
+* Added missing fortune app
+* aprsd: main.py: Fix premature return in sample\_config
+* Update weather.py  because you can't sort icons by penis
+* Update weather.py  both weather plugins have new Ww regex
+* Update weather.py
+* Fixed a bug with OWMWeatherPlugin
+* Rework Location Plugin
+
 v3.2.2
 ------
 
+* Update for v3.2.2 release
 * Fix for types
 * Fix wsgi for prod
 * pep8 fixes
