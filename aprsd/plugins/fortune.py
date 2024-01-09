@@ -8,6 +8,8 @@ from aprsd.utils import trace
 
 LOG = logging.getLogger("APRSD")
 
+DEFAULT_FORTUNE_PATH = '/usr/games/fortune'
+
 
 class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
     """Fortune."""
@@ -19,7 +21,8 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
     fortune_path = None
 
     def setup(self):
-        self.fortune_path = shutil.which("fortune")
+        self.fortune_path = shutil.which(DEFAULT_FORTUNE_PATH)
+        LOG.info(f"Fortune path {self.fortune_path}")
         if not self.fortune_path:
             self.enabled = False
         else:
