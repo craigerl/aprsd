@@ -125,8 +125,37 @@ def test_plugin(
     LOG.info(f"P'{plugin_path}'  F'{fromcall}'   C'{message}'")
 
     for x in range(number):
-        reply = pm.run(packet)
+        replies = pm.run(packet)
         # Plugin might have threads, so lets stop them so we can exit.
         # obj.stop_threads()
-        LOG.info(f"Result{x} = '{reply}'")
+        for reply in replies:
+            if isinstance(reply, list):
+                # one of the plugins wants to send multiple messages
+                for subreply in reply:
+                    if isinstance(subreply, packets.Packet):
+                        LOG.info(subreply)
+                    else:
+                        LOG.info(
+                            packets.MessagePacket(
+                                from_call=CONF.callsign,
+                                to_call=fromcall,
+                                message_text=subreply,
+                            ),
+                        )
+            elif isinstance(reply, packets.Packet):
+                # We have a message based object.
+                LOG.info(reply)
+            else:
+                # A plugin can return a null message flag which signals
+                # us that they processed the message correctly, but have
+                # nothing to reply with, so we avoid replying with a
+                # usage string
+                if reply is not packets.NULL_MESSAGE:
+                    LOG.info(
+                        packets.MessagePacket(
+                            from_call=CONF.callsign,
+                            to_call=fromcall,
+                            message_text=reply,
+                        ),
+                    )
     pm.stop()
