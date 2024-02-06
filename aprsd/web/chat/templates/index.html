@@ -64,8 +64,12 @@
                 to_call.val(callsign);
                 selected_tab_callsign = callsign;
             });
-        });
 
+            /*$('[data-bs-toggle="popover"]').popover(
+                {html: true, animation: true}
+            );*/
+            reload_popovers();
+        });
     </script>
 </head>
 

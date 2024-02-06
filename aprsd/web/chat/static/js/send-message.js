@@ -1,5 +1,6 @@
 var cleared = false;
 var callsign_list = {};
+var callsign_location = {};
 var message_list = {};
 var from_msg_list = {};
 var selected_tab_callsign = null;
@@ -8,6 +9,25 @@ const socket = io("/sendmsg");
 MSG_TYPE_TX = "tx";
 MSG_TYPE_RX = "rx";
 MSG_TYPE_ACK = "ack";
+
+function reload_popovers() {
+    $('[data-bs-toggle="popover"]').popover(
+        {html: true, animation: true}
+    );
+}
+
+function build_location_string(msg) {
+   console.log("Building location string");
+   console.log(msg);
+   dt = new Date(parseInt(msg['lasttime']) * 1000);
+   loc = "Last Location Update: " + dt.toLocaleString();
+   loc += "<br>Latitude: " + msg['lat'] + "<br>Longitude: " + msg['lon'];
+   loc += "<br>" + "Altitude: " + msg['altitude'] + " m";
+   loc += "<br>" + "Speed: " + msg['speed'] + " kph";
+   loc += "<br>" + "Bearing: " + msg['course'] + "°";
+   loc += "<br>" + "distance: " + msg['distance'] + " km";
+   return loc;
+}
 
 function size_dict(d){c=0; for (i in d) ++c; return c}
 
@@ -43,6 +63,8 @@ function init_chat() {
    });
 
    socket.on("ack", function(msg) {
+       console.log("ACK");
+       console.log(msg);
        msg["type"] = MSG_TYPE_ACK;
        ack_msg(msg);
    });
@@ -55,6 +77,20 @@ function init_chat() {
        }
        msg["type"] = MSG_TYPE_RX;
        from_msg(msg);
+   });
+
+   socket.on("callsign_location", function(msg) {
+       console.log("CALLSIGN Location!");
+       console.log(msg);
+       callsign_location[msg['callsign']] = msg;
+
+       popover_id = callsign_location_popover(msg['callsign'], true);
+       location_string = build_location_string(msg);
+       console.log(location_string);
+       $(popover_id).attr('data-bs-content', location_string);
+       $(popover_id).removeClass('visually-hidden');
+       reload_popovers();
+       save_data();
    });
 
    $("#sendform").submit(function(event) {
@@ -71,7 +107,7 @@ function init_chat() {
                return false;
            }
            msg = {'to': to_call, 'message': message, 'path': path};
-           console.log(msg);
+           //console.log(msg);
            socket.emit("send", msg);
            $('#message').val('');
        }
@@ -81,6 +117,7 @@ function init_chat() {
    // Try and load any existing chat threads from last time
    init_messages();
 }
+
 
 function tab_string(callsign, id=false) {
     name = "msgs"+callsign;
@@ -121,6 +158,10 @@ function callsign_tab(callsign) {
     return "#"+tab_string(callsign);
 }
 
+function callsign_location_popover(callsign, id=false) {
+    return tab_string(callsign, id)+"Location";
+}
+
 function bubble_msg_id(msg, id=false) {
     // The id of the div that contains a specific message
     name = msg["from_call"] + "_" + msg["msgNo"];
@@ -155,20 +196,26 @@ function save_data() {
   // Save the relevant data to local storage
   localStorage.setItem('callsign_list', JSON.stringify(callsign_list));
   localStorage.setItem('message_list', JSON.stringify(message_list));
+  localStorage.setItem('callsign_location', JSON.stringify(callsign_location));
 }
 
 function init_messages() {
     // This tries to load any previous conversations from local storage
     callsign_list = JSON.parse(localStorage.getItem('callsign_list'));
     message_list = JSON.parse(localStorage.getItem('message_list'));
+    callsign_location = JSON.parse(localStorage.getItem('callsign_location'));
     if (callsign_list == null) {
        callsign_list = {};
     }
     if (message_list == null) {
        message_list = {};
     }
-    //console.log(callsign_list);
-    //console.log(message_list);
+    if (callsign_location == null) {
+       callsign_location = {};
+    }
+    console.log(callsign_list);
+    console.log(message_list);
+    console.log(callsign_location);
 
     // Now loop through each callsign and add the tabs
     first_callsign = null;
@@ -245,19 +292,34 @@ function create_callsign_tab(callsign, active=false) {
   tab_id_li = tab_li_string(callsign);
   tab_notify_id = tab_notification_id(callsign);
   tab_content = tab_content_name(callsign);
+  popover_id = callsign_location_popover(callsign);
   if (active) {
     active_str = "active";
   } else {
     active_str = "";
   }
 
+  location_str = 'No Location Information';
+  location_class = 'visually-hidden';
+  if (callsign in callsign_location) {
+    location_str = build_location_string(callsign_location[callsign]);
+    location_class = '';
+  }
+
   item_html = '<li class="nav-item" role="presentation" callsign="'+callsign+'" id="'+tab_id_li+'">';
   //item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
   item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link position-relative '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
   item_html += callsign+'&nbsp;&nbsp;';
+
+  item_html += '<img id="'+popover_id+'" src="/static/images/globe.svg" ';
+  item_html += 'alt="View location information" class="'+location_class+'" ';
+  item_html += 'data-bs-original-title="APRS Location" data-bs-toggle="popover" data-bs-placement="top" '
+  item_html += 'data-bs-trigger="hover" data-bs-content="'+location_str+'">&nbsp;';
+
   item_html += '<span id="'+tab_notify_id+'" class="position-absolute top-0 start-80 translate-middle badge bg-danger border border-light rounded-pill visually-hidden">0</span>';
   item_html += '<span onclick="delete_tab(\''+callsign+'\');">×</span>';
   item_html += '</button></li>'
+
   callsignTabs.append(item_html);
   create_callsign_tab_content(callsign, active);
 }
@@ -288,6 +350,7 @@ function delete_tab(callsign) {
     $(tab_content).remove();
     delete callsign_list[callsign];
     delete message_list[callsign];
+    delete callsign_location[callsign];
 
     // Now select the first tab
     first_tab = $("#msgsTabList").children().first().children().first();
@@ -382,11 +445,23 @@ function create_message_html(date, time, from, to, message, ack_id, msg, acked=f
     date_str = date + " " + time;
     sane_date_str = date_str.replace(/ /g,"").replaceAll("/","").replaceAll(":","");
 
+    bubble_msg_class = "bubble-message";
+    if (ack_id) {
+      bubble_arrow_class = "bubble-arrow alt";
+      popover_placement = "left";
+    } else {
+      bubble_arrow_class = "bubble-arrow";
+      popover_placement = "right";
+    }
+
     msg_html = '<div class="bubble-row'+alt+'">';
-    msg_html += '<div id="'+bubble_msgid+'" class="'+ bubble_class + '" data-bs-toggle="popover" data-bs-content="'+msg['raw']+'">';
+    msg_html += '<div id="'+bubble_msgid+'" class="'+ bubble_class + '" ';
+    msg_html +=  'title="APRS Raw Packet" data-bs-placement="'+popover_placement+'" data-bs-toggle="popover" ';
+    msg_html +=  'data-bs-trigger="hover" data-bs-content="'+msg['raw']+'">';
     msg_html += '<div class="bubble-text">';
     msg_html += '<p class="'+ bubble_name_class +'">'+from+'&nbsp;&nbsp;';
     msg_html += '<span class="bubble-timestamp">'+date_str+'</span>';
+
     if (ack_id) {
         if (acked) {
             msg_html += '<span class="material-symbols-rounded md-10" id="' + ack_id + '">thumb_up</span>';
@@ -395,24 +470,11 @@ function create_message_html(date, time, from, to, message, ack_id, msg, acked=f
         }
     }
     msg_html += "</p>";
-    bubble_msg_class = "bubble-message"
-    if (ack_id) {
-      bubble_arrow_class = "bubble-arrow alt"
-      popover_placement = "left"
-    } else {
-      bubble_arrow_class = "bubble-arrow"
-      popover_placement = "right"
-    }
-
     msg_html += '<p class="' +bubble_msg_class+ '">'+message+'</p>';
     msg_html += '<div class="'+ bubble_arrow_class + '"></div>';
     msg_html += "</div></div></div>";
 
-    popover_html = '\n<script>$(function () {$(\'[data-bs-toggle="popover"]\').popover('
-    popover_html += '{title: "APRS Raw Packet", html: false, trigger: \'hover\', placement: \''+popover_placement+'\'});})';
-    popover_html += '</script>'
-
-    return msg_html+popover_html
+    return msg_html
 }
 
 function flash_message(msg) {
