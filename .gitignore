@@ -58,3 +58,5 @@ AUTHORS
 .idea
 
 Makefile.venv
+# Copilot
+.DS_Store
