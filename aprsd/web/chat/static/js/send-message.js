@@ -17,8 +17,6 @@ function reload_popovers() {
 }
 
 function build_location_string(msg) {
-   console.log("Building location string");
-   console.log(msg);
    dt = new Date(parseInt(msg['lasttime']) * 1000);
    loc = "Last Location Update: " + dt.toLocaleString();
    loc += "<br>Latitude: " + msg['lat'] + "<br>Longitude: " + msg['lon'];
@@ -27,6 +25,18 @@ function build_location_string(msg) {
    loc += "<br>" + "Bearing: " + msg['course'] + "°";
    loc += "<br>" + "distance: " + msg['distance'] + " km";
    return loc;
+}
+
+function build_location_string_small(msg) {
+
+   dt = new Date(parseInt(msg['lasttime']) * 1000);
+
+    loc = "" + msg['distance'] + "km";
+    //loc += "Lat " + msg['lat'] + "&nbsp;Lon " + msg['lon'];
+    loc += "@" + msg['course'] + "°";
+    //loc += "&nbsp;Distance " + msg['distance'] + " km";
+    loc += "&nbsp;" + dt.toLocaleString();
+    return loc;
 }
 
 function size_dict(d){c=0; for (i in d) ++c; return c}
@@ -51,8 +61,6 @@ function init_chat() {
    });
 
    socket.on("sent", function(msg) {
-       console.log("SENT: ");
-       console.log(msg);
        if (cleared === false) {
            var msgsdiv = $("#msgsTabsDiv");
            msgsdiv.html('');
@@ -63,8 +71,6 @@ function init_chat() {
    });
 
    socket.on("ack", function(msg) {
-       console.log("ACK");
-       console.log(msg);
        msg["type"] = MSG_TYPE_ACK;
        ack_msg(msg);
    });
@@ -82,14 +88,14 @@ function init_chat() {
    socket.on("callsign_location", function(msg) {
        console.log("CALLSIGN Location!");
        console.log(msg);
+       now = new Date();
+       msg['last_updated'] = now;
        callsign_location[msg['callsign']] = msg;
 
-       popover_id = callsign_location_popover(msg['callsign'], true);
-       location_string = build_location_string(msg);
-       console.log(location_string);
-       $(popover_id).attr('data-bs-content', location_string);
-       $(popover_id).removeClass('visually-hidden');
-       reload_popovers();
+       location_id = callsign_location_content(msg['callsign'], true);
+       location_string = build_location_string_small(msg);
+       $(location_id).html(location_string);
+       $(location_id+"Spinner").addClass('d-none');
        save_data();
    });
 
@@ -160,6 +166,10 @@ function callsign_tab(callsign) {
 
 function callsign_location_popover(callsign, id=false) {
     return tab_string(callsign, id)+"Location";
+}
+
+function callsign_location_content(callsign, id=false) {
+    return tab_string(callsign, id)+"LocationContent";
 }
 
 function bubble_msg_id(msg, id=false) {
@@ -299,24 +309,10 @@ function create_callsign_tab(callsign, active=false) {
     active_str = "";
   }
 
-  location_str = 'No Location Information';
-  location_class = 'visually-hidden';
-  if (callsign in callsign_location) {
-    location_str = build_location_string(callsign_location[callsign]);
-    location_class = '';
-  }
-
   item_html = '<li class="nav-item" role="presentation" callsign="'+callsign+'" id="'+tab_id_li+'">';
   //item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
   item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link position-relative '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
   item_html += callsign+'&nbsp;&nbsp;';
-
-  item_html += '<img id="'+popover_id+'" src="/static/images/globe.svg" ';
-  item_html += 'alt="View location information" class="'+location_class+'" ';
-  item_html += 'data-bs-original-title="APRS Location" data-bs-toggle="popover" data-bs-placement="top" '
-  item_html += 'data-bs-trigger="hover" data-bs-content="'+location_str+'">&nbsp;';
-
-  item_html += '<span id="'+tab_notify_id+'" class="position-absolute top-0 start-80 translate-middle badge bg-danger border border-light rounded-pill visually-hidden">0</span>';
   item_html += '<span onclick="delete_tab(\''+callsign+'\');">×</span>';
   item_html += '</button></li>'
 
@@ -335,7 +331,22 @@ function create_callsign_tab_content(callsign, active=false) {
     active_str = '';
   }
 
+  location_str = "Unknown Location"
+  if (callsign in callsign_location) {
+    location_str = build_location_string_small(callsign_location[callsign]);
+    location_class = '';
+  }
+
+  location_id = callsign_location_content(callsign);
+
   item_html = '<div class="tab-pane fade '+active_str+'" id="'+tab_content+'" role="tabpanel" aria-labelledby="'+tab_id+'">';
+  item_html += '<div class="" style="border: 1px solid #999999;background-color:#aaaaaa;">';
+  item_html += '<div class="row" style="padding-top:4px;padding-bottom:4px;background-color:#aaaaaa;margin:0px;">';
+  item_html +=   '<div class="d-flex col-md-10 justify-content-left" style="padding:0px;margin:0px;">';
+  item_html +=     '<button onclick="call_callsign_location(\''+callsign+'\');" style="margin-left:2px;padding: 0px 4px 0px 4px;" type="button" class="btn btn-primary">';
+  item_html +=     '<span id="'+location_id+'Spinner" class="d-none spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Update</button>';
+  item_html +=   '&nbsp;<span id="'+location_id+'">'+location_str+'</span></div>';
+  item_html += '</div>';
   item_html += '<div class="speech-wrapper" id="'+wrapper_id+'"></div>';
   item_html += '</div>';
   callsignTabsContent.append(item_html);
@@ -375,10 +386,9 @@ function add_callsign(callsign, msg) {
   return true;
 }
 
-function update_callsign_path(callsign, path) {
+function update_callsign_path(callsign, msg) {
   //Get the selected path to save for this callsign
   path = msg['path']
-  console.log("Path is " + path);
   $('#pkt_path').val(path);
   callsign_list[callsign] = path;
 
@@ -387,7 +397,6 @@ function update_callsign_path(callsign, path) {
 function append_message(callsign, msg, msg_html) {
   new_callsign = false
   if (!message_list.hasOwnProperty(callsign)) {
-       //message_list[callsign] = new Array();
        message_list[callsign] = {};
   }
   ts_id = message_ts_id(msg);
@@ -406,10 +415,11 @@ function append_message(callsign, msg, msg_html) {
   // Find the right div to place the html
 
   new_callsign = add_callsign(callsign, msg);
-  update_callsign_path(callsign, msg['path']);
+  update_callsign_path(callsign, msg);
   append_message_html(callsign, msg_html, new_callsign);
-  if (new_callsign) {
-      //Now click the tab
+  len = Object.keys(callsign_list).length;
+  if (new_callsign && len == 1) {
+      //Now click the tab if and only if there is only one tab
       callsign_tab_id = callsign_tab(callsign);
       $(callsign_tab_id).click();
       callsign_select(callsign);
@@ -502,12 +512,11 @@ function from_msg(msg) {
 
    if (msg["msgNo"] in from_msg_list[msg["from_call"]]) {
        // We already have this message
-       console.log("We already have this message msgNo=" + msg["msgNo"]);
+       //console.log("We already have this message msgNo=" + msg["msgNo"]);
        // Do some flashy thing?
        flash_message(msg);
        return false
    } else {
-       console.log("Adding message " + msg["msgNo"] + " to " + msg["from_call"]);
        from_msg_list[msg["from_call"]][msg["msgNo"]] = msg
    }
    info = time_ack_from_msg(msg);
@@ -563,4 +572,43 @@ function callsign_select(callsign) {
     $(tab_notify_id).text(0);
     // Now update the path
     $('#pkt_path').val(callsign_list[callsign]);
+}
+
+function call_callsign_location(callsign) {
+    msg = {'callsign': callsign};
+    socket.emit("get_callsign_location", msg);
+    location_id = callsign_location_content(callsign, true)+"Spinner";
+    $(location_id).removeClass('d-none');
+}
+
+function checkcallsign_locations() {
+    console.log("Checking callsign locations");
+    for (callsign in callsign_list) {
+        console.log("Checking location for " + callsign);
+        console.log(callsign_location[callsign]);
+        if (!callsign_location.hasOwnProperty(callsign)) {
+            console.log("Requesting location for " + callsign);
+            msg = {'callsign': callsign};
+            socket.emit("get_callsign_location", msg);
+        } else {
+            console.log("Already have location for " + callsign);
+            date = new Date(parseInt(callsign_location[callsign]['lasttime']) * 1000);
+            then = callsign_location[callsign]['last_updated'];
+            if (!callsign_location[callsign].hasOwnProperty('last_updated')) {
+                console.log("missing last_updated.  fetching new location")
+                msg = {'callsign': callsign};
+                socket.emit("get_callsign_location", msg);
+            } else {
+                timeout = 1000*60*1;
+                now = new Date();
+                if (now - then > timeout) {
+                    console.log("Location is old, requesting location for " + callsign);
+                    call_callsign_location(callsign);
+                }
+            }
+
+        }
+
+    }
+
 }
