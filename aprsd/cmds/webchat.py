@@ -282,9 +282,10 @@ def populate_callsign_location(callsign, data=None):
             except Exception:
                 alt = 0
             location_data = {
+                'callsign': callsign,
                 'lat': lat,
-                'long': lon,
-                'alt': alt,
+                'lon': lon,
+                'altitude': alt,
                 'lasttime': int(aprs_data["entries"][0]["lasttime"]),
                 'course': float(aprs_data["entries"][0].get("course", 0)),
                 'speed': float(aprs_data["entries"][0].get("speed", 0)),
@@ -295,6 +296,7 @@ def populate_callsign_location(callsign, data=None):
             return
         except Exception as ex:
             LOG.error(f"Failed to fetch aprs.fi '{ex}'")
+            LOG.error(ex)
             fallback = True
 
     if fallback:
@@ -347,8 +349,10 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
                 callsign_locations[callsign] = location_data
                 send_location_data_to_browser(location_data)
                 return
-        elif (from_call not in callsign_locations
-              and from_call not in callsign_no_track):
+        elif (
+            from_call not in callsign_locations
+            and from_call not in callsign_no_track
+        ):
             # We have to ask aprs for the location for the callsign
             # We send a message packet to wb4bor-11 asking for location.
             populate_callsign_location(from_call)
@@ -403,6 +407,12 @@ def _get_transport(stats):
     return transport, aprs_connection
 
 
+@flask_app.route("/location/<callsign>", methods=["POST"])
+def location(callsign):
+    LOG.debug(f"Fetch location for callsign {callsign}")
+    populate_callsign_location(callsign)
+
+
 @auth.login_required
 @flask_app.route("/")
 def index():
@@ -438,7 +448,7 @@ def index():
 
 
 @auth.login_required
-@flask_app.route("//send-message-status")
+@flask_app.route("/send-message-status")
 def send_message_status():
     LOG.debug(request)
     msgs = SentMessages()
@@ -552,6 +562,10 @@ class SendMessageNamespace(Namespace):
 
     def handle_json(self, data):
         LOG.debug(f"WS json {data}")
+
+    def on_get_callsign_location(self, data):
+        LOG.debug(f"on_callsign_location {data}")
+        populate_callsign_location(data["callsign"])
 
 
 def setup_logging(flask_app, loglevel, quiet):
