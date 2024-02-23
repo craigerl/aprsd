@@ -4,6 +4,7 @@ import errno
 import os
 import re
 import sys
+import traceback
 
 import update_checker
 
@@ -131,3 +132,21 @@ def parse_delta_str(s):
         return {key: float(val) for key, val in m.groupdict().items()}
     else:
         return {}
+
+
+def load_entry_points(group):
+    """Load all extensions registered to the given entry point group"""
+    print(f"Loading extensions for group {group}")
+    try:
+        import importlib_metadata
+    except ImportError:
+        # For python 3.10 and later
+        import importlib.metadata as importlib_metadata
+
+    eps = importlib_metadata.entry_points(group=group)
+    for ep in eps:
+        try:
+            ep.load()
+        except Exception as e:
+            print(f"Extension {ep.name} of group {group} failed to load with {e}", file=sys.stderr)
+            print(traceback.format_exc(), file=sys.stderr)

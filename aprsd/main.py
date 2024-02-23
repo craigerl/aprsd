@@ -59,20 +59,25 @@ click_completion.core.startswith = custom_startswith
 click_completion.init()
 
 
-@click.group(context_settings=CONTEXT_SETTINGS)
+@click.group(cls=cli_helper.AliasedGroup, context_settings=CONTEXT_SETTINGS)
 @click.version_option()
 @click.pass_context
 def cli(ctx):
     pass
 
 
-def main():
-    # First import all the possible commands for the CLI
-    # The commands themselves live in the cmds directory
+def load_commands():
     from .cmds import (  # noqa
         completion, dev, fetch_stats, healthcheck, list_plugins, listen,
         send_message, server, webchat,
     )
+
+
+def main():
+    # First import all the possible commands for the CLI
+    # The commands themselves live in the cmds directory
+    load_commands()
+    utils.load_entry_points("aprsd.extension")
     cli(auto_envvar_prefix="APRSD")
 
 
