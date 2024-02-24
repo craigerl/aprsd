@@ -20,7 +20,7 @@ gevent
 eventlet
 tabulate
 # Pinned due to gray needing 12.6.0
-rich==12.6.0
+rich~=12.6.0
 # For the list-plugins pypi.org search scraping
 beautifulsoup4
 wrapt
