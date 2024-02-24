@@ -58,12 +58,13 @@ class APRSDRXThread(APRSDThread):
         pass
 
 
-class APRSDPluginRXThread(APRSDRXThread):
+class APRSDDupeRXThread(APRSDRXThread):
     """Process received packets.
 
     This is the main APRSD Server command thread that
-    receives packets from APRIS and then sends them for
-    processing in the PluginProcessPacketThread.
+    receives packets and makes sure the packet
+    hasn't been seen previously before sending it on
+    to be processed.
     """
 
     def process_packet(self, *args, **kwargs):
@@ -116,6 +117,13 @@ class APRSDPluginRXThread(APRSDRXThread):
                 )
                 pkt_list.rx(packet)
                 self.packet_queue.put(packet)
+
+
+class APRSDPluginRXThread(APRSDDupeRXThread):
+    """"Process received packets.
+
+    For backwards compatibility, we keep the APRSDPluginRXThread.
+    """
 
 
 class APRSDProcessPacketThread(APRSDThread):

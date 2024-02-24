@@ -37,6 +37,8 @@ msg_throttle_decorator = decorator.ThrottleDecorator(throttle=msg_t)
 ack_throttle_decorator = decorator.ThrottleDecorator(throttle=ack_t)
 
 
+
+@msg_throttle_decorator.sleep_and_retry
 def send(packet: core.Packet, direct=False, aprs_client=None):
     """Send a packet either in a thread or directly to the client."""
     # prepare the packet for sending.
