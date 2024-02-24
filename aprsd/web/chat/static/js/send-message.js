@@ -580,35 +580,3 @@ function call_callsign_location(callsign) {
     location_id = callsign_location_content(callsign, true)+"Spinner";
     $(location_id).removeClass('d-none');
 }
-
-function checkcallsign_locations() {
-    console.log("Checking callsign locations");
-    for (callsign in callsign_list) {
-        console.log("Checking location for " + callsign);
-        console.log(callsign_location[callsign]);
-        if (!callsign_location.hasOwnProperty(callsign)) {
-            console.log("Requesting location for " + callsign);
-            msg = {'callsign': callsign};
-            socket.emit("get_callsign_location", msg);
-        } else {
-            console.log("Already have location for " + callsign);
-            date = new Date(parseInt(callsign_location[callsign]['lasttime']) * 1000);
-            then = callsign_location[callsign]['last_updated'];
-            if (!callsign_location[callsign].hasOwnProperty('last_updated')) {
-                console.log("missing last_updated.  fetching new location")
-                msg = {'callsign': callsign};
-                socket.emit("get_callsign_location", msg);
-            } else {
-                timeout = 1000*60*1;
-                now = new Date();
-                if (now - then > timeout) {
-                    console.log("Location is old, requesting location for " + callsign);
-                    call_callsign_location(callsign);
-                }
-            }
-
-        }
-
-    }
-
-}
