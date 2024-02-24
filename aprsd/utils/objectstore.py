@@ -28,6 +28,9 @@ class ObjectStoreMixin:
     def __len__(self):
         return len(self.data)
 
+    def __iter__(self):
+        return iter(self.data)
+
     def get_all(self):
         with self.lock:
             return self.data
@@ -96,11 +99,15 @@ class ObjectStoreMixin:
                         LOG.debug(
                             f"{self.__class__.__name__}::Loaded {len(self)} entries from disk.",
                         )
-                        LOG.debug(f"{self.data}")
+                        #LOG.debug(f"{self.data}")
+                    else:
+                        LOG.debug(f"{self.__class__.__name__}::No data to load.")
             except (pickle.UnpicklingError, Exception) as ex:
                 LOG.error(f"Failed to UnPickle {self._save_filename()}")
                 LOG.error(ex)
                 self.data = {}
+        else:
+            LOG.debug(f"{self.__class__.__name__}::No save file found.")
 
     def flush(self):
         """Nuke the old pickle file that stored the old results from last aprsd run."""
