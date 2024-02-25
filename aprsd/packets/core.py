@@ -466,6 +466,26 @@ class GPSPacket(Packet):
         )
 
 
+@dataclass(unsafe_hash=True)
+class BeaconPacket(GPSPacket):
+    def _build_payload(self):
+        """The payload is the non headers portion of the packet."""
+        time_zulu = self._build_time_zulu()
+        lat = self.convert_latitude(self.latitude)
+        long = self.convert_longitude(self.longitude)
+
+        self.payload = (
+            f"@{time_zulu}z{lat}{self.symbol_table}"
+            f"{long}{self.symbol}APRSD Beacon"
+        )
+
+    def _build_raw(self):
+        self.raw = (
+            f"{self.from_call}>APZ100:"
+            f"{self.payload}"
+        )
+
+
 @dataclass
 class MicEPacket(GPSPacket):
     messagecapable: bool = False

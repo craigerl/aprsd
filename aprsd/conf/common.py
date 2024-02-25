@@ -70,6 +70,32 @@ aprsd_opts = [
         default=60,
         help="The number of seconds before a packet is not considered a duplicate.",
     ),
+    cfg.BoolOpt(
+        "enable_beacon",
+        default=False,
+        help="Enable sending of a GPS Beacon packet to locate this service. "
+             "Requires latitude and longitude to be set.",
+    ),
+    cfg.IntOpt(
+        "beacon_interval",
+        default=600,
+        help="The number of seconds between beacon packets.",
+    ),
+    cfg.StrOpt(
+        "beacon_symbol",
+        default="/",
+        help="The symbol to use for the GPS Beacon packet. See: http://www.aprs.net/vm/DOS/SYMBOLS.HTM",
+    ),
+    cfg.StrOpt(
+        "latitude",
+        default=None,
+        help="Latitude for the GPS Beacon button.  If not set, the button will not be enabled.",
+    ),
+    cfg.StrOpt(
+        "longitude",
+        default=None,
+        help="Longitude for the GPS Beacon button.  If not set, the button will not be enabled.",
+    ),
 ]
 
 watch_list_opts = [

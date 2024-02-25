@@ -11,7 +11,7 @@ from aprsd import main as aprsd_main
 from aprsd import packets, plugin, threads, utils
 from aprsd.main import cli
 from aprsd.rpc import server as rpc_server
-from aprsd.threads import rx
+from aprsd.threads import rx, tx
 
 
 CONF = cfg.CONF
@@ -107,6 +107,10 @@ def server(ctx, flush):
     process_thread.start()
 
     packets.PacketTrack().restart()
+    if CONF.enable_beacon:
+        LOG.info("Beacon Enabled.  Starting Beacon thread.")
+        bcn_thread = tx.BeaconSendThread()
+        bcn_thread.start()
 
     if CONF.rpc_settings.enabled:
         rpc = rpc_server.APRSDRPCThread()

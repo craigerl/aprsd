@@ -37,7 +37,6 @@ msg_throttle_decorator = decorator.ThrottleDecorator(throttle=msg_t)
 ack_throttle_decorator = decorator.ThrottleDecorator(throttle=ack_t)
 
 
-
 @msg_throttle_decorator.sleep_and_retry
 def send(packet: core.Packet, direct=False, aprs_client=None):
     """Send a packet either in a thread or directly to the client."""
@@ -195,4 +194,39 @@ class SendAckThread(aprsd_threads.APRSDThread):
 
         time.sleep(1)
         self.loop_count += 1
+        return True
+
+
+class BeaconSendThread(aprsd_threads.APRSDThread):
+    """Thread that sends a GPS beacon packet periodically.
+
+    Settings are in the [DEFAULT] section of the config file.
+    """
+    _loop_cnt: int = 1
+
+    def __init__(self):
+        super().__init__("BeaconSendThread")
+        self._loop_cnt = 1
+        # Make sure Latitude and Longitude are set.
+        if not CONF.latitude or not CONF.longitude:
+            LOG.error(
+                "Latitude and Longitude are not set in the config file."
+                "Beacon will not be sent and thread is STOPPED.",
+            )
+            self.stop()
+
+    def loop(self):
+        # Only dump out the stats every N seconds
+        if self._loop_cnt % CONF.beacon_interval == 0:
+            pkt = core.BeaconPacket(
+                from_call=CONF.callsign,
+                to_call="APRS",
+                latitude=float(CONF.latitude),
+                longitude=float(CONF.longitude),
+                comment="APRSD GPS Beacon",
+                symbol=CONF.beacon_symbol,
+            )
+            send(pkt, direct=True)
+        self._loop_cnt += 1
+        time.sleep(1)
         return True

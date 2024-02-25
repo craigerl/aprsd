@@ -1,9 +1,8 @@
+import click
 from functools import update_wrapper
 import logging
 from pathlib import Path
 import typing as t
-
-import click
 from oslo_config import cfg
 
 import aprsd
@@ -48,9 +47,6 @@ common_options = [
         help="Don't log to stdout",
     ),
 ]
-
-
-import click
 
 
 class AliasedGroup(click.Group):
