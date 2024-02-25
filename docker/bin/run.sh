@@ -13,6 +13,18 @@ if [ ! -z "${APRSD_PLUGINS}" ]; then
     done
 fi
 
+if [ ! -z "${APRSD_EXTENSIONS}" ]; then
+    OLDIFS=$IFS
+    IFS=','
+    echo "Installing APRSD extensions from pypi '$APRSD_EXTENSIONS'";
+    for extension in ${APRSD_EXTENSIONS}; do
+        IFS=$OLDIFS
+        # call your procedure/other scripts here below
+        echo "Installing '$extension'"
+        pip3 install --user $extension
+    done
+fi
+
 if [ -z "${LOG_LEVEL}" ] || [[ ! "${LOG_LEVEL}" =~ ^(CRITICAL|ERROR|WARNING|INFO)$ ]]; then
     LOG_LEVEL="DEBUG"
 fi
