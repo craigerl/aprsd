@@ -112,7 +112,6 @@ class Aprsdis(aprslib.IS):
             self._sendall(login_str)
             self.sock.settimeout(5)
             test = self.sock.recv(len(login_str) + 100)
-            self.logger.debug("Server: '%s'", test)
             if is_py3:
                 test = test.decode("latin-1")
             test = test.rstrip()

@@ -25,7 +25,7 @@ TRANSPORT_FAKE = "fake"
 factory = None
 
 
-class Client(metaclass=trace.TraceWrapperMetaclass):
+class Client:
     """Singleton client class that constructs the aprslib connection."""
 
     _instance = None
@@ -90,7 +90,7 @@ class Client(metaclass=trace.TraceWrapperMetaclass):
         pass
 
 
-class APRSISClient(Client, metaclass=trace.TraceWrapperMetaclass):
+class APRSISClient(Client):
 
     _client = None
 
@@ -175,7 +175,7 @@ class APRSISClient(Client, metaclass=trace.TraceWrapperMetaclass):
         return aprs_client
 
 
-class KISSClient(Client, metaclass=trace.TraceWrapperMetaclass):
+class KISSClient(Client):
 
     _client = None
 

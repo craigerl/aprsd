@@ -148,7 +148,6 @@ class Packet(metaclass=abc.ABCMeta):
             self.from_call,
             self.payload,
         )
-        LOG.debug(f"_build_raw: payload '{self.payload}' raw '{self.raw}'")
 
     @staticmethod
     def factory(raw_packet):
