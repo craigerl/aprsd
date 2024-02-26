@@ -24,6 +24,11 @@ webchat_group = cfg.OptGroup(
     title="Settings specific to the webchat command",
 )
 
+registry_group = cfg.OptGroup(
+    name="aprs_registry",
+    title="APRS Registry settings",
+)
+
 
 aprsd_opts = [
     cfg.StrOpt(
@@ -222,6 +227,39 @@ webchat_opts = [
     ),
 ]
 
+registry_opts = [
+    cfg.StrOpt(
+        "enabled",
+        default=False,
+        help="Enable sending aprs registry information.  This will let the "
+             "APRS registry know about your service and it's uptime.  "
+             "No personal information is sent, just the callsign, uptime and description. "
+             "The service callsign is the callsign set in [DEFAULT] section.",
+    ),
+    cfg.StrOpt(
+        "description",
+        default=None,
+        help="Description of the service to send to the APRS registry. "
+             "This is what will show up in the APRS registry."
+             "If not set, the description will be the same as the callsign.",
+    ),
+    cfg.StrOpt(
+        "registry_url",
+        default="https://aprs.hemna.com",
+        help="The APRS registry domain name to send the information to.",
+    ),
+    cfg.StrOpt(
+        "service_website",
+        default=None,
+        help="The website for your APRS service to send to the APRS registry.",
+    ),
+    cfg.StrOpt(
+        "frequency_seconds",
+        default=900,
+        help="The frequency in seconds to send the APRS registry information.",
+    ),
+]
+
 
 def register_opts(config):
     config.register_opts(aprsd_opts)
@@ -234,6 +272,8 @@ def register_opts(config):
     config.register_opts(rpc_opts, group=rpc_group)
     config.register_group(webchat_group)
     config.register_opts(webchat_opts, group=webchat_group)
+    config.register_group(registry_group)
+    config.register_opts(registry_opts, group=registry_group)
 
 
 def list_opts():
@@ -243,4 +283,5 @@ def list_opts():
         watch_list_group.name: watch_list_opts,
         rpc_group.name: rpc_opts,
         webchat_group.name: webchat_opts,
+        registry_group.name: registry_opts,
     }
