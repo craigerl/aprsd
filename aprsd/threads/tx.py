@@ -214,6 +214,10 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
                 "Beacon will not be sent and thread is STOPPED.",
             )
             self.stop()
+        LOG.info(
+            "Beacon thread is running and will send "
+            f"beacons every {CONF.beacon_interval} seconds.",
+        )
 
     def loop(self):
         # Only dump out the stats every N seconds

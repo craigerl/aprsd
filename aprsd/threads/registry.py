@@ -26,6 +26,11 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
                 "APRS Registry thread is STOPPING.",
             )
             self.stop()
+        LOG.info(
+            "APRS Registry thread is running and will send "
+            f"info every {CONF.aprs_registry.frequency_seconds} seconds "
+            f"to {CONF.aprs_registry.registry_url}.",
+        )
 
     def loop(self):
         # Only call the registry every N seconds
