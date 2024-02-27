@@ -253,7 +253,7 @@ registry_opts = [
         default=None,
         help="The website for your APRS service to send to the APRS registry.",
     ),
-    cfg.StrOpt(
+    cfg.IntOpt(
         "frequency_seconds",
         default=900,
         help="The frequency in seconds to send the APRS registry information.",
