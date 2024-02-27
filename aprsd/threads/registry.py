@@ -10,6 +10,7 @@ from aprsd import threads as aprsd_threads
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
+
 class APRSRegistryThread(aprsd_threads.APRSDThread):
     """This sends service information to the configured APRS Registry."""
     _loop_cnt: int = 1
@@ -34,7 +35,7 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
                 "description": CONF.registry.description,
                 "service_website": CONF.registry.service_website,
                 "software": f"APRSD version {aprsd.__version__} "
-                             "https://github.com/craigerl/aprsd",
+                            "https://github.com/craigerl/aprsd",
             }
             try:
                 requests.post(

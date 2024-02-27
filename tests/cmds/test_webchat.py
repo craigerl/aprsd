@@ -56,17 +56,20 @@ class TestSendMessageCommand(unittest.TestCase):
             msg_number=1,
             message_format=core.PACKET_TYPE_ACK,
         )
+        mock_queue = mock.MagicMock()
         socketio = mock.MagicMock()
-        wcp = webchat.WebChatProcessPacketThread(packet, socketio)
+        wcp = webchat.WebChatProcessPacketThread(mock_queue, socketio)
 
         wcp.process_ack_packet(packet)
         mock_remove.called_once()
         mock_socketio.called_once()
 
+    @mock.patch("aprsd.threads.tx.send")
     @mock.patch("aprsd.packets.PacketList.rx")
     @mock.patch("aprsd.cmds.webchat.socketio")
     def test_process_our_message_packet(
         self,
+        mock_tx_send,
         mock_packet_add,
         mock_socketio,
     ):
@@ -77,8 +80,9 @@ class TestSendMessageCommand(unittest.TestCase):
             msg_number=1,
             message_format=core.PACKET_TYPE_MESSAGE,
         )
+        mock_queue = mock.MagicMock()
         socketio = mock.MagicMock()
-        wcp = webchat.WebChatProcessPacketThread(packet, socketio)
+        wcp = webchat.WebChatProcessPacketThread(mock_queue, socketio)
 
         wcp.process_our_message_packet(packet)
         mock_packet_add.called_once()
