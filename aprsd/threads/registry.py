@@ -18,7 +18,7 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
     def __init__(self):
         super().__init__("APRSRegistryThread")
         self._loop_cnt = 1
-        if not CONF.registry.enabled:
+        if not CONF.aprs_registry.enabled:
             LOG.error(
                 "APRS Registry is not enabled.  ",
             )
@@ -29,17 +29,17 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
 
     def loop(self):
         # Only call the registry every N seconds
-        if self._loop_cnt % CONF.registry.frequency_seconds == 0:
+        if self._loop_cnt % CONF.aprs_registry.frequency_seconds == 0:
             info = {
                 "callsign": CONF.callsign,
-                "description": CONF.registry.description,
-                "service_website": CONF.registry.service_website,
+                "description": CONF.aprs_registry.description,
+                "service_website": CONF.aprs_registry.service_website,
                 "software": f"APRSD version {aprsd.__version__} "
                             "https://github.com/craigerl/aprsd",
             }
             try:
                 requests.post(
-                    f"{CONF.registry.registry_url}/api/v1/register",
+                    f"{CONF.aprs_registry.registry_url}/api/v1/register",
                     json=info,
                 )
             except Exception as e:
