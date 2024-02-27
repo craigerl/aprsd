@@ -3,6 +3,7 @@ import logging
 from oslo_config import cfg
 import requests
 
+import aprsd
 from aprsd import stats
 from aprsd import threads as aprsd_threads
 
@@ -34,6 +35,8 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
                 "description": CONF.registry.description,
                 "service_website": CONF.registry.service_website,
                 "uptime": stats.APRSDStats().uptime,
+                "software": f"APRSD version {aprsd.__version__} "
+                             "https://github.com/craigerl/aprsd",
             }
             try:
                 requests.post(
