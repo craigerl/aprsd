@@ -72,7 +72,7 @@ aprsd_opts = [
     ),
     cfg.IntOpt(
         "packet_dupe_timeout",
-        default=60,
+        default=300,
         help="The number of seconds before a packet is not considered a duplicate.",
     ),
     cfg.BoolOpt(
