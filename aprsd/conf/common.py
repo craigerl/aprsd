@@ -245,7 +245,7 @@ registry_opts = [
     ),
     cfg.StrOpt(
         "registry_url",
-        default="https://aprs.hemna.com",
+        default="https://aprs.hemna.com/api/v1/registry",
         help="The APRS registry domain name to send the information to.",
     ),
     cfg.StrOpt(
