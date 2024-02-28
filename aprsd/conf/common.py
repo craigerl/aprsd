@@ -83,7 +83,7 @@ aprsd_opts = [
     ),
     cfg.IntOpt(
         "beacon_interval",
-        default=600,
+        default=1800,
         help="The number of seconds between beacon packets.",
     ),
     cfg.StrOpt(
@@ -255,7 +255,7 @@ registry_opts = [
     ),
     cfg.IntOpt(
         "frequency_seconds",
-        default=900,
+        default=3600,
         help="The frequency in seconds to send the APRS registry information.",
     ),
 ]
