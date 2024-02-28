@@ -89,6 +89,7 @@ def get_module_info(package_name, module_name, module_path):
 
     return obj_list
 
+
 def _get_installed_aprsd_items():
     # installed plugins
     plugins = {}
@@ -108,11 +109,12 @@ def _get_installed_aprsd_items():
     return plugins, extensions
 
 
-
 def get_installed_plugins():
     # installed plugins
     plugins, extensions = _get_installed_aprsd_items()
     return plugins
+
+
 def get_installed_extensions():
     # installed plugins
     plugins, extensions = _get_installed_aprsd_items()
@@ -216,6 +218,7 @@ def show_pypi_plugins(installed_plugins, console):
     console.print("\n")
     console.print(table)
 
+
 def show_pypi_extensions(installed_extensions, console):
     snippets = _get_pypi_packages()
 
@@ -314,6 +317,3 @@ def list_extensions(ctx):
         status.update("Fetching pypi.org APRSD Extensions")
         installed_extensions = get_installed_extensions()
         show_pypi_extensions(installed_extensions, console)
-
-        status.update("Looking for installed APRSD plugins")
-        #show_installed_extensions(installed_plugins, console)

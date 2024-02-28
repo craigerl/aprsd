@@ -1,6 +1,38 @@
 CHANGES
 =======
 
+v3.3.0
+------
+
+* Change defaults for beacon and registry
+* Add log info for Beacon and Registry threads
+* fixed frequency\_seconds to IntOpt
+* fixed references to conf
+* changed the default packet timeout to 5 minutes
+* Fixed default service registry url
+* fix pep8 failures
+* py311 fails in github
+* Don't send uptime to registry
+* Added sending software string to registry
+* add py310 gh actions
+* Added the new APRS Registry thread
+* Added installing extensions to Docker run
+* Cleanup some logs
+* Added BeaconPacket
+* updated requirements files
+* removed some unneeded code
+* Added iterator to objectstore
+* Added some missing classes to threads
+* Added support for loading extensions
+* Added location for callsign tabs in webchat
+* updated gitignore
+* Create codeql.yml
+* update github action branchs to v8
+* Added Location info on webchat interface
+* Updated dev test-plugin command
+* Update requirements.txt
+* Update for v3.2.3
+
 v3.2.3
 ------
 
