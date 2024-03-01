@@ -37,3 +37,4 @@ shellingham
 geopy
 rush
 dataclasses-json
+loguru

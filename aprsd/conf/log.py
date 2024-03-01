@@ -20,21 +20,19 @@ DEFAULT_LOG_FORMAT = (
     " %(message)s - [%(pathname)s:%(lineno)d]"
 )
 
+DEFAULT_LOG_FORMAT = (
+    "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+    "<level>{level: <8}</level> | "
+    "<yellow>{thread.name: <18}</yellow> | "
+    "<level>{message}</level> | "
+    "<cyan>{name}</cyan>:<cyan>{function:}</cyan>:<magenta>{line:}</magenta>"
+)
+
 logging_group = cfg.OptGroup(
     name="logging",
     title="Logging options",
 )
 logging_opts = [
-    cfg.StrOpt(
-        "date_format",
-        default=DEFAULT_DATE_FORMAT,
-        help="Date format for log entries",
-    ),
-    cfg.BoolOpt(
-        "rich_logging",
-        default=True,
-        help="Enable Rich log",
-    ),
     cfg.StrOpt(
         "logfile",
         default=None,
