@@ -1,7 +1,6 @@
 import datetime
 import json
 import logging
-from logging.handlers import RotatingFileHandler
 import math
 import signal
 import sys
@@ -12,7 +11,6 @@ from aprslib import util as aprslib_util
 import click
 import flask
 from flask import request
-from flask.logging import default_handler
 from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
 from geopy.distance import geodesic
@@ -21,11 +19,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import wrapt
 
 import aprsd
-from aprsd import cli_helper, client, conf, packets, stats, threads, utils, plugin_utils
-from aprsd.log import rich as aprsd_logging
+from aprsd import (
+    cli_helper, client, packets, plugin_utils, stats, threads, utils,
+)
+from aprsd.log import log
 from aprsd.main import cli
-from aprsd.threads import rx, tx
 from aprsd.threads import aprsd as aprsd_threads
+from aprsd.threads import rx, tx
 from aprsd.utils import trace
 
 
@@ -181,7 +181,7 @@ def _build_location_from_repeat(message):
     a = message.split(":")
     LOG.warning(a)
     if len(a) == 2:
-        callsign = a[0].replace('^ld^', '')
+        callsign = a[0].replace("^ld^", "")
         b = a[1].split(",")
         LOG.warning(b)
         if len(b) == 6:
@@ -282,13 +282,13 @@ def populate_callsign_location(callsign, data=None):
             except Exception:
                 alt = 0
             location_data = {
-                'callsign': callsign,
-                'lat': lat,
-                'lon': lon,
-                'altitude': alt,
-                'lasttime': int(aprs_data["entries"][0]["lasttime"]),
-                'course': float(aprs_data["entries"][0].get("course", 0)),
-                'speed': float(aprs_data["entries"][0].get("speed", 0)),
+                "callsign": callsign,
+                "lat": lat,
+                "lon": lon,
+                "altitude": alt,
+                "lasttime": int(aprs_data["entries"][0]["lasttime"]),
+                "course": float(aprs_data["entries"][0].get("course", 0)),
+                "speed": float(aprs_data["entries"][0].get("speed", 0)),
             }
             location_data = _calculate_location_data(location_data)
             callsign_locations[callsign] = location_data
@@ -339,7 +339,7 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         # ok lets see if we have the location for the
         # person we just sent a message to.
         from_call = packet.get("from_call").upper()
-        if from_call == 'REPEAT':
+        if from_call == "REPEAT":
             # We got a message from REPEAT.  Is this a location message?
             message = packet.get("message_text")
             if message.startswith("^ld^"):
@@ -568,52 +568,16 @@ class SendMessageNamespace(Namespace):
         populate_callsign_location(data["callsign"])
 
 
-def setup_logging(flask_app, loglevel, quiet):
-    flask_log = logging.getLogger("werkzeug")
-    flask_app.logger.removeHandler(default_handler)
-    flask_log.removeHandler(default_handler)
-
-    log_level = conf.log.LOG_LEVELS[loglevel]
-    flask_log.setLevel(log_level)
-    date_format = CONF.logging.date_format
-
-    if CONF.logging.rich_logging and not quiet:
-        log_format = "%(message)s"
-        log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
-        rh = aprsd_logging.APRSDRichHandler(
-            show_thread=True, thread_width=15,
-            rich_tracebacks=True, omit_repeated_times=False,
-        )
-        rh.setFormatter(log_formatter)
-        flask_log.addHandler(rh)
-
-    log_file = CONF.logging.logfile
-
-    if log_file:
-        log_format = CONF.logging.logformat
-        log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
-        fh = RotatingFileHandler(
-            log_file, maxBytes=(10248576 * 5),
-            backupCount=4,
-        )
-        fh.setFormatter(log_formatter)
-        flask_log.addHandler(fh)
-
-
 @trace.trace
 def init_flask(loglevel, quiet):
     global socketio, flask_app
 
-    setup_logging(flask_app, loglevel, quiet)
+    log.setup_logging(loglevel, quiet)
 
     socketio = SocketIO(
         flask_app, logger=False, engineio_logger=False,
         async_mode="threading",
     )
-    # async_mode="gevent",
-    # async_mode="eventlet",
-    #    import eventlet
-    #    eventlet.monkey_patch()
 
     socketio.on_namespace(
         SendMessageNamespace(
