@@ -30,7 +30,7 @@ attrs
 dataclasses
 dacite2
 oslo.config
-rpyc
+rpyc>=6.0.0
 # Pin this here so it doesn't require a compile on
 # raspi
 shellingham
