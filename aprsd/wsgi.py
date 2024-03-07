@@ -3,12 +3,10 @@ import importlib.metadata as imp
 import io
 import json
 import logging
-from logging.handlers import RotatingFileHandler
 import time
 
 import flask
 from flask import Flask
-from flask.logging import default_handler
 from flask_httpauth import HTTPBasicAuth
 from oslo_config import cfg, generator
 import socketio
@@ -16,7 +14,7 @@ from werkzeug.security import check_password_hash
 
 import aprsd
 from aprsd import cli_helper, client, conf, packets, plugin, threads
-from aprsd.log import rich as aprsd_logging
+from aprsd.log import log
 from aprsd.rpc import client as aprsd_rpc_client
 
 
@@ -314,39 +312,6 @@ class LoggingNamespace(socketio.Namespace):
             self.log_thread.stop()
 
 
-def setup_logging(flask_app, loglevel):
-    global app, LOG
-    log_level = conf.log.LOG_LEVELS[loglevel]
-    app.logger.setLevel(log_level)
-    flask_app.logger.removeHandler(default_handler)
-
-    date_format = CONF.logging.date_format
-
-    if CONF.logging.rich_logging:
-        log_format = "%(message)s"
-        log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
-        rh = aprsd_logging.APRSDRichHandler(
-            show_thread=True, thread_width=15,
-            rich_tracebacks=True, omit_repeated_times=False,
-        )
-        rh.setFormatter(log_formatter)
-        app.logger.addHandler(rh)
-
-    log_file = CONF.logging.logfile
-
-    if log_file:
-        log_format = CONF.logging.logformat
-        log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
-        fh = RotatingFileHandler(
-            log_file, maxBytes=(10248576 * 5),
-            backupCount=4,
-        )
-        fh.setFormatter(log_formatter)
-        app.logger.addHandler(fh)
-
-    LOG = app.logger
-
-
 def init_app(config_file=None, log_level=None):
     default_config_file = cli_helper.DEFAULT_CONFIG_FILE
     if not config_file:
@@ -368,7 +333,7 @@ if __name__ == "__main__":
     sio = socketio.Server(logger=True, async_mode=async_mode)
     app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
     log_level = init_app(log_level="DEBUG")
-    setup_logging(app, log_level)
+    log.setup_logging(app, log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
     CONF.log_opt_values(LOG, logging.DEBUG)
     app.run(
@@ -392,7 +357,7 @@ if __name__ == "uwsgi_file_aprsd_wsgi":
         # Commented out for local development.
         # config_file=cli_helper.DEFAULT_CONFIG_FILE
     )
-    setup_logging(app, log_level)
+    log.setup_logging(app, log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
     CONF.log_opt_values(LOG, logging.DEBUG)
 
@@ -410,6 +375,6 @@ if __name__ == "aprsd.wsgi":
         config_file="/config/aprsd.conf",
         # config_file=cli_helper.DEFAULT_CONFIG_FILE,
     )
-    setup_logging(app, log_level)
+    log.setup_logging(app, log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
     CONF.log_opt_values(LOG, logging.DEBUG)
