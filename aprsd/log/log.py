@@ -45,11 +45,24 @@ def setup_logging(loglevel=None, quiet=False):
     logging.root.handlers = [InterceptHandler()]
     logging.root.setLevel(log_level)
 
+    imap_list = [
+        "imapclient.imaplib", "imaplib", "imapclient",
+        "imapclient.util",
+    ]
+    aprslib_list = [
+        "aprslib",
+        "aprslib.parsing",
+        "aprslib.exceptions",
+    ]
+
+    # We don't really want to see the aprslib parsing debug output.
+    disable_list = imap_list + aprslib_list
+
     # remove every other logger's handlers
     # and propagate to root logger
     for name in logging.root.manager.loggerDict.keys():
         logging.getLogger(name).handlers = []
-        if name in ["imapclient.imaplib", "imaplib", "imapclient", "imapclient.util"]:
+        if name in disable_list:
             logging.getLogger(name).propagate = False
         else:
             logging.getLogger(name).propagate = True
@@ -69,11 +82,7 @@ def setup_logging(loglevel=None, quiet=False):
         )
 
     if CONF.email_plugin.enabled and CONF.email_plugin.debug:
-        imaps = [
-            "imapclient.imaplib", "imaplib", "imapclient",
-            "imapclient.util",
-        ]
-        for name in imaps:
+        for name in imap_list:
             logging.getLogger(name).propagate = True
 
     if CONF.admin.web_enabled:
