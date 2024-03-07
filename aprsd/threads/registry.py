@@ -1,4 +1,5 @@
 import logging
+import time
 
 from oslo_config import cfg
 import requests
@@ -50,4 +51,5 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
             except Exception as e:
                 LOG.error(f"Failed to send registry info: {e}")
 
+        time.sleep(1)
         return True
