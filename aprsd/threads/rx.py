@@ -165,7 +165,7 @@ class APRSDProcessPacketThread(APRSDThread):
 
     def process_packet(self, packet):
         """Process a packet received from aprs-is server."""
-        LOG.debug(f"RXPKT-LOOP {self._loop_cnt}")
+        LOG.debug(f"ProcessPKT-LOOP {self._loop_cnt}")
         our_call = CONF.callsign.lower()
 
         from_call = packet.from_call
@@ -210,7 +210,7 @@ class APRSDProcessPacketThread(APRSDThread):
                 self.process_other_packet(
                     packet, for_us=(to_call.lower() == our_call),
                 )
-        LOG.debug("Packet processing complete")
+        LOG.debug(f"Packet processing complete for pkt '{packet.key}'")
         return False
 
     @abc.abstractmethod
