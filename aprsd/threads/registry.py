@@ -52,4 +52,5 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
                 LOG.error(f"Failed to send registry info: {e}")
 
         time.sleep(1)
+        self._loop_cnt += 1
         return True
