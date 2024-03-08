@@ -45,7 +45,7 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
             }
             try:
                 requests.post(
-                    f"{CONF.aprs_registry.registry_url}/api/v1/register",
+                    f"{CONF.aprs_registry.registry_url}",
                     json=info,
                 )
             except Exception as e:
