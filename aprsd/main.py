@@ -125,12 +125,7 @@ def sample_config(ctx):
     def get_namespaces():
         args = []
 
-        all = imp.entry_points()
-        selected = []
-        if "oslo.config.opts" in all:
-            for x in all["oslo.config.opts"]:
-                if x.group == "oslo.config.opts":
-                    selected.append(x)
+        selected = imp.entry_points(group="oslo.config.opts")
         for entry in selected:
             if "aprsd" in entry.name:
                 args.append("--namespace")
