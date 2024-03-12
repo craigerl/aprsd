@@ -4,6 +4,18 @@ CHANGES
 v3.3.0
 ------
 
+* sample-config fix
+* Fixed registry url post
+* Changed processpkt message
+* Fixed RegistryThread not sending requests
+* use log.setup\_logging
+* Disable debug logs for aprslib
+* Make registry thread sleep
+* Put threads first after date/time
+* Replace slow rich logging with loguru
+* Updated requirements
+* Fixed pep8
+* Added list-extensions and updated README.rst
 * Change defaults for beacon and registry
 * Add log info for Beacon and Registry threads
 * fixed frequency\_seconds to IntOpt
