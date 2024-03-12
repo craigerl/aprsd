@@ -58,7 +58,11 @@ def fetch_stats(ctx, host, port, magic_word):
     with console.status(msg):
         client = rpc_client.RPCClient(host, port, magic_word)
         stats = client.get_stats_dict()
-        console.print_json(data=stats)
+        if stats:
+            console.print_json(data=stats)
+        else:
+            LOG.error(f"Failed to fetch stats via RPC aprsd server at {host}:{port}")
+            return
     aprsd_title = (
         "APRSD "
         f"[bold cyan]v{stats['aprsd']['version']}[/] "
