@@ -1,9 +1,16 @@
 CHANGES
 =======
 
+v3.3.1
+------
+
+* Fixed failure with fetch-stats
+* Fixed problem with list-plugins
+
 v3.3.0
 ------
 
+* Changelog for 3.3.0
 * sample-config fix
 * Fixed registry url post
 * Changed processpkt message
