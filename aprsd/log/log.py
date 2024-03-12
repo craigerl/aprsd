@@ -1,5 +1,4 @@
 import logging
-from logging import NullHandler
 from logging.handlers import QueueHandler
 import queue
 import sys
@@ -96,20 +95,3 @@ def setup_logging(loglevel=None, quiet=False):
 
     # configure loguru
     logger.configure(handlers=handlers)
-
-
-def setup_logging_no_config(loglevel, quiet):
-    log_level = conf.log.LOG_LEVELS[loglevel]
-    LOG.setLevel(log_level)
-    log_format = CONF.logging.logformat
-    date_format = CONF.logging.date_format
-    log_formatter = logging.Formatter(fmt=log_format, datefmt=date_format)
-    fh = NullHandler()
-
-    fh.setFormatter(log_formatter)
-    LOG.addHandler(fh)
-
-    if not quiet:
-        sh = logging.StreamHandler(sys.stdout)
-        sh.setFormatter(log_formatter)
-        LOG.addHandler(sh)

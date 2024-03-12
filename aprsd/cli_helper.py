@@ -1,8 +1,9 @@
-import click
 from functools import update_wrapper
 import logging
 from pathlib import Path
 import typing as t
+
+import click
 from oslo_config import cfg
 
 import aprsd
@@ -58,7 +59,7 @@ class AliasedGroup(click.Group):
         Copied from `click` and extended for `aliases`.
         """
         def decorator(f):
-            aliases = kwargs.pop('aliases', [])
+            aliases = kwargs.pop("aliases", [])
             cmd = click.decorators.command(*args, **kwargs)(f)
             self.add_command(cmd)
             for alias in aliases:
@@ -74,7 +75,7 @@ class AliasedGroup(click.Group):
         Copied from `click` and extended for `aliases`.
         """
         def decorator(f):
-            aliases = kwargs.pop('aliases', [])
+            aliases = kwargs.pop("aliases", [])
             cmd = click.decorators.group(*args, **kwargs)(f)
             self.add_command(cmd)
             for alias in aliases:
@@ -137,7 +138,7 @@ def process_standard_options_no_config(f: F) -> F:
         ctx.obj["loglevel"] = kwargs["loglevel"]
         ctx.obj["config_file"] = kwargs["config_file"]
         ctx.obj["quiet"] = kwargs["quiet"]
-        log.setup_logging_no_config(
+        log.setup_logging(
             ctx.obj["loglevel"],
             ctx.obj["quiet"],
         )
