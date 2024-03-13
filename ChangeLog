@@ -1,9 +1,16 @@
 CHANGES
 =======
 
+v3.3.2
+------
+
+* Remove warning during sample-config
+* Removed print in utils
+
 v3.3.1
 ------
 
+* Updates for 3.3.1
 * Fixed failure with fetch-stats
 * Fixed problem with list-plugins
 
