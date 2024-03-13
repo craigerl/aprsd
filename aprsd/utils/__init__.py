@@ -19,7 +19,7 @@ from .ring_buffer import RingBuffer  # noqa: F401
 if sys.version_info.major == 3 and sys.version_info.minor >= 3:
     from collections.abc import MutableMapping
 else:
-    from collections import MutableMapping
+    from collections.abc import MutableMapping
 
 
 def env(*vars, **kwargs):
@@ -136,7 +136,6 @@ def parse_delta_str(s):
 
 def load_entry_points(group):
     """Load all extensions registered to the given entry point group"""
-    print(f"Loading extensions for group {group}")
     try:
         import importlib_metadata
     except ImportError:
