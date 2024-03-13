@@ -145,7 +145,6 @@ def sample_config(ctx):
         if not sys.argv[1:]:
             raise SystemExit
         raise
-    LOG.warning(conf.namespace)
     generator.generate(conf)
     return
 
