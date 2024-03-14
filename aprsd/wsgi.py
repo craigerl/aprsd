@@ -353,7 +353,7 @@ if __name__ == "uwsgi_file_aprsd_wsgi":
     app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
     log_level = init_app(
         log_level="DEBUG",
-        config_file="/Users/I530566/.config/aprsd/aprsd.conf",
+        config_file="/config/aprsd.conf",
         # Commented out for local development.
         # config_file=cli_helper.DEFAULT_CONFIG_FILE
     )
@@ -372,8 +372,7 @@ if __name__ == "aprsd.wsgi":
 
     log_level = init_app(
         log_level="DEBUG",
-        #config_file="/config/aprsd.conf",
-        config_file="/Users/I530566/.config/aprsd/aprsd.conf",
+        config_file="/config/aprsd.conf",
         # config_file=cli_helper.DEFAULT_CONFIG_FILE,
     )
     log.setup_logging(log_level)
