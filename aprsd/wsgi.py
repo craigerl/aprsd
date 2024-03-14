@@ -333,7 +333,7 @@ if __name__ == "__main__":
     sio = socketio.Server(logger=True, async_mode=async_mode)
     app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
     log_level = init_app(log_level="DEBUG")
-    log.setup_logging(app, log_level)
+    log.setup_logging(log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
     CONF.log_opt_values(LOG, logging.DEBUG)
     app.run(
@@ -353,11 +353,11 @@ if __name__ == "uwsgi_file_aprsd_wsgi":
     app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
     log_level = init_app(
         log_level="DEBUG",
-        config_file="/config/aprsd.conf",
+        config_file="/Users/I530566/.config/aprsd/aprsd.conf",
         # Commented out for local development.
         # config_file=cli_helper.DEFAULT_CONFIG_FILE
     )
-    log.setup_logging(app, log_level)
+    log.setup_logging(log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
     CONF.log_opt_values(LOG, logging.DEBUG)
 
@@ -372,9 +372,10 @@ if __name__ == "aprsd.wsgi":
 
     log_level = init_app(
         log_level="DEBUG",
-        config_file="/config/aprsd.conf",
+        #config_file="/config/aprsd.conf",
+        config_file="/Users/I530566/.config/aprsd/aprsd.conf",
         # config_file=cli_helper.DEFAULT_CONFIG_FILE,
     )
-    log.setup_logging(app, log_level)
+    log.setup_logging(log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
     CONF.log_opt_values(LOG, logging.DEBUG)
