@@ -6,7 +6,7 @@ import sys
 from loguru import logger
 from oslo_config import cfg
 
-from aprsd import conf
+from aprsd.conf import log as conf_log
 
 
 CONF = cfg.CONF
@@ -38,7 +38,7 @@ def setup_logging(loglevel=None, quiet=False):
     if not loglevel:
         log_level = CONF.logging.log_level
     else:
-        log_level = conf.log.LOG_LEVELS[loglevel]
+        log_level = conf_log.LOG_LEVELS[loglevel]
 
     # intercept everything at the root logger
     logging.root.handlers = [InterceptHandler()]
