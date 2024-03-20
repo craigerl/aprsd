@@ -65,7 +65,7 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         self.threads = self.create_threads() or []
         self.start_threads()
 
-    def start_threads(self):
+    def start_threads(self) -> None:
         if self.enabled and self.threads:
             if not isinstance(self.threads, list):
                 self.threads = [self.threads]
@@ -90,10 +90,10 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
                 )
 
     @property
-    def message_count(self):
+    def message_count(self) -> int:
         return self.message_counter
 
-    def help(self):
+    def help(self) -> str:
         return "Help!"
 
     @abc.abstractmethod
@@ -118,11 +118,11 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
                 thread.stop()
 
     @abc.abstractmethod
-    def filter(self, packet: packets.core.Packet):
+    def filter(self, packet: type[packets.core.Packet]) -> str | packets.core.MessagePacket:
         pass
 
     @abc.abstractmethod
-    def process(self, packet: packets.core.Packet):
+    def process(self, packet: type[packets.core.Packet]):
         """This is called when the filter passes."""
 
 
@@ -154,7 +154,7 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 LOG.warning("Watch list enabled, but no callsigns set.")
 
     @hookimpl
-    def filter(self, packet: packets.core.Packet):
+    def filter(self, packet: type[packets.core.Packet]) -> str | packets.core.MessagePacket:
         result = packets.NULL_MESSAGE
         if self.enabled:
             wl = watch_list.WatchList()
@@ -206,7 +206,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         self.enabled = True
 
     @hookimpl
-    def filter(self, packet: packets.core.MessagePacket):
+    def filter(self, packet: packets.core.MessagePacket) -> str | packets.core.MessagePacket:
         LOG.info(f"{self.__class__.__name__} called")
         if not self.enabled:
             result = f"{self.__class__.__name__} isn't enabled"
