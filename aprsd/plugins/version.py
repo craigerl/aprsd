@@ -23,9 +23,7 @@ class VersionPlugin(plugin.APRSDRegexCommandPluginBase):
         # fromcall = packet.get("from")
         # message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
-        stats_obj = stats.APRSDStats()
-        s = stats_obj.stats()
-        print(s)
+        s = stats.APRSDStats().stats()
         return "APRSD ver:{} uptime:{}".format(
             aprsd.__version__,
             s["aprsd"]["uptime"],
