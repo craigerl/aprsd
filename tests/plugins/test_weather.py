@@ -11,7 +11,7 @@ from .. import fake, test_plugin
 CONF = cfg.CONF
 
 
-class TestUSWeatherPluginPlugin(test_plugin.TestPlugin):
+class TestUSWeatherPlugin(test_plugin.TestPlugin):
 
     def test_not_enabled_missing_aprs_fi_key(self):
         # When the aprs.fi api key isn't set, then
