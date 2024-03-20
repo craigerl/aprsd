@@ -174,7 +174,6 @@ class APRSDStats:
     def email_thread_update(self):
         self._email_thread_last_time = datetime.datetime.now()
 
-    @wrapt.synchronized(lock)
     def stats(self):
         now = datetime.datetime.now()
         if self._email_thread_last_time:
