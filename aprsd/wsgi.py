@@ -22,7 +22,7 @@ CONF = cfg.CONF
 LOG = logging.getLogger("gunicorn.access")
 
 auth = HTTPBasicAuth()
-users = {}
+users: dict[str, str] = {}
 app = Flask(
     "aprsd",
     static_url_path="/static",
