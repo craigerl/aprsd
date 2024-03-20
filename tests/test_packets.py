@@ -130,3 +130,9 @@ class TestPluginBase(unittest.TestCase):
         packet_dict = aprslib.parse(packet_raw)
         packet = packets.factory(packet_dict)
         self.assertIsInstance(packet, packets.WeatherPacket)
+
+    def test_mice_factory(self):
+        packet_raw = 'kh2sr-15>S7TSYR,WIDE1-1,WIDE2-1,qAO,KO6KL-1:`1`7\x1c\x1c.#/`"4,}QuirkyQRP 4.6V  35.3C S06'
+        packet_dict = aprslib.parse(packet_raw)
+        packet = packets.factory(packet_dict)
+        self.assertIsInstance(packet, packets.MicEPacket)

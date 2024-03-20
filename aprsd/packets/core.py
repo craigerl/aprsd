@@ -463,8 +463,10 @@ class MicEPacket(GPSPacket):
     # 0 to 360
     course: int = 0
 
-    def _build_payload(self):
-        raise NotImplementedError
+    @staticmethod
+    def from_aprslib_dict(raw: dict) -> "MicEPacket":
+        raw = _translate_fields(raw)
+        return MicEPacket(**raw)
 
 
 @dataclass
@@ -767,5 +769,7 @@ def factory(raw_packet: dict) -> type[Packet]:
             class_name = GPSPacket
         else:
             raise Exception(f"Unknown packet type {packet_type}  {raw}")
+
+    print(f"factory({packet_type}): {class_name}  {raw}")
 
     return class_name.from_aprslib_dict(raw)
