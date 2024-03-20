@@ -2,47 +2,12 @@ import abc
 import datetime
 import logging
 import threading
+from typing import List
 
 import wrapt
 
 
 LOG = logging.getLogger("APRSD")
-
-
-class APRSDThreadList:
-    """Singleton class that keeps track of application wide threads."""
-
-    _instance = None
-
-    threads_list = []
-    lock = threading.Lock()
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls.threads_list = []
-        return cls._instance
-
-    @wrapt.synchronized(lock)
-    def add(self, thread_obj):
-        self.threads_list.append(thread_obj)
-
-    @wrapt.synchronized(lock)
-    def remove(self, thread_obj):
-        self.threads_list.remove(thread_obj)
-
-    @wrapt.synchronized(lock)
-    def stop_all(self):
-        """Iterate over all threads and call stop on them."""
-        for th in self.threads_list:
-            LOG.info(f"Stopping Thread {th.name}")
-            if hasattr(th, "packet"):
-                LOG.info(F"{th.name} packet {th.packet}")
-            th.stop()
-
-    @wrapt.synchronized(lock)
-    def __len__(self):
-        return len(self.threads_list)
 
 
 class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
@@ -86,3 +51,39 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         self._cleanup()
         APRSDThreadList().remove(self)
         LOG.debug("Exiting")
+
+
+class APRSDThreadList:
+    """Singleton class that keeps track of application wide threads."""
+
+    _instance = None
+
+    threads_list: List[APRSDThread] = []
+    lock = threading.Lock()
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls.threads_list = []
+        return cls._instance
+
+    @wrapt.synchronized(lock)
+    def add(self, thread_obj):
+        self.threads_list.append(thread_obj)
+
+    @wrapt.synchronized(lock)
+    def remove(self, thread_obj):
+        self.threads_list.remove(thread_obj)
+
+    @wrapt.synchronized(lock)
+    def stop_all(self):
+        """Iterate over all threads and call stop on them."""
+        for th in self.threads_list:
+            LOG.info(f"Stopping Thread {th.name}")
+            if hasattr(th, "packet"):
+                LOG.info(F"{th.name} packet {th.packet}")
+            th.stop()
+
+    @wrapt.synchronized(lock)
+    def __len__(self):
+        return len(self.threads_list)
