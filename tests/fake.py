@@ -1,4 +1,4 @@
-from aprsd import packets, plugin, threads
+from aprsd import plugin, threads
 from aprsd.packets import core
 
 
@@ -13,6 +13,7 @@ def fake_packet(
     message=None,
     msg_number=None,
     message_format=core.PACKET_TYPE_MESSAGE,
+    response=None,
 ):
     packet_dict = {
         "from": fromcall,
@@ -27,7 +28,17 @@ def fake_packet(
     if msg_number:
         packet_dict["msgNo"] = str(msg_number)
 
-    return packets.Packet.factory(packet_dict)
+    if response:
+        packet_dict["response"] = response
+
+    return core.factory(packet_dict)
+
+
+def fake_ack_packet():
+    return fake_packet(
+        msg_number=12,
+        response=core.PACKET_TYPE_ACK,
+    )
 
 
 class FakeBaseNoThreadsPlugin(plugin.APRSDPluginBase):

@@ -45,7 +45,6 @@ class TestPluginManager(unittest.TestCase):
         self.assertEqual([], plugin_list)
         pm.setup_plugins()
         plugin_list = pm.get_plugins()
-        print(plugin_list)
         self.assertIsInstance(plugin_list, list)
         self.assertIsInstance(
             plugin_list[0],
@@ -163,9 +162,7 @@ class TestPluginBase(TestPlugin):
         self.assertEqual(expected, actual)
         mock_process.assert_not_called()
 
-        packet = fake.fake_packet(
-            message_format=core.PACKET_TYPE_ACK,
-        )
+        packet = fake.fake_ack_packet()
         expected = packets.NULL_MESSAGE
         actual = p.filter(packet)
         self.assertEqual(expected, actual)
