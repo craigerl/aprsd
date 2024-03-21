@@ -110,12 +110,23 @@ class TestPluginBase(unittest.TestCase):
         packet = packets.factory(packet_dict)
         self.assertIsInstance(packet, packets.BeaconPacket)
 
+        packet_raw = "kd8mey-10>APRS,TCPIP*,qAC,T2SYDNEY:=4247.80N/08539.00WrPHG1210/Making 220 Great Again Allstar# 552191"
+        packet_dict = aprslib.parse(packet_raw)
+        packet = packets.factory(packet_dict)
+        self.assertIsInstance(packet, packets.BeaconPacket)
+
     def test_reject_factory(self):
         """Test to ensure a reject packet is created."""
         packet_raw = "HB9FDL-1>APK102,HB9FM-4*,WIDE2,qAR,HB9FEF-11::REPEAT   :rej4139"
         packet_dict = aprslib.parse(packet_raw)
         packet = packets.factory(packet_dict)
         self.assertIsInstance(packet, packets.RejectPacket)
+
+        self.assertEqual("4139", packet.msgNo)
+        self.assertEqual("HB9FDL-1", packet.from_call)
+        self.assertEqual("REPEAT", packet.to_call)
+        self.assertEqual("reject", packet.packet_type)
+        self.assertIsNone(packet.payload)
 
     def test_thirdparty_factory(self):
         """Test to ensure a third party packet is created."""
@@ -131,8 +142,26 @@ class TestPluginBase(unittest.TestCase):
         packet = packets.factory(packet_dict)
         self.assertIsInstance(packet, packets.WeatherPacket)
 
+        self.assertEqual(28.88888888888889, packet.temperature)
+        self.assertEqual(0.0, packet.rain_1h)
+        self.assertEqual(1015.7, packet.pressure)
+        self.assertEqual(80, packet.humidity)
+        self.assertEqual(745, packet.luminosity)
+        self.assertEqual(3.0, packet.wind_speed)
+        self.assertEqual(232, packet.wind_direction)
+        self.assertEqual(6.0, packet.wind_gust)
+        self.assertEqual(29.899, packet.latitude)
+        self.assertEqual(-84.39616666666667, packet.longitude)
+
     def test_mice_factory(self):
         packet_raw = 'kh2sr-15>S7TSYR,WIDE1-1,WIDE2-1,qAO,KO6KL-1:`1`7\x1c\x1c.#/`"4,}QuirkyQRP 4.6V  35.3C S06'
+        packet_dict = aprslib.parse(packet_raw)
+        packet = packets.factory(packet_dict)
+        self.assertIsInstance(packet, packets.MicEPacket)
+
+        # Packet with telemetry and DAO
+        # http://www.aprs.org/datum.txt
+        packet_raw = 'KD9YIL>T0PX9W,WIDE1-1,WIDE2-1,qAO,NU9R-10:`sB,l#P>/\'"6+}|#*%U\'a|!whl!|3'
         packet_dict = aprslib.parse(packet_raw)
         packet = packets.factory(packet_dict)
         self.assertIsInstance(packet, packets.MicEPacket)
