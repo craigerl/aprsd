@@ -146,7 +146,6 @@ class Packet:
         msg = self._filter_for_send().rstrip("\n")
         return msg
 
-
     def prepare(self) -> None:
         """Do stuff here that is needed prior to sending over the air."""
         # now build the raw message for sending
@@ -292,7 +291,6 @@ class StatusPacket(Packet):
         return self.status
 
 
-
 @dataclass_json
 @dataclass(unsafe_hash=True)
 class GPSPacket(Packet):
@@ -427,7 +425,6 @@ class GPSPacket(Packet):
 
     @property
     def human_info(self) -> str:
-        #LOG.warning(self.to_dict())
         h_str = []
         h_str.append(f"Lat:{self.latitude:03.3f}")
         h_str.append(f"Lon:{self.longitude:03.3f}")
@@ -493,6 +490,7 @@ class MicEPacket(GPSPacket):
     def human_info(self) -> str:
         h_info = super().human_info
         return f"{h_info} {self.mbits} mbits"
+
 
 @dataclass_json
 @dataclass
@@ -875,6 +873,6 @@ def factory(raw_packet: dict[Any, Any]) -> type[Packet]:
     #     f"factory(<green>{packet_type: <8}</green>):"
     #     f"(<red>{packet_class.__name__: <13}</red>): "
     #     f"<light-blue>{raw.get('from_call'): <9}</light-blue> -> <cyan>{to: <9}</cyan>")
-    #LOG.info(raw.get('msgNo'))
+    # LOG.info(raw.get('msgNo'))
 
     return packet_class().from_dict(raw)  # type: ignore

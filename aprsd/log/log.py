@@ -10,7 +10,7 @@ from aprsd.conf import log as conf_log
 
 
 CONF = cfg.CONF
-#LOG = logging.getLogger("APRSD")
+# LOG = logging.getLogger("APRSD")
 LOG = logger
 logging_queue = queue.Queue()
 

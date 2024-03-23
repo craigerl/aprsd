@@ -190,7 +190,7 @@ def listen(
     aprs_client.set_filter(filter)
 
     keepalive = threads.KeepAliveThread()
-    #keepalive.start()
+    # keepalive.start()
 
     if CONF.rpc_settings.enabled:
         rpc = rpc_server.APRSDRPCThread()
@@ -215,6 +215,7 @@ def listen(
     )
     LOG.debug("Start APRSDListenThread")
     listen_thread.start()
+
     keepalive.start()
     LOG.debug("keepalive Join")
     keepalive.join()
