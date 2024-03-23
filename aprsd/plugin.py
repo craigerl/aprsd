@@ -208,7 +208,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
 
     @hookimpl
     def filter(self, packet: packets.MessagePacket) -> str | packets.MessagePacket:
-        LOG.info(f"{self.__class__.__name__} called")
+        LOG.debug(f"{self.__class__.__name__} called")
         if not self.enabled:
             result = f"{self.__class__.__name__} isn't enabled"
             LOG.warning(result)

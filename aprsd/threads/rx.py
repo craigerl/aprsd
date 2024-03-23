@@ -7,6 +7,7 @@ import aprslib
 from oslo_config import cfg
 
 from aprsd import client, packets, plugin
+from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
 
 
@@ -80,7 +81,7 @@ class APRSDDupeRXThread(APRSDRXThread):
         """
         packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)
-        packet.log(header="RX")
+        packet_log.log(packet)
 
         if isinstance(packet, packets.AckPacket):
             # We don't need to drop AckPackets, those should be
@@ -142,14 +143,14 @@ class APRSDProcessPacketThread(APRSDThread):
     def process_ack_packet(self, packet):
         """We got an ack for a message, no need to resend it."""
         ack_num = packet.msgNo
-        LOG.info(f"Got ack for message {ack_num}")
+        LOG.debug(f"Got ack for message {ack_num}")
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
 
     def process_reject_packet(self, packet):
         """We got a reject message for a packet.  Stop sending the message."""
         ack_num = packet.msgNo
-        LOG.info(f"Got REJECT for message {ack_num}")
+        LOG.debug(f"Got REJECT for message {ack_num}")
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
 

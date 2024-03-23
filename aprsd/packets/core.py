@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime
 import logging
 import re
@@ -6,7 +6,10 @@ import time
 # Due to a failure in python 3.8
 from typing import Any, List, Optional, Type, TypeVar, Union
 
-from dataclasses_json import DataClassJsonMixin, dataclass_json
+from dataclasses_json import (
+    CatchAll, DataClassJsonMixin, Undefined, dataclass_json,
+)
+from loguru import logger
 
 from aprsd.utils import counter
 
@@ -15,8 +18,10 @@ from aprsd.utils import counter
 A = TypeVar("A", bound="DataClassJsonMixin")
 Json = Union[dict, list, str, int, float, bool, None]
 
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger()
+LOGU = logger
 
+PACKET_TYPE_BULLETIN = "bulletin"
 PACKET_TYPE_MESSAGE = "message"
 PACKET_TYPE_ACK = "ack"
 PACKET_TYPE_REJECT = "reject"
@@ -82,7 +87,7 @@ class Packet:
     to_call: Optional[str] = field(default=None)
     addresse: Optional[str] = field(default=None)
     format: Optional[str] = field(default=None)
-    msgNo: str = field(default_factory=_init_msgNo)   # noqa: N815
+    msgNo: Optional[str] = field(default=None)   # noqa: N815
     packet_type: Optional[str] = field(default=None)
     timestamp: float = field(default_factory=_init_timestamp, compare=False, hash=False)
     # Holds the raw text string to be sent over the wire
@@ -130,9 +135,23 @@ class Packet:
     def update_timestamp(self) -> None:
         self.timestamp = _init_timestamp()
 
+    @property
+    def human_info(self) -> str:
+        """Build a human readable string for this packet.
+
+        This doesn't include the from to and type, but just
+        the human readable payload.
+        """
+        self.prepare()
+        msg = self._filter_for_send().rstrip("\n")
+        return msg
+
+
     def prepare(self) -> None:
         """Do stuff here that is needed prior to sending over the air."""
         # now build the raw message for sending
+        if not self.msgNo:
+            self.msgNo = _init_msgNo()
         self._build_payload()
         self._build_raw()
 
@@ -152,43 +171,6 @@ class Packet:
             self.from_call,
             self.payload,
         )
-
-    def log(self, header: Optional[str] = None) -> None:
-        """LOG a packet to the logfile."""
-        asdict(self)
-        log_list = ["\n"]
-        name = self.__class__.__name__
-        if header:
-            if "tx" in header.lower():
-                log_list.append(
-                    f"{header}________({name}  "
-                    f"TX:{self.send_count+1} of {self.retry_count})",
-                )
-            else:
-                log_list.append(f"{header}________({name})")
-        # log_list.append(f"  Packet  : {self.__class__.__name__}")
-        log_list.append(f"  Raw     : {self.raw}")
-        if self.to_call:
-            log_list.append(f"  To      : {self.to_call}")
-        if self.from_call:
-            log_list.append(f"  From    : {self.from_call}")
-        if hasattr(self, "path") and self.path:
-            log_list.append(f"  Path    : {'=>'.join(self.path)}")
-        if hasattr(self, "via") and self.via:
-            log_list.append(f"  VIA     : {self.via}")
-
-        elif isinstance(self, MessagePacket):
-            log_list.append(f"  Message : {self.message_text}")
-
-        if hasattr(self, "comment") and self.comment:
-            log_list.append(f"  Comment : {self.comment}")
-
-        if self.msgNo:
-            log_list.append(f"  Msg #   : {self.msgNo}")
-        log_list.append(f"{header}________({name})")
-
-        LOG.info("\n".join(log_list))
-        LOG.debug(repr(self))
 
     def _filter_for_send(self) -> str:
         """Filter and format message string for FCC."""
@@ -284,8 +266,31 @@ class StatusPacket(Packet):
     comment: Optional[str] = field(default=None)
     raw_timestamp: Optional[str] = field(default=None)
 
+    def _filter_for_send(self) -> str:
+        """Filter and format message string for FCC."""
+        # max?  ftm400 displays 64, raw msg shows 74
+        # and ftm400-send is max 64.  setting this to
+        # 67 displays 64 on the ftm400. (+3 {01 suffix)
+        # feature req: break long ones into two msgs
+        if not self.status and not self.comment:
+            self.status = "None"
+
+        message = self.status[:67]
+        # We all miss George Carlin
+        return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
+
     def _build_payload(self):
-        raise NotImplementedError
+        self.payload = ":{}:{}{{{}".format(
+            self.to_call.ljust(9),
+            self._filter_for_send().rstrip("\n"),
+            str(self.msgNo),
+        )
+
+    @property
+    def human_info(self) -> str:
+        self.prepare()
+        return self.status
+
 
 
 @dataclass_json
@@ -420,6 +425,25 @@ class GPSPacket(Packet):
             f"{self.payload}"
         )
 
+    @property
+    def human_info(self) -> str:
+        #LOG.warning(self.to_dict())
+        h_str = []
+        h_str.append(f"Lat:{self.latitude:03.3f}")
+        h_str.append(f"Lon:{self.longitude:03.3f}")
+        if self.altitude:
+            h_str.append(f"Altitude {self.altitude:03.0f}")
+        if self.speed:
+            h_str.append(f"Speed {self.speed:03.0f}MPH")
+        if self.course:
+            h_str.append(f"Course {self.course:03.0f}")
+        if self.rng:
+            h_str.append(f"RNG {self.rng:03.0f}")
+        if self.phg:
+            h_str.append(f"PHG {self.phg}")
+
+        return " ".join(h_str)
+
 
 @dataclass_json
 @dataclass(unsafe_hash=True)
@@ -443,6 +467,14 @@ class BeaconPacket(GPSPacket):
             f"{self.payload}"
         )
 
+    @property
+    def human_info(self) -> str:
+        h_str = []
+        h_str.append(f"Lat:{self.latitude:03.3f}")
+        h_str.append(f"Lon:{self.longitude:03.3f}")
+        h_str.append(f"{self.comment}")
+        return " ".join(h_str)
+
 
 @dataclass_json
 @dataclass
@@ -457,6 +489,10 @@ class MicEPacket(GPSPacket):
     # 0 to 360
     course: int = 0
 
+    @property
+    def human_info(self) -> str:
+        h_info = super().human_info
+        return f"{h_info} {self.mbits} mbits"
 
 @dataclass_json
 @dataclass
@@ -472,6 +508,11 @@ class TelemetryPacket(GPSPacket):
     speed: float = 0.00
     # 0 to 360
     course: int = 0
+
+    @property
+    def human_info(self) -> str:
+        h_info = super().human_info
+        return f"{h_info} {self.telemetry}"
 
 
 @dataclass_json
@@ -514,6 +555,11 @@ class ObjectPacket(GPSPacket):
             f"{self.from_call}>APZ100:;{self.to_call:9s}"
             f"{self.payload}"
         )
+
+    @property
+    def human_info(self) -> str:
+        h_info = super().human_info
+        return f"{h_info} {self.comment}"
 
 
 @dataclass()
@@ -581,6 +627,17 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
         """Create from a dictionary that has come directly from aprslib parse"""
         raw = cls._translate(cls, kvs)  # type: ignore
         return super().from_dict(raw)
+
+    @property
+    def human_info(self) -> str:
+        h_str = []
+        h_str.append(f"Temp {self.temperature:03.0f}F")
+        h_str.append(f"Humidity {self.humidity}%")
+        h_str.append(f"Wind {self.wind_speed:03.0f}MPH@{self.wind_direction}")
+        h_str.append(f"Pressure {self.pressure}mb")
+        h_str.append(f"Rain {self.rain_24h}in/24hr")
+
+        return " ".join(h_str)
 
     def _build_payload(self):
         """Build an uncompressed weather packet
@@ -665,8 +722,56 @@ class ThirdPartyPacket(Packet, DataClassJsonMixin):
         obj.subpacket = factory(obj.subpacket)  # type: ignore
         return obj
 
+    @property
+    def human_info(self) -> str:
+        sub_info = self.subpacket.human_info
+        return f"{self.from_call}->{self.to_call} {sub_info}"
+
+
+@dataclass_json
+@dataclass
+class BulletinPacket(Packet):
+    _type: str = "BulletinPacket"
+    # Holds the encapsulated packet
+    bid: Optional[str] = field(default="1")
+    message_text: Optional[str] = field(default=None)
+
+    @property
+    def human_info(self) -> str:
+        return f"BLN{self.bid} {self.message_text}"
+
+
+@dataclass_json(undefined=Undefined.INCLUDE)
+@dataclass
+class UnknownPacket:
+    """Catchall Packet for things we don't know about.
+
+    All of the unknown attributes are stored in the unknown_fields
+    """
+    unknown_fields: CatchAll
+    _type: str = "UnknownPacket"
+    from_call: Optional[str] = field(default=None)
+    to_call: Optional[str] = field(default=None)
+    msgNo: str = field(default_factory=_init_msgNo)   # noqa: N815
+    format: Optional[str] = field(default=None)
+    raw: Optional[str] = field(default=None)
+    raw_dict: dict = field(repr=False, default_factory=lambda: {}, compare=False, hash=False)
+    path: List[str] = field(default_factory=list, compare=False, hash=False)
+    packet_type: Optional[str] = field(default=None)
+    via: Optional[str] = field(default=None, compare=False, hash=False)
+
+    @property
+    def key(self) -> str:
+        """Build a key for finding this packet in a dict."""
+        return f"{self.from_call}:{self.packet_type}:{self.to_call}"
+
+    @property
+    def human_info(self) -> str:
+        return str(self.unknown_fields)
+
 
 TYPE_LOOKUP: dict[str, type[Packet]] = {
+    PACKET_TYPE_BULLETIN: BulletinPacket,
     PACKET_TYPE_WX: WeatherPacket,
     PACKET_TYPE_WEATHER: WeatherPacket,
     PACKET_TYPE_MESSAGE: MessagePacket,
@@ -676,23 +781,9 @@ TYPE_LOOKUP: dict[str, type[Packet]] = {
     PACKET_TYPE_OBJECT: ObjectPacket,
     PACKET_TYPE_STATUS: StatusPacket,
     PACKET_TYPE_BEACON: BeaconPacket,
-    PACKET_TYPE_UNKNOWN: Packet,
+    PACKET_TYPE_UNKNOWN: UnknownPacket,
     PACKET_TYPE_THIRDPARTY: ThirdPartyPacket,
     PACKET_TYPE_TELEMETRY: TelemetryPacket,
-}
-
-OBJ_LOOKUP: dict[str, type[Packet]] = {
-    "MessagePacket": MessagePacket,
-    "AckPacket": AckPacket,
-    "RejectPacket": RejectPacket,
-    "MicEPacket": MicEPacket,
-    "ObjectPacket": ObjectPacket,
-    "StatusPacket": StatusPacket,
-    "GPSPacket": GPSPacket,
-    "BeaconPacket": BeaconPacket,
-    "WeatherPacket": WeatherPacket,
-    "ThirdPartyPacket": ThirdPartyPacket,
-    "TelemetryPacket": TelemetryPacket,
 }
 
 
@@ -714,6 +805,8 @@ def get_packet_type(packet: dict) -> str:
         packet_type = PACKET_TYPE_OBJECT
     elif pkt_format == "status":
         packet_type = PACKET_TYPE_STATUS
+    elif pkt_format == PACKET_TYPE_BULLETIN:
+        packet_type = PACKET_TYPE_BULLETIN
     elif pkt_format == PACKET_TYPE_BEACON:
         packet_type = PACKET_TYPE_BEACON
     elif pkt_format == PACKET_TYPE_TELEMETRY:
@@ -729,6 +822,8 @@ def get_packet_type(packet: dict) -> str:
     if packet_type == PACKET_TYPE_UNKNOWN:
         if "latitude" in packet:
             packet_type = PACKET_TYPE_BEACON
+        else:
+            packet_type = PACKET_TYPE_UNKNOWN
     return packet_type
 
 
@@ -769,11 +864,17 @@ def factory(raw_packet: dict[Any, Any]) -> type[Packet]:
         if "latitude" in raw:
             packet_class = GPSPacket
         else:
-            LOG.error(f"Unknown packet type {packet_type}")
-            LOG.error(raw)
-            raise Exception(f"Unknown packet type {packet_type}  {raw}")
+            LOG.warning(f"Unknown packet type {packet_type}")
+            LOG.warning(raw)
+            packet_class = UnknownPacket
 
-    # LOG.info(f"factory({packet_type}):({raw.get('from_call')}) {packet_class.__class__}  {raw}")
-    # LOG.error(packet_class)
+    raw.get("addresse", raw.get("to_call"))
+
+    # TODO: Find a global way to enable/disable this
+    # LOGU.opt(colors=True).info(
+    #     f"factory(<green>{packet_type: <8}</green>):"
+    #     f"(<red>{packet_class.__name__: <13}</red>): "
+    #     f"<light-blue>{raw.get('from_call'): <9}</light-blue> -> <cyan>{to: <9}</cyan>")
+    #LOG.info(raw.get('msgNo'))
 
     return packet_class().from_dict(raw)  # type: ignore

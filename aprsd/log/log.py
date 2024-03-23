@@ -10,7 +10,8 @@ from aprsd.conf import log as conf_log
 
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+#LOG = logging.getLogger("APRSD")
+LOG = logger
 logging_queue = queue.Queue()
 
 
@@ -70,6 +71,8 @@ def setup_logging(loglevel=None, quiet=False):
         {
             "sink": sys.stdout, "serialize": False,
             "format": CONF.logging.logformat,
+            "colorize": True,
+            "level": log_level,
         },
     ]
     if CONF.logging.logfile:
