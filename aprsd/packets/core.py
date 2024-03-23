@@ -6,6 +6,7 @@ import time
 # Due to a failure in python 3.8
 from typing import Any, List, Optional, Type, TypeVar, Union
 
+from aprslib import util as aprslib_util
 from dataclasses_json import (
     CatchAll, DataClassJsonMixin, Undefined, dataclass_json,
 )
@@ -131,7 +132,7 @@ class Packet:
         the human readable payload.
         """
         self.prepare()
-        msg = self._filter_for_send().rstrip("\n")
+        msg = self._filter_for_send(self.raw).rstrip("\n")
         return msg
 
     def prepare(self) -> None:
@@ -146,10 +147,10 @@ class Packet:
         """The payload is the non headers portion of the packet."""
         if not self.to_call:
             raise ValueError("to_call isn't set. Must set to_call before calling prepare()")
-        msg = self._filter_for_send().rstrip("\n")
+
+        # The base packet class has no real payload
         self.payload = (
             f":{self.to_call.ljust(9)}"
-            f":{msg}"
         )
 
     def _build_raw(self) -> None:
@@ -159,16 +160,16 @@ class Packet:
             self.payload,
         )
 
-    def _filter_for_send(self) -> str:
+    def _filter_for_send(self, msg) -> str:
         """Filter and format message string for FCC."""
         # max?  ftm400 displays 64, raw msg shows 74
         # and ftm400-send is max 64.  setting this to
         # 67 displays 64 on the ftm400. (+3 {01 suffix)
         # feature req: break long ones into two msgs
-        if not self.raw:
+        if not msg:
             raise ValueError("No message text to send. call prepare() first.")
 
-        message = self.raw[:67]
+        message = msg[:67]
         # We all miss George Carlin
         return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
 
@@ -193,14 +194,28 @@ class Packet:
 @dataclass(unsafe_hash=True)
 class AckPacket(Packet):
     _type: str = field(default="AckPacket", hash=False)
-    response: Optional[str] = field(default=None)
-
-    def __post__init__(self):
-        if self.response:
-            LOG.warning("Response set!")
 
     def _build_payload(self):
-        self.payload = f":{self.to_call.ljust(9)}:ack{self.msgNo}"
+        self.payload = f":{self.to_call: <9}:ack{self.msgNo}"
+
+
+@dataclass_json
+@dataclass(unsafe_hash=True)
+class BulletinPacket(Packet):
+    _type: str = "BulletinPacket"
+    # Holds the encapsulated packet
+    bid: Optional[str] = field(default="1")
+    message_text: Optional[str] = field(default=None)
+
+    @property
+    def human_info(self) -> str:
+        return f"BLN{self.bid} {self.message_text}"
+
+    def _build_payload(self) -> None:
+        self.payload = (
+            f":BLN{self.bid:<9}"
+            f":{self.message_text}"
+        )
 
 
 @dataclass_json
@@ -214,7 +229,7 @@ class RejectPacket(Packet):
             LOG.warning("Response set!")
 
     def _build_payload(self):
-        self.payload = f":{self.to_call.ljust(9)} :rej{self.msgNo}"
+        self.payload = f":{self.to_call: <9}:rej{self.msgNo}"
 
 
 @dataclass_json
@@ -223,23 +238,10 @@ class MessagePacket(Packet):
     _type: str = field(default="MessagePacket", hash=False)
     message_text: Optional[str] = field(default=None)
 
-    def _filter_for_send(self) -> str:
-        """Filter and format message string for FCC."""
-        # max?  ftm400 displays 64, raw msg shows 74
-        # and ftm400-send is max 64.  setting this to
-        # 67 displays 64 on the ftm400. (+3 {01 suffix)
-        # feature req: break long ones into two msgs
-        if not self.message_text:
-            raise ValueError("No message text to send.  Populate message_text field.")
-
-        message = self.message_text[:67]
-        # We all miss George Carlin
-        return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
-
     def _build_payload(self):
         self.payload = ":{}:{}{{{}".format(
             self.to_call.ljust(9),
-            self._filter_for_send().rstrip("\n"),
+            self._filter_for_send(self.message_text).rstrip("\n"),
             str(self.msgNo),
         )
 
@@ -253,23 +255,10 @@ class StatusPacket(Packet):
     comment: Optional[str] = field(default=None)
     raw_timestamp: Optional[str] = field(default=None)
 
-    def _filter_for_send(self) -> str:
-        """Filter and format message string for FCC."""
-        # max?  ftm400 displays 64, raw msg shows 74
-        # and ftm400-send is max 64.  setting this to
-        # 67 displays 64 on the ftm400. (+3 {01 suffix)
-        # feature req: break long ones into two msgs
-        if not self.status and not self.comment:
-            self.status = "None"
-
-        message = self.status[:67]
-        # We all miss George Carlin
-        return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
-
     def _build_payload(self):
         self.payload = ":{}:{}{{{}".format(
             self.to_call.ljust(9),
-            self._filter_for_send().rstrip("\n"),
+            self._filter_for_send(self.status).rstrip("\n"),
             str(self.msgNo),
         )
 
@@ -308,102 +297,29 @@ class GPSPacket(Packet):
     # http://www.aprs.org/datum.txt
     daodatumbyte: Optional[str] = field(default=None)
 
-    def decdeg2dms(self, degrees_decimal):
-        is_positive = degrees_decimal >= 0
-        degrees_decimal = abs(degrees_decimal)
-        minutes, seconds = divmod(degrees_decimal * 3600, 60)
-        degrees, minutes = divmod(minutes, 60)
-        degrees = degrees if is_positive else -degrees
-
-        degrees = str(int(degrees)).replace("-", "0")
-        minutes = str(int(minutes)).replace("-", "0")
-        seconds = str(int(round(seconds * 0.01, 2) * 100))
-
-        return {"degrees": degrees, "minutes": minutes, "seconds": seconds}
-
-    def decdeg2dmm_m(self, degrees_decimal):
-        is_positive = degrees_decimal >= 0
-        degrees_decimal = abs(degrees_decimal)
-        minutes, seconds = divmod(degrees_decimal * 3600, 60)
-        degrees, minutes = divmod(minutes, 60)
-        degrees = degrees if is_positive else -degrees
-
-        degrees = abs(int(degrees))
-        minutes = int(round(minutes + (seconds / 60), 2))
-        hundredths = round(seconds / 60, 2)
-
-        return {
-            "degrees": degrees, "minutes": minutes, "seconds": seconds,
-            "hundredths": hundredths,
-        }
-
-    def convert_latitude(self, degrees_decimal):
-        det = self.decdeg2dmm_m(degrees_decimal)
-        if degrees_decimal > 0:
-            direction = "N"
-        else:
-            direction = "S"
-
-        degrees = str(det.get("degrees")).zfill(2)
-        minutes = str(det.get("minutes")).zfill(2)
-        seconds = det.get("seconds")
-        hun = det.get("hundredths")
-        hundredths = f"{hun:.2f}".split(".")[1]
-
-        LOG.debug(
-            f"LAT degress {degrees}  minutes {str(minutes)} "
-            f"seconds {seconds} hundredths {hundredths} direction {direction}",
-        )
-
-        lat = f"{degrees}{str(minutes)}.{hundredths}{direction}"
-        return lat
-
-    def convert_longitude(self, degrees_decimal):
-        det = self.decdeg2dmm_m(degrees_decimal)
-        if degrees_decimal > 0:
-            direction = "E"
-        else:
-            direction = "W"
-
-        degrees = str(det.get("degrees")).zfill(3)
-        minutes = str(det.get("minutes")).zfill(2)
-        seconds = det.get("seconds")
-        hun = det.get("hundredths")
-        hundredths = f"{hun:.2f}".split(".")[1]
-
-        LOG.debug(
-            f"LON degress {degrees}  minutes {str(minutes)} "
-            f"seconds {seconds} hundredths {hundredths} direction {direction}",
-        )
-
-        lon = f"{degrees}{str(minutes)}.{hundredths}{direction}"
-        return lon
-
     def _build_time_zulu(self):
         """Build the timestamp in UTC/zulu."""
         if self.timestamp:
-            local_dt = datetime.fromtimestamp(self.timestamp)
-        else:
-            local_dt = datetime.now()
-            self.timestamp = datetime.timestamp(local_dt)
-
-        utc_offset_timedelta = datetime.utcnow() - local_dt
-        result_utc_datetime = local_dt + utc_offset_timedelta
-        time_zulu = result_utc_datetime.strftime("%d%H%M")
-        return time_zulu
+            return datetime.utcfromtimestamp(self.timestamp).strftime("%d%H%M")
 
     def _build_payload(self):
         """The payload is the non headers portion of the packet."""
         time_zulu = self._build_time_zulu()
-        lat = self.latitude
-        long = self.longitude
-        self.payload = (
-            f"@{time_zulu}z{lat}{self.symbol_table}"
-            f"{long}{self.symbol}"
-        )
+        lat = aprslib_util.latitude_to_ddm(self.latitude)
+        long = aprslib_util.longitude_to_ddm(self.longitude)
+        payload = [
+            "@" if self.timestamp else "!",
+            time_zulu,
+            lat,
+            self.symbol_table,
+            long,
+            self.symbol,
+        ]
 
         if self.comment:
-            self.payload = f"{self.payload}{self.comment}"
+            payload.append(self._filter_for_send(self.comment))
+
+        self.payload = "".join(payload)
 
     def _build_raw(self):
         self.raw = (
@@ -438,13 +354,19 @@ class BeaconPacket(GPSPacket):
     def _build_payload(self):
         """The payload is the non headers portion of the packet."""
         time_zulu = self._build_time_zulu()
-        lat = self.convert_latitude(self.latitude)
-        long = self.convert_longitude(self.longitude)
+        lat = aprslib_util.latitude_to_ddm(self.latitude)
+        lon = aprslib_util.longitude_to_ddm(self.longitude)
 
         self.payload = (
             f"@{time_zulu}z{lat}{self.symbol_table}"
-            f"{long}{self.symbol}APRSD Beacon"
+            f"{lon}"
         )
+
+        if self.comment:
+            comment = self._filter_for_send(self.comment)
+            self.payload = f"{self.payload}{self.symbol}{comment}"
+        else:
+            self.payload = f"{self.payload}{self.symbol}APRSD Beacon"
 
     def _build_raw(self):
         self.raw = (
@@ -515,8 +437,8 @@ class ObjectPacket(GPSPacket):
 
     def _build_payload(self):
         time_zulu = self._build_time_zulu()
-        lat = self.convert_latitude(self.latitude)
-        long = self.convert_longitude(self.longitude)
+        lat = aprslib_util.latitude_to_ddm(self.latitude)
+        long = aprslib_util.longitude_to_ddm(self.longitude)
 
         self.payload = (
             f"*{time_zulu}z{lat}{self.symbol_table}"
@@ -524,7 +446,8 @@ class ObjectPacket(GPSPacket):
         )
 
         if self.comment:
-            self.payload = f"{self.payload}{self.comment}"
+            comment = self._filter_for_send(self.comment)
+            self.payload = f"{self.payload}{comment}"
 
     def _build_raw(self):
         """
@@ -674,7 +597,8 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
             f"b{self.pressure:05.0f}",
         ]
         if self.comment:
-            contents.append(self.comment)
+            comment = self.filter_for_send(self.comment)
+            contents.append(comment)
         self.payload = "".join(contents)
 
     def _build_raw(self):
@@ -712,19 +636,6 @@ class ThirdPartyPacket(Packet, DataClassJsonMixin):
     def human_info(self) -> str:
         sub_info = self.subpacket.human_info
         return f"{self.from_call}->{self.to_call} {sub_info}"
-
-
-@dataclass_json
-@dataclass(unsafe_hash=True)
-class BulletinPacket(Packet):
-    _type: str = "BulletinPacket"
-    # Holds the encapsulated packet
-    bid: Optional[str] = field(default="1")
-    message_text: Optional[str] = field(default=None)
-
-    @property
-    def human_info(self) -> str:
-        return f"BLN{self.bid} {self.message_text}"
 
 
 @dataclass_json(undefined=Undefined.INCLUDE)

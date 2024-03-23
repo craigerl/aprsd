@@ -7,7 +7,6 @@ import sys
 import threading
 import time
 
-from aprslib import util as aprslib_util
 import click
 import flask
 from flask import request
@@ -539,10 +538,10 @@ class SendMessageNamespace(Namespace):
 
     def on_gps(self, data):
         LOG.debug(f"WS on_GPS: {data}")
-        lat = aprslib_util.latitude_to_ddm(data["latitude"])
-        long = aprslib_util.longitude_to_ddm(data["longitude"])
-        LOG.debug(f"Lat DDM {lat}")
-        LOG.debug(f"Long DDM {long}")
+        lat = data["latitude"]
+        long = data["longitude"]
+        LOG.debug(f"Lat {lat}")
+        LOG.debug(f"Long {long}")
 
         tx.send(
             packets.GPSPacket(

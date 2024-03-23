@@ -2,6 +2,7 @@ import unittest
 from unittest import mock
 
 import aprslib
+from aprslib import util as aprslib_util
 
 from aprsd import packets
 from aprsd.packets import core
@@ -9,7 +10,7 @@ from aprsd.packets import core
 from . import fake
 
 
-class TestPluginBase(unittest.TestCase):
+class TestPacketBase(unittest.TestCase):
 
     def _fake_dict(
         self,
@@ -165,3 +166,120 @@ class TestPluginBase(unittest.TestCase):
         packet_dict = aprslib.parse(packet_raw)
         packet = packets.factory(packet_dict)
         self.assertIsInstance(packet, packets.MicEPacket)
+
+    def test_ack_format(self):
+        """Test the ack packet format."""
+        ack = packets.AckPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            msgNo=123,
+        )
+
+        expected = f"{fake.FAKE_FROM_CALLSIGN}>APZ100::{fake.FAKE_TO_CALLSIGN:<9}:ack123"
+        self.assertEqual(expected, str(ack))
+
+    def test_reject_format(self):
+        """Test the reject packet format."""
+        reject = packets.RejectPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            msgNo=123,
+        )
+
+        expected = f"{fake.FAKE_FROM_CALLSIGN}>APZ100::{fake.FAKE_TO_CALLSIGN:<9}:rej123"
+        self.assertEqual(expected, str(reject))
+
+    def test_beacon_format(self):
+        """Test the beacon packet format."""
+        lat = 28.123456
+        lon = -80.123456
+        ts = 1711219496.6426
+        comment = "My Beacon Comment"
+        packet = packets.BeaconPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            latitude=lat,
+            longitude=lon,
+            timestamp=ts,
+            symbol=">",
+            comment=comment,
+        )
+
+        expected_lat = aprslib_util.latitude_to_ddm(lat)
+        expected_lon = aprslib_util.longitude_to_ddm(lon)
+        expected = f"KFAKE>APZ100:@231844z{expected_lat}/{expected_lon}>{comment}"
+        self.assertEqual(expected, str(packet))
+
+    def test_beacon_format_no_comment(self):
+        """Test the beacon packet format."""
+        lat = 28.123456
+        lon = -80.123456
+        ts = 1711219496.6426
+        packet = packets.BeaconPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            latitude=lat,
+            longitude=lon,
+            timestamp=ts,
+            symbol=">",
+        )
+        empty_comment = "APRSD Beacon"
+
+        expected_lat = aprslib_util.latitude_to_ddm(lat)
+        expected_lon = aprslib_util.longitude_to_ddm(lon)
+        expected = f"KFAKE>APZ100:@231844z{expected_lat}/{expected_lon}>{empty_comment}"
+        self.assertEqual(expected, str(packet))
+
+    def test_bulletin_format(self):
+        """Test the bulletin packet format."""
+        # bulletin id = 0
+        bid = 0
+        packet = packets.BulletinPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            message_text="My Bulletin Message",
+            bid=0,
+        )
+
+        expected = f"{fake.FAKE_FROM_CALLSIGN}>APZ100::BLN{bid:<9}:{packet.message_text}"
+        self.assertEqual(expected, str(packet))
+
+        # bulletin id = 1
+        bid = 1
+        txt = "((((((( CX2SA - Salto Uruguay ))))))) http://www.cx2sa.org"
+        packet = packets.BulletinPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            message_text=txt,
+            bid=1,
+        )
+
+        expected = f"{fake.FAKE_FROM_CALLSIGN}>APZ100::BLN{bid:<9}:{txt}"
+        self.assertEqual(expected, str(packet))
+
+    def test_message_format(self):
+        """Test the message packet format."""
+
+        message = "My Message"
+        msgno = "ABX"
+        packet = packets.MessagePacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            message_text=message,
+            msgNo=msgno,
+        )
+
+        expected = f"{fake.FAKE_FROM_CALLSIGN}>APZ100::{fake.FAKE_TO_CALLSIGN:<9}:{message}{{{msgno}"
+        self.assertEqual(expected, str(packet))
+
+        # test with bad words
+        # Currently fails with mixed case
+        message = "My cunt piss fuck text"
+        exp_msg = "My **** **** **** text"
+        msgno = "ABX"
+        packet = packets.MessagePacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            message_text=message,
+            msgNo=msgno,
+        )
+        expected = f"{fake.FAKE_FROM_CALLSIGN}>APZ100::{fake.FAKE_TO_CALLSIGN:<9}:{exp_msg}{{{msgno}"
+        self.assertEqual(expected, str(packet))

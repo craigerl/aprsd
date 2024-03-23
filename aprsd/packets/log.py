@@ -63,7 +63,6 @@ def log_multiline(packet, tx: Optional[bool] = False, header: Optional[bool] = T
     if hasattr(packet, "comment") and packet.comment:
         logit.append(f"  Comment : {packet.comment}")
 
-
     raw = packet.raw.replace("<", "\\<")
     logit.append(f"  Raw     : <fg #828282>{raw}</fg #828282>")
     logit.append(f"{header_str}________(<{PACKET_COLOR}>{name}</{PACKET_COLOR}>)")
