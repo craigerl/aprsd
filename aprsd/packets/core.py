@@ -108,18 +108,6 @@ class Packet:
     path: List[str] = field(default_factory=list, compare=False, hash=False)
     via: Optional[str] = field(default=None, compare=False, hash=False)
 
-    @property
-    def json(self) -> str:
-        """get the json formated string"""
-        # comes from the DataClassJsonMixin
-        return self.to_json()  # type: ignore
-
-    @property
-    def dict(self) -> dict:
-        """get the dict formated string"""
-        # comes from the DataClassJsonMixin
-        return self.to_dict()  # type: ignore
-
     def get(self, key: str, default: Optional[str] = None):
         """Emulate a getter on a dict."""
         if hasattr(self, key):
@@ -474,7 +462,7 @@ class BeaconPacket(GPSPacket):
 
 
 @dataclass_json
-@dataclass
+@dataclass(unsafe_hash=True)
 class MicEPacket(GPSPacket):
     _type: str = field(default="MicEPacket", hash=False)
     messagecapable: bool = False
@@ -493,7 +481,7 @@ class MicEPacket(GPSPacket):
 
 
 @dataclass_json
-@dataclass
+@dataclass(unsafe_hash=True)
 class TelemetryPacket(GPSPacket):
     _type: str = field(default="TelemetryPacket", hash=False)
     messagecapable: bool = False
@@ -514,7 +502,7 @@ class TelemetryPacket(GPSPacket):
 
 
 @dataclass_json
-@dataclass
+@dataclass(unsafe_hash=True)
 class ObjectPacket(GPSPacket):
     _type: str = field(default="ObjectPacket", hash=False)
     alive: bool = True
@@ -560,7 +548,7 @@ class ObjectPacket(GPSPacket):
         return f"{h_info} {self.comment}"
 
 
-@dataclass()
+@dataclass(unsafe_hash=True)
 class WeatherPacket(GPSPacket, DataClassJsonMixin):
     _type: str = field(default="WeatherPacket", hash=False)
     symbol: str = "_"
@@ -697,7 +685,7 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
         )
 
 
-@dataclass()
+@dataclass(unsafe_hash=True)
 class ThirdPartyPacket(Packet, DataClassJsonMixin):
     _type: str = "ThirdPartyPacket"
     # Holds the encapsulated packet
@@ -727,7 +715,7 @@ class ThirdPartyPacket(Packet, DataClassJsonMixin):
 
 
 @dataclass_json
-@dataclass
+@dataclass(unsafe_hash=True)
 class BulletinPacket(Packet):
     _type: str = "BulletinPacket"
     # Holds the encapsulated packet
@@ -740,7 +728,7 @@ class BulletinPacket(Packet):
 
 
 @dataclass_json(undefined=Undefined.INCLUDE)
-@dataclass
+@dataclass(unsafe_hash=True)
 class UnknownPacket:
     """Catchall Packet for things we don't know about.
 

@@ -78,7 +78,6 @@ def setup_logging(loglevel=None, quiet=False):
             logging.getLogger(name).propagate = True
             logging.getLogger(name).setLevel(logging.ERROR)
 
-
     handlers = [
         {
             "sink": sys.stdout,
