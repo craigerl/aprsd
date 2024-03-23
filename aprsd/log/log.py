@@ -115,3 +115,4 @@ def setup_logging(loglevel=None, quiet=False):
 
     # configure loguru
     logger.configure(handlers=handlers)
+    logger.level("DEBUG", color="<fg #BABABA>")
