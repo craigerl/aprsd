@@ -30,7 +30,7 @@ from aprsd.utils import trace
 
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger()
 auth = HTTPBasicAuth()
 users = {}
 socketio = None
@@ -335,7 +335,6 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
 
     def process_our_message_packet(self, packet: packets.MessagePacket):
         global callsign_locations
-        LOG.info(f"process MessagePacket {repr(packet)}")
         # ok lets see if we have the location for the
         # person we just sent a message to.
         from_call = packet.get("from_call").upper()
@@ -624,7 +623,7 @@ def webchat(ctx, flush, port):
         LOG.info(msg)
     LOG.info(f"APRSD Started version: {aprsd.__version__}")
 
-    CONF.log_opt_values(LOG, logging.DEBUG)
+    CONF.log_opt_values(logging.getLogger(), logging.DEBUG)
     user = CONF.admin.user
     users[user] = generate_password_hash(CONF.admin.password)
     if not port:
