@@ -22,7 +22,6 @@ import aprsd
 from aprsd import (
     cli_helper, client, packets, plugin_utils, stats, threads, utils,
 )
-from aprsd.log import log
 from aprsd.main import cli
 from aprsd.threads import aprsd as aprsd_threads
 from aprsd.threads import rx, tx
@@ -570,8 +569,6 @@ class SendMessageNamespace(Namespace):
 @trace.trace
 def init_flask(loglevel, quiet):
     global socketio, flask_app
-
-    log.setup_logging(loglevel, quiet)
 
     socketio = SocketIO(
         flask_app, logger=False, engineio_logger=False,

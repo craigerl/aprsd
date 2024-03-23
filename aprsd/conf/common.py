@@ -225,6 +225,11 @@ webchat_opts = [
         default=None,
         help="Longitude for the GPS Beacon button.  If not set, the button will not be enabled.",
     ),
+    cfg.BoolOpt(
+        "disable_url_request_logging",
+        default=False,
+        help="Disable the logging of url requests in the webchat command.",
+    ),
 ]
 
 registry_opts = [
