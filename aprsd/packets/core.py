@@ -167,7 +167,7 @@ class Packet:
         # 67 displays 64 on the ftm400. (+3 {01 suffix)
         # feature req: break long ones into two msgs
         if not msg:
-            raise ValueError("No message text to send. call prepare() first.")
+            return ""
 
         message = msg[:67]
         # We all miss George Carlin
