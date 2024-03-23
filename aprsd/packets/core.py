@@ -171,7 +171,10 @@ class Packet:
 
         message = msg[:67]
         # We all miss George Carlin
-        return re.sub("fuck|shit|cunt|piss|cock|bitch", "****", message)
+        return re.sub(
+            "fuck|shit|cunt|piss|cock|bitch", "****",
+            message, flags=re.IGNORECASE,
+        )
 
     def __str__(self) -> str:
         """Show the raw version of the packet"""

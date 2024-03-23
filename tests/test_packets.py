@@ -272,8 +272,8 @@ class TestPacketBase(unittest.TestCase):
 
         # test with bad words
         # Currently fails with mixed case
-        message = "My cunt piss fuck text"
-        exp_msg = "My **** **** **** text"
+        message = "My cunt piss fuck shIt text"
+        exp_msg = "My **** **** **** **** text"
         msgno = "ABX"
         packet = packets.MessagePacket(
             from_call=fake.FAKE_FROM_CALLSIGN,
