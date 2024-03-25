@@ -10,7 +10,9 @@ from rush.stores import dictionary
 from aprsd import client
 from aprsd import conf  # noqa
 from aprsd import threads as aprsd_threads
-from aprsd.packets import core, tracker
+from aprsd.packets import core
+from aprsd.packets import log as packet_log
+from aprsd.packets import tracker
 
 
 CONF = cfg.CONF
@@ -74,7 +76,7 @@ def _send_direct(packet, aprs_client=None):
         cl = client.factory.create()
 
     packet.update_timestamp()
-    packet.log(header="TX")
+    packet_log.log(packet, tx=True)
     cl.send(packet)
 
 
@@ -163,7 +165,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
         if self.packet.send_count == self.packet.retry_count:
             # we reached the send limit, don't send again
             # TODO(hemna) - Need to put this in a delayed queue?
-            LOG.info(
+            LOG.debug(
                 f"{self.packet.__class__.__name__}"
                 f"({self.packet.msgNo}) "
                 "Send Complete. Max attempts reached"

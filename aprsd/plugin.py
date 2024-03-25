@@ -1,4 +1,5 @@
-# The base plugin class
+from __future__ import annotations
+
 import abc
 import importlib
 import inspect
@@ -42,7 +43,7 @@ class APRSDPluginSpec:
     """A hook specification namespace."""
 
     @hookspec
-    def filter(self, packet: packets.core.Packet):
+    def filter(self, packet: type[packets.Packet]):
         """My special little hook that you can customize."""
 
 
@@ -65,7 +66,7 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         self.threads = self.create_threads() or []
         self.start_threads()
 
-    def start_threads(self):
+    def start_threads(self) -> None:
         if self.enabled and self.threads:
             if not isinstance(self.threads, list):
                 self.threads = [self.threads]
@@ -90,10 +91,10 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
                 )
 
     @property
-    def message_count(self):
+    def message_count(self) -> int:
         return self.message_counter
 
-    def help(self):
+    def help(self) -> str:
         return "Help!"
 
     @abc.abstractmethod
@@ -118,11 +119,11 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
                 thread.stop()
 
     @abc.abstractmethod
-    def filter(self, packet: packets.core.Packet):
+    def filter(self, packet: type[packets.Packet]) -> str | packets.MessagePacket:
         pass
 
     @abc.abstractmethod
-    def process(self, packet: packets.core.Packet):
+    def process(self, packet: type[packets.Packet]):
         """This is called when the filter passes."""
 
 
@@ -154,7 +155,7 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 LOG.warning("Watch list enabled, but no callsigns set.")
 
     @hookimpl
-    def filter(self, packet: packets.core.Packet):
+    def filter(self, packet: type[packets.Packet]) -> str | packets.MessagePacket:
         result = packets.NULL_MESSAGE
         if self.enabled:
             wl = watch_list.WatchList()
@@ -206,14 +207,14 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         self.enabled = True
 
     @hookimpl
-    def filter(self, packet: packets.core.MessagePacket):
-        LOG.info(f"{self.__class__.__name__} called")
+    def filter(self, packet: packets.MessagePacket) -> str | packets.MessagePacket:
+        LOG.debug(f"{self.__class__.__name__} called")
         if not self.enabled:
             result = f"{self.__class__.__name__} isn't enabled"
             LOG.warning(result)
             return result
 
-        if not isinstance(packet, packets.core.MessagePacket):
+        if not isinstance(packet, packets.MessagePacket):
             LOG.warning(f"{self.__class__.__name__} Got a {packet.__class__.__name__} ignoring")
             return packets.NULL_MESSAGE
 
@@ -226,7 +227,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         # and is an APRS message format and has a message.
         if (
             tocall == CONF.callsign
-            and isinstance(packet, packets.core.MessagePacket)
+            and isinstance(packet, packets.MessagePacket)
             and message
         ):
             if re.search(self.command_regex, message, re.IGNORECASE):
@@ -269,7 +270,7 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
     def help(self):
         return "Help: send APRS help or help <plugin>"
 
-    def process(self, packet: packets.core.MessagePacket):
+    def process(self, packet: packets.MessagePacket):
         LOG.info("HelpPlugin")
         # fromcall = packet.get("from")
         message = packet.message_text
@@ -469,12 +470,12 @@ class PluginManager:
 
         LOG.info("Completed Plugin Loading.")
 
-    def run(self, packet: packets.core.MessagePacket):
+    def run(self, packet: packets.MessagePacket):
         """Execute all the plugins run method."""
         with self.lock:
             return self._pluggy_pm.hook.filter(packet=packet)
 
-    def run_watchlist(self, packet: packets.core.Packet):
+    def run_watchlist(self, packet: packets.Packet):
         with self.lock:
             return self._watchlist_pm.hook.filter(packet=packet)
 

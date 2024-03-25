@@ -101,6 +101,14 @@ aprsd_opts = [
         default=None,
         help="Longitude for the GPS Beacon button.  If not set, the button will not be enabled.",
     ),
+    cfg.StrOpt(
+        "log_packet_format",
+        choices=["compact", "multiline", "both"],
+        default="compact",
+        help="When logging packets 'compact' will use a single line formatted for each packet."
+             "'multiline' will use multiple lines for each packet and is the traditional format."
+             "both will log both compact and multiline.",
+    ),
 ]
 
 watch_list_opts = [
@@ -224,6 +232,11 @@ webchat_opts = [
         "longitude",
         default=None,
         help="Longitude for the GPS Beacon button.  If not set, the button will not be enabled.",
+    ),
+    cfg.BoolOpt(
+        "disable_url_request_logging",
+        default=False,
+        help="Disable the logging of url requests in the webchat command.",
     ),
 ]
 

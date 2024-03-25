@@ -17,6 +17,7 @@ from rich.console import Console
 import aprsd
 from aprsd import cli_helper, client, packets, plugin, stats, threads
 from aprsd.main import cli
+from aprsd.packets import log as packet_log
 from aprsd.rpc import server as rpc_server
 from aprsd.threads import rx
 
@@ -53,27 +54,31 @@ class APRSDListenThread(rx.APRSDRXThread):
         filters = {
             packets.Packet.__name__: packets.Packet,
             packets.AckPacket.__name__: packets.AckPacket,
+            packets.BeaconPacket.__name__: packets.BeaconPacket,
             packets.GPSPacket.__name__: packets.GPSPacket,
             packets.MessagePacket.__name__: packets.MessagePacket,
             packets.MicEPacket.__name__: packets.MicEPacket,
+            packets.ObjectPacket.__name__: packets.ObjectPacket,
+            packets.StatusPacket.__name__: packets.StatusPacket,
+            packets.ThirdPartyPacket.__name__: packets.ThirdPartyPacket,
             packets.WeatherPacket.__name__: packets.WeatherPacket,
+            packets.UnknownPacket.__name__: packets.UnknownPacket,
         }
 
         if self.packet_filter:
             filter_class = filters[self.packet_filter]
             if isinstance(packet, filter_class):
-                packet.log(header="RX")
+                packet_log.log(packet)
                 if self.plugin_manager:
                     # Don't do anything with the reply
                     # This is the listen only command.
                     self.plugin_manager.run(packet)
         else:
+            packet_log.log(packet)
             if self.plugin_manager:
                 # Don't do anything with the reply.
                 # This is the listen only command.
                 self.plugin_manager.run(packet)
-            else:
-                packet.log(header="RX")
 
         packets.PacketList().rx(packet)
 
@@ -96,11 +101,16 @@ class APRSDListenThread(rx.APRSDRXThread):
     "--packet-filter",
     type=click.Choice(
         [
-            packets.Packet.__name__,
             packets.AckPacket.__name__,
+            packets.BeaconPacket.__name__,
             packets.GPSPacket.__name__,
             packets.MicEPacket.__name__,
             packets.MessagePacket.__name__,
+            packets.ObjectPacket.__name__,
+            packets.RejectPacket.__name__,
+            packets.StatusPacket.__name__,
+            packets.ThirdPartyPacket.__name__,
+            packets.UnknownPacket.__name__,
             packets.WeatherPacket.__name__,
         ],
         case_sensitive=False,
@@ -180,7 +190,7 @@ def listen(
     aprs_client.set_filter(filter)
 
     keepalive = threads.KeepAliveThread()
-    keepalive.start()
+    # keepalive.start()
 
     if CONF.rpc_settings.enabled:
         rpc = rpc_server.APRSDRPCThread()
@@ -205,6 +215,8 @@ def listen(
     )
     LOG.debug("Start APRSDListenThread")
     listen_thread.start()
+
+    keepalive.start()
     LOG.debug("keepalive Join")
     keepalive.join()
     LOG.debug("listen_thread Join")

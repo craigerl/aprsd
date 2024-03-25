@@ -137,7 +137,7 @@ class APRSISClient(Client):
 
     def decode_packet(self, *args, **kwargs):
         """APRS lib already decodes this."""
-        return core.Packet.factory(args[0])
+        return core.factory(args[0])
 
     def setup_connection(self):
         user = CONF.aprs_network.login
@@ -238,7 +238,7 @@ class KISSClient(Client):
         # LOG.debug(f"Decoding {msg}")
 
         raw = aprslib.parse(str(frame))
-        packet = core.Packet.factory(raw)
+        packet = core.factory(raw)
         if isinstance(packet, core.ThirdParty):
             return packet.subpacket
         else:

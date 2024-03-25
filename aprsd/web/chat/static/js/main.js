@@ -37,7 +37,7 @@ function start_update() {
                     update_stats(data);
                 },
                 complete: function() {
-                    setTimeout(statsworker, 10000);
+                    setTimeout(statsworker, 60000);
                 }
             });
     })();

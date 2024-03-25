@@ -51,11 +51,8 @@ class TestSendMessageCommand(unittest.TestCase):
     ):
         self.config_and_init()
         mock_socketio.emit = mock.MagicMock()
-        packet = fake.fake_packet(
-            message="blah",
-            msg_number=1,
-            message_format=core.PACKET_TYPE_ACK,
-        )
+        # Create an ACK packet
+        packet = fake.fake_ack_packet()
         mock_queue = mock.MagicMock()
         socketio = mock.MagicMock()
         wcp = webchat.WebChatProcessPacketThread(mock_queue, socketio)

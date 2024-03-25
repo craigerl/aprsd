@@ -10,7 +10,8 @@ from aprsd.conf import log as conf_log
 
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+# LOG = logging.getLogger("APRSD")
+LOG = logger
 logging_queue = queue.Queue()
 
 
@@ -35,6 +36,7 @@ class InterceptHandler(logging.Handler):
 # to disable log to stdout, but still log to file
 # use the --quiet option on the cmdln
 def setup_logging(loglevel=None, quiet=False):
+    print(f"setup_logging: loglevel={loglevel}, quiet={quiet}")
     if not loglevel:
         log_level = CONF.logging.log_level
     else:
@@ -53,9 +55,13 @@ def setup_logging(loglevel=None, quiet=False):
         "aprslib.parsing",
         "aprslib.exceptions",
     ]
+    webserver_list = [
+        "werkzeug",
+        "werkzeug._internal",
+    ]
 
     # We don't really want to see the aprslib parsing debug output.
-    disable_list = imap_list + aprslib_list
+    disable_list = imap_list + aprslib_list + webserver_list
 
     # remove every other logger's handlers
     # and propagate to root logger
@@ -66,17 +72,29 @@ def setup_logging(loglevel=None, quiet=False):
         else:
             logging.getLogger(name).propagate = True
 
+    if CONF.webchat.disable_url_request_logging:
+        for name in webserver_list:
+            logging.getLogger(name).handlers = []
+            logging.getLogger(name).propagate = True
+            logging.getLogger(name).setLevel(logging.ERROR)
+
     handlers = [
         {
-            "sink": sys.stdout, "serialize": False,
+            "sink": sys.stdout,
+            "serialize": False,
             "format": CONF.logging.logformat,
+            "colorize": True,
+            "level": log_level,
         },
     ]
     if CONF.logging.logfile:
         handlers.append(
             {
-                "sink": CONF.logging.logfile, "serialize": False,
+                "sink": CONF.logging.logfile,
+                "serialize": False,
                 "format": CONF.logging.logformat,
+                "colorize": False,
+                "level": log_level,
             },
         )
 
@@ -90,8 +108,11 @@ def setup_logging(loglevel=None, quiet=False):
             {
                 "sink": qh, "serialize": False,
                 "format": CONF.logging.logformat,
+                "level": log_level,
+                "colorize": False,
             },
         )
 
     # configure loguru
     logger.configure(handlers=handlers)
+    logger.level("DEBUG", color="<fg #BABABA>")

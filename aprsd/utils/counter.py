@@ -1,7 +1,11 @@
 from multiprocessing import RawValue
+import random
 import threading
 
 import wrapt
+
+
+MAX_PACKET_ID = 9999
 
 
 class PacketCounter:
@@ -17,19 +21,18 @@ class PacketCounter:
     """
 
     _instance = None
-    max_count = 9999
     lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
         """Make this a singleton class."""
         if cls._instance is None:
             cls._instance = super().__new__(cls, *args, **kwargs)
-            cls._instance.val = RawValue("i", 1)
+            cls._instance.val = RawValue("i", random.randint(1, MAX_PACKET_ID))
         return cls._instance
 
     @wrapt.synchronized(lock)
     def increment(self):
-        if self.val.value == self.max_count:
+        if self.val.value == MAX_PACKET_ID:
             self.val.value = 1
         else:
             self.val.value += 1
