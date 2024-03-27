@@ -228,7 +228,7 @@ webchat_opts = [
 ]
 
 registry_opts = [
-    cfg.StrOpt(
+    cfg.BoolOpt(
         "enabled",
         default=False,
         help="Enable sending aprs registry information.  This will let the "
