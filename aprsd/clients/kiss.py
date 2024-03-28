@@ -81,7 +81,7 @@ class KISS3Client:
             LOG.error("Failed to parse bytes received from KISS interface.")
             LOG.exception(ex)
 
-    def consumer(self, callback, blocking=False, immortal=False, raw=False):
+    def consumer(self, callback):
         LOG.debug("Start blocking KISS consumer")
         self._parse_callback = callback
         self.kiss.read(callback=self.parse_frame, min_frames=None)
