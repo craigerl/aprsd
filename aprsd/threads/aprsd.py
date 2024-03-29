@@ -47,6 +47,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
     def run(self):
         LOG.debug("Starting")
         while not self._should_quit():
+            self.loop_count += 1
             can_loop = self.loop()
             self.loop_interval += 1
             self._last_loop = datetime.datetime.now()
@@ -70,6 +71,17 @@ class APRSDThreadList:
             cls._instance = super().__new__(cls)
             cls.threads_list = []
         return cls._instance
+
+    def stats(self) -> dict:
+        stats = {}
+        for th in self.threads_list:
+            stats[th.__class__.__name__] = {
+                "name": th.name,
+                "alive": th.is_alive(),
+                "age": th.loop_age(),
+                "loop_count": th.loop_count,
+            }
+        return stats
 
     @wrapt.synchronized(lock)
     def add(self, thread_obj):

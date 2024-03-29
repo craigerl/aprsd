@@ -35,7 +35,8 @@ from oslo_config import cfg, generator
 
 # local imports here
 import aprsd
-from aprsd import cli_helper, packets, stats, threads, utils
+from aprsd import cli_helper, packets, threads, utils
+from aprsd.stats import collector
 
 
 # setup the global logger
@@ -96,7 +97,7 @@ def signal_handler(sig, frame):
         packets.PacketTrack().save()
         packets.WatchList().save()
         packets.SeenList().save()
-        LOG.info(stats.APRSDStats())
+        LOG.info(collector.Collector().collect())
         # signal.signal(signal.SIGTERM, sys.exit(0))
         # sys.exit(0)
 

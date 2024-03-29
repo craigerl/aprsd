@@ -28,7 +28,7 @@ class WatchList(objectstore.ObjectStoreMixin):
         return cls._instance
 
     def __init__(self, config=None):
-        ring_size = CONF.watch_list.packet_keep_count
+        CONF.watch_list.packet_keep_count
 
         if CONF.watch_list.callsigns:
             for callsign in CONF.watch_list.callsigns:
@@ -38,11 +38,21 @@ class WatchList(objectstore.ObjectStoreMixin):
                 # last time a message was seen by aprs-is.  For now this
                 # is all we can do.
                 self.data[call] = {
-                    "last": datetime.datetime.now(),
-                    "packets": utils.RingBuffer(
-                        ring_size,
-                    ),
+                    "last": None,
+                    "packet":  None,
                 }
+
+    @wrapt.synchronized(lock)
+    def stats(self) -> dict:
+        stats = {}
+        for callsign in self.data:
+            stats[callsign] = {
+                "last": self.data[callsign]["last"],
+                "packet": self.data[callsign]["packet"],
+                "age": self.age(callsign),
+                "old": self.is_old(callsign),
+            }
+        return stats
 
     def is_enabled(self):
         return CONF.watch_list.enabled
@@ -58,7 +68,7 @@ class WatchList(objectstore.ObjectStoreMixin):
             callsign = packet.from_call
         if self.callsign_in_watchlist(callsign):
             self.data[callsign]["last"] = datetime.datetime.now()
-            self.data[callsign]["packets"].append(packet)
+            self.data[callsign]["packet"] = packet
 
     def last_seen(self, callsign):
         if self.callsign_in_watchlist(callsign):

@@ -5,7 +5,8 @@ import tracemalloc
 
 from oslo_config import cfg
 
-from aprsd import client, packets, stats, utils
+from aprsd import client, packets, utils
+from aprsd.stats import collector
 from aprsd.threads import APRSDThread, APRSDThreadList
 
 
@@ -24,61 +25,68 @@ class KeepAliveThread(APRSDThread):
         self.max_delta = datetime.timedelta(**max_timeout)
 
     def loop(self):
-        if self.cntr % 60 == 0:
-            pkt_tracker = packets.PacketTrack()
-            stats_obj = stats.APRSDStats()
+        if self.loop_count % 60 == 0:
+            stats_json = collector.Collector().collect()
+            #LOG.debug(stats_json)
             pl = packets.PacketList()
             thread_list = APRSDThreadList()
             now = datetime.datetime.now()
-            last_email = stats_obj.email_thread_time
-            if last_email:
-                email_thread_time = utils.strfdelta(now - last_email)
+
+            if "EmailStats" in stats_json:
+                email_stats = stats_json["EmailStats"]
+                if email_stats["last_check_time"]:
+                    email_thread_time = utils.strfdelta(now - email_stats["last_check_time"])
+                else:
+                    email_thread_time = "N/A"
             else:
                 email_thread_time = "N/A"
 
-            last_msg_time = utils.strfdelta(now - stats_obj.aprsis_keepalive)
+            if "APRSClientStats" in stats_json and stats_json["APRSClientStats"].get("transport") == "aprsis":
+                if stats_json["APRSClientStats"].get("server_keepalive"):
+                    last_msg_time = utils.strfdelta(now - stats_json["APRSClientStats"]["server_keepalive"])
+                else:
+                    last_msg_time = "N/A"
+            else:
+                last_msg_time = "N/A"
 
-            current, peak = tracemalloc.get_traced_memory()
-            stats_obj.set_memory(current)
-            stats_obj.set_memory_peak(peak)
+            tracked_packets = stats_json["PacketTrack"]["total_tracked"]
+            tx_msg = 0
+            rx_msg = 0
+            if "PacketList" in stats_json:
+               msg_packets = stats_json["PacketList"].get("MessagePacket")
+               if msg_packets:
+                   tx_msg = msg_packets.get("tx", 0)
+                   rx_msg = msg_packets.get("rx", 0)
 
-            login = CONF.callsign
-
-            tracked_packets = len(pkt_tracker)
 
             keepalive = (
                 "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
                 "Last:{} Email: {} - RAM Current:{} Peak:{} Threads:{}"
             ).format(
-                login,
-                utils.strfdelta(stats_obj.uptime),
+                stats_json["APRSDStats"]["callsign"],
+                stats_json["APRSDStats"]["uptime"],
                 pl.total_rx(),
                 pl.total_tx(),
                 tracked_packets,
-                stats_obj._pkt_cnt["MessagePacket"]["tx"],
-                stats_obj._pkt_cnt["MessagePacket"]["rx"],
+                tx_msg,
+                rx_msg,
                 last_msg_time,
                 email_thread_time,
-                utils.human_size(current),
-                utils.human_size(peak),
+                stats_json["APRSDStats"]["memory_current_str"],
+                stats_json["APRSDStats"]["memory_peak_str"],
                 len(thread_list),
             )
             LOG.info(keepalive)
-            thread_out = []
-            thread_info = {}
-            for thread in thread_list.threads_list:
-                alive = thread.is_alive()
-                age = thread.loop_age()
-                key = thread.__class__.__name__
-                thread_out.append(f"{key}:{alive}:{age}")
-                if key not in thread_info:
-                    thread_info[key] = {}
-                thread_info[key]["alive"] = alive
-                thread_info[key]["age"] = age
-                if not alive:
-                    LOG.error(f"Thread {thread}")
-            LOG.info(",".join(thread_out))
-            stats_obj.set_thread_info(thread_info)
+            if "APRSDThreadList" in stats_json:
+                thread_list = stats_json["APRSDThreadList"]
+                for thread_name in thread_list:
+                    thread = thread_list[thread_name]
+                    alive = thread["alive"]
+                    age = thread["age"]
+                    key = thread["name"]
+                    if not alive:
+                        LOG.error(f"Thread {thread}")
+                    LOG.info(f"{key: <15} Alive? {str(alive): <5} {str(age): <20}")
 
             # check the APRS connection
             cl = client.factory.create()
@@ -90,18 +98,18 @@ class KeepAliveThread(APRSDThread):
             if not cl.is_alive() and self.cntr > 0:
                 LOG.error(f"{cl.__class__.__name__} is not alive!!! Resetting")
                 client.factory.create().reset()
-            else:
-                # See if we should reset the aprs-is client
-                # Due to losing a keepalive from them
-                delta_dict = utils.parse_delta_str(last_msg_time)
-                delta = datetime.timedelta(**delta_dict)
-
-                if delta > self.max_delta:
-                    #  We haven't gotten a keepalive from aprs-is in a while
-                    # reset the connection.a
-                    if not client.KISSClient.is_enabled():
-                        LOG.warning(f"Resetting connection to APRS-IS {delta}")
-                        client.factory.create().reset()
+            # else:
+            #     # See if we should reset the aprs-is client
+            #     # Due to losing a keepalive from them
+            #     delta_dict = utils.parse_delta_str(last_msg_time)
+            #     delta = datetime.timedelta(**delta_dict)
+            #
+            #     if delta > self.max_delta:
+            #         #  We haven't gotten a keepalive from aprs-is in a while
+            #         # reset the connection.a
+            #         if not client.KISSClient.is_enabled():
+            #             LOG.warning(f"Resetting connection to APRS-IS {delta}")
+            #             client.factory.create().reset()
 
             # Check version every day
             delta = now - self.checker_time
@@ -110,6 +118,5 @@ class KeepAliveThread(APRSDThread):
                 level, msg = utils._check_version()
                 if level:
                     LOG.warning(msg)
-        self.cntr += 1
         time.sleep(1)
         return True

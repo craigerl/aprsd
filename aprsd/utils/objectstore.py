@@ -71,12 +71,13 @@ class ObjectStoreMixin:
         if not CONF.enable_save:
             return
         if len(self) > 0:
+            save_filename = self._save_filename()
             LOG.info(
                 f"{self.__class__.__name__}::Saving"
-                f" {len(self)} entries to disk at"
-                f"{CONF.save_location}",
+                f" {len(self)} entries to disk at "
+                f"{save_filename}",
             )
-            with open(self._save_filename(), "wb+") as fp:
+            with open(save_filename, "wb+") as fp:
                 pickle.dump(self._dump(), fp)
         else:
             LOG.debug(

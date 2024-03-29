@@ -20,6 +20,11 @@ class LogEntries:
             cls._instance = super().__new__(cls)
         return cls._instance
 
+    def stats(self) -> dict:
+        return {
+            "log_entries": self.entries,
+        }
+
     @wrapt.synchronized(lock)
     def add(self, entry):
         self.entries.append(entry)
