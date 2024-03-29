@@ -11,7 +11,7 @@ import time
 import imapclient
 from oslo_config import cfg
 
-from aprsd import packets, plugin, stats, threads
+from aprsd import packets, plugin, threads, utils
 from aprsd.threads import tx
 from aprsd.utils import trace
 
@@ -58,6 +58,33 @@ class EmailInfo:
     def delay(self, val):
         with self.lock:
             self._delay = val
+
+
+@utils.singleton
+class EmailStats:
+    """Singleton object to store stats related to email."""
+    _instance = None
+    tx = 0
+    rx = 0
+    email_thread_last_time = None
+
+    def stats(self):
+        if CONF.email_plugin.enabled:
+            stats = {
+                "tx": self.tx,
+                "rx": self.rx,
+                "last_check_time": self.email_thread_last_time,
+            }
+        else:
+            stats = {}
+        return stats
+
+    def tx_inc(self):
+        self.tx += 1
+    def rx_inc(self):
+        self.rx += 1
+    def email_thread_update(self):
+        self.email_thread_last_time = datetime.datetime.now()
 
 
 class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
@@ -440,7 +467,7 @@ def send_email(to_addr, content):
                 [to_addr],
                 msg.as_string(),
             )
-            stats.APRSDStats().email_tx_inc()
+            EmailStats().tx_inc()
         except Exception:
             LOG.exception("Sendmail Error!!!!")
             server.quit()
@@ -545,7 +572,7 @@ class APRSDEmailThread(threads.APRSDThread):
 
     def loop(self):
         time.sleep(5)
-        stats.APRSDStats().email_thread_update()
+        EmailStats().email_thread_update()
         # always sleep for 5 seconds and see if we need to check email
         # This allows CTRL-C to stop the execution of this loop sooner
         # than check_email_delay time

@@ -138,7 +138,6 @@ class APRSDProcessPacketThread(APRSDThread):
     def __init__(self, packet_queue):
         self.packet_queue = packet_queue
         super().__init__("ProcessPKT")
-        self._loop_cnt = 1
 
     def process_ack_packet(self, packet):
         """We got an ack for a message, no need to resend it."""
@@ -161,12 +160,11 @@ class APRSDProcessPacketThread(APRSDThread):
                 self.process_packet(packet)
         except queue.Empty:
             pass
-        self._loop_cnt += 1
         return True
 
     def process_packet(self, packet):
         """Process a packet received from aprs-is server."""
-        LOG.debug(f"ProcessPKT-LOOP {self._loop_cnt}")
+        LOG.debug(f"ProcessPKT-LOOP {self.loop_count}")
         our_call = CONF.callsign.lower()
 
         from_call = packet.from_call

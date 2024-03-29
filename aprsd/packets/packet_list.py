@@ -6,7 +6,6 @@ import threading
 from oslo_config import cfg
 import wrapt
 
-from aprsd import stats
 from aprsd.packets import seen_list
 
 
@@ -38,7 +37,6 @@ class PacketList(MutableMapping):
             self.types[ptype] = {"tx": 0, "rx": 0}
         self.types[ptype]["rx"] += 1
         seen_list.SeenList().update_seen(packet)
-        stats.APRSDStats().rx(packet)
 
     @wrapt.synchronized(lock)
     def tx(self, packet):
@@ -50,7 +48,6 @@ class PacketList(MutableMapping):
             self.types[ptype] = {"tx": 0, "rx": 0}
         self.types[ptype]["tx"] += 1
         seen_list.SeenList().update_seen(packet)
-        stats.APRSDStats().tx(packet)
 
     @wrapt.synchronized(lock)
     def add(self, packet):
@@ -97,3 +94,13 @@ class PacketList(MutableMapping):
     @wrapt.synchronized(lock)
     def total_tx(self):
         return self._total_tx
+
+    def stats(self) -> dict:
+        stats = {
+            "total_tracked": self.total_tx() + self.total_rx(),
+            "rx": self.total_rx(),
+            "tx": self.total_tx(),
+            "packets": self.types,
+        }
+
+        return stats

@@ -1,6 +1,7 @@
 """Utilities and helper functions."""
 
 import errno
+import functools
 import os
 import re
 import sys
@@ -20,6 +21,17 @@ if sys.version_info.major == 3 and sys.version_info.minor >= 3:
     from collections.abc import MutableMapping
 else:
     from collections.abc import MutableMapping
+
+
+def singleton(cls):
+    """Make a class a Singleton class (only one instance)"""
+    @functools.wraps(cls)
+    def wrapper_singleton(*args, **kwargs):
+        if wrapper_singleton.instance is None:
+            wrapper_singleton.instance = cls(*args, **kwargs)
+        return wrapper_singleton.instance
+    wrapper_singleton.instance = None
+    return wrapper_singleton
 
 
 def env(*vars, **kwargs):
