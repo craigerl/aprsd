@@ -391,7 +391,9 @@ class PluginManager:
         try:
             module_name, class_name = module_class_string.rsplit(".", 1)
             module = importlib.import_module(module_name)
-            #module = importlib.reload(module)
+            # Commented out because the email thread starts in a different context
+            # and hence gives a different singleton for the EmailStats
+            # module = importlib.reload(module)
         except Exception as ex:
             if not module_name:
                 LOG.error(f"Failed to load Plugin {module_class_string}")

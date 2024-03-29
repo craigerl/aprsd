@@ -7,7 +7,7 @@ from .keep_alive import KeepAliveThread  # noqa: F401
 from .rx import (  # noqa: F401
     APRSDDupeRXThread, APRSDProcessPacketThread, APRSDRXThread,
 )
-from .stats import APRSDStatsStoreThread
+from .stats import APRSDStatsStoreThread  # noqa: F401
 
 
 packet_queue = queue.Queue(maxsize=20)

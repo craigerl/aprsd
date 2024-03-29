@@ -39,7 +39,7 @@ class WatchList(objectstore.ObjectStoreMixin):
                 # is all we can do.
                 self.data[call] = {
                     "last": None,
-                    "packet":  None,
+                    "packet": None,
                 }
 
     @wrapt.synchronized(lock)

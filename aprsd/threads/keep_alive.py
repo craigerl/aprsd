@@ -27,7 +27,6 @@ class KeepAliveThread(APRSDThread):
     def loop(self):
         if self.loop_count % 60 == 0:
             stats_json = collector.Collector().collect()
-            #LOG.debug(stats_json)
             pl = packets.PacketList()
             thread_list = APRSDThreadList()
             now = datetime.datetime.now()
@@ -53,11 +52,10 @@ class KeepAliveThread(APRSDThread):
             tx_msg = 0
             rx_msg = 0
             if "PacketList" in stats_json:
-               msg_packets = stats_json["PacketList"].get("MessagePacket")
-               if msg_packets:
-                   tx_msg = msg_packets.get("tx", 0)
-                   rx_msg = msg_packets.get("rx", 0)
-
+                msg_packets = stats_json["PacketList"].get("MessagePacket")
+                if msg_packets:
+                    tx_msg = msg_packets.get("tx", 0)
+                    rx_msg = msg_packets.get("rx", 0)
 
             keepalive = (
                 "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "

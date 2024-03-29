@@ -81,8 +81,10 @@ class EmailStats:
 
     def tx_inc(self):
         self.tx += 1
+
     def rx_inc(self):
         self.rx += 1
+
     def email_thread_update(self):
         self.email_thread_last_time = datetime.datetime.now()
 
@@ -217,10 +219,6 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
 def _imap_connect():
     imap_port = CONF.email_plugin.imap_port
     use_ssl = CONF.email_plugin.imap_use_ssl
-    # host = CONFIG["aprsd"]["email"]["imap"]["host"]
-    # msg = "{}{}:{}".format("TLS " if use_ssl else "", host, imap_port)
-    #    LOG.debug("Connect to IMAP host {} with user '{}'".
-    #              format(msg, CONFIG['imap']['login']))
 
     try:
         server = imapclient.IMAPClient(

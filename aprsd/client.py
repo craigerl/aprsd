@@ -25,6 +25,7 @@ TRANSPORT_FAKE = "fake"
 # Correct config
 factory = None
 
+
 @singleton
 class APRSClientStats:
     def stats(self):
