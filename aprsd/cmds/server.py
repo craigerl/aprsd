@@ -10,7 +10,7 @@ from aprsd import cli_helper, client
 from aprsd import main as aprsd_main
 from aprsd import packets, plugin, threads, utils
 from aprsd.main import cli
-from aprsd.threads import registry, rx, tx
+from aprsd.threads import log_monitor, registry, rx, tx
 
 
 CONF = cfg.CONF
@@ -127,8 +127,8 @@ def server(ctx, flush):
         registry_thread.start()
 
     if CONF.rpc_settings.enabled:
-        log_monitor = threads.log_monitor.LogMonitorThread()
-        log_monitor.start()
+        log_monitor_thread = log_monitor.LogMonitorThread()
+        log_monitor_thread.start()
 
     rx_thread.join()
     process_thread.join()
