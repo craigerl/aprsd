@@ -1,11 +1,13 @@
 import abc
 import datetime
 import logging
+import threading
 import time
 
 import aprslib
 from aprslib.exceptions import LoginError
 from oslo_config import cfg
+import wrapt
 
 from aprsd import exception
 from aprsd.clients import aprsis, fake, kiss
@@ -28,6 +30,10 @@ factory = None
 
 @singleton
 class APRSClientStats:
+
+    lock = threading.Lock()
+
+    @wrapt.synchronized(lock)
     def stats(self, serializable=False):
         client = factory.create()
         stats = {
@@ -58,6 +64,7 @@ class Client:
 
     connected = False
     filter = None
+    lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
@@ -97,6 +104,7 @@ class Client:
         packet_list.PacketList().tx(packet)
         self.client.send(packet)
 
+    @wrapt.synchronized(lock)
     def reset(self):
         """Call this to force a rebuild/reconnect."""
         LOG.info("Resetting client connection.")
