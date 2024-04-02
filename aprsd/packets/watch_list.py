@@ -97,14 +97,19 @@ class WatchList(objectstore.ObjectStoreMixin):
         We put this here so any notification plugin can use this
         same test.
         """
+        if not self.callsign_in_watchlist(callsign):
+            return False
+
         age = self.age(callsign)
+        if age:
+            delta = utils.parse_delta_str(age)
+            d = datetime.timedelta(**delta)
 
-        delta = utils.parse_delta_str(age)
-        d = datetime.timedelta(**delta)
+            max_delta = self.max_delta(seconds=seconds)
 
-        max_delta = self.max_delta(seconds=seconds)
-
-        if d > max_delta:
-            return True
+            if d > max_delta:
+                return True
+            else:
+                return False
         else:
             return False
