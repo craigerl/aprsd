@@ -11,6 +11,9 @@ LOG = logging.getLogger("APRSD")
 
 
 class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
+    """Base class for all threads in APRSD."""
+
+    loop_interval = 1
 
     def __init__(self, name):
         super().__init__(name=name)
@@ -45,6 +48,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         LOG.debug("Starting")
         while not self._should_quit():
             can_loop = self.loop()
+            self.loop_interval += 1
             self._last_loop = datetime.datetime.now()
             if not can_loop:
                 self.stop()
@@ -83,6 +87,17 @@ class APRSDThreadList:
             if hasattr(th, "packet"):
                 LOG.info(F"{th.name} packet {th.packet}")
             th.stop()
+
+    @wrapt.synchronized(lock)
+    def info(self):
+        """Go through all the threads and collect info about each."""
+        info = {}
+        for thread in self.threads_list:
+            alive = thread.is_alive()
+            age = thread.loop_age()
+            key = thread.__class__.__name__
+            info[key] = {"alive": True if alive else False, "age": age, "name": thread.name}
+        return info
 
     @wrapt.synchronized(lock)
     def __len__(self):

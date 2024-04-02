@@ -6,7 +6,7 @@ import time
 import aprslib
 from oslo_config import cfg
 
-from aprsd import client, packets, plugin
+from aprsd import client, packets, plugin, stats
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
 
@@ -23,9 +23,15 @@ class APRSDRXThread(APRSDThread):
 
     def stop(self):
         self.thread_stop = True
-        client.factory.create().client.stop()
+        if self._client:
+            self._client.stop()
 
     def loop(self):
+        LOG.debug(f"RX_MSG-LOOP {self.loop_interval}")
+        if not self._client:
+            self._client = client.factory.create()
+            time.sleep(1)
+            return True
         # setup the consumer of messages and block until a messages
         try:
             # This will register a packet consumer with aprslib
@@ -37,10 +43,11 @@ class APRSDRXThread(APRSDThread):
             # and the aprslib developer didn't want to allow a PR to add
             # kwargs.  :(
             # https://github.com/rossengeorgiev/aprs-python/pull/56
-            self._client.client.consumer(
-                self.process_packet, raw=False, blocking=False,
+            LOG.debug(f"Calling client consumer CL {self._client}")
+            self._client.consumer(
+                self._process_packet, raw=False, blocking=False,
             )
-
+            LOG.debug(f"Consumer done {self._client}")
         except (
             aprslib.exceptions.ConnectionDrop,
             aprslib.exceptions.ConnectionError,
@@ -51,8 +58,18 @@ class APRSDRXThread(APRSDThread):
             # This will cause a reconnect, next time client.get_client()
             # is called
             self._client.reset()
+        except Exception as ex:
+            LOG.error("Something bad happened!!!")
+            LOG.exception(ex)
+            return False
         # Continue to loop
         return True
+
+    def _process_packet(self, *args, **kwargs):
+        """Intermediate callback so we can update the keepalive time."""
+        stats.APRSDStats().set_aprsis_keepalive()
+        # Now call the 'real' packet processing for a RX'x packet
+        self.process_packet(*args, **kwargs)
 
     @abc.abstractmethod
     def process_packet(self, *args, **kwargs):

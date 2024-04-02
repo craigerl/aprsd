@@ -40,6 +40,7 @@ class Client:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             # Put any initialization here.
+            cls._instance._create_client()
         return cls._instance
 
     def set_filter(self, filter):
@@ -50,12 +51,19 @@ class Client:
     @property
     def client(self):
         if not self._client:
-            LOG.info("Creating APRS client")
-            self._client = self.setup_connection()
-            if self.filter:
-                LOG.info("Creating APRS client filter")
-                self._client.set_filter(self.filter)
+            self._create_client()
         return self._client
+
+    def _create_client(self):
+        self._client = self.setup_connection()
+        if self.filter:
+            LOG.info("Creating APRS client filter")
+            self._client.set_filter(self.filter)
+
+    def stop(self):
+        if self._client:
+            LOG.info("Stopping client connection.")
+            self._client.stop()
 
     def send(self, packet: core.Packet):
         packet_list.PacketList().tx(packet)
@@ -65,6 +73,7 @@ class Client:
         """Call this to force a rebuild/reconnect."""
         if self._client:
             del self._client
+            self._create_client()
         else:
             LOG.warning("Client not initialized, nothing to reset.")
 
@@ -87,6 +96,10 @@ class Client:
 
     @abc.abstractmethod
     def decode_packet(self, *args, **kwargs):
+        pass
+
+    @abc.abstractmethod
+    def consumer(self, callback, blocking=False, immortal=False, raw=False):
         pass
 
 
@@ -127,8 +140,10 @@ class APRSISClient(Client):
 
     def is_alive(self):
         if self._client:
+            LOG.warning(f"APRS_CLIENT {self._client} alive? {self._client.is_alive()}")
             return self._client.is_alive()
         else:
+            LOG.warning(f"APRS_CLIENT {self._client} alive? NO!!!")
             return False
 
     @staticmethod
@@ -149,7 +164,7 @@ class APRSISClient(Client):
         aprs_client = None
         while not connected:
             try:
-                LOG.info("Creating aprslib client")
+                LOG.info(f"Creating aprslib client({host}:{port}) and logging in {user}.")
                 aprs_client = aprsis.Aprsdis(user, passwd=password, host=host, port=port)
                 # Force the log to be the same
                 aprs_client.logger = LOG
@@ -170,9 +185,16 @@ class APRSISClient(Client):
                 else:
                     backoff += 1
                 continue
-        LOG.debug(f"Logging in to APRS-IS with user '{user}'")
         self._client = aprs_client
+        LOG.warning(f"APRS_CLIENT {aprs_client}")
         return aprs_client
+
+    def consumer(self, callback, blocking=False, immortal=False, raw=False):
+        if self.is_alive():
+            self._client.consumer(
+                callback, blocking=blocking,
+                immortal=immortal, raw=raw,
+            )
 
 
 class KISSClient(Client):
@@ -248,6 +270,9 @@ class KISSClient(Client):
         self._client = kiss.KISS3Client()
         return self._client
 
+    def consumer(self, callback, blocking=False, immortal=False, raw=False):
+        self._client.consumer(callback)
+
 
 class APRSDFakeClient(Client, metaclass=trace.TraceWrapperMetaclass):
 
@@ -304,7 +329,7 @@ class ClientFactory:
                 key = TRANSPORT_FAKE
 
         builder = self._builders.get(key)
-        LOG.debug(f"Creating client {key}")
+        LOG.debug(f"ClientFactory Creating client of type '{key}'")
         if not builder:
             raise ValueError(key)
         return builder()
