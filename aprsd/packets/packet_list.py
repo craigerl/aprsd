@@ -95,7 +95,7 @@ class PacketList(MutableMapping):
     def total_tx(self):
         return self._total_tx
 
-    def stats(self) -> dict:
+    def stats(self, serializable=False) -> dict:
         stats = {
             "total_tracked": self.total_tx() + self.total_rx(),
             "rx": self.total_rx(),

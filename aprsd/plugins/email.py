@@ -68,12 +68,15 @@ class EmailStats:
     rx = 0
     email_thread_last_time = None
 
-    def stats(self):
+    def stats(self, serializable=False):
         if CONF.email_plugin.enabled:
+            last_check_time = self.email_thread_last_time
+            if serializable and last_check_time:
+                last_check_time = last_check_time.isoformat()
             stats = {
                 "tx": self.tx,
                 "rx": self.rx,
-                "last_check_time": self.email_thread_last_time,
+                "last_check_time": last_check_time,
             }
         else:
             stats = {}

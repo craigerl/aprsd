@@ -43,7 +43,7 @@ class WatchList(objectstore.ObjectStoreMixin):
                 }
 
     @wrapt.synchronized(lock)
-    def stats(self) -> dict:
+    def stats(self, serializable=False) -> dict:
         stats = {}
         for callsign in self.data:
             stats[callsign] = {

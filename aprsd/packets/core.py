@@ -219,6 +219,11 @@ class BulletinPacket(Packet):
     message_text: Optional[str] = field(default=None)
 
     @property
+    def key(self) -> str:
+        """Build a key for finding this packet in a dict."""
+        return f"{self.from_call}:BLN{self.bid}"
+
+    @property
     def human_info(self) -> str:
         return f"BLN{self.bid} {self.message_text}"
 
@@ -386,6 +391,14 @@ class BeaconPacket(GPSPacket):
         )
 
     @property
+    def key(self) -> str:
+        """Build a key for finding this packet in a dict."""
+        if self.raw_timestamp:
+            return f"{self.from_call}:{self.raw_timestamp}"
+        else:
+            return f"{self.from_call}:{self.human_info.replace(' ','')}"
+
+    @property
     def human_info(self) -> str:
         h_str = []
         h_str.append(f"Lat:{self.latitude:03.3f}")
@@ -408,6 +421,11 @@ class MicEPacket(GPSPacket):
     course: int = 0
 
     @property
+    def key(self) -> str:
+        """Build a key for finding this packet in a dict."""
+        return f"{self.from_call}:{self.human_info.replace(' ', '')}"
+
+    @property
     def human_info(self) -> str:
         h_info = super().human_info
         return f"{h_info} {self.mbits} mbits"
@@ -427,6 +445,14 @@ class TelemetryPacket(GPSPacket):
     speed: float = 0.00
     # 0 to 360
     course: int = 0
+
+    @property
+    def key(self) -> str:
+        """Build a key for finding this packet in a dict."""
+        if self.raw_timestamp:
+            return f"{self.from_call}:{self.raw_timestamp}"
+        else:
+            return f"{self.from_call}:{self.human_info.replace(' ','')}"
 
     @property
     def human_info(self) -> str:
@@ -549,6 +575,14 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
         return super().from_dict(raw)
 
     @property
+    def key(self) -> str:
+        """Build a key for finding this packet in a dict."""
+        if self.raw_timestamp:
+            return f"{self.from_call}:{self.raw_timestamp}"
+        elif self.wx_raw_timestamp:
+            return f"{self.from_call}:{self.wx_raw_timestamp}"
+
+    @property
     def human_info(self) -> str:
         h_str = []
         h_str.append(f"Temp {self.temperature:03.0f}F")
@@ -642,6 +676,11 @@ class ThirdPartyPacket(Packet, DataClassJsonMixin):
         obj = super().from_dict(kvs)
         obj.subpacket = factory(obj.subpacket)  # type: ignore
         return obj
+
+    @property
+    def key(self) -> str:
+        """Build a key for finding this packet in a dict."""
+        return f"{self.from_call}:{self.subpacket.key}"
 
     @property
     def human_info(self) -> str:
@@ -772,8 +811,7 @@ def factory(raw_packet: dict[Any, Any]) -> type[Packet]:
         if "latitude" in raw:
             packet_class = GPSPacket
         else:
-            LOG.warning(f"Unknown packet type {packet_type}")
-            LOG.warning(raw)
+            # LOG.warning(raw)
             packet_class = UnknownPacket
 
     raw.get("addresse", raw.get("to_call"))

@@ -28,7 +28,7 @@ factory = None
 
 @singleton
 class APRSClientStats:
-    def stats(self):
+    def stats(self, serializable=False):
         client = factory.create()
         stats = {
             "transport": client.transport(),
@@ -38,7 +38,10 @@ class APRSClientStats:
 
         if client.transport() == TRANSPORT_APRSIS:
             stats["server_string"] = client.client.server_string
-            stats["sever_keepalive"] = client.client.aprsd_keepalive
+            keepalive = client.client.aprsd_keepalive
+            if keepalive:
+                keepalive = keepalive.isoformat()
+            stats["sever_keepalive"] = keepalive
         elif client.transport() == TRANSPORT_TCPKISS:
             stats["host"] = CONF.kiss_tcp.host
             stats["port"] = CONF.kiss_tcp.port
@@ -96,7 +99,9 @@ class Client:
 
     def reset(self):
         """Call this to force a rebuild/reconnect."""
+        LOG.info("Resetting client connection.")
         if self._client:
+            self._client.close()
             del self._client
             self._create_client()
         else:
@@ -129,6 +134,10 @@ class Client:
 
     @abc.abstractmethod
     def is_alive(self):
+        pass
+
+    @abc.abstractmethod
+    def close(self):
         pass
 
 
@@ -195,6 +204,11 @@ class APRSISClient(Client):
             LOG.warning(f"APRS_CLIENT {self._client} alive? NO!!!")
             return False
 
+    def close(self):
+        if self._client:
+            self._client.stop()
+            self._client.close()
+
     @staticmethod
     def transport():
         return TRANSPORT_APRSIS
@@ -239,11 +253,10 @@ class APRSISClient(Client):
         return aprs_client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
-        if self.is_alive():
-            self._client.consumer(
-                callback, blocking=blocking,
-                immortal=immortal, raw=raw,
-            )
+        self._client.consumer(
+            callback, blocking=blocking,
+            immortal=immortal, raw=raw,
+        )
 
 
 class KISSClient(Client):
@@ -295,6 +308,10 @@ class KISSClient(Client):
             return self._client.is_alive()
         else:
             return False
+
+    def close(self):
+        if self._client:
+            self._client.stop()
 
     @staticmethod
     def transport():
@@ -349,6 +366,9 @@ class APRSDFakeClient(Client, metaclass=trace.TraceWrapperMetaclass):
 
     def is_alive(self):
         return True
+
+    def close(self):
+        pass
 
     def setup_connection(self):
         self.connected = True

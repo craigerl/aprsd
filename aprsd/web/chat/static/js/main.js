@@ -19,9 +19,10 @@ function show_aprs_icon(item, symbol) {
 function ord(str){return str.charCodeAt(0);}
 
 function update_stats( data ) {
-    $("#version").text( data["stats"]["aprsd"]["version"] );
+    console.log(data);
+    $("#version").text( data["stats"]["APRSDStats"]["version"] );
     $("#aprs_connection").html( data["aprs_connection"] );
-    $("#uptime").text( "uptime: " + data["stats"]["aprsd"]["uptime"] );
+    $("#uptime").text( "uptime: " + data["stats"]["APRSDStats"]["uptime"] );
     short_time = data["time"].split(/\s(.+)/)[1];
 }
 

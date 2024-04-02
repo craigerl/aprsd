@@ -116,5 +116,6 @@ class KeepAliveThread(APRSDThread):
                 level, msg = utils._check_version()
                 if level:
                     LOG.warning(msg)
+            self.cntr += 1
         time.sleep(1)
         return True

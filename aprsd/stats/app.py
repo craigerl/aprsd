@@ -30,11 +30,14 @@ class APRSDStats:
     def uptime(self):
         return datetime.datetime.now() - self.start_time
 
-    def stats(self) -> dict:
+    def stats(self, serializable=False) -> dict:
         current, peak = tracemalloc.get_traced_memory()
+        uptime = self.uptime()
+        if serializable:
+            uptime = str(uptime)
         stats = {
             "version": aprsd.__version__,
-            "uptime": self.uptime(),
+            "uptime": uptime,
             "callsign": CONF.callsign,
             "memory_current": int(current),
             "memory_current_str": utils.human_size(current),

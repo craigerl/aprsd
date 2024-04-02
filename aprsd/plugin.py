@@ -344,7 +344,7 @@ class PluginManager:
         self._watchlist_pm = pluggy.PluginManager("aprsd")
         self._watchlist_pm.add_hookspecs(APRSDPluginSpec)
 
-    def stats(self) -> dict:
+    def stats(self, serializable=False) -> dict:
         """Collect and return stats for all plugins."""
         def full_name_with_qualname(obj):
             return "{}.{}".format(

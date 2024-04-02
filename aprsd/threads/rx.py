@@ -6,7 +6,7 @@ import time
 import aprslib
 from oslo_config import cfg
 
-from aprsd import client, packets, plugin, stats
+from aprsd import client, packets, plugin
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
 
@@ -27,7 +27,7 @@ class APRSDRXThread(APRSDThread):
             self._client.stop()
 
     def loop(self):
-        LOG.debug(f"RX_MSG-LOOP {self.loop_interval}")
+        LOG.debug(f"RX_MSG-LOOP {self.loop_count}")
         if not self._client:
             self._client = client.factory.create()
             time.sleep(1)
@@ -53,21 +53,21 @@ class APRSDRXThread(APRSDThread):
             aprslib.exceptions.ConnectionError,
         ):
             LOG.error("Connection dropped, reconnecting")
-            time.sleep(5)
             # Force the deletion of the client object connected to aprs
             # This will cause a reconnect, next time client.get_client()
             # is called
             self._client.reset()
-        except Exception as ex:
-            LOG.error("Something bad happened!!!")
-            LOG.exception(ex)
-            return False
+            time.sleep(5)
+        except Exception:
+            # LOG.exception(ex)
+            LOG.error("Resetting connection and trying again.")
+            self._client.reset()
+            time.sleep(5)
         # Continue to loop
         return True
 
     def _process_packet(self, *args, **kwargs):
         """Intermediate callback so we can update the keepalive time."""
-        stats.APRSDStats().set_aprsis_keepalive()
         # Now call the 'real' packet processing for a RX'x packet
         self.process_packet(*args, **kwargs)
 
