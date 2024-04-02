@@ -122,7 +122,7 @@ def get_installed_extensions():
 
 
 def show_built_in_plugins(console):
-    modules = [email, fortune, location, notify, ping, query, time, version, weather]
+    modules = [email, fortune, location, notify, ping, time, version, weather]
     plugins = []
 
     for module in modules:

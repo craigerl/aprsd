@@ -1,7 +1,8 @@
 import logging
 
 import aprsd
-from aprsd import plugin, stats
+from aprsd import plugin
+from aprsd.stats import collector
 
 
 LOG = logging.getLogger("APRSD")
@@ -23,8 +24,8 @@ class VersionPlugin(plugin.APRSDRegexCommandPluginBase):
         # fromcall = packet.get("from")
         # message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
-        s = stats.APRSDStats().stats()
+        s = collector.Collector().collect()
         return "APRSD ver:{} uptime:{}".format(
             aprsd.__version__,
-            s["aprsd"]["uptime"],
+            s["APRSDStats"]["uptime"],
         )

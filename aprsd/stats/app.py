@@ -10,13 +10,23 @@ from aprsd import utils
 CONF = cfg.CONF
 
 
-@utils.singleton
 class APRSDStats:
     """The AppStats class is used to collect stats from the application."""
+
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        """Have to override the new method to make this a singleton
+
+        instead of using @singletone decorator so the unit tests work.
+        """
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self):
         self.start_time = datetime.datetime.now()
 
-    @property
     def uptime(self):
         return datetime.datetime.now() - self.start_time
 
@@ -24,7 +34,7 @@ class APRSDStats:
         current, peak = tracemalloc.get_traced_memory()
         stats = {
             "version": aprsd.__version__,
-            "uptime": self.uptime,
+            "uptime": self.uptime(),
             "callsign": CONF.callsign,
             "memory_current": int(current),
             "memory_current_str": utils.human_size(current),

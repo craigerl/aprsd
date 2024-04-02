@@ -76,7 +76,11 @@ class WatchList(objectstore.ObjectStoreMixin):
 
     def age(self, callsign):
         now = datetime.datetime.now()
-        return str(now - self.last_seen(callsign))
+        last_seen_time = self.last_seen(callsign)
+        if last_seen_time:
+            return str(now - last_seen_time)
+        else:
+            return None
 
     def max_delta(self, seconds=None):
         if not seconds:
