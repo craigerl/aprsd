@@ -76,7 +76,6 @@ def send_message(
             aprs_login = CONF.aprs_network.login
 
     if not aprs_password:
-        LOG.warning(CONF.aprs_network.password)
         if not CONF.aprs_network.password:
             click.echo("Must set --aprs-password or APRS_PASSWORD")
             ctx.exit(-1)
