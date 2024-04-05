@@ -27,7 +27,6 @@ class APRSDRXThread(APRSDThread):
             self._client.stop()
 
     def loop(self):
-        LOG.debug(f"RX_MSG-LOOP {self.loop_count}")
         if not self._client:
             self._client = client.factory.create()
             time.sleep(1)
@@ -43,11 +42,9 @@ class APRSDRXThread(APRSDThread):
             # and the aprslib developer didn't want to allow a PR to add
             # kwargs.  :(
             # https://github.com/rossengeorgiev/aprs-python/pull/56
-            LOG.debug(f"Calling client consumer CL {self._client}")
             self._client.consumer(
                 self._process_packet, raw=False, blocking=False,
             )
-            LOG.debug(f"Consumer done {self._client}")
         except (
             aprslib.exceptions.ConnectionDrop,
             aprslib.exceptions.ConnectionError,

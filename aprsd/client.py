@@ -45,9 +45,9 @@ class APRSClientStats:
         if client.transport() == TRANSPORT_APRSIS:
             stats["server_string"] = client.client.server_string
             keepalive = client.client.aprsd_keepalive
-            if keepalive:
+            if serializable:
                 keepalive = keepalive.isoformat()
-            stats["sever_keepalive"] = keepalive
+            stats["server_keepalive"] = keepalive
         elif client.transport() == TRANSPORT_TCPKISS:
             stats["host"] = CONF.kiss_tcp.host
             stats["port"] = CONF.kiss_tcp.port

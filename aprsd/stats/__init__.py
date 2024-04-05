@@ -1,6 +1,6 @@
 from aprsd import client as aprs_client
 from aprsd import plugin
-from aprsd.packets import packet_list, tracker, watch_list
+from aprsd.packets import packet_list, seen_list, tracker, watch_list
 from aprsd.plugins import email
 from aprsd.stats import app, collector
 from aprsd.threads import aprsd
@@ -17,3 +17,4 @@ stats_collector.register_producer(plugin.PluginManager())
 stats_collector.register_producer(aprsd.APRSDThreadList())
 stats_collector.register_producer(email.EmailStats())
 stats_collector.register_producer(aprs_client.APRSClientStats())
+stats_collector.register_producer(seen_list.SeenList())

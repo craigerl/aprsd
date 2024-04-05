@@ -36,7 +36,6 @@ class InterceptHandler(logging.Handler):
 # to disable log to stdout, but still log to file
 # use the --quiet option on the cmdln
 def setup_logging(loglevel=None, quiet=False):
-    print(f"setup_logging: loglevel={loglevel}, quiet={quiet}")
     if not loglevel:
         log_level = CONF.logging.log_level
     else:
@@ -58,6 +57,8 @@ def setup_logging(loglevel=None, quiet=False):
     webserver_list = [
         "werkzeug",
         "werkzeug._internal",
+        "socketio",
+        "urllib3.connectionpool",
     ]
 
     # We don't really want to see the aprslib parsing debug output.

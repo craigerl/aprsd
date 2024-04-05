@@ -382,21 +382,21 @@ function updateAcksChart() {
 
 function update_stats( data ) {
     console.log(data);
-    our_callsign = data["stats"]["aprsd"]["callsign"];
-    $("#version").text( data["stats"]["aprsd"]["version"] );
+    our_callsign = data["APRSDStats"]["callsign"];
+    $("#version").text( data["APRSDStats"]["version"] );
     $("#aprs_connection").html( data["aprs_connection"] );
-    $("#uptime").text( "uptime: " + data["stats"]["aprsd"]["uptime"] );
+    $("#uptime").text( "uptime: " + data["APRSDStats"]["uptime"] );
     const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
     $("#jsonstats").html(html_pretty);
 
     t = Date.parse(data["time"]);
     ts = new Date(t);
-    updatePacketData(packets_chart, ts, data["stats"]["packets"]["sent"], data["stats"]["packets"]["received"]);
-    updatePacketTypesData(ts, data["stats"]["packets"]["types"]);
+    updatePacketData(packets_chart, ts, data["PacketList"]["tx"], data["PacketList"]["rx"]);
+    updatePacketTypesData(ts, data["PacketList"]["packets"]);
     updatePacketTypesChart();
     updateMessagesChart();
     updateAcksChart();
-    updateMemChart(ts, data["stats"]["aprsd"]["memory_current"], data["stats"]["aprsd"]["memory_peak"]);
+    updateMemChart(ts, data["APRSDStats"]["memory_current"], data["APRSDStats"]["memory_peak"]);
     //updateQuadData(message_chart, short_time, data["stats"]["messages"]["sent"], data["stats"]["messages"]["received"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
     //updateDualData(email_chart, short_time, data["stats"]["email"]["sent"], data["stats"]["email"]["recieved"]);
     //updateDualData(memory_chart, short_time, data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);

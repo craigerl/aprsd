@@ -10,7 +10,9 @@ from aprsd import cli_helper, client
 from aprsd import main as aprsd_main
 from aprsd import packets, plugin, threads, utils
 from aprsd.main import cli
-from aprsd.threads import log_monitor, registry, rx, tx
+from aprsd.threads import keep_alive, log_monitor, registry, rx
+from aprsd.threads import stats as stats_thread
+from aprsd.threads import tx
 
 
 CONF = cfg.CONF
@@ -101,11 +103,11 @@ def server(ctx, flush):
         packets.WatchList().load()
         packets.SeenList().load()
 
-    keepalive = threads.KeepAliveThread()
+    keepalive = keep_alive.KeepAliveThread()
     keepalive.start()
 
-    stats_thread = threads.APRSDStatsStoreThread()
-    stats_thread.start()
+    stats_store_thread = stats_thread.APRSDStatsStoreThread()
+    stats_store_thread.start()
 
     rx_thread = rx.APRSDPluginRXThread(
         packet_queue=threads.packet_queue,
@@ -126,7 +128,7 @@ def server(ctx, flush):
         registry_thread = registry.APRSRegistryThread()
         registry_thread.start()
 
-    if CONF.rpc_settings.enabled:
+    if CONF.admin.web_enabled:
         log_monitor_thread = log_monitor.LogMonitorThread()
         log_monitor_thread.start()
 

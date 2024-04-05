@@ -45,7 +45,6 @@ CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 flask_enabled = False
-rpc_serv = None
 
 
 def custom_startswith(string, incomplete):

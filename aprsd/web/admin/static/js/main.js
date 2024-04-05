@@ -28,7 +28,7 @@ function update_watchlist( data ) {
     var watchdiv = $("#watchDiv");
     var html_str = '<table class="ui celled striped table"><thead><tr><th>HAM Callsign</th><th>Age since last seen by APRSD</th></tr></thead><tbody>'
     watchdiv.html('')
-    jQuery.each(data["stats"]["aprsd"]["watch_list"], function(i, val) {
+    jQuery.each(data["WatchList"], function(i, val) {
         html_str += '<tr><td class="collapsing"><img id="callsign_'+i+'" class="aprsd_1"></img>' + i + '</td><td>' + val["last"] + '</td></tr>'
     });
     html_str += "</tbody></table>";
@@ -65,7 +65,7 @@ function update_seenlist( data ) {
     html_str    += '<thead><tr><th>HAM Callsign</th><th>Age since last seen by APRSD</th>'
     html_str    += '<th>Number of packets RX</th></tr></thead><tbody>'
     seendiv.html('')
-    var seen_list = data["stats"]["aprsd"]["seen_list"]
+    var seen_list = data["SeenList"]
     var len = Object.keys(seen_list).length
     $('#seen_count').html(len)
     jQuery.each(seen_list, function(i, val) {
@@ -87,7 +87,7 @@ function update_plugins( data ) {
     html_str +=    '</tr></thead><tbody>'
     plugindiv.html('')
 
-    var plugins = data["stats"]["plugins"];
+    var plugins = data["PluginManager"];
     var keys = Object.keys(plugins);
     keys.sort();
     for (var i=0; i<keys.length; i++) { // now lets iterate in sort order

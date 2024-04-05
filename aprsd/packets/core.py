@@ -109,14 +109,6 @@ class Packet:
     path: List[str] = field(default_factory=list, compare=False, hash=False)
     via: Optional[str] = field(default=None, compare=False, hash=False)
 
-    @property
-    def json(self):
-        """get the json formated string.
-
-        This is used soley by the rpc server to return json over the wire.
-        """
-        return self.to_json()
-
     def get(self, key: str, default: Optional[str] = None):
         """Emulate a getter on a dict."""
         if hasattr(self, key):

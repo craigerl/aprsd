@@ -23,7 +23,7 @@ from aprsd import (
 )
 from aprsd.main import cli
 from aprsd.threads import aprsd as aprsd_threads
-from aprsd.threads import rx, tx
+from aprsd.threads import keep_alive, rx, tx
 from aprsd.utils import trace
 
 
@@ -642,7 +642,7 @@ def webchat(ctx, flush, port):
     packets.WatchList()
     packets.SeenList()
 
-    keepalive = threads.KeepAliveThread()
+    keepalive = keep_alive.KeepAliveThread()
     LOG.info("Start KeepAliveThread")
     keepalive.start()
 

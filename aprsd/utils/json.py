@@ -42,6 +42,22 @@ class EnhancedJSONEncoder(json.JSONEncoder):
             return super().default(obj)
 
 
+class SimpleJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        elif isinstance(obj, datetime.date):
+            return str(obj)
+        elif isinstance(obj, datetime.time):
+            return str(obj)
+        elif isinstance(obj, datetime.timedelta):
+            return str(obj)
+        elif isinstance(obj, decimal.Decimal):
+            return str(obj)
+        else:
+            return super().default(obj)
+
+
 class EnhancedJSONDecoder(json.JSONDecoder):
 
     def __init__(self, *args, **kwargs):

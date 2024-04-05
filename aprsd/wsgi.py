@@ -1,12 +1,11 @@
-import datetime
 import importlib.metadata as imp
 import io
 import json
 import logging
-import time
+import queue
 
 import flask
-from flask import Flask
+from flask import Flask, request
 from flask_httpauth import HTTPBasicAuth
 from oslo_config import cfg, generator
 import socketio
@@ -15,11 +14,13 @@ from werkzeug.security import check_password_hash
 import aprsd
 from aprsd import cli_helper, client, conf, packets, plugin, threads
 from aprsd.log import log
-from aprsd.rpc import client as aprsd_rpc_client
+from aprsd.threads import stats as stats_threads
+from aprsd.utils import json as aprsd_json
 
 
 CONF = cfg.CONF
 LOG = logging.getLogger("gunicorn.access")
+logging_queue = queue.Queue()
 
 auth = HTTPBasicAuth()
 users: dict[str, str] = {}
@@ -45,105 +46,23 @@ def verify_password(username, password):
 
 
 def _stats():
-    track = aprsd_rpc_client.RPCClient().get_packet_track()
-    now = datetime.datetime.now()
-
-    time_format = "%m-%d-%Y %H:%M:%S"
-
-    stats_dict = aprsd_rpc_client.RPCClient().get_stats_dict()
-    if not stats_dict:
-        stats_dict = {
-            "aprsd": {},
-            "aprs-is": {"server": ""},
-            "messages": {
-                "sent": 0,
-                "received": 0,
-            },
-            "email": {
-                "sent": 0,
-                "received": 0,
-            },
-            "seen_list": {
-                "sent": 0,
-                "received": 0,
-            },
-        }
-
-    # Convert the watch_list entries to age
-    wl = aprsd_rpc_client.RPCClient().get_watch_list()
-    new_list = {}
-    if wl:
-        for call in wl.get_all():
-            # call_date = datetime.datetime.strptime(
-            #    str(wl.last_seen(call)),
-            #    "%Y-%m-%d %H:%M:%S.%f",
-            # )
-
-            # We have to convert the RingBuffer to a real list
-            # so that json.dumps works.
-            # pkts = []
-            # for pkt in wl.get(call)["packets"].get():
-            #     pkts.append(pkt)
-
-            new_list[call] = {
-                "last": wl.age(call),
-                # "packets": pkts
-            }
-
-    stats_dict["aprsd"]["watch_list"] = new_list
-    packet_list = aprsd_rpc_client.RPCClient().get_packet_list()
-    rx = tx = 0
-    types = {}
-    if packet_list:
-        rx = packet_list.total_rx()
-        tx = packet_list.total_tx()
-        types_copy = packet_list.types.copy()
-
-        for key in types_copy:
-            types[str(key)] = dict(types_copy[key])
-
-    stats_dict["packets"] = {
-        "sent": tx,
-        "received": rx,
-        "types": types,
-    }
-    if track:
-        size_tracker = len(track)
-    else:
-        size_tracker = 0
-
-    result = {
-        "time": now.strftime(time_format),
-        "size_tracker": size_tracker,
-        "stats": stats_dict,
-    }
-
-    return result
+    stats_obj = stats_threads.StatsStore()
+    stats_obj.load()
+    # now = datetime.datetime.now()
+    # time_format = "%m-%d-%Y %H:%M:%S"
+    stats_dict = stats_obj.data
+    return stats_dict
 
 
 @app.route("/stats")
 def stats():
     LOG.debug("/stats called")
-    return json.dumps(_stats())
+    return json.dumps(_stats(), cls=aprsd_json.SimpleJSONEncoder)
 
 
 @app.route("/")
 def index():
     stats = _stats()
-    wl = aprsd_rpc_client.RPCClient().get_watch_list()
-    if wl and wl.is_enabled():
-        watch_count = len(wl)
-        watch_age = wl.max_delta()
-    else:
-        watch_count = 0
-        watch_age = 0
-
-    sl = aprsd_rpc_client.RPCClient().get_seen_list()
-    if sl:
-        seen_count = len(sl)
-    else:
-        seen_count = 0
-
     pm = plugin.PluginManager()
     plugins = pm.get_plugins()
     plugin_count = len(plugins)
@@ -152,7 +71,7 @@ def index():
         transport = "aprs-is"
         aprs_connection = (
             "APRS-IS Server: <a href='http://status.aprs2.net' >"
-            "{}</a>".format(stats["stats"]["aprs-is"]["server"])
+            "{}</a>".format(stats["APRSClientStats"]["server_string"])
         )
     else:
         # We might be connected to a KISS socket?
@@ -179,7 +98,7 @@ def index():
 
     return flask.render_template(
         "index.html",
-        initial_stats=stats,
+        initial_stats=json.dumps(stats, cls=aprsd_json.SimpleJSONEncoder),
         aprs_connection=aprs_connection,
         callsign=CONF.callsign,
         version=aprsd.__version__,
@@ -187,9 +106,6 @@ def index():
             entries, indent=4,
             sort_keys=True, default=str,
         ),
-        watch_count=watch_count,
-        watch_age=watch_age,
-        seen_count=seen_count,
         plugin_count=plugin_count,
         # oslo_out=generate_oslo()
     )
@@ -197,6 +113,7 @@ def index():
 
 @auth.login_required
 def messages():
+    _stats()
     track = packets.PacketTrack()
     msgs = []
     for id in track:
@@ -210,18 +127,8 @@ def messages():
 @app.route("/packets")
 def get_packets():
     LOG.debug("/packets called")
-    packet_list = aprsd_rpc_client.RPCClient().get_packet_list()
-    if packet_list:
-        tmp_list = []
-        pkts = packet_list.copy()
-        for key in pkts:
-            pkt = packet_list.get(key)
-            if pkt:
-                tmp_list.append(pkt.json)
-
-        return json.dumps(tmp_list)
-    else:
-        return json.dumps([])
+    stats_dict = _stats()
+    return json.dumps(stats_dict.get("PacketList", {}))
 
 
 @auth.login_required
@@ -273,23 +180,35 @@ def save():
     return json.dumps({"messages": "saved"})
 
 
+@app.route("/log_entries", methods=["POST"])
+def log_entries():
+    """The url that the server can call to update the logs."""
+    entries = request.json
+    LOG.debug(f"Log entries called {len(entries)}")
+    for entry in entries:
+        logging_queue.put(entry)
+    LOG.debug("log_entries done")
+    return json.dumps({"messages": "saved"})
+
+
 class LogUpdateThread(threads.APRSDThread):
 
-    def __init__(self):
+    def __init__(self, logging_queue=None):
         super().__init__("LogUpdate")
+        self.logging_queue = logging_queue
 
     def loop(self):
         if sio:
-            log_entries = aprsd_rpc_client.RPCClient().get_log_entries()
-
-            if log_entries:
-                LOG.info(f"Sending log entries! {len(log_entries)}")
-                for entry in log_entries:
+            try:
+                log_entry = self.logging_queue.get(block=True, timeout=1)
+                if log_entry:
                     sio.emit(
-                        "log_entry", entry,
+                        "log_entry",
+                        log_entry,
                         namespace="/logs",
                     )
-        time.sleep(5)
+            except queue.Empty:
+                pass
         return True
 
 
@@ -297,17 +216,17 @@ class LoggingNamespace(socketio.Namespace):
     log_thread = None
 
     def on_connect(self, sid, environ):
-        global sio
-        LOG.debug(f"LOG on_connect {sid}")
+        global sio, logging_queue
+        LOG.info(f"LOG on_connect {sid}")
         sio.emit(
             "connected", {"data": "/logs Connected"},
             namespace="/logs",
         )
-        self.log_thread = LogUpdateThread()
+        self.log_thread = LogUpdateThread(logging_queue=logging_queue)
         self.log_thread.start()
 
     def on_disconnect(self, sid):
-        LOG.debug(f"LOG Disconnected {sid}")
+        LOG.info(f"LOG Disconnected {sid}")
         if self.log_thread:
             self.log_thread.stop()
 
@@ -332,7 +251,7 @@ if __name__ == "__main__":
     async_mode = "threading"
     sio = socketio.Server(logger=True, async_mode=async_mode)
     app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
-    log_level = init_app(log_level="DEBUG")
+    log_level = init_app()
     log.setup_logging(log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
     CONF.log_opt_values(LOG, logging.DEBUG)
@@ -352,7 +271,7 @@ if __name__ == "uwsgi_file_aprsd_wsgi":
     sio = socketio.Server(logger=True, async_mode=async_mode)
     app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
     log_level = init_app(
-        log_level="DEBUG",
+        # log_level="DEBUG",
         config_file="/config/aprsd.conf",
         # Commented out for local development.
         # config_file=cli_helper.DEFAULT_CONFIG_FILE
@@ -371,9 +290,9 @@ if __name__ == "aprsd.wsgi":
     app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
     log_level = init_app(
-        log_level="DEBUG",
-        config_file="/config/aprsd.conf",
-        # config_file=cli_helper.DEFAULT_CONFIG_FILE,
+        # log_level="DEBUG",
+        # config_file="/config/aprsd.conf",
+        config_file=cli_helper.DEFAULT_CONFIG_FILE,
     )
     log.setup_logging(log_level)
     sio.register_namespace(LoggingNamespace("/logs"))
