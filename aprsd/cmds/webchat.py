@@ -462,19 +462,21 @@ def _stats():
     # Webchat doesnt need these
     if "WatchList" in stats_dict:
         del stats_dict["WatchList"]
-    if "seen_list" in stats_dict:
-        del stats_dict["seen_list"]
+    if "SeenList" in stats_dict:
+        del stats_dict["SeenList"]
     if "APRSDThreadList" in stats_dict:
         del stats_dict["APRSDThreadList"]
-    # del stats_dict["email"]
-    # del stats_dict["plugins"]
-    # del stats_dict["messages"]
+    if "PacketList" in stats_dict:
+        del stats_dict["PacketList"]
+    if "EmailStats" in stats_dict:
+        del stats_dict["EmailStats"]
+    if "PluginManager" in stats_dict:
+        del stats_dict["PluginManager"]
 
     result = {
         "time": now.strftime(time_format),
         "stats": stats_dict,
     }
-
     return result
 
 
