@@ -96,6 +96,7 @@ def signal_handler(sig, frame):
         packets.PacketTrack().save()
         packets.WatchList().save()
         packets.SeenList().save()
+        packets.PacketList().save()
         LOG.info(collector.Collector().collect())
         # signal.signal(signal.SIGTERM, sys.exit(0))
         # sys.exit(0)

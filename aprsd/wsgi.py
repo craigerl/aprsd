@@ -1,3 +1,4 @@
+import datetime
 import importlib.metadata as imp
 import io
 import json
@@ -48,10 +49,13 @@ def verify_password(username, password):
 def _stats():
     stats_obj = stats_threads.StatsStore()
     stats_obj.load()
-    # now = datetime.datetime.now()
-    # time_format = "%m-%d-%Y %H:%M:%S"
-    stats_dict = stats_obj.data
-    return stats_dict
+    now = datetime.datetime.now()
+    time_format = "%m-%d-%Y %H:%M:%S"
+    stats = {
+        "time": now.strftime(time_format),
+        "stats": stats_obj.data,
+    }
+    return stats
 
 
 @app.route("/stats")
@@ -71,7 +75,7 @@ def index():
         transport = "aprs-is"
         aprs_connection = (
             "APRS-IS Server: <a href='http://status.aprs2.net' >"
-            "{}</a>".format(stats["APRSClientStats"]["server_string"])
+            "{}</a>".format(stats["stats"]["APRSClientStats"]["server_string"])
         )
     else:
         # We might be connected to a KISS socket?
@@ -92,8 +96,8 @@ def index():
                     )
                 )
 
-    stats["transport"] = transport
-    stats["aprs_connection"] = aprs_connection
+    stats["stats"]["APRSClientStats"]["transport"] = transport
+    stats["stats"]["APRSClientStats"]["aprs_connection"] = aprs_connection
     entries = conf.conf_to_dict()
 
     return flask.render_template(
@@ -113,7 +117,6 @@ def index():
 
 @auth.login_required
 def messages():
-    _stats()
     track = packets.PacketTrack()
     msgs = []
     for id in track:
@@ -126,9 +129,10 @@ def messages():
 @auth.login_required
 @app.route("/packets")
 def get_packets():
-    LOG.debug("/packets called")
-    stats_dict = _stats()
-    return json.dumps(stats_dict.get("PacketList", {}))
+    stats = _stats()
+    stats_dict = stats["stats"]
+    packets = stats_dict.get("PacketList", {})
+    return json.dumps(packets, cls=aprsd_json.SimpleJSONEncoder)
 
 
 @auth.login_required

@@ -3,6 +3,8 @@ import decimal
 import json
 import sys
 
+from aprsd.packets import core
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -54,6 +56,8 @@ class SimpleJSONEncoder(json.JSONEncoder):
             return str(obj)
         elif isinstance(obj, decimal.Decimal):
             return str(obj)
+        elif isinstance(obj, core.Packet):
+            return obj.to_dict()
         else:
             return super().default(obj)
 

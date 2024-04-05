@@ -24,11 +24,12 @@ function ord(str){return str.charCodeAt(0);}
 
 
 function update_watchlist( data ) {
-        // Update the watch list
+    // Update the watch list
+    stats = data["stats"];
     var watchdiv = $("#watchDiv");
     var html_str = '<table class="ui celled striped table"><thead><tr><th>HAM Callsign</th><th>Age since last seen by APRSD</th></tr></thead><tbody>'
     watchdiv.html('')
-    jQuery.each(data["WatchList"], function(i, val) {
+    jQuery.each(stats["WatchList"], function(i, val) {
         html_str += '<tr><td class="collapsing"><img id="callsign_'+i+'" class="aprsd_1"></img>' + i + '</td><td>' + val["last"] + '</td></tr>'
     });
     html_str += "</tbody></table>";
@@ -60,12 +61,13 @@ function update_watchlist_from_packet(callsign, val) {
 }
 
 function update_seenlist( data ) {
+    stats = data["stats"];
     var seendiv = $("#seenDiv");
     var html_str = '<table class="ui celled striped table">'
     html_str    += '<thead><tr><th>HAM Callsign</th><th>Age since last seen by APRSD</th>'
     html_str    += '<th>Number of packets RX</th></tr></thead><tbody>'
     seendiv.html('')
-    var seen_list = data["SeenList"]
+    var seen_list = stats["SeenList"]
     var len = Object.keys(seen_list).length
     $('#seen_count').html(len)
     jQuery.each(seen_list, function(i, val) {
@@ -79,6 +81,7 @@ function update_seenlist( data ) {
 }
 
 function update_plugins( data ) {
+    stats = data["stats"];
     var plugindiv = $("#pluginDiv");
     var html_str = '<table class="ui celled striped table"><thead><tr>'
     html_str +=      '<th>Plugin Name</th><th>Plugin Enabled?</th>'
@@ -87,7 +90,7 @@ function update_plugins( data ) {
     html_str +=    '</tr></thead><tbody>'
     plugindiv.html('')
 
-    var plugins = data["PluginManager"];
+    var plugins = stats["PluginManager"];
     var keys = Object.keys(plugins);
     keys.sort();
     for (var i=0; i<keys.length; i++) { // now lets iterate in sort order
@@ -107,8 +110,8 @@ function update_packets( data ) {
     if (size_dict(packet_list) == 0 && size_dict(data) > 0) {
         packetsdiv.html('')
     }
-    jQuery.each(data, function(i, val) {
-        pkt = JSON.parse(val);
+    jQuery.each(data.packets, function(i, val) {
+        pkt = val;
 
         update_watchlist_from_packet(pkt['from_call'], pkt);
         if ( packet_list.hasOwnProperty(pkt['timestamp']) == false ) {

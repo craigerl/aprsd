@@ -96,12 +96,14 @@ def server(ctx, flush):
         packets.PacketTrack().flush()
         packets.WatchList().flush()
         packets.SeenList().flush()
+        packets.PacketList().flush()
     else:
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
         packets.PacketTrack().load()
         packets.WatchList().load()
         packets.SeenList().load()
+        packets.PacketList().load()
 
     keepalive = keep_alive.KeepAliveThread()
     keepalive.start()
