@@ -142,7 +142,7 @@ admin_opts = [
         default=False,
         help="Enable the Admin Web Interface",
     ),
-    cfg.IPOpt(
+    cfg.StrOpt(
         "web_ip",
         default="0.0.0.0",
         help="The ip address to listen on",
@@ -187,7 +187,7 @@ enabled_plugins_opts = [
 ]
 
 webchat_opts = [
-    cfg.IPOpt(
+    cfg.StrOpt(
         "web_ip",
         default="0.0.0.0",
         help="The ip address to listen on",
