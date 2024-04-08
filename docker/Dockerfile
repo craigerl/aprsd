@@ -34,6 +34,7 @@ RUN set -ex \
 FROM build as final
 WORKDIR /app
 
+RUN pip3 install -U pip
 RUN pip3 install aprsd==$APRSD_PIP_VERSION
 RUN pip install gevent uwsgi
 RUN which aprsd
