@@ -26,6 +26,10 @@ class SeenList(objectstore.ObjectStoreMixin):
             cls._instance.data = {}
         return cls._instance
 
+    def stats(self, serializable=False):
+        """Return the stats for the PacketTrack class."""
+        return self.data
+
     @wrapt.synchronized(lock)
     def update_seen(self, packet):
         callsign = None
@@ -39,5 +43,5 @@ class SeenList(objectstore.ObjectStoreMixin):
                 "last": None,
                 "count": 0,
             }
-        self.data[callsign]["last"] = str(datetime.datetime.now())
+        self.data[callsign]["last"] = datetime.datetime.now()
         self.data[callsign]["count"] += 1

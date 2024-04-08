@@ -1,3 +1,4 @@
+import datetime
 import logging
 import select
 import threading
@@ -11,7 +12,6 @@ from aprslib.exceptions import (
 import wrapt
 
 import aprsd
-from aprsd import stats
 from aprsd.packets import core
 
 
@@ -23,6 +23,9 @@ class Aprsdis(aprslib.IS):
 
     # flag to tell us to stop
     thread_stop = False
+
+    # date for last time we heard from the server
+    aprsd_keepalive = datetime.datetime.now()
 
     # timeout in seconds
     select_timeout = 1
@@ -142,7 +145,6 @@ class Aprsdis(aprslib.IS):
 
             self.logger.info(f"Connected to {server_string}")
             self.server_string = server_string
-            stats.APRSDStats().set_aprsis_server(server_string)
 
         except LoginError as e:
             self.logger.error(str(e))
@@ -176,13 +178,14 @@ class Aprsdis(aprslib.IS):
             try:
                 for line in self._socket_readlines(blocking):
                     if line[0:1] != b"#":
+                        self.aprsd_keepalive = datetime.datetime.now()
                         if raw:
                             callback(line)
                         else:
                             callback(self._parse(line))
                     else:
                         self.logger.debug("Server: %s", line.decode("utf8"))
-                        stats.APRSDStats().set_aprsis_keepalive()
+                        self.aprsd_keepalive = datetime.datetime.now()
             except ParseError as exp:
                 self.logger.log(
                     11,

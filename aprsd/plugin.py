@@ -344,6 +344,28 @@ class PluginManager:
         self._watchlist_pm = pluggy.PluginManager("aprsd")
         self._watchlist_pm.add_hookspecs(APRSDPluginSpec)
 
+    def stats(self, serializable=False) -> dict:
+        """Collect and return stats for all plugins."""
+        def full_name_with_qualname(obj):
+            return "{}.{}".format(
+                obj.__class__.__module__,
+                obj.__class__.__qualname__,
+            )
+
+        plugin_stats = {}
+        plugins = self.get_plugins()
+        if plugins:
+
+            for p in plugins:
+                plugin_stats[full_name_with_qualname(p)] = {
+                    "enabled": p.enabled,
+                    "rx": p.rx_count,
+                    "tx": p.tx_count,
+                    "version": p.version,
+                }
+
+        return plugin_stats
+
     def is_plugin(self, obj):
         for c in inspect.getmro(obj):
             if issubclass(c, APRSDPluginBase):
@@ -369,7 +391,9 @@ class PluginManager:
         try:
             module_name, class_name = module_class_string.rsplit(".", 1)
             module = importlib.import_module(module_name)
-            module = importlib.reload(module)
+            # Commented out because the email thread starts in a different context
+            # and hence gives a different singleton for the EmailStats
+            # module = importlib.reload(module)
         except Exception as ex:
             if not module_name:
                 LOG.error(f"Failed to load Plugin {module_class_string}")

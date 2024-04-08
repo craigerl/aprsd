@@ -6,7 +6,7 @@ import time
 import aprslib
 from oslo_config import cfg
 
-from aprsd import client, packets, plugin, stats
+from aprsd import client, packets, plugin
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
 
@@ -27,7 +27,6 @@ class APRSDRXThread(APRSDThread):
             self._client.stop()
 
     def loop(self):
-        LOG.debug(f"RX_MSG-LOOP {self.loop_interval}")
         if not self._client:
             self._client = client.factory.create()
             time.sleep(1)
@@ -43,31 +42,29 @@ class APRSDRXThread(APRSDThread):
             # and the aprslib developer didn't want to allow a PR to add
             # kwargs.  :(
             # https://github.com/rossengeorgiev/aprs-python/pull/56
-            LOG.debug(f"Calling client consumer CL {self._client}")
             self._client.consumer(
                 self._process_packet, raw=False, blocking=False,
             )
-            LOG.debug(f"Consumer done {self._client}")
         except (
             aprslib.exceptions.ConnectionDrop,
             aprslib.exceptions.ConnectionError,
         ):
             LOG.error("Connection dropped, reconnecting")
-            time.sleep(5)
             # Force the deletion of the client object connected to aprs
             # This will cause a reconnect, next time client.get_client()
             # is called
             self._client.reset()
-        except Exception as ex:
-            LOG.error("Something bad happened!!!")
-            LOG.exception(ex)
-            return False
+            time.sleep(5)
+        except Exception:
+            # LOG.exception(ex)
+            LOG.error("Resetting connection and trying again.")
+            self._client.reset()
+            time.sleep(5)
         # Continue to loop
         return True
 
     def _process_packet(self, *args, **kwargs):
         """Intermediate callback so we can update the keepalive time."""
-        stats.APRSDStats().set_aprsis_keepalive()
         # Now call the 'real' packet processing for a RX'x packet
         self.process_packet(*args, **kwargs)
 
@@ -155,7 +152,6 @@ class APRSDProcessPacketThread(APRSDThread):
     def __init__(self, packet_queue):
         self.packet_queue = packet_queue
         super().__init__("ProcessPKT")
-        self._loop_cnt = 1
 
     def process_ack_packet(self, packet):
         """We got an ack for a message, no need to resend it."""
@@ -178,12 +174,11 @@ class APRSDProcessPacketThread(APRSDThread):
                 self.process_packet(packet)
         except queue.Empty:
             pass
-        self._loop_cnt += 1
         return True
 
     def process_packet(self, packet):
         """Process a packet received from aprs-is server."""
-        LOG.debug(f"ProcessPKT-LOOP {self._loop_cnt}")
+        LOG.debug(f"ProcessPKT-LOOP {self.loop_count}")
         our_call = CONF.callsign.lower()
 
         from_call = packet.from_call

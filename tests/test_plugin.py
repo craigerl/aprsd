@@ -6,7 +6,7 @@ from oslo_config import cfg
 from aprsd import conf  # noqa: F401
 from aprsd import packets
 from aprsd import plugin as aprsd_plugin
-from aprsd import plugins, stats
+from aprsd import plugins
 from aprsd.packets import core
 
 from . import fake
@@ -89,7 +89,6 @@ class TestPlugin(unittest.TestCase):
         self.config_and_init()
 
     def tearDown(self) -> None:
-        stats.APRSDStats._instance = None
         packets.WatchList._instance = None
         packets.SeenList._instance = None
         packets.PacketTrack._instance = None

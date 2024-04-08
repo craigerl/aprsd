@@ -15,10 +15,10 @@ from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import cli_helper, client, packets, plugin, stats, threads
+from aprsd import cli_helper, client, packets, plugin, threads
 from aprsd.main import cli
 from aprsd.packets import log as packet_log
-from aprsd.rpc import server as rpc_server
+from aprsd.stats import collector
 from aprsd.threads import rx
 
 
@@ -38,7 +38,7 @@ def signal_handler(sig, frame):
             ),
         )
         time.sleep(5)
-        LOG.info(stats.APRSDStats())
+        LOG.info(collector.Collector().collect())
 
 
 class APRSDListenThread(rx.APRSDRXThread):
@@ -169,6 +169,7 @@ def listen(
     LOG.info(f"APRSD Listen Started version: {aprsd.__version__}")
 
     CONF.log_opt_values(LOG, logging.DEBUG)
+    collector.Collector()
 
     # Try and load saved MsgTrack list
     LOG.debug("Loading saved MsgTrack object.")
@@ -192,10 +193,6 @@ def listen(
     keepalive = threads.KeepAliveThread()
     # keepalive.start()
 
-    if CONF.rpc_settings.enabled:
-        rpc = rpc_server.APRSDRPCThread()
-        rpc.start()
-
     pm = None
     pm = plugin.PluginManager()
     if load_plugins:
@@ -206,6 +203,8 @@ def listen(
             "Not Loading any plugins use --load-plugins to load what's "
             "defined in the config file.",
         )
+    stats_thread = threads.APRSDStatsStoreThread()
+    stats_thread.start()
 
     LOG.debug("Create APRSDListenThread")
     listen_thread = APRSDListenThread(
@@ -221,6 +220,4 @@ def listen(
     keepalive.join()
     LOG.debug("listen_thread Join")
     listen_thread.join()
-
-    if CONF.rpc_settings.enabled:
-        rpc.join()
+    stats_thread.join()

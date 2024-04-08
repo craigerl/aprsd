@@ -77,7 +77,11 @@ def _send_direct(packet, aprs_client=None):
 
     packet.update_timestamp()
     packet_log.log(packet, tx=True)
-    cl.send(packet)
+    try:
+        cl.send(packet)
+    except Exception as e:
+        LOG.error(f"Failed to send packet: {packet}")
+        LOG.error(e)
 
 
 class SendPacketThread(aprsd_threads.APRSDThread):
@@ -232,7 +236,15 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
                 comment="APRSD GPS Beacon",
                 symbol=CONF.beacon_symbol,
             )
-            send(pkt, direct=True)
+            try:
+                # Only send it once
+                pkt.retry_count = 1
+                send(pkt, direct=True)
+            except Exception as e:
+                LOG.error(f"Failed to send beacon: {e}")
+                client.factory.create().reset()
+                time.sleep(5)
+
         self._loop_cnt += 1
         time.sleep(1)
         return True

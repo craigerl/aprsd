@@ -4,7 +4,6 @@ import threading
 from oslo_config import cfg
 import wrapt
 
-from aprsd.threads import tx
 from aprsd.utils import objectstore
 
 
@@ -59,6 +58,24 @@ class PacketTrack(objectstore.ObjectStoreMixin):
         return self.data.values()
 
     @wrapt.synchronized(lock)
+    def stats(self, serializable=False):
+        stats = {
+            "total_tracked": self.total_tracked,
+        }
+        pkts = {}
+        for key in self.data:
+            last_send_time = self.data[key].last_send_time
+            last_send_attempt = self.data[key]._last_send_attempt
+            pkts[key] = {
+                "last_send_time": last_send_time,
+                "last_send_attempt": last_send_attempt,
+                "retry_count": self.data[key].retry_count,
+                "message": self.data[key].raw,
+            }
+        stats["packets"] = pkts
+        return stats
+
+    @wrapt.synchronized(lock)
     def __len__(self):
         return len(self.data)
 
@@ -79,33 +96,3 @@ class PacketTrack(objectstore.ObjectStoreMixin):
             del self.data[key]
         except KeyError:
             pass
-
-    def restart(self):
-        """Walk the list of messages and restart them if any."""
-        for key in self.data.keys():
-            pkt = self.data[key]
-            if pkt._last_send_attempt < pkt.retry_count:
-                tx.send(pkt)
-
-    def _resend(self, packet):
-        packet._last_send_attempt = 0
-        tx.send(packet)
-
-    def restart_delayed(self, count=None, most_recent=True):
-        """Walk the list of delayed messages and restart them if any."""
-        if not count:
-            # Send all the delayed messages
-            for key in self.data.keys():
-                pkt = self.data[key]
-                if pkt._last_send_attempt == pkt._retry_count:
-                    self._resend(pkt)
-        else:
-            # They want to resend <count> delayed messages
-            tmp = sorted(
-                self.data.items(),
-                reverse=most_recent,
-                key=lambda x: x[1].last_send_time,
-            )
-            pkt_list = tmp[:count]
-            for (_key, pkt) in pkt_list:
-                self._resend(pkt)

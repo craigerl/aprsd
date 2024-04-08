@@ -13,11 +13,11 @@ from oslo_config import cfg
 from rich.console import Console
 
 import aprsd
-from aprsd import cli_helper, utils
+from aprsd import cli_helper
 from aprsd import conf  # noqa
 # local imports here
 from aprsd.main import cli
-from aprsd.rpc import client as aprsd_rpc_client
+from aprsd.threads import stats as stats_threads
 
 
 # setup the global logger
@@ -39,46 +39,48 @@ console = Console()
 @cli_helper.process_standard_options
 def healthcheck(ctx, timeout):
     """Check the health of the running aprsd server."""
-    console.log(f"APRSD HealthCheck version: {aprsd.__version__}")
-    if not CONF.rpc_settings.enabled:
-        LOG.error("Must enable rpc_settings.enabled to use healthcheck")
-        sys.exit(-1)
-    if not CONF.rpc_settings.ip:
-        LOG.error("Must enable rpc_settings.ip to use healthcheck")
-        sys.exit(-1)
-    if not CONF.rpc_settings.magic_word:
-        LOG.error("Must enable rpc_settings.magic_word to use healthcheck")
-        sys.exit(-1)
+    ver_str = f"APRSD HealthCheck version: {aprsd.__version__}"
+    console.log(ver_str)
 
-    with console.status(f"APRSD HealthCheck version: {aprsd.__version__}") as status:
+    with console.status(ver_str):
         try:
-            status.update(f"Contacting APRSD via RPC {CONF.rpc_settings.ip}")
-            stats = aprsd_rpc_client.RPCClient().get_stats_dict()
+            stats_obj = stats_threads.StatsStore()
+            stats_obj.load()
+            stats = stats_obj.data
+            # console.print(stats)
         except Exception as ex:
-            console.log(f"Failed to fetch healthcheck : '{ex}'")
+            console.log(f"Failed to load stats: '{ex}'")
             sys.exit(-1)
         else:
+            now = datetime.datetime.now()
             if not stats:
                 console.log("No stats from aprsd")
                 sys.exit(-1)
-            email_thread_last_update = stats["email"]["thread_last_update"]
 
-            if email_thread_last_update != "never":
-                delta = utils.parse_delta_str(email_thread_last_update)
-                d = datetime.timedelta(**delta)
+            email_stats = stats.get("EmailStats")
+            if email_stats:
+                email_thread_last_update = email_stats["last_check_time"]
+
+                if email_thread_last_update != "never":
+                    d = now - email_thread_last_update
+                    max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
+                    max_delta = datetime.timedelta(**max_timeout)
+                    if d > max_delta:
+                        console.log(f"Email thread is very old! {d}")
+                        sys.exit(-1)
+
+            client_stats = stats.get("APRSClientStats")
+            if not client_stats:
+                console.log("No APRSClientStats")
+                sys.exit(-1)
+            else:
+                aprsis_last_update = client_stats["server_keepalive"]
+                d = now - aprsis_last_update
                 max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
                 max_delta = datetime.timedelta(**max_timeout)
                 if d > max_delta:
-                    console.log(f"Email thread is very old! {d}")
+                    LOG.error(f"APRS-IS last update is very old! {d}")
                     sys.exit(-1)
 
-            aprsis_last_update = stats["aprs-is"]["last_update"]
-            delta = utils.parse_delta_str(aprsis_last_update)
-            d = datetime.timedelta(**delta)
-            max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
-            max_delta = datetime.timedelta(**max_timeout)
-            if d > max_delta:
-                LOG.error(f"APRS-IS last update is very old! {d}")
-                sys.exit(-1)
-
+            console.log("OK")
             sys.exit(0)

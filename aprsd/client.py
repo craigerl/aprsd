@@ -1,15 +1,18 @@
 import abc
+import datetime
 import logging
+import threading
 import time
 
 import aprslib
 from aprslib.exceptions import LoginError
 from oslo_config import cfg
+import wrapt
 
 from aprsd import exception
 from aprsd.clients import aprsis, fake, kiss
 from aprsd.packets import core, packet_list
-from aprsd.utils import trace
+from aprsd.utils import singleton, trace
 
 
 CONF = cfg.CONF
@@ -25,6 +28,34 @@ TRANSPORT_FAKE = "fake"
 factory = None
 
 
+@singleton
+class APRSClientStats:
+
+    lock = threading.Lock()
+
+    @wrapt.synchronized(lock)
+    def stats(self, serializable=False):
+        client = factory.create()
+        stats = {
+            "transport": client.transport(),
+            "filter": client.filter,
+            "connected": client.connected,
+        }
+
+        if client.transport() == TRANSPORT_APRSIS:
+            stats["server_string"] = client.client.server_string
+            keepalive = client.client.aprsd_keepalive
+            if serializable:
+                keepalive = keepalive.isoformat()
+            stats["server_keepalive"] = keepalive
+        elif client.transport() == TRANSPORT_TCPKISS:
+            stats["host"] = CONF.kiss_tcp.host
+            stats["port"] = CONF.kiss_tcp.port
+        elif client.transport() == TRANSPORT_SERIALKISS:
+            stats["device"] = CONF.kiss_serial.device
+        return stats
+
+
 class Client:
     """Singleton client class that constructs the aprslib connection."""
 
@@ -32,8 +63,8 @@ class Client:
     _client = None
 
     connected = False
-    server_string = None
     filter = None
+    lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
@@ -42,6 +73,10 @@ class Client:
             # Put any initialization here.
             cls._instance._create_client()
         return cls._instance
+
+    @abc.abstractmethod
+    def stats(self) -> dict:
+        pass
 
     def set_filter(self, filter):
         self.filter = filter
@@ -69,9 +104,12 @@ class Client:
         packet_list.PacketList().tx(packet)
         self.client.send(packet)
 
+    @wrapt.synchronized(lock)
     def reset(self):
         """Call this to force a rebuild/reconnect."""
+        LOG.info("Resetting client connection.")
         if self._client:
+            self._client.close()
             del self._client
             self._create_client()
         else:
@@ -102,10 +140,33 @@ class Client:
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
         pass
 
+    @abc.abstractmethod
+    def is_alive(self):
+        pass
+
+    @abc.abstractmethod
+    def close(self):
+        pass
+
 
 class APRSISClient(Client):
 
     _client = None
+
+    def __init__(self):
+        max_timeout = {"hours": 0.0, "minutes": 2, "seconds": 0}
+        self.max_delta = datetime.timedelta(**max_timeout)
+
+    def stats(self) -> dict:
+        stats = {}
+        if self.is_configured():
+            stats = {
+                "server_string": self._client.server_string,
+                "sever_keepalive": self._client.aprsd_keepalive,
+                "filter": self.filter,
+            }
+
+        return stats
 
     @staticmethod
     def is_enabled():
@@ -138,13 +199,23 @@ class APRSISClient(Client):
             return True
         return True
 
+    def _is_stale_connection(self):
+        delta = datetime.datetime.now() - self._client.aprsd_keepalive
+        if delta > self.max_delta:
+            LOG.error(f"Connection is stale, last heard {delta} ago.")
+            return True
+
     def is_alive(self):
         if self._client:
-            LOG.warning(f"APRS_CLIENT {self._client} alive? {self._client.is_alive()}")
-            return self._client.is_alive()
+            return self._client.is_alive() and not self._is_stale_connection()
         else:
             LOG.warning(f"APRS_CLIENT {self._client} alive? NO!!!")
             return False
+
+    def close(self):
+        if self._client:
+            self._client.stop()
+            self._client.close()
 
     @staticmethod
     def transport():
@@ -159,25 +230,25 @@ class APRSISClient(Client):
         password = CONF.aprs_network.password
         host = CONF.aprs_network.host
         port = CONF.aprs_network.port
-        connected = False
+        self.connected = False
         backoff = 1
         aprs_client = None
-        while not connected:
+        while not self.connected:
             try:
                 LOG.info(f"Creating aprslib client({host}:{port}) and logging in {user}.")
                 aprs_client = aprsis.Aprsdis(user, passwd=password, host=host, port=port)
                 # Force the log to be the same
                 aprs_client.logger = LOG
                 aprs_client.connect()
-                connected = True
+                self.connected = True
                 backoff = 1
             except LoginError as e:
                 LOG.error(f"Failed to login to APRS-IS Server '{e}'")
-                connected = False
+                self.connected = False
                 time.sleep(backoff)
             except Exception as e:
                 LOG.error(f"Unable to connect to APRS-IS server. '{e}' ")
-                connected = False
+                self.connected = False
                 time.sleep(backoff)
                 # Don't allow the backoff to go to inifinity.
                 if backoff > 5:
@@ -190,16 +261,23 @@ class APRSISClient(Client):
         return aprs_client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
-        if self.is_alive():
-            self._client.consumer(
-                callback, blocking=blocking,
-                immortal=immortal, raw=raw,
-            )
+        self._client.consumer(
+            callback, blocking=blocking,
+            immortal=immortal, raw=raw,
+        )
 
 
 class KISSClient(Client):
 
     _client = None
+
+    def stats(self) -> dict:
+        stats = {}
+        if self.is_configured():
+            return {
+                "transport": self.transport(),
+            }
+        return stats
 
     @staticmethod
     def is_enabled():
@@ -239,6 +317,10 @@ class KISSClient(Client):
         else:
             return False
 
+    def close(self):
+        if self._client:
+            self._client.stop()
+
     @staticmethod
     def transport():
         if CONF.kiss_serial.enabled:
@@ -268,6 +350,7 @@ class KISSClient(Client):
 
     def setup_connection(self):
         self._client = kiss.KISS3Client()
+        self.connected = True
         return self._client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
@@ -275,6 +358,9 @@ class KISSClient(Client):
 
 
 class APRSDFakeClient(Client, metaclass=trace.TraceWrapperMetaclass):
+
+    def stats(self) -> dict:
+        return {}
 
     @staticmethod
     def is_enabled():
@@ -289,7 +375,11 @@ class APRSDFakeClient(Client, metaclass=trace.TraceWrapperMetaclass):
     def is_alive(self):
         return True
 
+    def close(self):
+        pass
+
     def setup_connection(self):
+        self.connected = True
         return fake.APRSDFakeClient()
 
     @staticmethod
@@ -329,7 +419,6 @@ class ClientFactory:
                 key = TRANSPORT_FAKE
 
         builder = self._builders.get(key)
-        LOG.debug(f"ClientFactory Creating client of type '{key}'")
         if not builder:
             raise ValueError(key)
         return builder()

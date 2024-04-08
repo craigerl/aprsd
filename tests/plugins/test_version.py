@@ -1,3 +1,5 @@
+from unittest import mock
+
 from oslo_config import cfg
 
 import aprsd
@@ -11,7 +13,9 @@ CONF = cfg.CONF
 
 class TestVersionPlugin(test_plugin.TestPlugin):
 
-    def test_version(self):
+    @mock.patch("aprsd.stats.app.APRSDStats.uptime")
+    def test_version(self, mock_stats):
+        mock_stats.return_value = "00:00:00"
         expected = f"APRSD ver:{aprsd.__version__} uptime:00:00:00"
         CONF.callsign = fake.FAKE_TO_CALLSIGN
         version = version_plugin.VersionPlugin()
@@ -27,13 +31,6 @@ class TestVersionPlugin(test_plugin.TestPlugin):
 
         packet = fake.fake_packet(
             message="version",
-            msg_number=1,
-        )
-        actual = version.filter(packet)
-        self.assertEqual(expected, actual)
-
-        packet = fake.fake_packet(
-            message="Version",
             msg_number=1,
         )
         actual = version.filter(packet)

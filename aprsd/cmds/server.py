@@ -10,8 +10,9 @@ from aprsd import cli_helper, client
 from aprsd import main as aprsd_main
 from aprsd import packets, plugin, threads, utils
 from aprsd.main import cli
-from aprsd.rpc import server as rpc_server
-from aprsd.threads import registry, rx, tx
+from aprsd.threads import keep_alive, log_monitor, registry, rx
+from aprsd.threads import stats as stats_thread
+from aprsd.threads import tx
 
 
 CONF = cfg.CONF
@@ -47,6 +48,14 @@ def server(ctx, flush):
     # Initialize the client factory and create
     # The correct client object ready for use
     client.ClientFactory.setup()
+    if not client.factory.is_client_enabled():
+        LOG.error("No Clients are enabled in config.")
+        sys.exit(-1)
+
+    # Creates the client object
+    LOG.info("Creating client connection")
+    aprs_client = client.factory.create()
+    LOG.info(aprs_client)
 
     # Create the initial PM singleton and Register plugins
     # We register plugins first here so we can register each
@@ -87,15 +96,20 @@ def server(ctx, flush):
         packets.PacketTrack().flush()
         packets.WatchList().flush()
         packets.SeenList().flush()
+        packets.PacketList().flush()
     else:
         # Try and load saved MsgTrack list
         LOG.debug("Loading saved MsgTrack object.")
         packets.PacketTrack().load()
         packets.WatchList().load()
         packets.SeenList().load()
+        packets.PacketList().load()
 
-    keepalive = threads.KeepAliveThread()
+    keepalive = keep_alive.KeepAliveThread()
     keepalive.start()
+
+    stats_store_thread = stats_thread.APRSDStatsStoreThread()
+    stats_store_thread.start()
 
     rx_thread = rx.APRSDPluginRXThread(
         packet_queue=threads.packet_queue,
@@ -106,7 +120,6 @@ def server(ctx, flush):
     rx_thread.start()
     process_thread.start()
 
-    packets.PacketTrack().restart()
     if CONF.enable_beacon:
         LOG.info("Beacon Enabled.  Starting Beacon thread.")
         bcn_thread = tx.BeaconSendThread()
@@ -117,11 +130,9 @@ def server(ctx, flush):
         registry_thread = registry.APRSRegistryThread()
         registry_thread.start()
 
-    if CONF.rpc_settings.enabled:
-        rpc = rpc_server.APRSDRPCThread()
-        rpc.start()
-        log_monitor = threads.log_monitor.LogMonitorThread()
-        log_monitor.start()
+    if CONF.admin.web_enabled:
+        log_monitor_thread = log_monitor.LogMonitorThread()
+        log_monitor_thread.start()
 
     rx_thread.join()
     process_thread.join()

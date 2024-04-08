@@ -219,15 +219,17 @@ function updateQuadData(chart, label, first, second, third, fourth) {
 }
 
 function update_stats( data ) {
-    our_callsign = data["stats"]["aprsd"]["callsign"];
-    $("#version").text( data["stats"]["aprsd"]["version"] );
+    our_callsign = data["APRSDStats"]["callsign"];
+    $("#version").text( data["APRSDStats"]["version"] );
     $("#aprs_connection").html( data["aprs_connection"] );
-    $("#uptime").text( "uptime: " + data["stats"]["aprsd"]["uptime"] );
+    $("#uptime").text( "uptime: " + data["APRSDStats"]["uptime"] );
     const html_pretty = Prism.highlight(JSON.stringify(data, null, '\t'), Prism.languages.json, 'json');
     $("#jsonstats").html(html_pretty);
     short_time = data["time"].split(/\s(.+)/)[1];
-    updateDualData(packets_chart, short_time, data["stats"]["packets"]["sent"], data["stats"]["packets"]["received"]);
-    updateQuadData(message_chart, short_time, data["stats"]["messages"]["sent"], data["stats"]["messages"]["received"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
-    updateDualData(email_chart, short_time, data["stats"]["email"]["sent"], data["stats"]["email"]["recieved"]);
-    updateDualData(memory_chart, short_time, data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);
+    packet_list = data["PacketList"]["packets"];
+    updateDualData(packets_chart, short_time, data["PacketList"]["sent"], data["PacketList"]["received"]);
+    updateQuadData(message_chart, short_time, packet_list["MessagePacket"]["tx"], packet_list["MessagePacket"]["rx"],
+     packet_list["AckPacket"]["tx"], packet_list["AckPacket"]["rx"]);
+    updateDualData(email_chart, short_time, data["EmailStats"]["sent"], data["EmailStats"]["recieved"]);
+    updateDualData(memory_chart, short_time, data["APRSDStats"]["memory_peak"], data["APRSDStats"]["memory_current"]);
 }

@@ -23,7 +23,7 @@ from aprsd import (
 )
 from aprsd.main import cli
 from aprsd.threads import aprsd as aprsd_threads
-from aprsd.threads import rx, tx
+from aprsd.threads import keep_alive, rx, tx
 from aprsd.utils import trace
 
 
@@ -63,7 +63,7 @@ def signal_handler(sig, frame):
         time.sleep(1.5)
         # packets.WatchList().save()
         # packets.SeenList().save()
-        LOG.info(stats.APRSDStats())
+        LOG.info(stats.stats_collector.collect())
         LOG.info("Telling flask to bail.")
         signal.signal(signal.SIGTERM, sys.exit(0))
 
@@ -378,7 +378,7 @@ def _get_transport(stats):
         transport = "aprs-is"
         aprs_connection = (
             "APRS-IS Server: <a href='http://status.aprs2.net' >"
-            "{}</a>".format(stats["stats"]["aprs-is"]["server"])
+            "{}</a>".format(stats["APRSClientStats"]["server_string"])
         )
     elif client.KISSClient.is_enabled():
         transport = client.KISSClient.transport()
@@ -414,12 +414,13 @@ def location(callsign):
 @flask_app.route("/")
 def index():
     stats = _stats()
+    LOG.error(stats)
 
     # For development
     html_template = "index.html"
     LOG.debug(f"Template {html_template}")
 
-    transport, aprs_connection = _get_transport(stats)
+    transport, aprs_connection = _get_transport(stats["stats"])
     LOG.debug(f"transport {transport} aprs_connection {aprs_connection}")
 
     stats["transport"] = transport
@@ -454,27 +455,28 @@ def send_message_status():
 
 
 def _stats():
-    stats_obj = stats.APRSDStats()
     now = datetime.datetime.now()
 
     time_format = "%m-%d-%Y %H:%M:%S"
-    stats_dict = stats_obj.stats()
+    stats_dict = stats.stats_collector.collect(serializable=True)
     # Webchat doesnt need these
-    if "watch_list" in stats_dict["aprsd"]:
-        del stats_dict["aprsd"]["watch_list"]
-    if "seen_list" in stats_dict["aprsd"]:
-        del stats_dict["aprsd"]["seen_list"]
-    if "threads" in stats_dict["aprsd"]:
-        del stats_dict["aprsd"]["threads"]
-    # del stats_dict["email"]
-    # del stats_dict["plugins"]
-    # del stats_dict["messages"]
+    if "WatchList" in stats_dict:
+        del stats_dict["WatchList"]
+    if "SeenList" in stats_dict:
+        del stats_dict["SeenList"]
+    if "APRSDThreadList" in stats_dict:
+        del stats_dict["APRSDThreadList"]
+    if "PacketList" in stats_dict:
+        del stats_dict["PacketList"]
+    if "EmailStats" in stats_dict:
+        del stats_dict["EmailStats"]
+    if "PluginManager" in stats_dict:
+        del stats_dict["PluginManager"]
 
     result = {
         "time": now.strftime(time_format),
         "stats": stats_dict,
     }
-
     return result
 
 
@@ -544,7 +546,7 @@ class SendMessageNamespace(Namespace):
         LOG.debug(f"Long {long}")
 
         tx.send(
-            packets.GPSPacket(
+            packets.BeaconPacket(
                 from_call=CONF.callsign,
                 to_call="APDW16",
                 latitude=lat,
@@ -642,7 +644,7 @@ def webchat(ctx, flush, port):
     packets.WatchList()
     packets.SeenList()
 
-    keepalive = threads.KeepAliveThread()
+    keepalive = keep_alive.KeepAliveThread()
     LOG.info("Start KeepAliveThread")
     keepalive.start()
 

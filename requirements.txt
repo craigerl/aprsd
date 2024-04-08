@@ -22,7 +22,7 @@ dataclasses-json==0.6.4   # via -r requirements.in
 debtcollector==3.0.0      # via oslo-config
 deprecated==1.2.14        # via click-params
 dnspython==2.6.1          # via eventlet
-eventlet==0.36.0          # via -r requirements.in
+eventlet==0.36.1          # via -r requirements.in
 flask==3.0.2              # via -r requirements.in, flask-httpauth, flask-socketio
 flask-httpauth==4.8.0     # via -r requirements.in
 flask-socketio==5.3.6     # via -r requirements.in
@@ -47,7 +47,6 @@ oslo-i18n==6.3.0          # via oslo-config
 packaging==24.0           # via marshmallow
 pbr==6.0.0                # via -r requirements.in, oslo-i18n, stevedore
 pluggy==1.4.0             # via -r requirements.in
-plumbum==1.8.2            # via rpyc
 pygments==2.17.2          # via rich
 pyserial==3.5             # via pyserial-asyncio
 pyserial-asyncio==0.6     # via kiss3
@@ -58,7 +57,6 @@ pyyaml==6.0.1             # via -r requirements.in, oslo-config
 requests==2.31.0          # via -r requirements.in, oslo-config, update-checker
 rfc3986==2.0.0            # via oslo-config
 rich==12.6.0              # via -r requirements.in
-rpyc==6.0.0               # via -r requirements.in
 rush==2021.4.0            # via -r requirements.in
 shellingham==1.5.4        # via -r requirements.in, click-completion
 simple-websocket==1.0.0   # via python-engineio
@@ -67,12 +65,12 @@ soupsieve==2.5            # via beautifulsoup4
 stevedore==5.2.0          # via oslo-config
 tabulate==0.9.0           # via -r requirements.in
 thesmuggler==1.0.1        # via -r requirements.in
-typing-extensions==4.10.0  # via typing-inspect
+typing-extensions==4.11.0  # via typing-inspect
 typing-inspect==0.9.0     # via dataclasses-json
 update-checker==0.18.0    # via -r requirements.in
 urllib3==2.2.1            # via requests
 validators==0.22.0        # via click-params
-werkzeug==3.0.1           # via -r requirements.in, flask
+werkzeug==3.0.2           # via -r requirements.in, flask
 wrapt==1.16.0             # via -r requirements.in, debtcollector, deprecated
 wsproto==1.2.0            # via simple-websocket
 zipp==3.18.1              # via importlib-metadata
