@@ -188,10 +188,9 @@ def save():
 def log_entries():
     """The url that the server can call to update the logs."""
     entries = request.json
-    LOG.debug(f"Log entries called {len(entries)}")
+    LOG.info(f"Log entries called {len(entries)}")
     for entry in entries:
         logging_queue.put(entry)
-    LOG.debug("log_entries done")
     return json.dumps({"messages": "saved"})
 
 
