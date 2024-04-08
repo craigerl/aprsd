@@ -27,8 +27,9 @@ def send_log_entries(force=False):
                         json=entries,
                         auth=(CONF.admin.user, CONF.admin.password),
                     )
-                except Exception:
-                    pass
+                except Exception as ex:
+                    LOG.warning(f"Failed to send log entries {len(entries)}")
+                    LOG.warning(ex)
 
 
 class LogEntries:
