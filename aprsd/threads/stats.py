@@ -16,6 +16,7 @@ LOG = logging.getLogger("APRSD")
 class StatsStore(objectstore.ObjectStoreMixin):
     """Container to save the stats from the collector."""
     lock = threading.Lock()
+    data = {}
 
 
 class APRSDStatsStoreThread(APRSDThread):
