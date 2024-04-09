@@ -19,7 +19,8 @@ from aprsd import cli_helper, client, packets, plugin, threads
 from aprsd.main import cli
 from aprsd.packets import log as packet_log
 from aprsd.stats import collector
-from aprsd.threads import rx
+from aprsd.threads import keep_alive, rx
+from aprsd.threads import stats as stats_thread
 
 
 # setup the global logger
@@ -190,7 +191,7 @@ def listen(
     LOG.debug(f"Filter by '{filter}'")
     aprs_client.set_filter(filter)
 
-    keepalive = threads.KeepAliveThread()
+    keepalive = keep_alive.KeepAliveThread()
     # keepalive.start()
 
     pm = None
@@ -203,8 +204,8 @@ def listen(
             "Not Loading any plugins use --load-plugins to load what's "
             "defined in the config file.",
         )
-    stats_thread = threads.APRSDStatsStoreThread()
-    stats_thread.start()
+    stats = stats_thread.APRSDStatsStoreThread()
+    stats.start()
 
     LOG.debug("Create APRSDListenThread")
     listen_thread = APRSDListenThread(
@@ -220,4 +221,4 @@ def listen(
     keepalive.join()
     LOG.debug("listen_thread Join")
     listen_thread.join()
-    stats_thread.join()
+    stats.join()
