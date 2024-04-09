@@ -26,6 +26,9 @@ function ord(str){return str.charCodeAt(0);}
 function update_watchlist( data ) {
     // Update the watch list
     stats = data["stats"];
+    if (stats.hasOwnProperty("WatchList") == false) {
+        return
+    }
     var watchdiv = $("#watchDiv");
     var html_str = '<table class="ui celled striped table"><thead><tr><th>HAM Callsign</th><th>Age since last seen by APRSD</th></tr></thead><tbody>'
     watchdiv.html('')
@@ -62,6 +65,9 @@ function update_watchlist_from_packet(callsign, val) {
 
 function update_seenlist( data ) {
     stats = data["stats"];
+    if (stats.hasOwnProperty("SeenList") == false) {
+        return
+    }
     var seendiv = $("#seenDiv");
     var html_str = '<table class="ui celled striped table">'
     html_str    += '<thead><tr><th>HAM Callsign</th><th>Age since last seen by APRSD</th>'
@@ -82,6 +88,9 @@ function update_seenlist( data ) {
 
 function update_plugins( data ) {
     stats = data["stats"];
+    if (stats.hasOwnProperty("PluginManager") == false) {
+        return
+    }
     var plugindiv = $("#pluginDiv");
     var html_str = '<table class="ui celled striped table"><thead><tr>'
     html_str +=      '<th>Plugin Name</th><th>Plugin Enabled?</th>'
