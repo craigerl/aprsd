@@ -413,7 +413,6 @@ function append_message(callsign, msg, msg_html) {
   }
 
   // Find the right div to place the html
-
   new_callsign = add_callsign(callsign, msg);
   update_callsign_path(callsign, msg);
   append_message_html(callsign, msg_html, new_callsign);
@@ -502,7 +501,7 @@ function sent_msg(msg) {
     msg_html = create_message_html(d, t, msg['from_call'], msg['to_call'], msg['message_text'], ack_id, msg, false);
     append_message(msg['to_call'], msg, msg_html);
     save_data();
-    scroll_main_content(msg['from_call']);
+    scroll_main_content(msg['to_call']);
 }
 
 function from_msg(msg) {
