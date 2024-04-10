@@ -257,7 +257,6 @@ class APRSISClient(Client):
                     backoff += 1
                 continue
         self._client = aprs_client
-        LOG.warning(f"APRS_CLIENT {aprs_client}")
         return aprs_client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):

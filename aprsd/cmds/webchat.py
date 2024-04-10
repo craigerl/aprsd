@@ -414,7 +414,6 @@ def location(callsign):
 @flask_app.route("/")
 def index():
     stats = _stats()
-    LOG.error(stats)
 
     # For development
     html_template = "index.html"
