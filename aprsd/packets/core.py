@@ -246,6 +246,11 @@ class MessagePacket(Packet):
     _type: str = field(default="MessagePacket", hash=False)
     message_text: Optional[str] = field(default=None)
 
+    @property
+    def human_info(self) -> str:
+        self.prepare()
+        return self._filter_for_send(self.message_text).rstrip("\n")
+
     def _build_payload(self):
         self.payload = ":{}:{}{{{}".format(
             self.to_call.ljust(9),
