@@ -97,7 +97,6 @@ class APRSDDupeRXThread(APRSDRXThread):
         # LOG.debug(raw)
         packet_log.log(packet)
         pkt_list = packets.PacketList()
-        pkt_list.rx(packet)
 
         if isinstance(packet, packets.AckPacket):
             # We don't need to drop AckPackets, those should be
@@ -120,6 +119,7 @@ class APRSDDupeRXThread(APRSDRXThread):
                 # a packet, we should drop the packet
                 # because it's a dupe within the time that
                 # we send the 3 acks for the packet.
+                pkt_list.rx(packet)
                 self.packet_queue.put(packet)
             elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
                 # If the packet came in within 60 seconds of the
@@ -130,6 +130,7 @@ class APRSDDupeRXThread(APRSDRXThread):
                     f"Packet {packet.from_call}:{packet.msgNo} already tracked "
                     f"but older than {CONF.packet_dupe_timeout} seconds. processing.",
                 )
+                pkt_list.rx(packet)
                 self.packet_queue.put(packet)
 
 
@@ -156,6 +157,7 @@ class APRSDProcessPacketThread(APRSDThread):
         """We got an ack for a message, no need to resend it."""
         ack_num = packet.msgNo
         LOG.debug(f"Got ack for message {ack_num}")
+        packets.PacketList().rx(packet)
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
 
@@ -163,6 +165,7 @@ class APRSDProcessPacketThread(APRSDThread):
         """We got a reject message for a packet.  Stop sending the message."""
         ack_num = packet.msgNo
         LOG.debug(f"Got REJECT for message {ack_num}")
+        packets.PacketList().rx(packet)
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
 
