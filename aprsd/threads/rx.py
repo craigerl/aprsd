@@ -96,6 +96,8 @@ class APRSDDupeRXThread(APRSDRXThread):
         packet = self._client.decode_packet(*args, **kwargs)
         # LOG.debug(raw)
         packet_log.log(packet)
+        pkt_list = packets.PacketList()
+        pkt_list.rx(packet)
 
         if isinstance(packet, packets.AckPacket):
             # We don't need to drop AckPackets, those should be
@@ -106,7 +108,6 @@ class APRSDDupeRXThread(APRSDRXThread):
             # For RF based APRS Clients we can get duplicate packets
             # So we need to track them and not process the dupes.
             found = False
-            pkt_list = packets.PacketList()
             try:
                 # Find the packet in the list of already seen packets
                 # Based on the packet.key
@@ -119,7 +120,6 @@ class APRSDDupeRXThread(APRSDRXThread):
                 # a packet, we should drop the packet
                 # because it's a dupe within the time that
                 # we send the 3 acks for the packet.
-                pkt_list.rx(packet)
                 self.packet_queue.put(packet)
             elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
                 # If the packet came in within 60 seconds of the
@@ -130,7 +130,6 @@ class APRSDDupeRXThread(APRSDRXThread):
                     f"Packet {packet.from_call}:{packet.msgNo} already tracked "
                     f"but older than {CONF.packet_dupe_timeout} seconds. processing.",
                 )
-                pkt_list.rx(packet)
                 self.packet_queue.put(packet)
 
 
