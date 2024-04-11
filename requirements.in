@@ -11,6 +11,7 @@ pbr
 pyyaml
 requests
 pytz
+tzlocal
 six
 thesmuggler
 update_checker

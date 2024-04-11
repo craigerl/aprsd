@@ -1,9 +1,9 @@
 import logging
 import re
-import time
 
 from oslo_config import cfg
 import pytz
+from tzlocal import get_localzone
 
 from aprsd import packets, plugin, plugin_utils
 from aprsd.utils import fuzzy, trace
@@ -22,7 +22,8 @@ class TimePlugin(plugin.APRSDRegexCommandPluginBase):
     short_description = "What is the current local time."
 
     def _get_local_tz(self):
-        return pytz.timezone(time.strftime("%Z"))
+        lz = get_localzone()
+        return pytz.timezone(str(lz))
 
     def _get_utcnow(self):
         return pytz.datetime.datetime.utcnow()
