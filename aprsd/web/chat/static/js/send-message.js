@@ -313,6 +313,7 @@ function create_callsign_tab(callsign, active=false) {
   //item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
   item_html += '<button onClick="callsign_select(\''+callsign+'\');" callsign="'+callsign+'" class="nav-link position-relative '+active_str+'" id="'+tab_id+'" data-bs-toggle="tab" data-bs-target="#'+tab_content+'" type="button" role="tab" aria-controls="'+callsign+'" aria-selected="true">';
   item_html += callsign+'&nbsp;&nbsp;';
+  item_html += '<span id="'+tab_notify_id+'" class="position-absolute top-0 start-80 translate-middle badge bg-danger border border-light rounded-pill visually-hidden">0</span>';
   item_html += '<span onclick="delete_tab(\''+callsign+'\');">×</span>';
   item_html += '</button></li>'
 
@@ -407,6 +408,9 @@ function append_message(callsign, msg, msg_html) {
       tab_notify_id = tab_notification_id(callsign, true);
       // get the current count of notifications
       count = parseInt($(tab_notify_id).text());
+      if (isNaN(count)) {
+          count = 0;
+      }
       count += 1;
       $(tab_notify_id).text(count);
       $(tab_notify_id).removeClass('visually-hidden');
