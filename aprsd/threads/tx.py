@@ -157,22 +157,24 @@ class SendPacketThread(aprsd_threads.APRSDThread):
 
 class SendAckThread(aprsd_threads.APRSDThread):
     loop_count: int = 1
+    max_retries = 3
 
     def __init__(self, packet):
         self.packet = packet
         super().__init__(f"SendAck-{self.packet.msgNo}")
+        self.max_retries = CONF.default_ack_send_count
 
     def loop(self):
         """Separate thread to send acks with retries."""
         send_now = False
-        if self.packet.send_count == self.packet.retry_count:
+        if self.packet.send_count == self.max_retries:
             # we reached the send limit, don't send again
             # TODO(hemna) - Need to put this in a delayed queue?
             LOG.debug(
                 f"{self.packet.__class__.__name__}"
                 f"({self.packet.msgNo}) "
                 "Send Complete. Max attempts reached"
-                f" {self.packet.retry_count}",
+                f" {self.max_retries}",
             )
             return False
 
