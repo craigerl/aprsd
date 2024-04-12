@@ -119,6 +119,7 @@ function update_threads( data ) {
         return
     }
     var threadsdiv = $("#threadsDiv");
+    var countdiv = $("#thread_count");
     var html_str = '<table class="ui celled striped table"><thead><tr>'
     html_str +=      '<th>Thread Name</th><th>Alive?</th>'
     html_str +=      '<th>Age</th><th>Loop Count</th>'
@@ -127,6 +128,7 @@ function update_threads( data ) {
 
     var threads = stats["APRSDThreadList"];
     var keys = Object.keys(threads);
+    countdiv.html(keys.length);
     keys.sort();
     for (var i=0; i<keys.length; i++) { // now lets iterate in sort order
         var key = keys[i];
