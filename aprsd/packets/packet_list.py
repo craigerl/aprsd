@@ -62,6 +62,7 @@ class PacketList(objectstore.ObjectStoreMixin):
             self.data["packets"].popitem(last=False)
         self.data["packets"][packet.key] = packet
 
+    @wrapt.synchronized(lock)
     def copy(self):
         return self.data.copy()
 
@@ -73,6 +74,7 @@ class PacketList(objectstore.ObjectStoreMixin):
     def find(self, packet):
         return self.data["packets"][packet.key]
 
+    @wrapt.synchronized(lock)
     def __len__(self):
         return len(self.data["packets"])
 

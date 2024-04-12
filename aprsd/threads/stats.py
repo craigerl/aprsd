@@ -3,6 +3,7 @@ import threading
 import time
 
 from oslo_config import cfg
+import wrapt
 
 from aprsd.stats import collector
 from aprsd.threads import APRSDThread
@@ -18,6 +19,10 @@ class StatsStore(objectstore.ObjectStoreMixin):
     lock = threading.Lock()
     data = {}
 
+    @wrapt.synchronized(lock)
+    def add(self, stats: dict):
+        self.data = stats
+
 
 class APRSDStatsStoreThread(APRSDThread):
     """Save APRSD Stats to disk periodically."""
@@ -32,7 +37,7 @@ class APRSDStatsStoreThread(APRSDThread):
         if self.loop_count % self.save_interval == 0:
             stats = collector.Collector().collect()
             ss = StatsStore()
-            ss.data = stats
+            ss.add(stats)
             ss.save()
 
         time.sleep(1)

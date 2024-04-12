@@ -70,8 +70,8 @@ class ObjectStoreMixin:
         """Save any queued to disk?"""
         if not CONF.enable_save:
             return
+        save_filename = self._save_filename()
         if len(self) > 0:
-            save_filename = self._save_filename()
             LOG.info(
                 f"{self.__class__.__name__}::Saving"
                 f" {len(self)} entries to disk at "
@@ -83,7 +83,7 @@ class ObjectStoreMixin:
             LOG.debug(
                 "{} Nothing to save, flushing old save file '{}'".format(
                     self.__class__.__name__,
-                    self._save_filename(),
+                    save_filename,
                 ),
             )
             self.flush()
