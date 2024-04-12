@@ -81,6 +81,7 @@
             <div class="item" data-tab="seen-tab">Seen List</div>
             <div class="item" data-tab="watch-tab">Watch List</div>
             <div class="item" data-tab="plugin-tab">Plugins</div>
+            <div class="item" data-tab="threads-tab">Threads</div>
             <div class="item" data-tab="config-tab">Config</div>
             <div class="item" data-tab="log-tab">LogFile</div>
             <!-- <div class="item" data-tab="oslo-tab">OSLO CONFIG</div> //-->
@@ -153,6 +154,13 @@
                 Plugins Loaded (<span id="plugin_count">{{ plugin_count }}</span>)
             </h3>
             <div id="pluginDiv" class="ui mini text">Loading</div>
+        </div>
+
+        <div class="ui bottom attached tab segment" data-tab="threads-tab">
+            <h3 class="ui dividing header">
+                Threads Loaded (<span id="thread_count">{{ thread_count }}</span>)
+            </h3>
+            <div id="threadsDiv" class="ui mini text">Loading</div>
         </div>
 
         <div class="ui bottom attached tab segment" data-tab="config-tab">

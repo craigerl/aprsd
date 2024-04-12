@@ -113,6 +113,32 @@ function update_plugins( data ) {
     plugindiv.append(html_str);
 }
 
+function update_threads( data ) {
+    stats = data["stats"];
+    if (stats.hasOwnProperty("APRSDThreadList") == false) {
+        return
+    }
+    var threadsdiv = $("#threadsDiv");
+    var html_str = '<table class="ui celled striped table"><thead><tr>'
+    html_str +=      '<th>Thread Name</th><th>Alive?</th>'
+    html_str +=      '<th>Age</th><th>Loop Count</th>'
+    html_str +=    '</tr></thead><tbody>'
+    threadsdiv.html('')
+
+    var threads = stats["APRSDThreadList"];
+    var keys = Object.keys(threads);
+    keys.sort();
+    for (var i=0; i<keys.length; i++) { // now lets iterate in sort order
+        var key = keys[i];
+        var val = threads[key];
+        html_str += '<tr><td class="collapsing">' + key + '</td>';
+        html_str += '<td>' + val["alive"] + '</td><td>' + val["age"] + '</td>';
+        html_str += '<td>' + val["loop_count"] + '</td></tr>';
+    }
+    html_str += "</tbody></table>";
+    threadsdiv.append(html_str);
+}
+
 function update_packets( data ) {
     var packetsdiv = $("#packetsDiv");
     //nuke the contents first, then add to it.
@@ -179,6 +205,7 @@ function start_update() {
                     update_watchlist(data);
                     update_seenlist(data);
                     update_plugins(data);
+                    update_threads(data);
                 },
                 complete: function() {
                     setTimeout(statsworker, 10000);

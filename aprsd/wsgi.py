@@ -70,12 +70,17 @@ def index():
     pm = plugin.PluginManager()
     plugins = pm.get_plugins()
     plugin_count = len(plugins)
+    client_stats = stats["stats"].get("APRSClientStats", {})
 
     if CONF.aprs_network.enabled:
         transport = "aprs-is"
+        if client_stats:
+            aprs_connection = client_stats.get("server_string", "")
+        else:
+            aprs_connection = "APRS-IS"
         aprs_connection = (
             "APRS-IS Server: <a href='http://status.aprs2.net' >"
-            "{}</a>".format(stats["stats"]["APRSClientStats"]["server_string"])
+            "{}</a>".format(aprs_connection)
         )
     else:
         # We might be connected to a KISS socket?
@@ -96,9 +101,16 @@ def index():
                     )
                 )
 
-    stats["stats"]["APRSClientStats"]["transport"] = transport
-    stats["stats"]["APRSClientStats"]["aprs_connection"] = aprs_connection
+    if client_stats:
+        stats["stats"]["APRSClientStats"]["transport"] = transport
+        stats["stats"]["APRSClientStats"]["aprs_connection"] = aprs_connection
     entries = conf.conf_to_dict()
+
+    thread_info = stats["stats"].get("APRSDThreadList", {})
+    if thread_info:
+        thread_count = len(thread_info)
+    else:
+        thread_count = "unknown"
 
     return flask.render_template(
         "index.html",
@@ -111,6 +123,7 @@ def index():
             sort_keys=True, default=str,
         ),
         plugin_count=plugin_count,
+        thread_count=thread_count,
         # oslo_out=generate_oslo()
     )
 
