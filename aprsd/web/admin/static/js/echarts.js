@@ -8,6 +8,8 @@ var packet_types_data = {};
 var mem_current = []
 var mem_peak = []
 
+var thread_current = []
+
 
 function start_charts() {
     console.log("start_charts() called");
@@ -17,6 +19,7 @@ function start_charts() {
     create_messages_chart();
     create_ack_chart();
     create_memory_chart();
+    create_thread_chart();
 }
 
 
@@ -258,6 +261,49 @@ function create_memory_chart() {
     memory_chart.setOption(option);
 }
 
+function create_thread_chart() {
+    thread_canvas = document.getElementById('threadChart');
+    thread_chart = echarts.init(thread_canvas);
+
+    // Specify the configuration items and data for the chart
+    var option = {
+      title: {
+          text: 'Active Threads'
+      },
+      legend: {},
+      tooltip: {
+        trigger: 'axis'
+      },
+      toolbox: {
+        show: true,
+        feature: {
+           mark : {show: true},
+           dataView : {show: true, readOnly: false},
+           magicType : {show: true, type: ['line', 'bar']},
+           restore : {show: true},
+           saveAsImage : {show: true}
+        }
+      },
+      calculable: true,
+      xAxis: { type: 'time' },
+      yAxis: { },
+      series: [
+          {
+             name: 'current',
+             type: 'line',
+             smooth: true,
+             color: 'red',
+             encode: {
+               x: 'timestamp',
+               y: 'current' // refer sensor 1 value
+             }
+          }
+      ]
+    };
+
+    thread_chart.setOption(option);
+}
+
 
 
 
@@ -371,6 +417,21 @@ function updateMemChart(time, current, peak) {
     memory_chart.setOption(option);
 }
 
+function updateThreadChart(time, threads) {
+    keys = Object.keys(threads);
+    thread_count = keys.length;
+    thread_current.push([time, thread_count]);
+    option = {
+        series: [
+              {
+                name: 'current',
+                data: thread_current,
+              }
+            ]
+    }
+    thread_chart.setOption(option);
+}
+
 function updateMessagesChart() {
     updateTypeChart(message_chart, "MessagePacket")
 }
@@ -397,6 +458,7 @@ function update_stats( data ) {
     updateMessagesChart();
     updateAcksChart();
     updateMemChart(ts, stats["APRSDStats"]["memory_current"], stats["APRSDStats"]["memory_peak"]);
+    updateThreadChart(ts, stats["APRSDThreadList"]);
     //updateQuadData(message_chart, short_time, data["stats"]["messages"]["sent"], data["stats"]["messages"]["received"], data["stats"]["messages"]["ack_sent"], data["stats"]["messages"]["ack_recieved"]);
     //updateDualData(email_chart, short_time, data["stats"]["email"]["sent"], data["stats"]["email"]["recieved"]);
     //updateDualData(memory_chart, short_time, data["stats"]["aprsd"]["memory_peak"], data["stats"]["aprsd"]["memory_current"]);
