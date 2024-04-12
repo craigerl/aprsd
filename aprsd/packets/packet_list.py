@@ -84,13 +84,13 @@ class PacketList(objectstore.ObjectStoreMixin):
     def total_tx(self):
         return self._total_tx
 
+    @wrapt.synchronized(lock)
     def stats(self, serializable=False) -> dict:
         stats = {
-            "total_tracked": self.total_tx() + self.total_rx(),
-            "rx": self.total_rx(),
-            "tx": self.total_tx(),
+            "total_tracked": self._total_rx + self._total_rx,
+            "rx": self._total_rx,
+            "tx": self._total_tx,
             "types": self.data["types"],
             "packets": self.data["packets"],
         }
-
         return stats
