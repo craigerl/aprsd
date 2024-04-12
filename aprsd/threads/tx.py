@@ -127,8 +127,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                     "Message Send Complete. Max attempts reached"
                     f" {packet.retry_count}",
                 )
-                if not packet.allow_delay:
-                    pkt_tracker.remove(packet.msgNo)
+                pkt_tracker.remove(packet.msgNo)
                 return False
 
             # Message is still outstanding and needs to be acked.
