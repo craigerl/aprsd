@@ -77,8 +77,9 @@ class APRSDThreadList:
             age = th.loop_age()
             if serializable:
                 age = str(age)
-            stats[th.__class__.__name__] = {
+            stats[th.name] = {
                 "name": th.name,
+                "class": th.__class__.__name__,
                 "alive": th.is_alive(),
                 "age": th.loop_age(),
                 "loop_count": th.loop_count,
