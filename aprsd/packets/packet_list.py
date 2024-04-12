@@ -22,7 +22,7 @@ class PacketList(objectstore.ObjectStoreMixin):
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._maxlen = 50
+            cls._maxlen = 100
             cls.data = {
                 "types": {},
                 "packets": OrderedDict(),
