@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from collections.abc import MutableMapping
 import logging
 import threading
 
@@ -14,7 +13,7 @@ CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
-class PacketList(MutableMapping, objectstore.ObjectStoreMixin):
+class PacketList(objectstore.ObjectStoreMixin):
     _instance = None
     lock = threading.Lock()
     _total_rx: int = 0
@@ -57,10 +56,14 @@ class PacketList(MutableMapping, objectstore.ObjectStoreMixin):
         self._add(packet)
 
     def _add(self, packet):
+        if packet.key in self.data["packets"]:
+            self.data["packets"].move_to_end(packet.key)
+        elif len(self.data["packets"]) == self.maxlen:
+            self.data["packets"].popitem(last=False)
         self.data["packets"][packet.key] = packet
 
     def copy(self):
-        return self.d.copy()
+        return self.data.copy()
 
     @property
     def maxlen(self):
@@ -68,24 +71,7 @@ class PacketList(MutableMapping, objectstore.ObjectStoreMixin):
 
     @wrapt.synchronized(lock)
     def find(self, packet):
-        return self.get(packet.key)
-
-    def __getitem__(self, key):
-        # self.d.move_to_end(key)
-        return self.data["packets"][key]
-
-    def __setitem__(self, key, value):
-        if key in self.data["packets"]:
-            self.data["packets"].move_to_end(key)
-        elif len(self.data["packets"]) == self.maxlen:
-            self.data["packets"].popitem(last=False)
-        self.data["packets"][key] = value
-
-    def __delitem__(self, key):
-        del self.data["packets"][key]
-
-    def __iter__(self):
-        return self.data["packets"].__iter__()
+        return self.data["packets"][packet.key]
 
     def __len__(self):
         return len(self.data["packets"])
