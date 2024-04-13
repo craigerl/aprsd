@@ -8,7 +8,7 @@ add-trailing-comma==3.1.0  # via gray
 alabaster==0.7.16         # via sphinx
 autoflake==1.5.3          # via gray
 babel==2.14.0             # via sphinx
-black==24.3.0             # via gray
+black==24.4.0             # via gray
 build==1.2.1              # via pip-tools
 cachetools==5.3.3         # via tox
 certifi==2024.2.2         # via requests
@@ -28,7 +28,7 @@ fixit==2.1.0              # via gray
 flake8==7.0.0             # via -r dev-requirements.in, pep8-naming
 gray==0.14.0              # via -r dev-requirements.in
 identify==2.5.35          # via pre-commit
-idna==3.6                 # via requests
+idna==3.7                 # via requests
 imagesize==1.4.1          # via sphinx
 iniconfig==2.0.0          # via pytest
 isort==5.13.2             # via -r dev-requirements.in, gray
