@@ -110,6 +110,16 @@ aprsd_opts = [
         default=3,
         help="The number of times to send an ack packet in response to recieving a packet.",
     ),
+    cfg.IntOpt(
+        "packet_list_maxlen",
+        default=100,
+        help="The maximum number of packets to store in the packet list.",
+    ),
+    cfg.IntOpt(
+        "packet_list_stats_maxlen",
+        default=20,
+        help="The maximum number of packets to send in the stats dict for admin ui.",
+    ),
 ]
 
 watch_list_opts = [

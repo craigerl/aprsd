@@ -115,14 +115,11 @@ class APRSDDupeRXThread(APRSDRXThread):
                 found = False
 
             if not found:
-                # If we are in the process of already ack'ing
-                # a packet, we should drop the packet
-                # because it's a dupe within the time that
-                # we send the 3 acks for the packet.
+                # We haven't seen this packet before, so we process it.
                 pkt_list.rx(packet)
                 self.packet_queue.put(packet)
             elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
-                # If the packet came in within 60 seconds of the
+                # If the packet came in within N seconds of the
                 # Last time seeing the packet, then we drop it as a dupe.
                 LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
             else:

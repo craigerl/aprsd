@@ -22,7 +22,7 @@ class PacketList(objectstore.ObjectStoreMixin):
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._maxlen = 100
+            cls._maxlen = CONF.packet_list_maxlen
             cls.data = {
                 "types": {},
                 "packets": OrderedDict(),
@@ -88,11 +88,22 @@ class PacketList(objectstore.ObjectStoreMixin):
 
     @wrapt.synchronized(lock)
     def stats(self, serializable=False) -> dict:
+        # limit the number of packets to return to 50
+        LOG.info(f"PacketList stats called len={len(self.data['packets'])}")
+        tmp = OrderedDict(reversed(list(self.data["packets"].items())))
+        pkts = []
+        count = 1
+        for packet in tmp:
+            pkts.append(tmp[packet])
+            count += 1
+            if count > CONF.packet_list_stats_maxlen:
+                break
+
         stats = {
             "total_tracked": self._total_rx + self._total_rx,
             "rx": self._total_rx,
             "tx": self._total_tx,
             "types": self.data["types"],
-            "packets": self.data["packets"],
+            "packets": pkts,
         }
         return stats
