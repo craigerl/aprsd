@@ -1,6 +1,6 @@
 FROM python:3.11-slim as build
 
-ARG VERSION=3.1.0
+ARG VERSION=3.4.0
 ENV TZ=${TZ:-US/Eastern}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
