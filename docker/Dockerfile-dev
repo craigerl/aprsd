@@ -35,7 +35,7 @@ WORKDIR /app
 RUN git clone -b $APRSD_BRANCH https://github.com/craigerl/aprsd
 RUN pip install -U pip
 RUN cd aprsd && pip install --no-cache-dir .
-RUN pip install gevent uwsgi
+RUN pip install gevent uwsgi==2.0.24
 RUN which aprsd
 RUN mkdir /config
 RUN chown -R appuser:appgroup /app
