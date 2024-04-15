@@ -102,7 +102,6 @@ class Packet:
     send_count: int = field(repr=False, default=0, compare=False, hash=False)
     retry_count: int = field(repr=False, default=3, compare=False, hash=False)
     last_send_time: float = field(repr=False, default=0, compare=False, hash=False)
-    last_send_attempt: int = field(repr=False, default=0, compare=False, hash=False)
 
     # Do we allow this packet to be saved to send later?
     allow_delay: bool = field(repr=False, default=True, compare=False, hash=False)

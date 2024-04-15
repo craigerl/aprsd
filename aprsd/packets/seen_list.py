@@ -26,9 +26,15 @@ class SeenList(objectstore.ObjectStoreMixin):
             cls._instance.data = {}
         return cls._instance
 
+    @wrapt.synchronized(lock)
     def stats(self, serializable=False):
         """Return the stats for the PacketTrack class."""
         return self.data
+
+    @wrapt.synchronized(lock)
+    def copy(self):
+        """Return a copy of the data."""
+        return self.data.copy()
 
     @wrapt.synchronized(lock)
     def update_seen(self, packet):

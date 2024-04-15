@@ -79,6 +79,7 @@ def _send_direct(packet, aprs_client=None):
     packet_log.log(packet, tx=True)
     try:
         cl.send(packet)
+        packet.send_count += 1
     except Exception as e:
         LOG.error(f"Failed to send packet: {packet}")
         LOG.error(e)

@@ -65,10 +65,9 @@ class PacketTrack(objectstore.ObjectStoreMixin):
         pkts = {}
         for key in self.data:
             last_send_time = self.data[key].last_send_time
-            last_send_attempt = self.data[key]._last_send_attempt
             pkts[key] = {
                 "last_send_time": last_send_time,
-                "last_send_attempt": last_send_attempt,
+                "send_count": self.data[key].send_count,
                 "retry_count": self.data[key].retry_count,
                 "message": self.data[key].raw,
             }
@@ -82,7 +81,7 @@ class PacketTrack(objectstore.ObjectStoreMixin):
     @wrapt.synchronized(lock)
     def add(self, packet):
         key = packet.msgNo
-        packet._last_send_attempt = 0
+        packet.send_count = 0
         self.data[key] = packet
         self.total_tracked += 1
 
