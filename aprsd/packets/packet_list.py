@@ -104,6 +104,7 @@ class PacketList(objectstore.ObjectStoreMixin):
             "rx": self._total_rx,
             "tx": self._total_tx,
             "types": self.data["types"],
+            "packet_count": len(self.data["packets"]),
             "packets": pkts,
         }
         return stats
