@@ -79,7 +79,6 @@ def _send_direct(packet, aprs_client=None):
     packet_log.log(packet, tx=True)
     try:
         cl.send(packet)
-        packet.send_count += 1
     except Exception as e:
         LOG.error(f"Failed to send packet: {packet}")
         LOG.error(e)
@@ -119,7 +118,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
             return False
         else:
             send_now = False
-            if packet.send_count == packet.retry_count:
+            if packet.send_count >= packet.retry_count:
                 # we reached the send limit, don't send again
                 # TODO(hemna) - Need to put this in a delayed queue?
                 LOG.info(
