@@ -18,12 +18,13 @@ class PacketList(objectstore.ObjectStoreMixin):
     lock = threading.Lock()
     _total_rx: int = 0
     _total_tx: int = 0
+    _maxlen: int = 100
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._maxlen = CONF.packet_list_maxlen
-            cls.data = {
+            cls._instance._maxlen = CONF.packet_list_maxlen
+            cls._instance.data = {
                 "types": {},
                 "packets": OrderedDict(),
             }
@@ -58,7 +59,7 @@ class PacketList(objectstore.ObjectStoreMixin):
     def _add(self, packet):
         if packet.key in self.data["packets"]:
             self.data["packets"].move_to_end(packet.key)
-        elif len(self.data["packets"]) == self.maxlen:
+        elif len(self.data["packets"]) == self._maxlen:
             self.data["packets"].popitem(last=False)
         self.data["packets"][packet.key] = packet
 
