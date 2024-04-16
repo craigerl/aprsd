@@ -11,6 +11,7 @@ import aprsd
 from aprsd import cli_helper, client, packets
 from aprsd import conf  # noqa : F401
 from aprsd.main import cli
+from aprsd.packets import collector
 from aprsd.threads import tx
 
 
@@ -103,7 +104,7 @@ def send_message(
         global got_ack, got_response
         cl = client.factory.create()
         packet = cl.decode_packet(packet)
-        packets.PacketList().rx(packet)
+        collector.PacketCollector().rx(packet)
         packet.log("RX")
         # LOG.debug("Got packet back {}".format(packet))
         if isinstance(packet, packets.AckPacket):

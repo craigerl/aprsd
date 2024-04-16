@@ -17,6 +17,7 @@ from rich.console import Console
 import aprsd
 from aprsd import cli_helper, client, packets, plugin, threads
 from aprsd.main import cli
+from aprsd.packets import collector as packet_collector
 from aprsd.packets import log as packet_log
 from aprsd.stats import collector
 from aprsd.threads import keep_alive, rx
@@ -81,7 +82,7 @@ class APRSDListenThread(rx.APRSDRXThread):
                 # This is the listen only command.
                 self.plugin_manager.run(packet)
 
-        packets.PacketList().rx(packet)
+        packet_collector.PacketCollector().rx(packet)
 
 
 @cli.command()

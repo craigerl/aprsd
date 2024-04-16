@@ -70,6 +70,7 @@ class ObjectStoreMixin:
         """Save any queued to disk?"""
         if not CONF.enable_save:
             return
+        self._init_store()
         save_filename = self._save_filename()
         if len(self) > 0:
             LOG.info(

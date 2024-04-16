@@ -6,6 +6,7 @@ from oslo_config import cfg
 import wrapt
 
 from aprsd import utils
+from aprsd.packets import collector, core
 from aprsd.utils import objectstore
 
 
@@ -23,24 +24,22 @@ class WatchList(objectstore.ObjectStoreMixin):
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._init_store()
-            cls._instance.data = {}
+            cls._instance._update_from_conf()
         return cls._instance
 
-    def __init__(self, config=None):
-        CONF.watch_list.packet_keep_count
-
-        if CONF.watch_list.callsigns:
+    def _update_from_conf(self, config=None):
+        if CONF.watch_list.enabled and CONF.watch_list.callsigns:
             for callsign in CONF.watch_list.callsigns:
                 call = callsign.replace("*", "")
                 # FIXME(waboring) - we should fetch the last time we saw
                 # a beacon from a callsign or some other mechanism to find
                 # last time a message was seen by aprs-is.  For now this
                 # is all we can do.
-                self.data[call] = {
-                    "last": None,
-                    "packet": None,
-                }
+                if call not in self.data:
+                    self.data[call] = {
+                        "last": None,
+                        "packet": None,
+                    }
 
     @wrapt.synchronized(lock)
     def stats(self, serializable=False) -> dict:
@@ -61,14 +60,18 @@ class WatchList(objectstore.ObjectStoreMixin):
         return callsign in self.data
 
     @wrapt.synchronized(lock)
-    def update_seen(self, packet):
-        if packet.addresse:
-            callsign = packet.addresse
-        else:
-            callsign = packet.from_call
+    def rx(self, packet: type[core.Packet]) -> None:
+        """Track when we got a packet from the network."""
+        LOG.error(f"WatchList RX {packet}")
+        callsign = packet.from_call
+
         if self.callsign_in_watchlist(callsign):
+            LOG.error(f"Updating WatchList RX {callsign}")
             self.data[callsign]["last"] = datetime.datetime.now()
             self.data[callsign]["packet"] = packet
+
+    def tx(self, packet: type[core.Packet]) -> None:
+        """We don't care about TX packets."""
 
     def last_seen(self, callsign):
         if self.callsign_in_watchlist(callsign):
@@ -113,3 +116,6 @@ class WatchList(objectstore.ObjectStoreMixin):
                 return False
         else:
             return False
+
+
+collector.PacketCollector().register(WatchList)

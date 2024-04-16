@@ -5,6 +5,7 @@ import threading
 from oslo_config import cfg
 import wrapt
 
+from aprsd.packets import collector, core
 from aprsd.utils import objectstore
 
 
@@ -22,7 +23,6 @@ class SeenList(objectstore.ObjectStoreMixin):
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._init_store()
             cls._instance.data = {}
         return cls._instance
 
@@ -37,7 +37,8 @@ class SeenList(objectstore.ObjectStoreMixin):
         return self.data.copy()
 
     @wrapt.synchronized(lock)
-    def update_seen(self, packet):
+    def rx(self, packet: type[core.Packet]):
+        """When we get a packet from the network, update the seen list."""
         callsign = None
         if packet.from_call:
             callsign = packet.from_call
@@ -51,3 +52,11 @@ class SeenList(objectstore.ObjectStoreMixin):
             }
         self.data[callsign]["last"] = datetime.datetime.now()
         self.data[callsign]["count"] += 1
+
+    def tx(self, packet: type[core.Packet]):
+        """We don't care about TX packets."""
+
+
+# Register with the packet collector so we can process the packet
+# when we get it off the client (network)
+collector.PacketCollector().register(SeenList)

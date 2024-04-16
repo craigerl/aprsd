@@ -7,6 +7,7 @@ import aprslib
 from oslo_config import cfg
 
 from aprsd import client, packets, plugin
+from aprsd.packets import collector
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
 
@@ -116,7 +117,7 @@ class APRSDDupeRXThread(APRSDRXThread):
 
             if not found:
                 # We haven't seen this packet before, so we process it.
-                pkt_list.rx(packet)
+                collector.PacketCollector().rx(packet)
                 self.packet_queue.put(packet)
             elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
                 # If the packet came in within N seconds of the
@@ -127,7 +128,7 @@ class APRSDDupeRXThread(APRSDRXThread):
                     f"Packet {packet.from_call}:{packet.msgNo} already tracked "
                     f"but older than {CONF.packet_dupe_timeout} seconds. processing.",
                 )
-                pkt_list.rx(packet)
+                collector.PacketCollector().rx(packet)
                 self.packet_queue.put(packet)
 
 
@@ -154,7 +155,7 @@ class APRSDProcessPacketThread(APRSDThread):
         """We got an ack for a message, no need to resend it."""
         ack_num = packet.msgNo
         LOG.debug(f"Got ack for message {ack_num}")
-        packets.PacketList().rx(packet)
+        collector.PacketCollector().rx(packet)
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
 
@@ -162,7 +163,7 @@ class APRSDProcessPacketThread(APRSDThread):
         """We got an ack embedded in a packet."""
         ack_num = packet.ackMsgNo
         LOG.debug(f"Got PiggyBackAck for message {ack_num}")
-        packets.PacketList().rx(packet)
+        collector.PacketCollector().rx(packet)
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
 
@@ -170,7 +171,7 @@ class APRSDProcessPacketThread(APRSDThread):
         """We got a reject message for a packet.  Stop sending the message."""
         ack_num = packet.msgNo
         LOG.debug(f"Got REJECT for message {ack_num}")
-        packets.PacketList().rx(packet)
+        collector.PacketCollector().rx(packet)
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
 

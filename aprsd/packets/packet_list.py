@@ -5,7 +5,7 @@ import threading
 from oslo_config import cfg
 import wrapt
 
-from aprsd.packets import seen_list
+from aprsd.packets import collector, core
 from aprsd.utils import objectstore
 
 
@@ -14,6 +14,7 @@ LOG = logging.getLogger("APRSD")
 
 
 class PacketList(objectstore.ObjectStoreMixin):
+    """Class to keep track of the packets we tx/rx."""
     _instance = None
     lock = threading.Lock()
     _total_rx: int = 0
@@ -31,7 +32,7 @@ class PacketList(objectstore.ObjectStoreMixin):
         return cls._instance
 
     @wrapt.synchronized(lock)
-    def rx(self, packet):
+    def rx(self, packet: type[core.Packet]):
         """Add a packet that was received."""
         self._total_rx += 1
         self._add(packet)
@@ -39,10 +40,9 @@ class PacketList(objectstore.ObjectStoreMixin):
         if not ptype in self.data["types"]:
             self.data["types"][ptype] = {"tx": 0, "rx": 0}
         self.data["types"][ptype]["rx"] += 1
-        seen_list.SeenList().update_seen(packet)
 
     @wrapt.synchronized(lock)
-    def tx(self, packet):
+    def tx(self, packet: type[core.Packet]):
         """Add a packet that was received."""
         self._total_tx += 1
         self._add(packet)
@@ -50,7 +50,6 @@ class PacketList(objectstore.ObjectStoreMixin):
         if not ptype in self.data["types"]:
             self.data["types"][ptype] = {"tx": 0, "rx": 0}
         self.data["types"][ptype]["tx"] += 1
-        seen_list.SeenList().update_seen(packet)
 
     @wrapt.synchronized(lock)
     def add(self, packet):
@@ -105,3 +104,9 @@ class PacketList(objectstore.ObjectStoreMixin):
             "packets": pkts,
         }
         return stats
+
+
+# Now register the PacketList with the collector
+# every packet we RX and TX goes through the collector
+# for processing for whatever reason is needed.
+collector.PacketCollector().register(PacketList)
