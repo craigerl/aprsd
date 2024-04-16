@@ -89,6 +89,7 @@ class Packet:
     addresse: Optional[str] = field(default=None)
     format: Optional[str] = field(default=None)
     msgNo: Optional[str] = field(default=None)   # noqa: N815
+    ackMsgNo: Optional[str] = field(default=None)   # noqa: N815
     packet_type: Optional[str] = field(default=None)
     timestamp: float = field(default_factory=_init_timestamp, compare=False, hash=False)
     # Holds the raw text string to be sent over the wire

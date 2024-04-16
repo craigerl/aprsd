@@ -158,6 +158,14 @@ class APRSDProcessPacketThread(APRSDThread):
         pkt_tracker = packets.PacketTrack()
         pkt_tracker.remove(ack_num)
 
+    def process_piggyback_ack(self, packet):
+        """We got an ack embedded in a packet."""
+        ack_num = packet.ackMsgNo
+        LOG.debug(f"Got PiggyBackAck for message {ack_num}")
+        packets.PacketList().rx(packet)
+        pkt_tracker = packets.PacketTrack()
+        pkt_tracker.remove(ack_num)
+
     def process_reject_packet(self, packet):
         """We got a reject message for a packet.  Stop sending the message."""
         ack_num = packet.msgNo
@@ -200,6 +208,10 @@ class APRSDProcessPacketThread(APRSDThread):
         ):
             self.process_reject_packet(packet)
         else:
+            if hasattr(packet, "ackMsgNo") and packet.ackMsgNo:
+                # we got an ack embedded in this packet
+                # we need to handle the ack
+                self.process_piggyback_ack(packet)
             # Only ack messages that were sent directly to us
             if isinstance(packet, packets.MessagePacket):
                 if to_call and to_call.lower() == our_call:
