@@ -18,12 +18,12 @@ class PacketList(objectstore.ObjectStoreMixin):
     lock = threading.Lock()
     _total_rx: int = 0
     _total_tx: int = 0
-    _maxlen: int = 100
+    maxlen: int = 100
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance._maxlen = CONF.packet_list_maxlen
+            cls._instance.maxlen = CONF.packet_list_maxlen
             cls._instance.data = {
                 "types": {},
                 "packets": OrderedDict(),
@@ -59,7 +59,7 @@ class PacketList(objectstore.ObjectStoreMixin):
     def _add(self, packet):
         if packet.key in self.data["packets"]:
             self.data["packets"].move_to_end(packet.key)
-        elif len(self.data["packets"]) == self._maxlen:
+        elif len(self.data["packets"]) == self.maxlen:
             self.data["packets"].popitem(last=False)
         self.data["packets"][packet.key] = packet
 
@@ -67,9 +67,9 @@ class PacketList(objectstore.ObjectStoreMixin):
     def copy(self):
         return self.data.copy()
 
-    @property
-    def maxlen(self):
-        return self._maxlen
+    @wrapt.synchronized(lock)
+    def set_maxlen(self, maxlen):
+        self.maxlen = maxlen
 
     @wrapt.synchronized(lock)
     def find(self, packet):
@@ -90,8 +90,7 @@ class PacketList(objectstore.ObjectStoreMixin):
     @wrapt.synchronized(lock)
     def stats(self, serializable=False) -> dict:
         # limit the number of packets to return to 50
-        LOG.info(f"PacketList stats called len={len(self.data['packets'])}")
-        tmp = OrderedDict(reversed(list(self.data["packets"].items())))
+        tmp = OrderedDict(reversed(list(self.data.get("packets", []).items())))
         pkts = []
         count = 1
         for packet in tmp:
@@ -106,6 +105,7 @@ class PacketList(objectstore.ObjectStoreMixin):
             "tx": self._total_tx,
             "types": self.data["types"],
             "packet_count": len(self.data["packets"]),
+            "maxlen": self.maxlen,
             "packets": pkts,
         }
         return stats
