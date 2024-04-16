@@ -68,10 +68,6 @@ class PacketList(objectstore.ObjectStoreMixin):
         return self.data.copy()
 
     @wrapt.synchronized(lock)
-    def set_maxlen(self, maxlen):
-        self.maxlen = maxlen
-
-    @wrapt.synchronized(lock)
     def find(self, packet):
         return self.data["packets"][packet.key]
 

@@ -1,8 +1,9 @@
-from typing import Protocol
+from typing import Callable, Protocol, runtime_checkable
 
 from aprsd.utils import singleton
 
 
+@runtime_checkable
 class StatsProducer(Protocol):
     """The StatsProducer protocol is used to define the interface for collecting stats."""
     def stats(self, serializeable=False) -> dict:
@@ -14,17 +15,17 @@ class StatsProducer(Protocol):
 class Collector:
     """The Collector class is used to collect stats from multiple StatsProducer instances."""
     def __init__(self):
-        self.producers: dict[str, StatsProducer] = {}
+        self.producers: list[Callable] = []
 
     def collect(self, serializable=False) -> dict:
         stats = {}
-        for name, producer in self.producers.items():
-            # No need to put in empty stats
-            tmp_stats = producer.stats(serializable=serializable)
-            if tmp_stats:
-                stats[name] = tmp_stats
+        for name in self.producers:
+            cls = name()
+            if isinstance(cls, StatsProducer):
+                stats[cls.__class__.__name__] = cls.stats(serializable=serializable)
+            else:
+                raise TypeError(f"{cls} is not an instance of StatsProducer")
         return stats
 
-    def register_producer(self, producer: StatsProducer):
-        name = producer.__class__.__name__
-        self.producers[name] = producer
+    def register_producer(self, producer_name: Callable):
+        self.producers.append(producer_name)
