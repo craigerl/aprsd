@@ -33,7 +33,7 @@ class KeepAliveThread(APRSDThread):
 
             if "EmailStats" in stats_json:
                 email_stats = stats_json["EmailStats"]
-                if email_stats["last_check_time"]:
+                if email_stats.get("last_check_time"):
                     email_thread_time = utils.strfdelta(now - email_stats["last_check_time"])
                 else:
                     email_thread_time = "N/A"
