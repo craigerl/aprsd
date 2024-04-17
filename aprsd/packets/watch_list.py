@@ -62,11 +62,9 @@ class WatchList(objectstore.ObjectStoreMixin):
     @wrapt.synchronized(lock)
     def rx(self, packet: type[core.Packet]) -> None:
         """Track when we got a packet from the network."""
-        LOG.error(f"WatchList RX {packet}")
         callsign = packet.from_call
 
         if self.callsign_in_watchlist(callsign):
-            LOG.error(f"Updating WatchList RX {callsign}")
             self.data[callsign]["last"] = datetime.datetime.now()
             self.data[callsign]["packet"] = packet
 
