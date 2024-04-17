@@ -25,11 +25,14 @@ class PacketList(objectstore.ObjectStoreMixin):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.maxlen = CONF.packet_list_maxlen
-            cls._instance.data = {
-                "types": {},
-                "packets": OrderedDict(),
-            }
+            cls._instance._init_data()
         return cls._instance
+
+    def _init_data(self):
+        self.data = {
+            "types": {},
+            "packets": OrderedDict(),
+        }
 
     @wrapt.synchronized(lock)
     def rx(self, packet: type[core.Packet]):
@@ -56,6 +59,8 @@ class PacketList(objectstore.ObjectStoreMixin):
         self._add(packet)
 
     def _add(self, packet):
+        if not self.data.get("packets"):
+            self._init_data()
         if packet.key in self.data["packets"]:
             self.data["packets"].move_to_end(packet.key)
         elif len(self.data["packets"]) == self.maxlen:
@@ -85,7 +90,13 @@ class PacketList(objectstore.ObjectStoreMixin):
     @wrapt.synchronized(lock)
     def stats(self, serializable=False) -> dict:
         # limit the number of packets to return to 50
-        tmp = OrderedDict(reversed(list(self.data.get("packets", []).items())))
+        tmp = OrderedDict(
+            reversed(
+                list(
+                    self.data.get("packets", OrderedDict()).items(),
+                ),
+            ),
+        )
         pkts = []
         count = 1
         for packet in tmp:
@@ -98,8 +109,8 @@ class PacketList(objectstore.ObjectStoreMixin):
             "total_tracked": self._total_rx + self._total_rx,
             "rx": self._total_rx,
             "tx": self._total_tx,
-            "types": self.data["types"],
-            "packet_count": len(self.data["packets"]),
+            "types": self.data.get("types", []),
+            "packet_count": len(self.data.get("packets", [])),
             "maxlen": self.maxlen,
             "packets": pkts,
         }
