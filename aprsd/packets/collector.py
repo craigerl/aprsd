@@ -1,7 +1,11 @@
+import logging
 from typing import Callable, Protocol, runtime_checkable
 
 from aprsd.packets import core
 from aprsd.utils import singleton
+
+
+LOG = logging.getLogger("APRSD")
 
 
 @runtime_checkable
@@ -29,7 +33,11 @@ class PacketCollector:
         for name in self.monitors:
             cls = name()
             if isinstance(cls, PacketMonitor):
-                cls.rx(packet)
+                try:
+                    cls.rx(packet)
+                except Exception as e:
+                    LOG.error(f"Error in monitor {name} (rx): {e}")
+
             else:
                 raise TypeError(f"Monitor {name} is not a PacketMonitor")
 
@@ -37,6 +45,9 @@ class PacketCollector:
         for name in self.monitors:
             cls = name()
             if isinstance(cls, PacketMonitor):
-                cls.tx(packet)
+                try:
+                    cls.tx(packet)
+                except Exception as e:
+                    LOG.error(f"Error in monitor {name} (tx): {e}")
             else:
                 raise TypeError(f"Monitor {name} is not a PacketMonitor")

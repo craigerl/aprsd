@@ -1,6 +1,10 @@
+import logging
 from typing import Callable, Protocol, runtime_checkable
 
 from aprsd.utils import singleton
+
+
+LOG = logging.getLogger("APRSD")
 
 
 @runtime_checkable
@@ -22,7 +26,10 @@ class Collector:
         for name in self.producers:
             cls = name()
             if isinstance(cls, StatsProducer):
-                stats[cls.__class__.__name__] = cls.stats(serializable=serializable)
+                try:
+                    stats[cls.__class__.__name__] = cls.stats(serializable=serializable)
+                except Exception as e:
+                    LOG.error(f"Error in producer {name} (stats): {e}")
             else:
                 raise TypeError(f"{cls} is not an instance of StatsProducer")
         return stats
