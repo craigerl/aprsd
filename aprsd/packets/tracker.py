@@ -4,6 +4,7 @@ import threading
 from oslo_config import cfg
 import wrapt
 
+from aprsd.packets import collector, core
 from aprsd.utils import objectstore
 
 
@@ -79,7 +80,19 @@ class PacketTrack(objectstore.ObjectStoreMixin):
         return len(self.data)
 
     @wrapt.synchronized(lock)
-    def add(self, packet):
+    def rx(self, packet: type[core.Packet]) -> None:
+        """When we get a packet from the network, check if we should remove it."""
+        if isinstance(packet, core.AckPacket):
+            self._remove(packet.msgNo)
+        elif isinstance(packet, core.RejectPacket):
+            self._remove(packet.msgNo)
+        elif packet.ackMsgNo:
+            # Got a piggyback ack, so remove the original message
+            self._remove(packet.ackMsgNo)
+
+    @wrapt.synchronized(lock)
+    def tx(self, packet: type[core.Packet]) -> None:
+        """Add a packet that was sent."""
         key = packet.msgNo
         packet.send_count = 0
         self.data[key] = packet
@@ -91,7 +104,16 @@ class PacketTrack(objectstore.ObjectStoreMixin):
 
     @wrapt.synchronized(lock)
     def remove(self, key):
+        self._remove(key)
+
+    def _remove(self, key):
         try:
             del self.data[key]
         except KeyError:
             pass
+
+
+# Now register the PacketList with the collector
+# every packet we RX and TX goes through the collector
+# for processing for whatever reason is needed.
+collector.PacketCollector().register(PacketTrack)

@@ -11,7 +11,7 @@ import wrapt
 
 from aprsd import exception
 from aprsd.clients import aprsis, fake, kiss
-from aprsd.packets import collector, core
+from aprsd.packets import core
 from aprsd.utils import singleton, trace
 
 
@@ -102,7 +102,6 @@ class Client:
 
     def send(self, packet: core.Packet):
         """Send a packet to the network."""
-        collector.PacketCollector().tx(packet)
         self.client.send(packet)
 
     @wrapt.synchronized(lock)

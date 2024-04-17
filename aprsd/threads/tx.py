@@ -10,7 +10,7 @@ from rush.stores import dictionary
 from aprsd import client
 from aprsd import conf  # noqa
 from aprsd import threads as aprsd_threads
-from aprsd.packets import core
+from aprsd.packets import collector, core
 from aprsd.packets import log as packet_log
 from aprsd.packets import tracker
 
@@ -44,6 +44,7 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
     """Send a packet either in a thread or directly to the client."""
     # prepare the packet for sending.
     # This constructs the packet.raw
+    collector.PacketCollector().tx(packet)
     packet.prepare()
     if isinstance(packet, core.AckPacket):
         _send_ack(packet, direct=direct, aprs_client=aprs_client)
@@ -89,10 +90,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
 
     def __init__(self, packet):
         self.packet = packet
-        name = self.packet.raw[:5]
-        super().__init__(f"TXPKT-{self.packet.msgNo}-{name}")
-        pkt_tracker = tracker.PacketTrack()
-        pkt_tracker.add(packet)
+        super().__init__(f"TX-{packet.to_call}-{self.packet.msgNo}")
 
     def loop(self):
         """Loop until a message is acked or it gets delayed.
@@ -146,7 +144,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                 # no attempt time, so lets send it, and start
                 # tracking the time.
                 packet.last_send_time = int(round(time.time()))
-                send(packet, direct=True)
+                _send_direct(packet)
                 packet.send_count += 1
 
             time.sleep(1)
@@ -161,7 +159,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
 
     def __init__(self, packet):
         self.packet = packet
-        super().__init__(f"SendAck-{self.packet.msgNo}")
+        super().__init__(f"TXAck-{packet.to_call}-{self.packet.msgNo}")
         self.max_retries = CONF.default_ack_send_count
 
     def loop(self):
@@ -195,7 +193,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
             send_now = True
 
         if send_now:
-            send(self.packet, direct=True)
+            _send_direct(self.packet)
             self.packet.send_count += 1
             self.packet.last_send_time = int(round(time.time()))
 

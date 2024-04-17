@@ -18,7 +18,7 @@ LOG = logging.getLogger("APRSD")
 
 class APRSDRXThread(APRSDThread):
     def __init__(self, packet_queue):
-        super().__init__("RX_MSG")
+        super().__init__("RX_PKT")
         self.packet_queue = packet_queue
         self._client = client.factory.create()
 
@@ -156,24 +156,18 @@ class APRSDProcessPacketThread(APRSDThread):
         ack_num = packet.msgNo
         LOG.debug(f"Got ack for message {ack_num}")
         collector.PacketCollector().rx(packet)
-        pkt_tracker = packets.PacketTrack()
-        pkt_tracker.remove(ack_num)
 
     def process_piggyback_ack(self, packet):
         """We got an ack embedded in a packet."""
         ack_num = packet.ackMsgNo
         LOG.debug(f"Got PiggyBackAck for message {ack_num}")
         collector.PacketCollector().rx(packet)
-        pkt_tracker = packets.PacketTrack()
-        pkt_tracker.remove(ack_num)
 
     def process_reject_packet(self, packet):
         """We got a reject message for a packet.  Stop sending the message."""
         ack_num = packet.msgNo
         LOG.debug(f"Got REJECT for message {ack_num}")
         collector.PacketCollector().rx(packet)
-        pkt_tracker = packets.PacketTrack()
-        pkt_tracker.remove(ack_num)
 
     def loop(self):
         try:
