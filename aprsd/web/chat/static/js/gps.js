@@ -64,9 +64,11 @@ function showError(error) {
 
 function showPosition(position) {
   console.log("showPosition Called");
+  path = $('#pkt_path option:selected').val();
   msg = {
       'latitude': position.coords.latitude,
-      'longitude': position.coords.longitude
+      'longitude': position.coords.longitude,
+      'path': path,
   }
   console.log(msg);
   $.toast({

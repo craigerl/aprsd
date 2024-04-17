@@ -543,6 +543,14 @@ class SendMessageNamespace(Namespace):
         long = data["longitude"]
         LOG.debug(f"Lat {lat}")
         LOG.debug(f"Long {long}")
+        path = data.get("path", None)
+        if not path:
+            path = []
+        elif "," in path:
+            path_opts = path.split(",")
+            path = [x.strip() for x in path_opts]
+        else:
+            path = [path]
 
         tx.send(
             packets.BeaconPacket(
@@ -551,6 +559,7 @@ class SendMessageNamespace(Namespace):
                 latitude=lat,
                 longitude=long,
                 comment="APRSD WebChat Beacon",
+                path=path,
             ),
             direct=True,
         )
