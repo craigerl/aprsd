@@ -1,4 +1,5 @@
 import logging
+import threading
 import time
 
 from oslo_config import cfg
@@ -6,6 +7,7 @@ from rush import quota, throttle
 from rush.contrib import decorator
 from rush.limiters import periodic
 from rush.stores import dictionary
+import wrapt
 
 from aprsd import client
 from aprsd import conf  # noqa
@@ -37,15 +39,19 @@ ack_t = throttle.Throttle(
 
 msg_throttle_decorator = decorator.ThrottleDecorator(throttle=msg_t)
 ack_throttle_decorator = decorator.ThrottleDecorator(throttle=ack_t)
+s_lock = threading.Lock()
 
 
+@wrapt.synchronized(s_lock)
 @msg_throttle_decorator.sleep_and_retry
 def send(packet: core.Packet, direct=False, aprs_client=None):
     """Send a packet either in a thread or directly to the client."""
     # prepare the packet for sending.
     # This constructs the packet.raw
-    collector.PacketCollector().tx(packet)
     packet.prepare()
+    # Have to call the collector to track the packet
+    # After prepare, as prepare assigns the msgNo
+    collector.PacketCollector().tx(packet)
     if isinstance(packet, core.AckPacket):
         _send_ack(packet, direct=direct, aprs_client=aprs_client)
     else:

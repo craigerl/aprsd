@@ -1,4 +1,5 @@
 import datetime
+import logging
 import threading
 
 from oslo_config import cfg
@@ -9,6 +10,7 @@ from aprsd.utils import objectstore
 
 
 CONF = cfg.CONF
+LOG = logging.getLogger("APRSD")
 
 
 class PacketTrack(objectstore.ObjectStoreMixin):
@@ -100,7 +102,7 @@ class PacketTrack(objectstore.ObjectStoreMixin):
 
     @wrapt.synchronized(lock)
     def get(self, key):
-        return self.data.get(key, None)
+        return self.data.get(key)
 
     @wrapt.synchronized(lock)
     def remove(self, key):
