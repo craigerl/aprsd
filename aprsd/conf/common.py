@@ -106,6 +106,11 @@ aprsd_opts = [
              "both will log both compact and multiline.",
     ),
     cfg.IntOpt(
+        "default_packet_send_count",
+        default=3,
+        help="The number of times to send a non ack packet before giving up.",
+    ),
+    cfg.IntOpt(
         "default_ack_send_count",
         default=3,
         help="The number of times to send an ack packet in response to recieving a packet.",

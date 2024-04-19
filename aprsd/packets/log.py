@@ -22,15 +22,22 @@ def log_multiline(packet, tx: Optional[bool] = False, header: Optional[bool] = T
     """LOG a packet to the logfile."""
     if CONF.log_packet_format == "compact":
         return
+
     # asdict(packet)
     logit = ["\n"]
     name = packet.__class__.__name__
+
+    if isinstance(packet, AckPacket):
+        pkt_max_send_count = CONF.default_ack_send_count
+    else:
+        pkt_max_send_count = CONF.default_packet_send_count
+
     if header:
         if tx:
             header_str = f"<{TX_COLOR}>TX</{TX_COLOR}>"
             logit.append(
                 f"{header_str}________(<{PACKET_COLOR}>{name}</{PACKET_COLOR}>  "
-                f"TX:{packet.send_count + 1} of {packet.retry_count})",
+                f"TX:{packet.send_count + 1} of {pkt_max_send_count}",
             )
         else:
             header_str = f"<{RX_COLOR}>RX</{RX_COLOR}>"
@@ -78,6 +85,10 @@ def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> No
 
     logit = []
     name = packet.__class__.__name__
+    if isinstance(packet, AckPacket):
+        pkt_max_send_count = CONF.default_ack_send_count
+    else:
+        pkt_max_send_count = CONF.default_packet_send_count
 
     if header:
         if tx:
@@ -87,7 +98,7 @@ def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> No
                 f"<red>TX {arrow}</red> "
                 f"<cyan>{name}</cyan>"
                 f":{packet.msgNo}"
-                f" ({packet.send_count + 1} of {packet.retry_count})",
+                f" ({packet.send_count + 1} of {pkt_max_send_count})",
             )
         else:
             via_color = "fg #828282"
