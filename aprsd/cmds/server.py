@@ -10,6 +10,8 @@ from aprsd import cli_helper, client
 from aprsd import main as aprsd_main
 from aprsd import packets, plugin, threads, utils
 from aprsd.main import cli
+from aprsd.packets import collector as packet_collector
+from aprsd.packets import seen_list
 from aprsd.threads import keep_alive, log_monitor, registry, rx
 from aprsd.threads import stats as stats_thread
 from aprsd.threads import tx
@@ -107,6 +109,10 @@ def server(ctx, flush):
 
     keepalive = keep_alive.KeepAliveThread()
     keepalive.start()
+
+    if not CONF.enable_seen_list:
+        # just deregister the class from the packet collector
+        packet_collector.PacketCollector().unregister(seen_list.SeenList)
 
     stats_store_thread = stats_thread.APRSDStatsStoreThread()
     stats_store_thread.start()

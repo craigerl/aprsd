@@ -125,6 +125,12 @@ aprsd_opts = [
         default=20,
         help="The maximum number of packets to send in the stats dict for admin ui.",
     ),
+    cfg.BoolOpt(
+        "enable_seen_list",
+        default=True,
+        help="Enable the Callsign seen list tracking feature.  This allows aprsd to keep track of "
+             "callsigns that have been seen and when they were last seen.",
+    ),
 ]
 
 watch_list_opts = [

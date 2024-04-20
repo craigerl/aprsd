@@ -19,6 +19,7 @@ from aprsd import cli_helper, client, packets, plugin, threads
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import log as packet_log
+from aprsd.packets import seen_list
 from aprsd.stats import collector
 from aprsd.threads import keep_alive, rx
 from aprsd.threads import stats as stats_thread
@@ -194,6 +195,10 @@ def listen(
 
     keepalive = keep_alive.KeepAliveThread()
     # keepalive.start()
+
+    if not CONF.enable_seen_list:
+        # just deregister the class from the packet collector
+        packet_collector.PacketCollector().unregister(seen_list.SeenList)
 
     pm = None
     pm = plugin.PluginManager()

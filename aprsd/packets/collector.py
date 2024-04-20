@@ -29,6 +29,9 @@ class PacketCollector:
     def register(self, monitor: Callable) -> None:
         self.monitors.append(monitor)
 
+    def unregister(self, monitor: Callable) -> None:
+        self.monitors.remove(monitor)
+
     def rx(self, packet: type[core.Packet]) -> None:
         for name in self.monitors:
             cls = name()
