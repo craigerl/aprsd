@@ -14,6 +14,7 @@ class APRSDStats:
     """The AppStats class is used to collect stats from the application."""
 
     _instance = None
+    start_time = None
 
     def __new__(cls, *args, **kwargs):
         """Have to override the new method to make this a singleton
@@ -22,10 +23,8 @@ class APRSDStats:
         """
         if not cls._instance:
             cls._instance = super().__new__(cls)
+            cls._instance.start_time = datetime.datetime.now()
         return cls._instance
-
-    def __init__(self):
-        self.start_time = datetime.datetime.now()
 
     def uptime(self):
         return datetime.datetime.now() - self.start_time
