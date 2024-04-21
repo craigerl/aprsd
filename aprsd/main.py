@@ -124,7 +124,7 @@ def sample_config(ctx):
 
     def _get_selected_entry_points():
         import sys
-        if sys.version_info < (3,10):
+        if sys.version_info < (3, 10):
             all = imp.entry_points()
             selected = []
             if "oslo.config.opts" in all:
