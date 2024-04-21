@@ -122,10 +122,25 @@ def check_version(ctx):
 def sample_config(ctx):
     """Generate a sample Config file from aprsd and all installed plugins."""
 
+    def _get_selected_entry_points():
+        import sys
+        if sys.version_info < (3,10):
+            all = imp.entry_points()
+            selected = []
+            if "oslo.config.opts" in all:
+                for x in all["oslo.config.opts"]:
+                    if x.group == "oslo.config.opts":
+                        selected.append(x)
+        else:
+            selected = imp.entry_points(group="oslo.config.opts")
+
+        return selected
+
     def get_namespaces():
         args = []
 
-        selected = imp.entry_points(group="oslo.config.opts")
+        # selected = imp.entry_points(group="oslo.config.opts")
+        selected = _get_selected_entry_points()
         for entry in selected:
             if "aprsd" in entry.name:
                 args.append("--namespace")
