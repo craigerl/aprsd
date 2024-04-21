@@ -1,6 +1,12 @@
 CHANGES
 =======
 
+v3.3.4
+------
+
+* Fixed entry\_points
+* Fix for entry\_points where python < 3.10
+
 v3.3.3
 ------
 
