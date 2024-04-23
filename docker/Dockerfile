@@ -53,8 +53,9 @@ ADD bin/admin.sh /app
 # For the web admin interface
 EXPOSE 8001
 
-ENTRYPOINT ["/app/run.sh"]
 VOLUME ["/config"]
+ENTRYPOINT ["/app/setup.sh"]
+CMD ["server"]
 
 # Set the user to run the application
 USER appuser
