@@ -1,7 +1,6 @@
 aprslib>=0.7.0
 click
 click-params
-click-completion
 flask
 werkzeug
 flask-httpauth

@@ -34,7 +34,7 @@ h11==0.14.0               # via wsproto
 idna==3.7                 # via requests
 imapclient==3.0.1         # via -r requirements.in
 importlib-metadata==7.1.0  # via ax253, kiss3
-itsdangerous==2.1.2       # via flask
+itsdangerous==2.2.0       # via flask
 jinja2==3.1.3             # via click-completion, flask
 kiss3==8.0.0              # via -r requirements.in
 loguru==0.7.2             # via -r requirements.in
@@ -46,7 +46,7 @@ oslo-config==9.4.0        # via -r requirements.in
 oslo-i18n==6.3.0          # via oslo-config
 packaging==24.0           # via marshmallow
 pbr==6.0.0                # via -r requirements.in, oslo-i18n, stevedore
-pluggy==1.4.0             # via -r requirements.in
+pluggy==1.5.0             # via -r requirements.in
 pygments==2.17.2          # via rich
 pyserial==3.5             # via pyserial-asyncio
 pyserial-asyncio==0.6     # via kiss3

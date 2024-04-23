@@ -24,13 +24,11 @@ import datetime
 import importlib.metadata as imp
 from importlib.metadata import version as metadata_version
 import logging
-import os
 import signal
 import sys
 import time
 
 import click
-import click_completion
 from oslo_config import cfg, generator
 
 # local imports here
@@ -45,18 +43,6 @@ CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 flask_enabled = False
-
-
-def custom_startswith(string, incomplete):
-    """A custom completion match that supports case insensitive matching."""
-    if os.environ.get("_CLICK_COMPLETION_COMMAND_CASE_INSENSITIVE_COMPLETE"):
-        string = string.lower()
-        incomplete = incomplete.lower()
-    return string.startswith(incomplete)
-
-
-click_completion.core.startswith = custom_startswith
-click_completion.init()
 
 
 @click.group(cls=cli_helper.AliasedGroup, context_settings=CONTEXT_SETTINGS)
