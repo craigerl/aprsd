@@ -47,4 +47,4 @@ if [ ! -e "$APRSD_CONFIG" ]; then
     aprsd sample-config > $APRSD_CONFIG
 fi
 
-exec aprsd "${COMMAND}" --config ${APRSD_CONFIG} --loglevel ${LOG_LEVEL}
+aprsd ${COMMAND} --config ${APRSD_CONFIG} --loglevel ${LOG_LEVEL}
