@@ -20,6 +20,8 @@ PACKET_COLOR = "cyan"
 
 def log_multiline(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> None:
     """LOG a packet to the logfile."""
+    if not CONF.enable_packet_logging:
+        return
     if CONF.log_packet_format == "compact":
         return
 
@@ -79,6 +81,8 @@ def log_multiline(packet, tx: Optional[bool] = False, header: Optional[bool] = T
 
 
 def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> None:
+    if not CONF.enable_packet_logging:
+        return
     if CONF.log_packet_format == "multiline":
         log_multiline(packet, tx, header)
         return

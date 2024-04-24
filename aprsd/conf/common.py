@@ -131,6 +131,11 @@ aprsd_opts = [
         help="Enable the Callsign seen list tracking feature.  This allows aprsd to keep track of "
              "callsigns that have been seen and when they were last seen.",
     ),
+    cfg.BoolOpt(
+        "enable_packet_logging",
+        default=True,
+        help="Set this to False, to disable logging of packets to the log file.",
+    ),
 ]
 
 watch_list_opts = [
