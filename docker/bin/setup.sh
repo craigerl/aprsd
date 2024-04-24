@@ -6,7 +6,7 @@ set -x
 # what command you want to run in the container
 COMMAND="server"
 
-if [ ! -z "$@" ]; then
+if [ ! -z "${@+x}" ]; then
   COMMAND=$@
 fi
 

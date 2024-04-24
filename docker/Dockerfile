@@ -46,8 +46,7 @@ RUN echo "PATH=\$PATH:/usr/games" >> /app/.bashrc
 RUN which aprsd
 RUN aprsd sample-config > /config/aprsd.conf
 
-ADD bin/run.sh /app
-ADD bin/listen.sh /app
+ADD bin/setup.sh /app
 ADD bin/admin.sh /app
 
 # For the web admin interface

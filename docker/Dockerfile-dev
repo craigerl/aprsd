@@ -46,8 +46,6 @@ RUN which aprsd
 RUN aprsd sample-config > /config/aprsd.conf
 
 ADD bin/setup.sh /app
-ADD bin/run.sh /app
-ADD bin/listen.sh /app
 ADD bin/admin.sh /app
 
 EXPOSE 8000
