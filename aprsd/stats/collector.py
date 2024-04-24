@@ -27,7 +27,7 @@ class Collector:
             cls = name()
             if isinstance(cls, StatsProducer):
                 try:
-                    stats[cls.__class__.__name__] = cls.stats(serializable=serializable)
+                    stats[cls.__class__.__name__] = cls.stats(serializable=serializable).copy()
                 except Exception as e:
                     LOG.error(f"Error in producer {name} (stats): {e}")
             else:

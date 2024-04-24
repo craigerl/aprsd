@@ -1,9 +1,7 @@
 import datetime
 import logging
-import threading
 
 from oslo_config import cfg
-import wrapt
 
 from aprsd import utils
 from aprsd.packets import collector, core
@@ -18,7 +16,6 @@ class WatchList(objectstore.ObjectStoreMixin):
     """Global watch list and info for callsigns."""
 
     _instance = None
-    lock = threading.Lock()
     data = {}
 
     def __new__(cls, *args, **kwargs):
@@ -28,52 +25,55 @@ class WatchList(objectstore.ObjectStoreMixin):
         return cls._instance
 
     def _update_from_conf(self, config=None):
-        if CONF.watch_list.enabled and CONF.watch_list.callsigns:
-            for callsign in CONF.watch_list.callsigns:
-                call = callsign.replace("*", "")
-                # FIXME(waboring) - we should fetch the last time we saw
-                # a beacon from a callsign or some other mechanism to find
-                # last time a message was seen by aprs-is.  For now this
-                # is all we can do.
-                if call not in self.data:
-                    self.data[call] = {
-                        "last": None,
-                        "packet": None,
-                    }
+        with self.lock:
+            if CONF.watch_list.enabled and CONF.watch_list.callsigns:
+                for callsign in CONF.watch_list.callsigns:
+                    call = callsign.replace("*", "")
+                    # FIXME(waboring) - we should fetch the last time we saw
+                    # a beacon from a callsign or some other mechanism to find
+                    # last time a message was seen by aprs-is.  For now this
+                    # is all we can do.
+                    if call not in self.data:
+                        self.data[call] = {
+                            "last": None,
+                            "packet": None,
+                        }
 
-    @wrapt.synchronized(lock)
     def stats(self, serializable=False) -> dict:
         stats = {}
-        for callsign in self.data:
-            stats[callsign] = {
-                "last": self.data[callsign]["last"],
-                "packet": self.data[callsign]["packet"],
-                "age": self.age(callsign),
-                "old": self.is_old(callsign),
-            }
+        with self.lock:
+            for callsign in self.data:
+                stats[callsign] = {
+                    "last": self.data[callsign]["last"],
+                    "packet": self.data[callsign]["packet"],
+                    "age": self.age(callsign),
+                    "old": self.is_old(callsign),
+                }
         return stats
 
     def is_enabled(self):
         return CONF.watch_list.enabled
 
     def callsign_in_watchlist(self, callsign):
-        return callsign in self.data
+        with self.lock:
+            return callsign in self.data
 
-    @wrapt.synchronized(lock)
     def rx(self, packet: type[core.Packet]) -> None:
         """Track when we got a packet from the network."""
         callsign = packet.from_call
 
         if self.callsign_in_watchlist(callsign):
-            self.data[callsign]["last"] = datetime.datetime.now()
-            self.data[callsign]["packet"] = packet
+            with self.lock:
+                self.data[callsign]["last"] = datetime.datetime.now()
+                self.data[callsign]["packet"] = packet
 
     def tx(self, packet: type[core.Packet]) -> None:
         """We don't care about TX packets."""
 
     def last_seen(self, callsign):
-        if self.callsign_in_watchlist(callsign):
-            return self.data[callsign]["last"]
+        with self.lock:
+            if self.callsign_in_watchlist(callsign):
+                return self.data[callsign]["last"]
 
     def age(self, callsign):
         now = datetime.datetime.now()

@@ -2,6 +2,7 @@ import logging
 import os
 import pathlib
 import pickle
+import threading
 
 from oslo_config import cfg
 
@@ -25,19 +26,28 @@ class ObjectStoreMixin:
     aprsd server -f (flush) will wipe all saved objects.
     """
 
+    def __init__(self):
+        self.lock = threading.RLock()
+
     def __len__(self):
-        return len(self.data)
+        with self.lock:
+            return len(self.data)
 
     def __iter__(self):
-        return iter(self.data)
+        with self.lock:
+            return iter(self.data)
 
     def get_all(self):
         with self.lock:
             return self.data
 
-    def get(self, id):
+    def get(self, key):
         with self.lock:
-            return self.data[id]
+            return self.data.get(key)
+
+    def copy(self):
+        with self.lock:
+            return self.data.copy()
 
     def _init_store(self):
         if not CONF.enable_save:
@@ -58,14 +68,6 @@ class ObjectStoreMixin:
             self.__class__.__name__.lower(),
         )
 
-    def _dump(self):
-        dump = {}
-        with self.lock:
-            for key in self.data.keys():
-                dump[key] = self.data[key]
-
-        return dump
-
     def save(self):
         """Save any queued to disk?"""
         if not CONF.enable_save:
@@ -78,8 +80,9 @@ class ObjectStoreMixin:
                 f" {len(self)} entries to disk at "
                 f"{save_filename}",
             )
-            with open(save_filename, "wb+") as fp:
-                pickle.dump(self._dump(), fp)
+            with self.lock:
+                with open(save_filename, "wb+") as fp:
+                    pickle.dump(self.data, fp)
         else:
             LOG.debug(
                 "{} Nothing to save, flushing old save file '{}'".format(

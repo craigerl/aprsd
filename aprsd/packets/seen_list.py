@@ -1,9 +1,7 @@
 import datetime
 import logging
-import threading
 
 from oslo_config import cfg
-import wrapt
 
 from aprsd.packets import collector, core
 from aprsd.utils import objectstore
@@ -17,7 +15,6 @@ class SeenList(objectstore.ObjectStoreMixin):
     """Global callsign seen list."""
 
     _instance = None
-    lock = threading.Lock()
     data: dict = {}
 
     def __new__(cls, *args, **kwargs):
@@ -26,32 +23,27 @@ class SeenList(objectstore.ObjectStoreMixin):
             cls._instance.data = {}
         return cls._instance
 
-    @wrapt.synchronized(lock)
     def stats(self, serializable=False):
         """Return the stats for the PacketTrack class."""
-        return self.data
+        with self.lock:
+            return self.data
 
-    @wrapt.synchronized(lock)
-    def copy(self):
-        """Return a copy of the data."""
-        return self.data.copy()
-
-    @wrapt.synchronized(lock)
     def rx(self, packet: type[core.Packet]):
         """When we get a packet from the network, update the seen list."""
-        callsign = None
-        if packet.from_call:
-            callsign = packet.from_call
-        else:
-            LOG.warning(f"Can't find FROM in packet {packet}")
-            return
-        if callsign not in self.data:
-            self.data[callsign] = {
-                "last": None,
-                "count": 0,
-            }
-        self.data[callsign]["last"] = datetime.datetime.now()
-        self.data[callsign]["count"] += 1
+        with self.lock:
+            callsign = None
+            if packet.from_call:
+                callsign = packet.from_call
+            else:
+                LOG.warning(f"Can't find FROM in packet {packet}")
+                return
+            if callsign not in self.data:
+                self.data[callsign] = {
+                    "last": None,
+                    "count": 0,
+                }
+            self.data[callsign]["last"] = datetime.datetime.now()
+            self.data[callsign]["count"] += 1
 
     def tx(self, packet: type[core.Packet]):
         """We don't care about TX packets."""
