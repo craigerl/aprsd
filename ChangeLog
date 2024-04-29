@@ -1,16 +1,113 @@
 CHANGES
 =======
 
-v3.3.4
+v3.4.0
 ------
 
-* Fixed entry\_points
-* Fix for entry\_points where python < 3.10
-
-v3.3.3
-------
-
+* Change setup.h
+* Fixed docker setup.sh comparison
+* Fixed unit tests failing with WatchList
+* Added config enable\_packet\_logging
+* Make all the Objectstore children use the same lock
+* Fixed PacketTrack with UnknownPacket
+* Removed the requirement on click-completion
+* Update Dockerfiles
+* Added fox for entry\_points with old python
+* Added config for enable\_seen\_list
+* Fix APRSDStats start\_time
+* Added default\_packet\_send\_count config
+* Call packet collecter after prepare during tx
+* Added PacketTrack to packet collector
+* Webchat Send Beacon uses Path selected in UI
+* Added try except blocks in collectors
+* Remove error logs from watch list
+* Fixed issue with PacketList being empty
+* Added new PacketCollector
+* Fixed Keepalive access to email stats
+* Added support for RX replyacks
+* Changed Stats Collector registration
+* Added PacketList.set\_maxlen()
+* another fix for tx send
+* removed Packet.last\_send\_attempt and just use send\_count
+* Fix access to PacketList.\_maxlen
+* added packet\_count in packet\_list stats
+* force uwsgi to 2.0.24
+* ismall update
+* Added new config optons for PacketList
+* Update requirements
+* Added threads chart to admin ui graphs
+* set packetlist max back to 100
+* ensure thread count is updated
+* Added threads table in the admin web ui
+* Fixed issue with APRSDThreadList stats()
+* Added new default\_ack\_send\_count config option
+* Remove packet from tracker after max attempts
+* Limit packets to 50 in PacketList
+* syncronize the add for StatsStore
+* Lock on stats for PacketList
+* Fixed PacketList maxlen
+* Fixed a problem with the webchat tab notification
+* Another fix for ACK packets
+* Fix issue not tracking RX Ack packets for stats
+* Fix time plugin
+* add GATE route to webchat along with WIDE1, etc
+* Update webchat, include GATE route along with WIDE, ARISS, etc
+* Get rid of some useless warning logs
+* Added human\_info property to MessagePackets
+* Fixed scrolling problem with new webchat sent msg
+* Fix some issues with listen command
+* Admin interface catch empty stats
+* Ensure StatsStore has empty data
+* Ensure latest pip is in docker image
+* LOG failed requests post to admin ui
+* changed admin web\_ip to StrOpt
+* Updated prism to 1.29
+* Removed json-viewer
+* Remove rpyc as a requirement
+* Delete more stats from webchat
+* Admin UI working again
+* Removed RPC Server and client
+* Remove the logging of the conf password if not set
+* Lock around client reset
+* Allow stats collector to serialize upon creation
+* Fixed issues with watch list at startup
+* Fixed access to log\_monitor
+* Got unit tests working again
+* Fixed pep8 errors and missing files
+* Reworked the stats making the rpc server obsolete
+* Update client.py to add consumer in the API
 * Fix for sample-config warning
+* update requirements
+* Put packet.json back in
+* Change debug log color
+* Fix for filtering curse words
+* added packet counter random int
+* More packet cleanup and tests
+* Show comment in multiline packet output
+* Added new config option log\_packet\_format
+* Some packet cleanup
+* Added new webchat config option for logging
+* Fix some pep8 issues
+* Completely redo logging of packets!!
+* Fixed some logging in webchat
+* Added missing packet types in listen command
+* Don't call stats so often in webchat
+* Eliminated need for from\_aprslib\_dict
+* Fix for micE packet decoding with mbits
+* updated dev-requirements
+* Fixed some tox errors related to mypy
+* Refactored packets
+* removed print
+* small refactor of stats usage in version plugin
+* Added type setting on pluging.py for mypy
+* Moved Threads list for mypy
+* No need to synchronize on stats
+* Start to add types
+* Update tox for mypy runs
+* Bump black from 24.2.0 to 24.3.0
+* replaced access to conf from uwsgi
+* Fixed call to setup\_logging in uwsgi
+* Fixed access to conf.log in logging\_setup
 
 v3.3.2
 ------
