@@ -4,6 +4,7 @@ CHANGES
 v3.4.0
 ------
 
+* Updated Changelog for 3.4.0
 * Change setup.h
 * Fixed docker setup.sh comparison
 * Fixed unit tests failing with WatchList

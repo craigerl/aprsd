@@ -12,7 +12,22 @@ from aprsd.conf import log as conf_log
 CONF = cfg.CONF
 # LOG = logging.getLogger("APRSD")
 LOG = logger
-logging_queue = queue.Queue()
+
+
+class QueueLatest(queue.Queue):
+    """Custom Queue to keep only the latest N items.
+
+    This prevents the queue from blowing up in size.
+    """
+    def put(self, *args, **kwargs):
+        try:
+            super().put(*args, **kwargs)
+        except queue.Full:
+            self.queue.popleft()
+            super().put(*args, **kwargs)
+
+
+logging_queue = QueueLatest(maxsize=200)
 
 
 class InterceptHandler(logging.Handler):
@@ -59,6 +74,10 @@ def setup_logging(loglevel=None, quiet=False):
         "werkzeug._internal",
         "socketio",
         "urllib3.connectionpool",
+        "chardet",
+        "chardet.charsetgroupprober",
+        "chardet.eucjpprober",
+        "chardet.mbcharsetprober",
     ]
 
     # We don't really want to see the aprslib parsing debug output.

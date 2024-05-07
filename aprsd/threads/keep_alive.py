@@ -6,6 +6,7 @@ import tracemalloc
 from oslo_config import cfg
 
 from aprsd import client, packets, utils
+from aprsd.log import log as aprsd_log
 from aprsd.stats import collector
 from aprsd.threads import APRSDThread, APRSDThreadList
 
@@ -59,7 +60,7 @@ class KeepAliveThread(APRSDThread):
 
             keepalive = (
                 "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
-                "Last:{} Email: {} - RAM Current:{} Peak:{} Threads:{}"
+                "Last:{} Email: {} - RAM Current:{} Peak:{} Threads:{} LoggingQueue:{}"
             ).format(
                 stats_json["APRSDStats"]["callsign"],
                 stats_json["APRSDStats"]["uptime"],
@@ -73,6 +74,7 @@ class KeepAliveThread(APRSDThread):
                 stats_json["APRSDStats"]["memory_current_str"],
                 stats_json["APRSDStats"]["memory_peak_str"],
                 len(thread_list),
+                aprsd_log.logging_queue.qsize(),
             )
             LOG.info(keepalive)
             if "APRSDThreadList" in stats_json:
