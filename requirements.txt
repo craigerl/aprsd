@@ -164,7 +164,7 @@ urllib3==2.2.1
     # via requests
 validators==0.22.0
     # via click-params
-werkzeug==3.0.2
+werkzeug==3.0.3
     # via
     #   -r requirements.in
     #   flask
