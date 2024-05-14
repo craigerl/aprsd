@@ -1,6 +1,8 @@
 CHANGES
 =======
 
+* Put an upper bound on the QueueHandler queue
+
 v3.4.0
 ------
 

@@ -1,16 +1,20 @@
+build
+check-manifest
 flake8
+gray
 isort
 mypy
 pep8-naming
+pytest
+pytest-cov
+pip
+pip-tools
+pre-commit
 Sphinx
 tox
+wheel
+
 # Twine is used for uploading packages to pypi
 # but it induces an install of cryptography
 # This is sucky for rpi systems.
 # twine
-pre-commit
-pytest
-pytest-cov
-gray
-pip
-pip-tools

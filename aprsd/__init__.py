@@ -10,7 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import pbr.version
+from importlib.metadata import PackageNotFoundError, version
 
 
-__version__ = pbr.version.VersionInfo("aprsd").version_string()
+try:
+    __version__ = version("aprsd")
+except PackageNotFoundError:
+    pass

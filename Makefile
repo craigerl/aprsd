@@ -17,7 +17,7 @@ Makefile.venv:
 help:	# Help for the Makefile
 	@egrep -h '\s##\s' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-dev: REQUIREMENTS_TXT = requirements.txt dev-requirements.txt
+dev: REQUIREMENTS_TXT = requirements.txt requirements-dev.txt
 dev: venv  ## Create a python virtual environment for development of aprsd
 
 run: venv  ## Create a virtual environment for running aprsd commands
@@ -39,7 +39,6 @@ clean-build: ## remove build artifacts
 clean-pyc: ## remove Python file artifacts
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
-	find . -name '*~' -exec rm -f {} +
 	find . -name '__pycache__' -exec rm -fr {} +
 
 clean-test: ## remove test and coverage artifacts
@@ -81,8 +80,8 @@ docker-dev: test  ## Make a development docker container tagged with hemna6969/a
 
 update-requirements: dev  ## Update the requirements.txt and dev-requirements.txt files
 	rm requirements.txt
-	rm dev-requirements.txt
+	rm requirements-dev.txt
 	touch requirements.txt
-	touch dev-requirements.txt
+	touch requirements-dev.txt
 	$(VENV)/pip-compile --resolver backtracking --annotation-style=line requirements.in
-	$(VENV)/pip-compile --resolver backtracking --annotation-style=line dev-requirements.in
+	$(VENV)/pip-compile --resolver backtracking --annotation-style=line requirements-dev.in
