@@ -43,9 +43,9 @@ mypy-extensions==1.0.0    # via black, mypy
 nodeenv==1.8.0            # via pre-commit
 packaging==24.0           # via black, build, fixit, pyproject-api, pytest, sphinx, tox
 pathspec==0.12.1          # via black, trailrunner
-pep8-naming==0.13.3       # via -r requirements-dev.in
+pep8-naming==0.14.1       # via -r requirements-dev.in
 pip-tools==7.4.1          # via -r requirements-dev.in
-platformdirs==4.2.1       # via black, tox, virtualenv
+platformdirs==4.2.2       # via black, tox, virtualenv
 pluggy==1.5.0             # via pytest, tox
 pre-commit==3.7.1         # via -r requirements-dev.in
 pycodestyle==2.11.1       # via flake8

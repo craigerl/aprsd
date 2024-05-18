@@ -73,9 +73,9 @@ validators==0.22.0        # via click-params
 werkzeug==3.0.3           # via flask
 wrapt==1.16.0             # via -r requirements.in, debtcollector, deprecated
 wsproto==1.2.0            # via simple-websocket
-zipp==3.18.1              # via importlib-metadata
+zipp==3.18.2              # via importlib-metadata
 zope-event==5.0           # via gevent
-zope-interface==6.3       # via gevent
+zope-interface==6.4       # via gevent
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
