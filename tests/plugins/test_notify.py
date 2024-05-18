@@ -62,9 +62,9 @@ class TestAPRSDWatchListPluginBase(TestWatchListPlugin):
         expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
-    @mock.patch("aprsd.client.ClientFactory", autospec=True)
+    @mock.patch("aprsd.client.factory.ClientFactory", autospec=True)
     def test_watchlist_not_in_watchlist(self, mock_factory):
-        client.factory = mock_factory
+        client.client_factory = mock_factory
         self.config_and_init()
         plugin = fake.FakeWatchListPlugin()
 
@@ -92,9 +92,9 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
         expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
-    @mock.patch("aprsd.client.ClientFactory", autospec=True)
+    @mock.patch("aprsd.client.factory.ClientFactory", autospec=True)
     def test_callsign_not_in_watchlist(self, mock_factory):
-        client.factory = mock_factory
+        client.client_factory = mock_factory
         self.config_and_init(watchlist_enabled=False)
         plugin = notify_plugin.NotifySeenPlugin()
 
@@ -106,10 +106,10 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
         expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
-    @mock.patch("aprsd.client.ClientFactory", autospec=True)
+    @mock.patch("aprsd.client.factory.ClientFactory", autospec=True)
     @mock.patch("aprsd.packets.WatchList.is_old")
     def test_callsign_in_watchlist_not_old(self, mock_is_old, mock_factory):
-        client.factory = mock_factory
+        client.client_factory = mock_factory
         mock_is_old.return_value = False
         self.config_and_init(
             watchlist_enabled=True,
@@ -126,10 +126,10 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
         expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
-    @mock.patch("aprsd.client.ClientFactory", autospec=True)
+    @mock.patch("aprsd.client.factory.ClientFactory", autospec=True)
     @mock.patch("aprsd.packets.WatchList.is_old")
     def test_callsign_in_watchlist_old_same_alert_callsign(self, mock_is_old, mock_factory):
-        client.factory = mock_factory
+        client.client_factory = mock_factory
         mock_is_old.return_value = True
         self.config_and_init(
             watchlist_enabled=True,
@@ -147,10 +147,10 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
         expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
-    @mock.patch("aprsd.client.ClientFactory", autospec=True)
+    @mock.patch("aprsd.client.factory.ClientFactory", autospec=True)
     @mock.patch("aprsd.packets.WatchList.is_old")
     def test_callsign_in_watchlist_old_send_alert(self, mock_is_old, mock_factory):
-        client.factory = mock_factory
+        client.client_factory = mock_factory
         mock_is_old.return_value = True
         notify_callsign = fake.FAKE_TO_CALLSIGN
         fromcall = "WB4BOR"

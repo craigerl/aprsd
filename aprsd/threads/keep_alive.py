@@ -5,7 +5,8 @@ import tracemalloc
 
 from oslo_config import cfg
 
-from aprsd import client, packets, utils
+from aprsd import packets, utils
+from aprsd.client import client_factory
 from aprsd.log import log as aprsd_log
 from aprsd.stats import collector
 from aprsd.threads import APRSDThread, APRSDThreadList
@@ -89,7 +90,7 @@ class KeepAliveThread(APRSDThread):
                     LOG.info(f"{key: <15} Alive? {str(alive): <5} {str(age): <20}")
 
             # check the APRS connection
-            cl = client.factory.create()
+            cl = client_factory.create()
             # Reset the connection if it's dead and this isn't our
             # First time through the loop.
             # The first time through the loop can happen at startup where
@@ -97,7 +98,7 @@ class KeepAliveThread(APRSDThread):
             # to make it's connection the first time.
             if not cl.is_alive() and self.cntr > 0:
                 LOG.error(f"{cl.__class__.__name__} is not alive!!! Resetting")
-                client.factory.create().reset()
+                client_factory.create().reset()
             # else:
             #     # See if we should reset the aprs-is client
             #     # Due to losing a keepalive from them

@@ -6,9 +6,10 @@ import click
 from oslo_config import cfg
 
 import aprsd
-from aprsd import cli_helper, client
+from aprsd import cli_helper
 from aprsd import main as aprsd_main
 from aprsd import packets, plugin, threads, utils
+from aprsd.client import client_factory
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import seen_list
@@ -49,14 +50,13 @@ def server(ctx, flush):
 
     # Initialize the client factory and create
     # The correct client object ready for use
-    client.ClientFactory.setup()
-    if not client.factory.is_client_enabled():
+    if not client_factory.is_client_enabled():
         LOG.error("No Clients are enabled in config.")
         sys.exit(-1)
 
     # Creates the client object
     LOG.info("Creating client connection")
-    aprs_client = client.factory.create()
+    aprs_client = client_factory.create()
     LOG.info(aprs_client)
 
     # Create the initial PM singleton and Register plugins
@@ -79,17 +79,13 @@ def server(ctx, flush):
         LOG.info(p)
 
     # Make sure we have 1 client transport enabled
-    if not client.factory.is_client_enabled():
+    if not client_factory.is_client_enabled():
         LOG.error("No Clients are enabled in config.")
         sys.exit(-1)
 
-    if not client.factory.is_client_configured():
+    if not client_factory.is_client_configured():
         LOG.error("APRS client is not properly configured in config file.")
         sys.exit(-1)
-
-    # Creates the client object
-    # LOG.info("Creating client connection")
-    # client.factory.create().client
 
     # Now load the msgTrack from disk if any
     packets.PacketList()
