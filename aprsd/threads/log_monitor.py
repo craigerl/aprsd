@@ -19,7 +19,6 @@ def send_log_entries(force=False):
     if CONF.admin.web_enabled:
         if force or LogEntries().is_purge_ready():
             entries = LogEntries().get_all_and_purge()
-            print(f"Sending log entries {len(entries)}")
             if entries:
                 try:
                     requests.post(
@@ -27,9 +26,8 @@ def send_log_entries(force=False):
                         json=entries,
                         auth=(CONF.admin.user, CONF.admin.password),
                     )
-                except Exception as ex:
-                    LOG.warning(f"Failed to send log entries {len(entries)}")
-                    LOG.warning(ex)
+                except Exception:
+                    LOG.warning(f"Failed to send log entries. len={len(entries)}")
 
 
 class LogEntries:

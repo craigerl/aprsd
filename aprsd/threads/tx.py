@@ -9,9 +9,9 @@ from rush.limiters import periodic
 from rush.stores import dictionary
 import wrapt
 
-from aprsd import client
 from aprsd import conf  # noqa
 from aprsd import threads as aprsd_threads
+from aprsd.client import client_factory
 from aprsd.packets import collector, core
 from aprsd.packets import log as packet_log
 from aprsd.packets import tracker
@@ -80,7 +80,7 @@ def _send_direct(packet, aprs_client=None):
     if aprs_client:
         cl = aprs_client
     else:
-        cl = client.factory.create()
+        cl = client_factory.create()
 
     packet.update_timestamp()
     packet_log.log(packet, tx=True)
@@ -247,7 +247,7 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
                 send(pkt, direct=True)
             except Exception as e:
                 LOG.error(f"Failed to send beacon: {e}")
-                client.factory.create().reset()
+                client_factory.create().reset()
                 time.sleep(5)
 
         self._loop_cnt += 1
