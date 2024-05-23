@@ -43,8 +43,9 @@ jobs:
       with:
         context: "{{defaultContext}}:docker"
         platforms: linux/amd64,linux/arm64
-        file: ./Dockerfile-dev
+        file: ./Dockerfile
         build-args: |
+            INSTALL_TYPE=github
             BRANCH=${{ steps.extract_branch.outputs.branch }}
             BUILDX_QEMU_ENV=true
         push: true

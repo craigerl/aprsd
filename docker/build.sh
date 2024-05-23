@@ -90,7 +90,8 @@ then
     # Use this script to locally build the docker image
     docker buildx build --push --platform $PLATFORMS \
         -t hemna6969/aprsd:$TAG \
-        -f Dockerfile-dev --build-arg branch=$BRANCH \
+        --build-arg INSTALL_TYPE=github \
+        --build-arg branch=$BRANCH \
         --build-arg BUILDX_QEMU_ENV=true \
         --no-cache .
 else
@@ -101,6 +102,5 @@ else
         --build-arg BUILDX_QEMU_ENV=true \
         -t hemna6969/aprsd:$VERSION \
         -t hemna6969/aprsd:$TAG \
-        -t hemna6969/aprsd:latest \
-        -f Dockerfile .
+        -t hemna6969/aprsd:latest .
 fi
