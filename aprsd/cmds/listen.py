@@ -15,7 +15,8 @@ from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import cli_helper, client, packets, plugin, threads
+from aprsd import cli_helper, packets, plugin, threads
+from aprsd.client import client_factory
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import log as packet_log
@@ -179,15 +180,14 @@ def listen(
 
     # Initialize the client factory and create
     # The correct client object ready for use
-    client.ClientFactory.setup()
     # Make sure we have 1 client transport enabled
-    if not client.factory.is_client_enabled():
+    if not client_factory.is_client_enabled():
         LOG.error("No Clients are enabled in config.")
         sys.exit(-1)
 
     # Creates the client object
     LOG.info("Creating client connection")
-    aprs_client = client.factory.create()
+    aprs_client = client_factory.create()
     LOG.info(aprs_client)
 
     LOG.debug(f"Filter by '{filter}'")

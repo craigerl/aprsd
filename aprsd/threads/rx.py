@@ -6,7 +6,8 @@ import time
 import aprslib
 from oslo_config import cfg
 
-from aprsd import client, packets, plugin
+from aprsd import packets, plugin
+from aprsd.client import client_factory
 from aprsd.packets import collector
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
@@ -20,7 +21,7 @@ class APRSDRXThread(APRSDThread):
     def __init__(self, packet_queue):
         super().__init__("RX_PKT")
         self.packet_queue = packet_queue
-        self._client = client.factory.create()
+        self._client = client_factory.create()
 
     def stop(self):
         self.thread_stop = True
@@ -29,7 +30,7 @@ class APRSDRXThread(APRSDThread):
 
     def loop(self):
         if not self._client:
-            self._client = client.factory.create()
+            self._client = client_factory.create()
             time.sleep(1)
             return True
         # setup the consumer of messages and block until a messages

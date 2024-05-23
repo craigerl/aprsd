@@ -21,6 +21,7 @@ import aprsd
 from aprsd import (
     cli_helper, client, packets, plugin_utils, stats, threads, utils,
 )
+from aprsd.client import client_factory, kiss
 from aprsd.main import cli
 from aprsd.threads import aprsd as aprsd_threads
 from aprsd.threads import keep_alive, rx, tx
@@ -380,8 +381,8 @@ def _get_transport(stats):
             "APRS-IS Server: <a href='http://status.aprs2.net' >"
             "{}</a>".format(stats["APRSClientStats"]["server_string"])
         )
-    elif client.KISSClient.is_enabled():
-        transport = client.KISSClient.transport()
+    elif kiss.KISSClient.is_enabled():
+        transport = kiss.KISSClient.transport()
         if transport == client.TRANSPORT_TCPKISS:
             aprs_connection = (
                 "TCPKISS://{}:{}".format(
@@ -637,13 +638,12 @@ def webchat(ctx, flush, port):
 
     # Initialize the client factory and create
     # The correct client object ready for use
-    client.ClientFactory.setup()
     # Make sure we have 1 client transport enabled
-    if not client.factory.is_client_enabled():
+    if not client_factory.is_client_enabled():
         LOG.error("No Clients are enabled in config.")
         sys.exit(-1)
 
-    if not client.factory.is_client_configured():
+    if not client_factory.is_client_configured():
         LOG.error("APRS client is not properly configured in config file.")
         sys.exit(-1)
 

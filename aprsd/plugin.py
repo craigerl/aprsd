@@ -148,7 +148,7 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
             watch_list = CONF.watch_list.callsigns
             # make sure the timeout is set or this doesn't work
             if watch_list:
-                aprs_client = client.factory.create().client
+                aprs_client = client.client_factory.create().client
                 filter_str = "b/{}".format("/".join(watch_list))
                 aprs_client.set_filter(filter_str)
             else:

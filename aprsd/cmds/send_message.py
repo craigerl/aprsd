@@ -8,8 +8,9 @@ import click
 from oslo_config import cfg
 
 import aprsd
-from aprsd import cli_helper, client, packets
+from aprsd import cli_helper, packets
 from aprsd import conf  # noqa : F401
+from aprsd.client import client_factory
 from aprsd.main import cli
 from aprsd.packets import collector
 from aprsd.threads import tx
@@ -102,7 +103,7 @@ def send_message(
 
     def rx_packet(packet):
         global got_ack, got_response
-        cl = client.factory.create()
+        cl = client_factory.create()
         packet = cl.decode_packet(packet)
         collector.PacketCollector().rx(packet)
         packet.log("RX")
@@ -130,8 +131,7 @@ def send_message(
                 sys.exit(0)
 
     try:
-        client.ClientFactory.setup()
-        client.factory.create().client
+        client_factory.create().client
     except LoginError:
         sys.exit(-1)
 
@@ -163,7 +163,7 @@ def send_message(
         # This will register a packet consumer with aprslib
         # When new packets come in the consumer will process
         # the packet
-        aprs_client = client.factory.create().client
+        aprs_client = client_factory.create().client
         aprs_client.consumer(rx_packet, raw=False)
     except aprslib.exceptions.ConnectionDrop:
         LOG.error("Connection dropped, reconnecting")
