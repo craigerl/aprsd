@@ -3,6 +3,7 @@ FROM python:3.11-slim as build
 ARG BRANCH=master
 ARG BUILDX_QEMU_ENV
 ENV APRSD_BRANCH=${BRANCH:-master}
+ENV PATH="${PATH}:/app/.local/bin"
 
 ENV PIP_DEFAULT_TIMEOUT=100 \
     # Allow statements and log messages to immediately appear
@@ -32,16 +33,15 @@ RUN set -ex \
 FROM build as final
 WORKDIR /app
 
-RUN git clone -b $APRSD_BRANCH https://github.com/craigerl/aprsd
 RUN pip install -U pip
-RUN cd aprsd && pip install --no-cache-dir .
-RUN pip install gevent uwsgi==2.0.24
-RUN which aprsd
 RUN mkdir /config
 RUN chown -R appuser:appgroup /app
 RUN chown -R appuser:appgroup /config
 USER appuser
-RUN echo "PATH=\$PATH:/usr/games" >> /app/.bashrc
+RUN git clone -b $APRSD_BRANCH https://github.com/craigerl/aprsd
+RUN cd aprsd && pip install --no-cache-dir .
+RUN pip install gevent uwsgi==2.0.24
+RUN echo "PATH=\$PATH:/usr/games:/app/.local/bin" >> /app/.bashrc
 RUN which aprsd
 RUN aprsd sample-config > /config/aprsd.conf
 

@@ -1,10 +1,18 @@
 FROM python:3.11-slim as build
 
 ARG VERSION=3.4.0
+# pass this in as 'dev' if you want to install from github repo vs pypi
+ARG INSTALL_TYPE=pypi
+
+ARG BRANCH=master
+ARG BUILDX_QEMU_ENV
+
+ENV APRSD_BRANCH=${BRANCH:-master}
 ENV TZ=${TZ:-US/Eastern}
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 ENV APRSD_PIP_VERSION=${VERSION}
+ENV PATH="${PATH}:/app/.local/bin"
 
 ENV PIP_DEFAULT_TIMEOUT=100 \
     # Allow statements and log messages to immediately appear
@@ -35,16 +43,22 @@ FROM build as final
 WORKDIR /app
 
 RUN pip3 install -U pip
-RUN pip3 install aprsd==$APRSD_PIP_VERSION
-RUN pip install gevent uwsgi
-RUN which aprsd
 RUN mkdir /config
 RUN chown -R appuser:appgroup /app
 RUN chown -R appuser:appgroup /config
 USER appuser
-RUN echo "PATH=\$PATH:/usr/games" >> /app/.bashrc
+RUN if [ "$INSTALL_TYPE" = "pypi" ]; then \
+       pip3 install aprsd==$APRSD_PIP_VERSION; \
+    elif [ "$INSTALL_TYPE" = "github" ]; then \
+       git clone -b $APRSD_BRANCH https://github.com/craigerl/aprsd; \
+       cd /app/aprsd && pip install -e .; \
+       ls -al /app/.local/lib/python3.11/site-packages/aprsd*; \
+    fi
+RUN pip install gevent uwsgi
+RUN echo "PATH=\$PATH:/usr/games:/app/.local/bin" >> /app/.bashrc
 RUN which aprsd
 RUN aprsd sample-config > /config/aprsd.conf
+RUN aprsd --version
 
 ADD bin/setup.sh /app
 ADD bin/admin.sh /app
