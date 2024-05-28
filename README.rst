@@ -69,6 +69,7 @@ Help
 ====
 ::
 
+
     └─> aprsd -h
     Usage: aprsd [OPTIONS] COMMAND [ARGS]...
 
@@ -77,18 +78,19 @@ Help
       -h, --help  Show this message and exit.
 
     Commands:
-      check-version  Check this version against the latest in pypi.org.
-      completion     Click Completion subcommands
-      dev            Development type subcommands
-      healthcheck    Check the health of the running aprsd server.
-      list-plugins   List the built in plugins available to APRSD.
-      listen         Listen to packets on the APRS-IS Network based on FILTER.
-      sample-config  Generate a sample Config file from aprsd and all...
-      send-message   Send a message to a callsign via APRS_IS.
-      server         Start the aprsd server gateway process.
-      version        Show the APRSD version.
-      webchat        Web based HAM Radio chat program!
-
+      check-version    Check this version against the latest in pypi.org.
+      completion       Show the shell completion code
+      dev              Development type subcommands
+      fetch-stats      Fetch stats from a APRSD admin web interface.
+      healthcheck      Check the health of the running aprsd server.
+      list-extensions  List the built in plugins available to APRSD.
+      list-plugins     List the built in plugins available to APRSD.
+      listen           Listen to packets on the APRS-IS Network based on FILTER.
+      sample-config    Generate a sample Config file from aprsd and all...
+      send-message     Send a message to a callsign via APRS_IS.
+      server           Start the aprsd server gateway process.
+      version          Show the APRSD version.
+      webchat          Web based HAM Radio chat program!
 
 
 Commands
