@@ -158,7 +158,7 @@ tzlocal==5.2
     # via -r requirements.in
 update-checker==0.18.0
     # via -r requirements.in
-urllib3==2.2.1
+urllib3==2.2.2
     # via requests
 validators==0.22.0
     # via click-params
