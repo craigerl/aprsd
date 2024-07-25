@@ -27,6 +27,7 @@ RUN set -ex \
     # Create a non-root user
     && addgroup --system --gid 1001 appgroup \
     && useradd --uid 1001 --gid 1001 -s /usr/bin/bash -m -d /app appuser \
+    && usermod -aG sudo appuser \
     # Upgrade the package index and install security upgrades
     && apt-get update \
     && apt-get upgrade -y \
@@ -51,7 +52,7 @@ RUN if [ "$INSTALL_TYPE" = "pypi" ]; then \
        pip3 install aprsd==$APRSD_PIP_VERSION; \
     elif [ "$INSTALL_TYPE" = "github" ]; then \
        git clone -b $APRSD_BRANCH https://github.com/craigerl/aprsd; \
-       cd /app/aprsd && pip install -e .; \
+       cd /app/aprsd && pip install .; \
        ls -al /app/.local/lib/python3.11/site-packages/aprsd*; \
     fi
 RUN pip install gevent uwsgi
