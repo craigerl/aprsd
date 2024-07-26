@@ -171,7 +171,7 @@ wrapt==1.16.0
     #   deprecated
 wsproto==1.2.0
     # via simple-websocket
-zipp==3.18.2
+zipp==3.19.1
     # via importlib-metadata
 zope-event==5.0
     # via gevent
