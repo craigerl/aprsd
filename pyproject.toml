@@ -150,6 +150,7 @@ aprsd = "aprsd.main:main"
 # installed, specify them here.
 py-modules = ["aprsd"]
 package-data = {"sample" = ["*.dat"]}
+packages = ["aprsd"]
 
 [build-system]
 requires = [
