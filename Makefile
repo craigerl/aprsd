@@ -22,9 +22,14 @@ dev: venv  ## Create a python virtual environment for development of aprsd
 
 run: venv  ## Create a virtual environment for running aprsd commands
 
-docs: dev
+changelog: dev
+	npm i -g auto-changelog
+	auto-changelog -l 50 -o ChangeLog.md
+
+docs: changelog
+	m2r --overwrite ChangeLog.md
 	cp README.rst docs/readme.rst
-	cp Changelog docs/changelog.rst
+	mv ChangeLog.rst docs/changelog.rst
 	tox -edocs
 
 clean: clean-build clean-pyc clean-test clean-dev ## remove all build, test, coverage and Python artifacts
@@ -54,7 +59,7 @@ clean-dev:
 test: dev  ## Run all the tox tests
 	tox -p all
 
-build: test  ## Make the build artifact prior to doing an upload
+build: test changelog  ## Make the build artifact prior to doing an upload
 	$(VENV)/pip install twine
 	$(VENV)/python3 -m build
 	$(VENV)/twine check dist/*
