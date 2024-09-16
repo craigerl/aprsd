@@ -24,7 +24,7 @@ run: venv  ## Create a virtual environment for running aprsd commands
 
 changelog: dev
 	npm i -g auto-changelog
-	auto-changelog -l 50 -o ChangeLog.md
+	auto-changelog -l false -o ChangeLog.md
 
 docs: changelog
 	m2r --overwrite ChangeLog.md
