@@ -4,10 +4,26 @@ aprsd.packets package
 Submodules
 ----------
 
+aprsd.packets.collector module
+------------------------------
+
+.. automodule:: aprsd.packets.collector
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.packets.core module
 -------------------------
 
 .. automodule:: aprsd.packets.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.packets.log module
+------------------------
+
+.. automodule:: aprsd.packets.log
    :members:
    :undoc-members:
    :show-inheritance:

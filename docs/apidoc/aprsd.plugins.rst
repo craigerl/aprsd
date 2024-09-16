@@ -44,14 +44,6 @@ aprsd.plugins.ping module
    :undoc-members:
    :show-inheritance:
 
-aprsd.plugins.query module
---------------------------
-
-.. automodule:: aprsd.plugins.query
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 aprsd.plugins.time module
 -------------------------
 

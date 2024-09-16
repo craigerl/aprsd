@@ -10,31 +10,37 @@ ____________________
 
 `APRSD <http://github.com/craigerl/aprsd>`_ is a Ham radio `APRS <http://aprs.org>`_ message command gateway built on python.
 
-APRSD listens on amateur radio aprs-is network for messages and respond to them.
-It has a plugin architecture for extensibility.  Users of APRSD can write their own
-plugins that can respond to APRS-IS messages.
 
-You must have an amateur radio callsign to use this software.  APRSD gets
-messages for the configured HAM callsign, and sends those messages to a
-list of plugins for processing.   There are a set of core plugins that
-provide responding to messages to check email, get location, ping,
-time of day, get weather, and fortune telling as well as version information
-of aprsd itself.
+What is APRSD
+=============
+APRSD is a python application for interacting with the APRS network and providing
+APRS services for HAM radio operators.
+
+APRSD currently has 4 main commands to use.
+    * server - Connect to APRS and listen/respond to APRS messages
+    * webchat - web based chat program over APRS
+    * send-message - Send a message to a callsign via APRS_IS.
+    * listen - Listen to packets on the APRS-IS Network based on FILTER.
+
+Each of those commands can connect to the APRS-IS network if internet connectivity
+is available.  If internet is not available, then APRS can be configured to talk
+to a TCP KISS TNC for radio connectivity.
 
 Please `read the docs`_ to learn more!
-
-
-.. contents:: :local:
-
 
 APRSD Overview Diagram
 ======================
 
 .. image:: https://raw.githubusercontent.com/craigerl/aprsd/master/docs/_static/aprsd_overview.svg?sanitize=true
 
-
 Typical use case
 ================
+
+APRSD's typical use case is that of providing an APRS wide service to all HAM
+radio operators.  For example the callsign 'REPEAT' on the APRS network is actually
+an instance of APRSD that can provide a list of HAM repeaters in the area of the
+callsign that sent the message.
+
 
 Ham radio operator using an APRS enabled HAM radio sends a message to check
 the weather.  An APRS message is sent, and then picked up by APRSD.  The
@@ -46,55 +52,6 @@ callsigns to look out for.  The watch list can notify you when a HAM callsign
 in the list is seen and now available to message on the APRS network.
 
 
-Current list of built-in plugins
-======================================
-
-::
-
-    └─> aprsd list-plugins
-                                                           🐍 APRSD Built-in Plugins 🐍
-    ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ┃ Plugin Name       ┃ Info                                                       ┃ Type         ┃ Plugin Path                             ┃
-    ┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-    │ AVWXWeatherPlugin │ AVWX weather of GPS Beacon location                        │ RegexCommand │ aprsd.plugins.weather.AVWXWeatherPlugin │
-    │ EmailPlugin       │ Send and Receive email                                     │ RegexCommand │ aprsd.plugins.email.EmailPlugin         │
-    │ FortunePlugin     │ Give me a fortune                                          │ RegexCommand │ aprsd.plugins.fortune.FortunePlugin     │
-    │ LocationPlugin    │ Where in the world is a CALLSIGN's last GPS beacon?        │ RegexCommand │ aprsd.plugins.location.LocationPlugin   │
-    │ NotifySeenPlugin  │ Notify me when a CALLSIGN is recently seen on APRS-IS      │ WatchList    │ aprsd.plugins.notify.NotifySeenPlugin   │
-    │ OWMWeatherPlugin  │ OpenWeatherMap weather of GPS Beacon location              │ RegexCommand │ aprsd.plugins.weather.OWMWeatherPlugin  │
-    │ PingPlugin        │ reply with a Pong!                                         │ RegexCommand │ aprsd.plugins.ping.PingPlugin           │
-    │ QueryPlugin       │ APRSD Owner command to query messages in the MsgTrack      │ RegexCommand │ aprsd.plugins.query.QueryPlugin         │
-    │ TimeOWMPlugin     │ Current time of GPS beacon's timezone. Uses OpenWeatherMap │ RegexCommand │ aprsd.plugins.time.TimeOWMPlugin        │
-    │ TimePlugin        │ What is the current local time.                            │ RegexCommand │ aprsd.plugins.time.TimePlugin           │
-    │ USMetarPlugin     │ USA only METAR of GPS Beacon location                      │ RegexCommand │ aprsd.plugins.weather.USMetarPlugin     │
-    │ USWeatherPlugin   │ Provide USA only weather of GPS Beacon location            │ RegexCommand │ aprsd.plugins.weather.USWeatherPlugin   │
-    │ VersionPlugin     │ What is the APRSD Version                                  │ RegexCommand │ aprsd.plugins.version.VersionPlugin     │
-    └───────────────────┴────────────────────────────────────────────────────────────┴──────────────┴─────────────────────────────────────────┘
-
-
-                                                    Pypi.org APRSD Installable Plugin Packages
-
-                                   Install any of the following plugins with 'pip install <Plugin Package Name>'
-    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
-    ┃ Plugin Package Name          ┃ Description                                                        ┃ Version ┃   Released   ┃ Installed? ┃
-    ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
-    │ 📂 aprsd-stock-plugin        │ Ham Radio APRSD Plugin for fetching stock quotes                   │  0.1.3  │ Dec 2, 2022  │     No     │
-    │ 📂 aprsd-sentry-plugin       │ Ham radio APRSD plugin that does....                               │  0.1.2  │ Dec 2, 2022  │     No     │
-    │ 📂 aprsd-timeopencage-plugin │ APRSD plugin for fetching time based on GPS location               │  0.1.0  │ Dec 2, 2022  │     No     │
-    │ 📂 aprsd-weewx-plugin        │ HAM Radio APRSD that reports weather from a weewx weather station. │  0.1.4  │ Dec 7, 2021  │    Yes     │
-    │ 📂 aprsd-repeat-plugins      │ APRSD Plugins for the REPEAT service                               │ 1.0.12  │ Dec 2, 2022  │     No     │
-    │ 📂 aprsd-telegram-plugin     │ Ham Radio APRS APRSD plugin for Telegram IM service                │  0.1.3  │ Dec 2, 2022  │     No     │
-    │ 📂 aprsd-twitter-plugin      │ Python APRSD plugin to send tweets                                 │  0.3.0  │ Dec 7, 2021  │     No     │
-    │ 📂 aprsd-slack-plugin        │ Amateur radio APRS daemon which listens for messages and responds  │  1.0.5  │ Dec 18, 2022 │     No     │
-    └──────────────────────────────┴────────────────────────────────────────────────────────────────────┴─────────┴──────────────┴────────────┘
-
-
-                                      🐍 APRSD Installed 3rd party Plugins 🐍
-    ┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    ┃ Package Name       ┃ Plugin Name     ┃ Version ┃ Type         ┃ Plugin Path                              ┃
-    ┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-    │ aprsd-weewx-plugin │ WeewxMQTTPlugin │   1.0   │ RegexCommand │ aprsd_weewx_plugin.weewx.WeewxMQTTPlugin │
-    └────────────────────┴─────────────────┴─────────┴──────────────┴──────────────────────────────────────────┘
 
 Installation
 =============
@@ -112,6 +69,7 @@ Help
 ====
 ::
 
+
     └─> aprsd -h
     Usage: aprsd [OPTIONS] COMMAND [ARGS]...
 
@@ -120,18 +78,19 @@ Help
       -h, --help  Show this message and exit.
 
     Commands:
-      check-version  Check this version against the latest in pypi.org.
-      completion     Click Completion subcommands
-      dev            Development type subcommands
-      healthcheck    Check the health of the running aprsd server.
-      list-plugins   List the built in plugins available to APRSD.
-      listen         Listen to packets on the APRS-IS Network based on FILTER.
-      sample-config  Generate a sample Config file from aprsd and all...
-      send-message   Send a message to a callsign via APRS_IS.
-      server         Start the aprsd server gateway process.
-      version        Show the APRSD version.
-      webchat        Web based HAM Radio chat program!
-
+      check-version    Check this version against the latest in pypi.org.
+      completion       Show the shell completion code
+      dev              Development type subcommands
+      fetch-stats      Fetch stats from a APRSD admin web interface.
+      healthcheck      Check the health of the running aprsd server.
+      list-extensions  List the built in plugins available to APRSD.
+      list-plugins     List the built in plugins available to APRSD.
+      listen           Listen to packets on the APRS-IS Network based on FILTER.
+      sample-config    Generate a sample Config file from aprsd and all...
+      send-message     Send a message to a callsign via APRS_IS.
+      server           Start the aprsd server gateway process.
+      version          Show the APRSD version.
+      webchat          Web based HAM Radio chat program!
 
 
 Commands
@@ -186,6 +145,56 @@ look for incomming commands to the callsign configured in the config file
     12/07/2021 03:16:17 PM MainThread      INFO     aprs.port = 14580                                                                     server.py:60
     12/07/2021 03:16:17 PM MainThread      INFO     aprs.logfile = /tmp/aprsd.log                                                         server.py:60
 
+
+Current list of built-in plugins
+======================================
+
+::
+
+    └─> aprsd list-plugins
+                                                           🐍 APRSD Built-in Plugins 🐍
+    ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ Plugin Name       ┃ Info                                                       ┃ Type         ┃ Plugin Path                             ┃
+    ┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+    │ AVWXWeatherPlugin │ AVWX weather of GPS Beacon location                        │ RegexCommand │ aprsd.plugins.weather.AVWXWeatherPlugin │
+    │ EmailPlugin       │ Send and Receive email                                     │ RegexCommand │ aprsd.plugins.email.EmailPlugin         │
+    │ FortunePlugin     │ Give me a fortune                                          │ RegexCommand │ aprsd.plugins.fortune.FortunePlugin     │
+    │ LocationPlugin    │ Where in the world is a CALLSIGN's last GPS beacon?        │ RegexCommand │ aprsd.plugins.location.LocationPlugin   │
+    │ NotifySeenPlugin  │ Notify me when a CALLSIGN is recently seen on APRS-IS      │ WatchList    │ aprsd.plugins.notify.NotifySeenPlugin   │
+    │ OWMWeatherPlugin  │ OpenWeatherMap weather of GPS Beacon location              │ RegexCommand │ aprsd.plugins.weather.OWMWeatherPlugin  │
+    │ PingPlugin        │ reply with a Pong!                                         │ RegexCommand │ aprsd.plugins.ping.PingPlugin           │
+    │ QueryPlugin       │ APRSD Owner command to query messages in the MsgTrack      │ RegexCommand │ aprsd.plugins.query.QueryPlugin         │
+    │ TimeOWMPlugin     │ Current time of GPS beacon's timezone. Uses OpenWeatherMap │ RegexCommand │ aprsd.plugins.time.TimeOWMPlugin        │
+    │ TimePlugin        │ What is the current local time.                            │ RegexCommand │ aprsd.plugins.time.TimePlugin           │
+    │ USMetarPlugin     │ USA only METAR of GPS Beacon location                      │ RegexCommand │ aprsd.plugins.weather.USMetarPlugin     │
+    │ USWeatherPlugin   │ Provide USA only weather of GPS Beacon location            │ RegexCommand │ aprsd.plugins.weather.USWeatherPlugin   │
+    │ VersionPlugin     │ What is the APRSD Version                                  │ RegexCommand │ aprsd.plugins.version.VersionPlugin     │
+    └───────────────────┴────────────────────────────────────────────────────────────┴──────────────┴─────────────────────────────────────────┘
+
+
+                                                    Pypi.org APRSD Installable Plugin Packages
+
+                                   Install any of the following plugins with 'pip install <Plugin Package Name>'
+    ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
+    ┃ Plugin Package Name          ┃ Description                                                        ┃ Version ┃   Released   ┃ Installed? ┃
+    ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
+    │ 📂 aprsd-stock-plugin        │ Ham Radio APRSD Plugin for fetching stock quotes                   │  0.1.3  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-sentry-plugin       │ Ham radio APRSD plugin that does....                               │  0.1.2  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-timeopencage-plugin │ APRSD plugin for fetching time based on GPS location               │  0.1.0  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-weewx-plugin        │ HAM Radio APRSD that reports weather from a weewx weather station. │  0.1.4  │ Dec 7, 2021  │    Yes     │
+    │ 📂 aprsd-repeat-plugins      │ APRSD Plugins for the REPEAT service                               │ 1.0.12  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-telegram-plugin     │ Ham Radio APRS APRSD plugin for Telegram IM service                │  0.1.3  │ Dec 2, 2022  │     No     │
+    │ 📂 aprsd-twitter-plugin      │ Python APRSD plugin to send tweets                                 │  0.3.0  │ Dec 7, 2021  │     No     │
+    │ 📂 aprsd-slack-plugin        │ Amateur radio APRS daemon which listens for messages and responds  │  1.0.5  │ Dec 18, 2022 │     No     │
+    └──────────────────────────────┴────────────────────────────────────────────────────────────────────┴─────────┴──────────────┴────────────┘
+
+
+                                      🐍 APRSD Installed 3rd party Plugins 🐍
+    ┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ Package Name       ┃ Plugin Name     ┃ Version ┃ Type         ┃ Plugin Path                              ┃
+    ┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+    │ aprsd-weewx-plugin │ WeewxMQTTPlugin │   1.0   │ RegexCommand │ aprsd_weewx_plugin.weewx.WeewxMQTTPlugin │
+    └────────────────────┴─────────────────┴─────────┴──────────────┴──────────────────────────────────────────┘
 
 
 
@@ -287,6 +296,20 @@ LOCATION
     Sending ack _______________ Complete
 
 AND... ping, fortune, time.....
+
+
+Web Admin Interface
+===================
+To start the web admin interface, You have to install gunicorn in your virtualenv that already has aprsd installed.
+
+::
+
+  source <path to APRSD's virtualenv>/bin/activate
+  pip install gunicorn
+  gunicorn --bind 0.0.0.0:8080 "aprsd.wsgi:app"
+
+The web admin interface will be running on port 8080 on the local machine.  http://localhost:8080
+
 
 
 Development

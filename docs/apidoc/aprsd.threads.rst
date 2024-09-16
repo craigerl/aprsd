@@ -28,10 +28,26 @@ aprsd.threads.log\_monitor module
    :undoc-members:
    :show-inheritance:
 
+aprsd.threads.registry module
+-----------------------------
+
+.. automodule:: aprsd.threads.registry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.threads.rx module
 -----------------------
 
 .. automodule:: aprsd.threads.rx
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.threads.stats module
+--------------------------
+
+.. automodule:: aprsd.threads.stats
    :members:
    :undoc-members:
    :show-inheritance:

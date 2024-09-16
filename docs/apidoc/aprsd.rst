@@ -7,13 +7,13 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
-   aprsd.clients
+   aprsd.client
    aprsd.cmds
    aprsd.conf
    aprsd.log
    aprsd.packets
    aprsd.plugins
-   aprsd.rpc
+   aprsd.stats
    aprsd.threads
    aprsd.utils
    aprsd.web
@@ -25,14 +25,6 @@ aprsd.cli\_helper module
 ------------------------
 
 .. automodule:: aprsd.cli_helper
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.client module
--------------------
-
-.. automodule:: aprsd.client
    :members:
    :undoc-members:
    :show-inheritance:
@@ -73,14 +65,6 @@ aprsd.plugin\_utils module
 --------------------------
 
 .. automodule:: aprsd.plugin_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.stats module
-------------------
-
-.. automodule:: aprsd.stats
    :members:
    :undoc-members:
    :show-inheritance:
