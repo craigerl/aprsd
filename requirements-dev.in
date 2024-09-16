@@ -18,3 +18,6 @@ wheel
 # but it induces an install of cryptography
 # This is sucky for rpi systems.
 # twine
+
+# m2r is for converting .md files to .rst for the docs
+m2r
