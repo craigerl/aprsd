@@ -37,7 +37,7 @@ class PacketList(objectstore.ObjectStoreMixin):
             self._total_rx += 1
             self._add(packet)
             ptype = packet.__class__.__name__
-            if not ptype in self.data["types"]:
+            if ptype not in self.data["types"]:
                 self.data["types"][ptype] = {"tx": 0, "rx": 0}
             self.data["types"][ptype]["rx"] += 1
 
@@ -47,7 +47,7 @@ class PacketList(objectstore.ObjectStoreMixin):
             self._total_tx += 1
             self._add(packet)
             ptype = packet.__class__.__name__
-            if not ptype in self.data["types"]:
+            if ptype not in self.data["types"]:
                 self.data["types"][ptype] = {"tx": 0, "rx": 0}
             self.data["types"][ptype]["tx"] += 1
 
