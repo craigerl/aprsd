@@ -89,7 +89,7 @@ class KISSClient(base.APRSClient):
 
         raw = aprslib.parse(str(frame))
         packet = core.factory(raw)
-        if isinstance(packet, core.ThirdParty):
+        if isinstance(packet, core.ThirdPartyPacket):
             return packet.subpacket
         else:
             return packet
