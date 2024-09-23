@@ -87,7 +87,6 @@ classifiers = [
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: Information Technology",
     "Topic :: Communications :: Ham Radio",
-    "Topic :: Communications :: Internet Relay Chat",
     "Topic :: Internet",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3",
