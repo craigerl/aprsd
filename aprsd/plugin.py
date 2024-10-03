@@ -25,7 +25,6 @@ CORE_MESSAGE_PLUGINS = [
     "aprsd.plugins.fortune.FortunePlugin",
     "aprsd.plugins.location.LocationPlugin",
     "aprsd.plugins.ping.PingPlugin",
-    "aprsd.plugins.query.QueryPlugin",
     "aprsd.plugins.time.TimePlugin",
     "aprsd.plugins.weather.USWeatherPlugin",
     "aprsd.plugins.version.VersionPlugin",

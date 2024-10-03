@@ -205,7 +205,6 @@ enabled_plugins_opts = [
             "aprsd.plugins.fortune.FortunePlugin",
             "aprsd.plugins.location.LocationPlugin",
             "aprsd.plugins.ping.PingPlugin",
-            "aprsd.plugins.query.QueryPlugin",
             "aprsd.plugins.time.TimePlugin",
             "aprsd.plugins.weather.OWMWeatherPlugin",
             "aprsd.plugins.version.VersionPlugin",

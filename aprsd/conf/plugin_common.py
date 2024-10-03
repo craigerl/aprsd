@@ -31,13 +31,6 @@ aprsfi_opts = [
     ),
 ]
 
-query_plugin_opts = [
-    cfg.StrOpt(
-        "callsign",
-        help="The Ham callsign to allow access to the query plugin from RF.",
-    ),
-]
-
 owm_wx_opts = [
     cfg.StrOpt(
         "apiKey",
@@ -172,7 +165,6 @@ def register_opts(config):
     config.register_group(aprsfi_group)
     config.register_opts(aprsfi_opts, group=aprsfi_group)
     config.register_group(query_group)
-    config.register_opts(query_plugin_opts, group=query_group)
     config.register_group(owm_wx_group)
     config.register_opts(owm_wx_opts, group=owm_wx_group)
     config.register_group(avwx_group)
@@ -184,7 +176,6 @@ def register_opts(config):
 def list_opts():
     return {
         aprsfi_group.name: aprsfi_opts,
-        query_group.name: query_plugin_opts,
         owm_wx_group.name: owm_wx_opts,
         avwx_group.name: avwx_opts,
         location_group.name: location_opts,
