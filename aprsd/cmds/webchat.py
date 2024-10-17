@@ -64,7 +64,7 @@ def signal_handler(sig, frame):
         time.sleep(1.5)
         # packets.WatchList().save()
         # packets.SeenList().save()
-        LOG.info(stats.stats_collector.collect())
+        stats.stats_collector.collect()
         LOG.info("Telling flask to bail.")
         signal.signal(signal.SIGTERM, sys.exit(0))
 

@@ -42,7 +42,8 @@ def signal_handler(sig, frame):
             ),
         )
         time.sleep(5)
-        LOG.info(collector.Collector().collect())
+        # Last save to disk
+        collector.Collector().collect()
 
 
 class APRSDListenThread(rx.APRSDRXThread):
