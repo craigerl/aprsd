@@ -33,7 +33,11 @@ class Aprsdis(aprslib.IS):
 
     def stop(self):
         self.thread_stop = True
-        LOG.info("Shutdown Aprsdis client.")
+        LOG.warning("Shutdown Aprsdis client.")
+
+    def close(self):
+        LOG.warning("Closing Aprsdis client.")
+        super().close()
 
     @wrapt.synchronized(lock)
     def send(self, packet: core.Packet):
