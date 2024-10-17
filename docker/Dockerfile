@@ -1,4 +1,4 @@
-FROM python:3.11-slim as build
+FROM python:3.11-slim AS build
 
 ARG VERSION=3.4.0
 # pass this in as 'dev' if you want to install from github repo vs pypi
@@ -40,7 +40,7 @@ RUN set -ex \
 
 
 ### Final stage
-FROM build as final
+FROM build AS install
 WORKDIR /app
 
 RUN pip3 install -U pip
@@ -64,6 +64,8 @@ RUN aprsd --version
 ADD bin/setup.sh /app
 ADD bin/admin.sh /app
 
+
+FROM install AS final
 # For the web admin interface
 EXPOSE 8001
 
