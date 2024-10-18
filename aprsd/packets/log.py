@@ -101,7 +101,6 @@ def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> No
     if header:
         if tx:
             via_color = "red"
-            # arrow = f"<{via_color}>-></{via_color}>"
             arrow = f"<{via_color}>\u2192</{via_color}>"
             logit.append(
                 f"<red>TX\u2191</red> "
@@ -111,7 +110,6 @@ def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> No
             )
         else:
             via_color = "fg #1AA730"
-            #arrow = f"<{via_color}>-></{via_color}>"
             arrow = f"<{via_color}>\u2192</{via_color}>"
             f"<{via_color}><-</{via_color}>"
             logit.append(

@@ -175,18 +175,18 @@ def load_entry_points(group):
 
 
 def calculate_initial_compass_bearing(start, end):
-    if (type(start) != tuple) or (type(end) != tuple):
+    if (type(start) != tuple) or (type(end) != tuple):  # noqa: E721
         raise TypeError("Only tuples are supported as arguments")
 
     lat1 = math.radians(float(start[0]))
     lat2 = math.radians(float(end[0]))
 
-    diffLong = math.radians(float(end[1]) - float(start[1]))
+    diff_long = math.radians(float(end[1]) - float(start[1]))
 
-    x = math.sin(diffLong) * math.cos(lat2)
+    x = math.sin(diff_long) * math.cos(lat2)
     y = math.cos(lat1) * math.sin(lat2) - (
         math.sin(lat1)
-        * math.cos(lat2) * math.cos(diffLong)
+        * math.cos(lat2) * math.cos(diff_long)
     )
 
     initial_bearing = math.atan2(x, y)
@@ -202,17 +202,17 @@ def calculate_initial_compass_bearing(start, end):
 
 def degrees_to_cardinal(bearing, full_string=False):
     if full_string:
-        DIRECTIONS = [
+        directions = [
             "North", "North-Northeast", "Northeast", "East-Northeast", "East", "East-Southeast",
             "Southeast", "South-Southeast", "South", "South-Southwest", "Southwest", "West-Southwest",
             "West", "West-Northwest", "Northwest", "North-Northwest", "North",
         ]
     else:
-        DIRECTIONS = [
+        directions = [
             "N", "NNE", "NE", "ENE", "E", "ESE",
             "SE", "SSE", "S", "SSW", "SW", "WSW",
             "W", "WNW", "NW", "NNW", "N",
         ]
 
-    cardinal = DIRECTIONS[round(bearing / 22.5)]
+    cardinal = directions[round(bearing / 22.5)]
     return cardinal

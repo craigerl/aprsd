@@ -60,7 +60,6 @@ class PacketCollector:
             except Exception as e:
                 LOG.error(f"Error in monitor {name} (tx): {e}")
 
-
     def flush(self):
         """Call flush on the objects. This is used to flush out any data."""
         for name in self.monitors:
