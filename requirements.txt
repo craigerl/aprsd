@@ -9,10 +9,10 @@ attrs==24.2.0             # via ax253, kiss3, rush
 ax253==0.1.5.post1        # via kiss3
 beautifulsoup4==4.12.3    # via -r requirements.in
 bidict==0.23.1            # via python-socketio
-bitarray==2.9.2           # via ax253, kiss3
+bitarray==3.0.0           # via ax253, kiss3
 blinker==1.8.2            # via flask
 certifi==2024.8.30        # via requests
-charset-normalizer==3.3.2  # via requests
+charset-normalizer==3.4.0  # via requests
 click==8.1.7              # via -r requirements.in, click-params, flask
 click-params==0.5.0       # via -r requirements.in
 commonmark==0.9.1         # via rich
@@ -20,15 +20,11 @@ dataclasses==0.6          # via -r requirements.in
 dataclasses-json==0.6.7   # via -r requirements.in
 debtcollector==3.0.0      # via oslo-config
 deprecated==1.2.14        # via click-params
-dnspython==2.6.1          # via eventlet
-eventlet==0.37.0          # via -r requirements.in
 flask==3.0.3              # via -r requirements.in, flask-httpauth, flask-socketio
 flask-httpauth==4.8.0     # via -r requirements.in
-flask-socketio==5.3.7     # via -r requirements.in
+flask-socketio==5.4.1     # via -r requirements.in
 geographiclib==2.0        # via geopy
 geopy==2.4.1              # via -r requirements.in
-gevent==24.2.1            # via -r requirements.in
-greenlet==3.1.0           # via eventlet, gevent
 h11==0.14.0               # via wsproto
 idna==3.10                # via requests
 imapclient==3.0.1         # via -r requirements.in
@@ -37,8 +33,8 @@ itsdangerous==2.2.0       # via flask
 jinja2==3.1.4             # via flask
 kiss3==8.0.0              # via -r requirements.in
 loguru==0.7.2             # via -r requirements.in
-markupsafe==2.1.5         # via jinja2, werkzeug
-marshmallow==3.22.0       # via dataclasses-json
+markupsafe==3.0.2         # via jinja2, werkzeug
+marshmallow==3.23.0       # via dataclasses-json
 mypy-extensions==1.0.0    # via typing-inspect
 netaddr==1.3.0            # via oslo-config
 oslo-config==9.6.0        # via -r requirements.in
@@ -49,7 +45,7 @@ pluggy==1.5.0             # via -r requirements.in
 pygments==2.18.0          # via rich
 pyserial==3.5             # via pyserial-asyncio
 pyserial-asyncio==0.6     # via kiss3
-python-engineio==4.9.1    # via python-socketio
+python-engineio==4.10.1   # via python-socketio
 python-socketio==5.11.4   # via -r requirements.in, flask-socketio
 pytz==2024.2              # via -r requirements.in
 pyyaml==6.0.2             # via -r requirements.in, oslo-config
@@ -58,7 +54,7 @@ rfc3986==2.0.0            # via oslo-config
 rich==12.6.0              # via -r requirements.in
 rush==2021.4.0            # via -r requirements.in
 shellingham==1.5.4        # via -r requirements.in
-simple-websocket==1.0.0   # via python-engineio
+simple-websocket==1.1.0   # via python-engineio
 six==1.16.0               # via -r requirements.in
 soupsieve==2.6            # via beautifulsoup4
 stevedore==5.3.0          # via oslo-config
@@ -74,8 +70,3 @@ werkzeug==3.0.4           # via flask
 wrapt==1.16.0             # via -r requirements.in, debtcollector, deprecated
 wsproto==1.2.0            # via simple-websocket
 zipp==3.20.2              # via importlib-metadata
-zope-event==5.0           # via gevent
-zope-interface==7.0.3     # via gevent
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools

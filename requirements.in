@@ -5,12 +5,10 @@ click
 click-params
 dataclasses
 dataclasses-json
-eventlet
 flask
 flask-httpauth
 flask-socketio
 geopy
-gevent
 imapclient
 kiss3
 loguru
@@ -18,7 +16,6 @@ oslo.config
 pluggy
 python-socketio
 pyyaml
-pytz
 requests
 # Pinned due to gray needing 12.6.0
 rich~=12.6.0
@@ -30,3 +27,4 @@ thesmuggler
 tzlocal
 update_checker
 wrapt
+pytz
