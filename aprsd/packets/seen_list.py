@@ -3,7 +3,7 @@ import logging
 
 from oslo_config import cfg
 
-from aprsd.packets import collector, core
+from aprsd.packets import core
 from aprsd.utils import objectstore
 
 
@@ -47,8 +47,3 @@ class SeenList(objectstore.ObjectStoreMixin):
 
     def tx(self, packet: type[core.Packet]):
         """We don't care about TX packets."""
-
-
-# Register with the packet collector so we can process the packet
-# when we get it off the client (network)
-collector.PacketCollector().register(SeenList)

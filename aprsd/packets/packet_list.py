@@ -3,7 +3,7 @@ import logging
 
 from oslo_config import cfg
 
-from aprsd.packets import collector, core
+from aprsd.packets import core
 from aprsd.utils import objectstore
 
 
@@ -108,9 +108,3 @@ class PacketList(objectstore.ObjectStoreMixin):
                 "packets": pkts,
             }
             return stats
-
-
-# Now register the PacketList with the collector
-# every packet we RX and TX goes through the collector
-# for processing for whatever reason is needed.
-collector.PacketCollector().register(PacketList)

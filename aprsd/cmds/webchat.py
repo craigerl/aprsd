@@ -62,8 +62,6 @@ def signal_handler(sig, frame):
     threads.APRSDThreadList().stop_all()
     if "subprocess" not in str(frame):
         time.sleep(1.5)
-        # packets.WatchList().save()
-        # packets.SeenList().save()
         stats.stats_collector.collect()
         LOG.info("Telling flask to bail.")
         signal.signal(signal.SIGTERM, sys.exit(0))
@@ -646,11 +644,6 @@ def webchat(ctx, flush, port):
     if not client_factory.is_client_configured():
         LOG.error("APRS client is not properly configured in config file.")
         sys.exit(-1)
-
-    packets.PacketList()
-    packets.PacketTrack()
-    packets.WatchList()
-    packets.SeenList()
 
     keepalive = keep_alive.KeepAliveThread()
     LOG.info("Start KeepAliveThread")

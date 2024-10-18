@@ -12,6 +12,7 @@ from aprsd import cli_helper, packets
 from aprsd import conf  # noqa : F401
 from aprsd.client import client_factory
 from aprsd.main import cli
+import aprsd.packets  # noqa : F401
 from aprsd.packets import collector
 from aprsd.threads import tx
 
@@ -93,10 +94,6 @@ def send_message(
             LOG.info(f"L'{aprs_login}' R'{raw}'")
         else:
             LOG.info(f"L'{aprs_login}' To'{tocallsign}' C'{command}'")
-
-    packets.PacketList()
-    packets.WatchList()
-    packets.SeenList()
 
     got_ack = False
     got_response = False

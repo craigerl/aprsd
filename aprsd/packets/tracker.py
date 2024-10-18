@@ -3,7 +3,7 @@ import logging
 
 from oslo_config import cfg
 
-from aprsd.packets import collector, core
+from aprsd.packets import core
 from aprsd.utils import objectstore
 
 
@@ -101,9 +101,3 @@ class PacketTrack(objectstore.ObjectStoreMixin):
                 del self.data[key]
             except KeyError:
                 pass
-
-
-# Now register the PacketList with the collector
-# every packet we RX and TX goes through the collector
-# for processing for whatever reason is needed.
-collector.PacketCollector().register(PacketTrack)
