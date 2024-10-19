@@ -136,6 +136,11 @@ aprsd_opts = [
         default=True,
         help="Set this to False, to disable logging of packets to the log file.",
     ),
+    cfg.BoolOpt(
+        "load_help_plugin",
+        default=True,
+        help="Set this to False to disable the help plugin.",
+    ),
 ]
 
 watch_list_opts = [
