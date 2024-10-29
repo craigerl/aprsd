@@ -1,5 +1,5 @@
 WORKDIR?=.
-VENVDIR ?= $(WORKDIR)/.aprsd-venv
+VENVDIR ?= $(WORKDIR)/.venv
 
 .DEFAULT_GOAL := help
 
