@@ -3,6 +3,7 @@ import importlib.metadata as imp
 import io
 import json
 import logging
+import os
 import queue
 
 import flask
@@ -22,6 +23,12 @@ from aprsd.utils import json as aprsd_json
 CONF = cfg.CONF
 LOG = logging.getLogger("gunicorn.access")
 logging_queue = queue.Queue()
+
+
+# ADMIN_COMMAND True means we are running from `aprsd admin`
+# the `aprsd admin` command will import this file after setting
+# the APRSD_ADMIN_COMMAND environment variable.
+ADMIN_COMMAND = os.environ.get("APRSD_ADMIN_COMMAND", False)
 
 auth = HTTPBasicAuth()
 users: dict[str, str] = {}
@@ -262,6 +269,7 @@ def init_app(config_file=None, log_level=None):
 
     return log_level
 
+print(f"__name__ = {__name__}")
 
 if __name__ == "__main__":
     async_mode = "threading"
@@ -297,7 +305,7 @@ if __name__ == "uwsgi_file_aprsd_wsgi":
     CONF.log_opt_values(LOG, logging.DEBUG)
 
 
-if __name__ == "aprsd.wsgi":
+if __name__ == "aprsd.wsgi" and not ADMIN_COMMAND:
     # set async_mode to 'threading', 'eventlet', 'gevent' or 'gevent_uwsgi' to
     # force a mode else, the best mode is selected automatically from what's
     # installed
