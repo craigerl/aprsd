@@ -49,41 +49,6 @@ def signal_handler(sig, frame):
         collector.Collector().collect()
 
 
-@utils.singleton
-class SimplePacketStats:
-    def __init__(self):
-        self.total_rx = 0
-        self.total_tx = 0
-        self.types = {}
-
-    def rx(self, packet):
-        self.total_rx += 1
-        ptype = packet.__class__.__name__
-        if ptype not in self.types:
-            self.types[ptype] = {"tx": 0, "rx": 0}
-        self.types[ptype]["rx"] += 1
-
-    def tx(self, packet):
-        self.total_tx += 1
-        ptype = packet.__class__.__name__
-        if ptype not in self.types:
-            self.types[ptype] = {"tx": 0, "rx": 0}
-        self.types[ptype]["tx"] += 1
-
-    def flush(self):
-        pass
-
-    def load(self):
-        pass
-
-    def stats(self, serializable=False):
-        return {
-            "total_rx": self.total_rx,
-            "total_tx": self.total_tx,
-            "types": self.types,
-        }
-
-
 class APRSDListenThread(rx.APRSDRXThread):
     def __init__(self, packet_queue, packet_filter=None, plugin_manager=None):
         super().__init__(packet_queue)
@@ -127,22 +92,31 @@ class APRSDListenThread(rx.APRSDRXThread):
 
 
 class ListenStatsThread(APRSDThread):
+    """Log the stats from the PacketList."""
+
     def __init__(self):
-        super().__init__("SimpleStats")
+        super().__init__("SimpleStatsLog")
         self._last_total_rx = 0
 
     def loop(self):
         if self.loop_count % 10 == 0:
             # log the stats every 10 seconds
             stats_json = collector.Collector().collect()
-            stats = stats_json["SimplePacketStats"]
-            total_rx = stats["total_rx"]
+            stats = stats_json["PacketList"]
+            total_rx = stats["rx"]
             rate = (total_rx - self._last_total_rx) / 10
-            LOG.warning(f"RX Rate: {rate} pps  Total RX: {total_rx} - {self._last_total_rx}")
-            #LOG.error(stats)
+            LOGU.opt(colors=True).info(
+                f"<green>RX Rate: {rate} pps</green>  "
+                f"<yellow>Total RX: {total_rx}</yellow> "
+                f"<red>RX Last 10 secs: {total_rx - self._last_total_rx}</red>",
+            )
             self._last_total_rx = total_rx
             for k, v in stats["types"].items():
-                LOGU.opt(colors=True).warning(f"Type: {k} <blue>RX: {v['rx']}</blue> <red>TX: {v['tx']}</red>")
+                thread_hex = f"fg {utils.hex_from_name(k)}"
+                LOGU.opt(colors=True).info(
+                    f"<{thread_hex}>{k:<15}</{thread_hex}> "
+                    f"<blue>RX: {v['rx']}</blue> <red>TX: {v['tx']}</red>",
+                )
 
         time.sleep(1)
         return True
@@ -255,32 +229,10 @@ def listen(
     aprs_client.set_filter(filter)
 
     keepalive = keep_alive.KeepAliveThread()
-    # keepalive.start()
 
     if not CONF.enable_seen_list:
         # just deregister the class from the packet collector
         packet_collector.PacketCollector().unregister(seen_list.SeenList)
-
-    packet_collector.PacketCollector().register(SimplePacketStats)
-
-    from aprsd.client import stats as client_stats
-    from aprsd.packets.packet_list import PacketList  # noqa: F401
-    from aprsd.packets.seen_list import SeenList  # noqa: F401
-    from aprsd.packets.tracker import PacketTrack  # noqa: F401
-    from aprsd.packets.watch_list import WatchList  # noqa: F401
-    from aprsd.plugins import email
-    from aprsd.threads import aprsd as aprsd_thread
-    c = collector.Collector()
-    # c.unregister_producer(app.APRSDStats)
-    c.unregister_producer(PacketList)
-    c.unregister_producer(WatchList)
-    #c.unregister_producer(PacketTrack)
-    c.unregister_producer(plugin.PluginManager)
-    c.unregister_producer(aprsd_thread.APRSDThreadList)
-    c.unregister_producer(email.EmailStats)
-    c.unregister_producer(client_stats.APRSClientStats)
-    c.unregister_producer(seen_list.SeenList)
-    c.register_producer(SimplePacketStats)
 
     pm = None
     pm = plugin.PluginManager()
