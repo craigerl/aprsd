@@ -269,7 +269,6 @@ def init_app(config_file=None, log_level=None):
 
     return log_level
 
-print(f"__name__ = {__name__}")
 
 if __name__ == "__main__":
     async_mode = "threading"

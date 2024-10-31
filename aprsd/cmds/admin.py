@@ -14,7 +14,10 @@ from aprsd.main import cli
 
 
 os.environ["APRSD_ADMIN_COMMAND"] = "1"
-from aprsd import wsgi as aprsd_wsgi
+# this import has to happen AFTER we set the
+# above environment variable, so that the code
+# inside the wsgi.py has the value
+from aprsd import wsgi as aprsd_wsgi  # noqa
 
 
 CONF = cfg.CONF
