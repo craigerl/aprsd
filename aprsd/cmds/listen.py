@@ -135,14 +135,21 @@ class ListenStatsThread(APRSDThread):
         if self.loop_count % 10 == 0:
             # log the stats every 10 seconds
             stats_json = collector.Collector().collect()
-            stats = stats_json["SimplePacketStats"]
-            total_rx = stats["total_rx"]
+            stats = stats_json["PacketList"]
+            total_rx = stats["rx"]
             rate = (total_rx - self._last_total_rx) / 10
-            LOG.warning(f"RX Rate: {rate} pps  Total RX: {total_rx} - {self._last_total_rx}")
-            #LOG.error(stats)
+            LOGU.opt(colors=True).info(
+                f"<green>RX Rate: {rate} pps</green>  "
+                f"<yellow>Total RX: {total_rx}</yellow> "
+                f"<red>RX Last 10 secs: {total_rx - self._last_total_rx}</red>",
+            )
             self._last_total_rx = total_rx
             for k, v in stats["types"].items():
-                LOGU.opt(colors=True).warning(f"Type: {k} <blue>RX: {v['rx']}</blue> <red>TX: {v['tx']}</red>")
+                thread_hex = f"fg {utils.hex_from_name(k)}"
+                LOGU.opt(colors=True).info(
+                    f"<{thread_hex}>{k:<15}</{thread_hex}> "
+                    f"<blue>RX: {v['rx']}</blue> <red>TX: {v['tx']}</red>",
+                )
 
         time.sleep(1)
         return True
@@ -261,26 +268,23 @@ def listen(
         # just deregister the class from the packet collector
         packet_collector.PacketCollector().unregister(seen_list.SeenList)
 
-    packet_collector.PacketCollector().register(SimplePacketStats)
-
-    from aprsd.client import stats as client_stats
-    from aprsd.packets.packet_list import PacketList  # noqa: F401
-    from aprsd.packets.seen_list import SeenList  # noqa: F401
-    from aprsd.packets.tracker import PacketTrack  # noqa: F401
-    from aprsd.packets.watch_list import WatchList  # noqa: F401
-    from aprsd.plugins import email
-    from aprsd.threads import aprsd as aprsd_thread
-    c = collector.Collector()
-    # c.unregister_producer(app.APRSDStats)
-    c.unregister_producer(PacketList)
-    c.unregister_producer(WatchList)
-    #c.unregister_producer(PacketTrack)
-    c.unregister_producer(plugin.PluginManager)
-    c.unregister_producer(aprsd_thread.APRSDThreadList)
-    c.unregister_producer(email.EmailStats)
-    c.unregister_producer(client_stats.APRSClientStats)
-    c.unregister_producer(seen_list.SeenList)
-    c.register_producer(SimplePacketStats)
+    # from aprsd.client import stats as client_stats
+    # from aprsd.packets.packet_list import PacketList  # noqa: F401
+    # from aprsd.packets.seen_list import SeenList  # noqa: F401
+    # from aprsd.packets.tracker import PacketTrack  # noqa: F401
+    # from aprsd.packets.watch_list import WatchList  # noqa: F401
+    # from aprsd.plugins import email
+    # from aprsd.threads import aprsd as aprsd_thread
+    # c = collector.Collector()
+    # # c.unregister_producer(app.APRSDStats)
+    # c.unregister_producer(PacketList)
+    # c.unregister_producer(WatchList)
+    # #c.unregister_producer(PacketTrack)
+    # c.unregister_producer(plugin.PluginManager)
+    # c.unregister_producer(aprsd_thread.APRSDThreadList)
+    # c.unregister_producer(email.EmailStats)
+    # c.unregister_producer(client_stats.APRSClientStats)
+    # c.unregister_producer(seen_list.SeenList)
 
     pm = None
     pm = plugin.PluginManager()
