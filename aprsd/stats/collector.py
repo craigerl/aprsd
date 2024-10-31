@@ -35,3 +35,8 @@ class Collector:
         if not isinstance(producer_name, StatsProducer):
             raise TypeError(f"Producer {producer_name} is not a StatsProducer")
         self.producers.append(producer_name)
+
+    def unregister_producer(self, producer_name: Callable):
+        if not isinstance(producer_name, StatsProducer):
+            raise TypeError(f"Producer {producer_name} is not a StatsProducer")
+        self.producers.remove(producer_name)
