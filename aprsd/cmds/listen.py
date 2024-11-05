@@ -104,13 +104,18 @@ class ListenStatsThread(APRSDThread):
             stats_json = collector.Collector().collect()
             stats = stats_json["PacketList"]
             total_rx = stats["rx"]
-            rate = (total_rx - self._last_total_rx) / 10
+            rx_delta = total_rx - self._last_total_rx
+            rate = rx_delta / 10
+
+            # Log summary stats
             LOGU.opt(colors=True).info(
                 f"<green>RX Rate: {rate} pps</green>  "
                 f"<yellow>Total RX: {total_rx}</yellow> "
-                f"<red>RX Last 10 secs: {total_rx - self._last_total_rx}</red>",
+                f"<red>RX Last 10 secs: {rx_delta}</red>",
             )
             self._last_total_rx = total_rx
+
+            # Log individual type stats
             for k, v in stats["types"].items():
                 thread_hex = f"fg {utils.hex_from_name(k)}"
                 LOGU.opt(colors=True).info(
