@@ -11,6 +11,7 @@ from rich.table import Table
 import aprsd
 from aprsd import cli_helper
 from aprsd.main import cli
+from aprsd.threads.stats import StatsStore
 
 
 # setup the global logger
@@ -154,3 +155,18 @@ def fetch_stats(ctx, host, port):
             watch_table.add_row(key, value["last"])
 
         console.print(watch_table)
+
+
+@cli.command()
+@cli_helper.add_options(cli_helper.common_options)
+@click.pass_context
+@cli_helper.process_standard_options
+def dump_stats(ctx):
+    """Dump the current stats from the running APRSD instance."""
+    console = Console()
+    console.print(f"APRSD Fetch-Stats started version: {aprsd.__version__}")
+
+    ss = StatsStore()
+    ss.load()
+    stats = ss.data
+    console.print(stats)
