@@ -10,12 +10,13 @@ import sys
 import time
 
 import click
+from loguru import logger
 from oslo_config import cfg
 from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import cli_helper, packets, plugin, threads
+from aprsd import cli_helper, packets, plugin, threads, utils
 from aprsd.client import client_factory
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
@@ -24,12 +25,14 @@ from aprsd.packets import seen_list
 from aprsd.stats import collector
 from aprsd.threads import keep_alive, rx
 from aprsd.threads import stats as stats_thread
+from aprsd.threads.aprsd import APRSDThread
 
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
 LOG = logging.getLogger("APRSD")
 CONF = cfg.CONF
+LOGU = logger
 console = Console()
 
 
@@ -86,6 +89,37 @@ class APRSDListenThread(rx.APRSDRXThread):
                 self.plugin_manager.run(packet)
 
         packet_collector.PacketCollector().rx(packet)
+
+
+class ListenStatsThread(APRSDThread):
+    """Log the stats from the PacketList."""
+
+    def __init__(self):
+        super().__init__("SimpleStatsLog")
+        self._last_total_rx = 0
+
+    def loop(self):
+        if self.loop_count % 10 == 0:
+            # log the stats every 10 seconds
+            stats_json = collector.Collector().collect()
+            stats = stats_json["PacketList"]
+            total_rx = stats["rx"]
+            rate = (total_rx - self._last_total_rx) / 10
+            LOGU.opt(colors=True).info(
+                f"<green>RX Rate: {rate} pps</green>  "
+                f"<yellow>Total RX: {total_rx}</yellow> "
+                f"<red>RX Last 10 secs: {total_rx - self._last_total_rx}</red>",
+            )
+            self._last_total_rx = total_rx
+            for k, v in stats["types"].items():
+                thread_hex = f"fg {utils.hex_from_name(k)}"
+                LOGU.opt(colors=True).info(
+                    f"<{thread_hex}>{k:<15}</{thread_hex}> "
+                    f"<blue>RX: {v['rx']}</blue> <red>TX: {v['tx']}</red>",
+                )
+
+        time.sleep(1)
+        return True
 
 
 @cli.command()
@@ -195,7 +229,6 @@ def listen(
     aprs_client.set_filter(filter)
 
     keepalive = keep_alive.KeepAliveThread()
-    # keepalive.start()
 
     if not CONF.enable_seen_list:
         # just deregister the class from the packet collector
@@ -222,6 +255,8 @@ def listen(
     )
     LOG.debug("Start APRSDListenThread")
     listen_thread.start()
+    listen_stats = ListenStatsThread()
+    listen_stats.start()
 
     keepalive.start()
     LOG.debug("keepalive Join")
