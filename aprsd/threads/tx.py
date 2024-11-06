@@ -53,7 +53,10 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
     # After prepare, as prepare assigns the msgNo
     collector.PacketCollector().tx(packet)
     if isinstance(packet, core.AckPacket):
-        _send_ack(packet, direct=direct, aprs_client=aprs_client)
+        if CONF.enable_sending_ack_packets:
+            _send_ack(packet, direct=direct, aprs_client=aprs_client)
+        else:
+            LOG.info("Sending ack packets is disabled. Not sending AckPacket.")
     else:
         _send_packet(packet, direct=direct, aprs_client=aprs_client)
 

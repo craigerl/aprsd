@@ -136,6 +136,12 @@ aprsd_opts = [
         default=True,
         help="Set this to False, to disable logging of packets to the log file.",
     ),
+    cfg.BoolOpt(
+        "enable_sending_ack_packets",
+        default=True,
+        help="Set this to False, to disable sending of ack packets. This will entirely stop"
+             "APRSD from sending ack packets.",
+    ),
 ]
 
 watch_list_opts = [

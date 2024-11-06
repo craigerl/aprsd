@@ -151,6 +151,11 @@ class APRSDProcessPacketThread(APRSDThread):
     def __init__(self, packet_queue):
         self.packet_queue = packet_queue
         super().__init__("ProcessPKT")
+        if not CONF.enable_sending_ack_packets:
+            LOG.warning(
+                "Sending ack packets is disabled, messages "
+                "will not be acknowledged.",
+            )
 
     def process_ack_packet(self, packet):
         """We got an ack for a message, no need to resend it."""
