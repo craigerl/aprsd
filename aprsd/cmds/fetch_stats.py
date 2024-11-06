@@ -164,9 +164,10 @@ def fetch_stats(ctx, host, port):
 def dump_stats(ctx):
     """Dump the current stats from the running APRSD instance."""
     console = Console()
-    console.print(f"APRSD Fetch-Stats started version: {aprsd.__version__}")
+    console.print(f"APRSD Dump-Stats started version: {aprsd.__version__}")
 
-    ss = StatsStore()
-    ss.load()
-    stats = ss.data
-    console.print(stats)
+    with console.status("Dumping stats"):
+        ss = StatsStore()
+        ss.load()
+        stats = ss.data
+        console.print(stats)

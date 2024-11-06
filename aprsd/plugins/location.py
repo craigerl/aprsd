@@ -2,8 +2,10 @@ import logging
 import re
 import time
 
-from geopy.geocoders import ArcGIS, AzureMaps, Baidu, Bing, GoogleV3
-from geopy.geocoders import HereV7, Nominatim, OpenCage, TomTom, What3WordsV3, Woosmap
+from geopy.geocoders import (
+    ArcGIS, AzureMaps, Baidu, Bing, GoogleV3, HereV7, Nominatim, OpenCage,
+    TomTom, What3WordsV3, Woosmap,
+)
 from oslo_config import cfg
 
 from aprsd import packets, plugin, plugin_utils
@@ -39,8 +41,8 @@ class USGov:
         result = plugin_utils.get_weather_gov_for_gps(lat, lon)
         # LOG.info(f"WEATHER: {result}")
         # LOG.info(f"area description {result['location']['areaDescription']}")
-        if 'location' in result:
-            loc = UsLocation(result['location']['areaDescription'])
+        if "location" in result:
+            loc = UsLocation(result["location"]["areaDescription"])
         else:
             loc = UsLocation("Unknown Location")
 

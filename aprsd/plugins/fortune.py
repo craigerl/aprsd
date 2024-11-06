@@ -8,7 +8,7 @@ from aprsd.utils import trace
 
 LOG = logging.getLogger("APRSD")
 
-DEFAULT_FORTUNE_PATH = '/usr/games/fortune'
+DEFAULT_FORTUNE_PATH = "/usr/games/fortune"
 
 
 class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
@@ -45,7 +45,7 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
                 command,
                 shell=True,
                 timeout=3,
-                universal_newlines=True,
+                text=True,
             )
             output = (
                 output.replace("\r", "")
