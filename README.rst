@@ -11,6 +11,37 @@ ____________________
 `APRSD <http://github.com/craigerl/aprsd>`_ is a Ham radio `APRS <http://aprs.org>`_ message command gateway built on python.
 
 
+Table of Contents
+=================
+
+1. `What is APRSD <#what-is-aprsd>`_
+2. `APRSD Overview Diagram <#aprsd-overview-diagram>`_
+3. `Typical Use Case <#typical-use-case>`_
+4. `Installation <#installation>`_
+5. `Example Usage <#example-usage>`_
+6. `Help <#help>`_
+7. `Commands <#commands>`_
+   - `Configuration <#configuration>`_
+   - `Server <#server>`_
+   - `Current List of Built-in Plugins <#current-list-of-built-in-plugins>`_
+   - `Pypi.org APRSD Installable Plugin Packages <#pypiorg-aprsd-installable-plugin-packages>`_
+   - `🐍 APRSD Installed 3rd Party Plugins <#aprsd-installed-3rd-party-plugins>`_
+   - `Send Message <#send-message>`_
+   - `Send Email (Radio to SMTP Server) <#send-email-radio-to-smtp-server>`_
+   - `Receive Email (IMAP Server to Radio) <#receive-email-imap-server-to-radio>`_
+   - `Location <#location>`_
+   - `Web Admin Interface <#web-admin-interface>`_
+8. `Development <#development>`_
+   - `Building Your Own APRSD Plugins <#building-your-own-aprsd-plugins>`_
+9. `Workflow <#workflow>`_
+10. `Release <#release>`_
+11. `Docker Container <#docker-container>`_
+    - `Building <#building-1>`_
+    - `Official Build <#official-build>`_
+    - `Development Build <#development-build>`_
+    - `Running the Container <#running-the-container>`_
+
+
 What is APRSD
 =============
 APRSD is a python application for interacting with the APRS network and providing
@@ -147,8 +178,7 @@ look for incomming commands to the callsign configured in the config file
 
 
 Current list of built-in plugins
-======================================
-
+--------------------------------
 ::
 
     └─> aprsd list-plugins
@@ -300,16 +330,19 @@ AND... ping, fortune, time.....
 
 Web Admin Interface
 ===================
+APRSD has a web admin interface that allows you to view the status of the running APRSD server instance.
+The web admin interface shows graphs of packet counts, packet types, number of threads running, the latest
+packets sent and received, and the status of each of the plugins that are loaded.  You can also view the logfile
+and view the raw APRSD configuration file.
+
 To start the web admin interface, You have to install gunicorn in your virtualenv that already has aprsd installed.
 
 ::
 
   source <path to APRSD's virtualenv>/bin/activate
-  pip install gunicorn
-  gunicorn --bind 0.0.0.0:8080 "aprsd.wsgi:app"
+  aprsd admin --loglevel INFO
 
 The web admin interface will be running on port 8080 on the local machine.  http://localhost:8080
-
 
 
 Development
@@ -320,7 +353,7 @@ Development
 * ``make``
 
 Workflow
-========
+--------
 
 While working aprsd, The workflow is as follows:
 
@@ -349,7 +382,7 @@ While working aprsd, The workflow is as follows:
 
 
 Release
-=======
+-------
 
 To do release to pypi:
 
@@ -369,6 +402,29 @@ To do release to pypi:
 
   ``make upload``
 
+
+Building your own APRSD plugins
+-------------------------------
+
+APRSD plugins are the mechanism by which APRSD can respond to APRS Messages.  The plugins are loaded at server startup
+and can also be loaded at listen startup.  When a packet is received by APRSD, it is passed to each of the plugins
+in the order they were registered in the config file.  The plugins can then decide what to do with the packet.
+When a plugin is called, it is passed a APRSD Packet object.  The plugin can then do something with the packet and
+return a reply message if desired.  If a plugin does not want to reply to the packet, it can just return None.
+When a plugin does return a reply message, APRSD will send the reply message to the appropriate destination.
+
+For example, when a 'ping' message is received, the PingPlugin will return a reply message of 'pong'.  When APRSD
+receives the 'pong' message, it will be sent back to the original caller of the ping message.
+
+APRSD plugins are simply python packages that can be installed from pypi.org.  They are installed into the
+aprsd virtualenv and can be imported by APRSD at runtime.  The plugins are registered in the config file and loaded
+at startup of the aprsd server command or the aprsd listen command.
+
+Overview
+--------
+You can build your own plugins by following the instructions in the `Building your own APRSD plugins`_ section.
+
+Plugins are called by APRSD when packe
 
 Docker Container
 ================
