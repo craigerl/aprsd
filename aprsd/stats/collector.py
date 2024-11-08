@@ -10,7 +10,7 @@ LOG = logging.getLogger("APRSD")
 @runtime_checkable
 class StatsProducer(Protocol):
     """The StatsProducer protocol is used to define the interface for collecting stats."""
-    def stats(self, serializeable=False) -> dict:
+    def stats(self, serializable=False) -> dict:
         """provide stats in a dictionary format."""
         ...
 
