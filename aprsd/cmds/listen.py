@@ -50,12 +50,16 @@ def signal_handler(sig, frame):
 
 
 class APRSDListenThread(rx.APRSDRXThread):
-    def __init__(self, packet_queue, packet_filter=None, plugin_manager=None):
+    def __init__(
+        self, packet_queue, packet_filter=None, plugin_manager=None,
+        enabled_plugins=[], log_packets=False,
+    ):
         super().__init__(packet_queue)
         self.packet_filter = packet_filter
         self.plugin_manager = plugin_manager
         if self.plugin_manager:
             LOG.info(f"Plugins {self.plugin_manager.get_message_plugins()}")
+        self.log_packets = log_packets
 
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
@@ -76,13 +80,16 @@ class APRSDListenThread(rx.APRSDRXThread):
         if self.packet_filter:
             filter_class = filters[self.packet_filter]
             if isinstance(packet, filter_class):
-                packet_log.log(packet)
+                if self.log_packets:
+                    packet_log.log(packet)
                 if self.plugin_manager:
                     # Don't do anything with the reply
                     # This is the listen only command.
                     self.plugin_manager.run(packet)
         else:
-            packet_log.log(packet)
+            if self.log_packets:
+                LOG.error("PISS")
+                packet_log.log(packet)
             if self.plugin_manager:
                 # Don't do anything with the reply.
                 # This is the listen only command.
@@ -95,7 +102,7 @@ class ListenStatsThread(APRSDThread):
     """Log the stats from the PacketList."""
 
     def __init__(self):
-        super().__init__("SimpleStatsLog")
+        super().__init__("PacketStatsLog")
         self._last_total_rx = 0
 
     def loop(self):
@@ -162,6 +169,11 @@ class ListenStatsThread(APRSDThread):
     help="Filter by packet type",
 )
 @click.option(
+    "--enable-plugin",
+    multiple=True,
+    help="Enable a plugin.  This is the name of the file in the plugins directory.",
+)
+@click.option(
     "--load-plugins",
     default=False,
     is_flag=True,
@@ -172,6 +184,18 @@ class ListenStatsThread(APRSDThread):
     nargs=-1,
     required=True,
 )
+@click.option(
+    "--log-packets",
+    default=False,
+    is_flag=True,
+    help="Log incoming packets.",
+)
+@click.option(
+    "--enable-packet-stats",
+    default=False,
+    is_flag=True,
+    help="Enable packet stats periodic logging.",
+)
 @click.pass_context
 @cli_helper.process_standard_options
 def listen(
@@ -179,8 +203,11 @@ def listen(
     aprs_login,
     aprs_password,
     packet_filter,
+    enable_plugin,
     load_plugins,
     filter,
+    log_packets,
+    enable_packet_stats,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
 
@@ -240,15 +267,26 @@ def listen(
         packet_collector.PacketCollector().unregister(seen_list.SeenList)
 
     pm = None
-    pm = plugin.PluginManager()
     if load_plugins:
+        pm = plugin.PluginManager()
         LOG.info("Loading plugins")
         pm.setup_plugins(load_help_plugin=False)
+    elif enable_plugin:
+        pm = plugin.PluginManager()
+        pm.setup_plugins(
+            load_help_plugin=False,
+            plugin_list=enable_plugin,
+        )
     else:
         LOG.warning(
             "Not Loading any plugins use --load-plugins to load what's "
             "defined in the config file.",
         )
+
+    if pm:
+        for p in pm.get_plugins():
+            LOG.info("Loaded plugin %s", p.__class__.__name__)
+
     stats = stats_thread.APRSDStatsStoreThread()
     stats.start()
 
@@ -257,11 +295,14 @@ def listen(
         packet_queue=threads.packet_queue,
         packet_filter=packet_filter,
         plugin_manager=pm,
+        enabled_plugins=enable_plugin,
+        log_packets=log_packets,
     )
     LOG.debug("Start APRSDListenThread")
     listen_thread.start()
-    listen_stats = ListenStatsThread()
-    listen_stats.start()
+    if enable_packet_stats:
+        listen_stats = ListenStatsThread()
+        listen_stats.start()
 
     keepalive.start()
     LOG.debug("keepalive Join")
