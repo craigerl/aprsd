@@ -472,7 +472,10 @@ class PluginManager:
             del self._pluggy_pm
             self.setup_plugins()
 
-    def setup_plugins(self, load_help_plugin=True):
+    def setup_plugins(
+        self, load_help_plugin=True,
+        plugin_list=[],
+    ):
         """Create the plugin manager and register plugins."""
 
         LOG.info("Loading APRSD Plugins")
@@ -481,9 +484,13 @@ class PluginManager:
             _help = HelpPlugin()
             self._pluggy_pm.register(_help)
 
-        enabled_plugins = CONF.enabled_plugins
-        if enabled_plugins:
-            for p_name in enabled_plugins:
+        # if plugins_list is passed in, only load
+        # those plugins.
+        if plugin_list:
+            for plugin_name in plugin_list:
+                self._load_plugin(plugin_name)
+        elif CONF.enabled_plugins:
+            for p_name in CONF.enabled_plugins:
                 self._load_plugin(p_name)
         else:
             # Enabled plugins isn't set, so we default to loading all of
