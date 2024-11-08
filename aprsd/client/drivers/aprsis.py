@@ -193,14 +193,14 @@ class Aprsdis(aprslib.IS):
             except ParseError as exp:
                 self.logger.log(
                     11,
-                    "%s\n    Packet: %s",
+                    "%s    Packet: '%s'",
                     exp,
                     exp.packet,
                 )
             except UnknownFormat as exp:
                 self.logger.log(
                     9,
-                    "%s\n    Packet: %s",
+                    "%s    Packet: '%s'",
                     exp,
                     exp.packet,
                 )
