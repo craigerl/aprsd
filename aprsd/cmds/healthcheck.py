@@ -63,7 +63,7 @@ def healthcheck(ctx, timeout):
 
                 if email_thread_last_update != "never":
                     d = now - email_thread_last_update
-                    max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
+                    max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 30}
                     max_delta = datetime.timedelta(**max_timeout)
                     if d > max_delta:
                         console.log(f"Email thread is very old! {d}")
