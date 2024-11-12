@@ -63,15 +63,11 @@ def _init_msgNo():    # noqa: N802
 
 
 def _translate_fields(raw: dict) -> dict:
-    translate_fields = {
-        "from": "from_call",
-        "to": "to_call",
-    }
-    # First translate some fields
-    for key in translate_fields:
-        if key in raw:
-            raw[translate_fields[key]] = raw[key]
-            del raw[key]
+    # Direct key checks instead of iteration
+    if "from" in raw:
+        raw["from_call"] = raw.pop("from")
+    if "to" in raw:
+        raw["to_call"] = raw.pop("to")
 
     # addresse overrides to_call
     if "addresse" in raw:
@@ -110,11 +106,7 @@ class Packet:
     via: Optional[str] = field(default=None, compare=False, hash=False)
 
     def get(self, key: str, default: Optional[str] = None):
-        """Emulate a getter on a dict."""
-        if hasattr(self, key):
-            return getattr(self, key)
-        else:
-            return default
+        return getattr(self, key, default)
 
     @property
     def key(self) -> str:

@@ -32,7 +32,11 @@ class APRSClient:
 
     @abc.abstractmethod
     def stats(self) -> dict:
-        pass
+        """Return statistics about the client connection.
+
+        Returns:
+            dict: Statistics about the connection and packet handling
+        """
 
     def set_filter(self, filter):
         self.filter = filter
@@ -46,22 +50,31 @@ class APRSClient:
         return self._client
 
     def _create_client(self):
-        self._client = self.setup_connection()
-        if self.filter:
-            LOG.info("Creating APRS client filter")
-            self._client.set_filter(self.filter)
+        try:
+            self._client = self.setup_connection()
+            if self.filter:
+                LOG.info("Creating APRS client filter")
+                self._client.set_filter(self.filter)
+        except Exception as e:
+            LOG.error(f"Failed to create APRS client: {e}")
+            self._client = None
+            raise
 
     def stop(self):
         if self._client:
             LOG.info("Stopping client connection.")
             self._client.stop()
 
-    def send(self, packet: core.Packet):
-        """Send a packet to the network."""
+    def send(self, packet: core.Packet) -> None:
+        """Send a packet to the network.
+
+        Args:
+            packet: The APRS packet to send
+        """
         self.client.send(packet)
 
     @wrapt.synchronized(lock)
-    def reset(self):
+    def reset(self) -> None:
         """Call this to force a rebuild/reconnect."""
         LOG.info("Resetting client connection.")
         if self._client:
@@ -76,7 +89,11 @@ class APRSClient:
 
     @abc.abstractmethod
     def setup_connection(self):
-        pass
+        """Initialize and return the underlying APRS connection.
+
+        Returns:
+            object: The initialized connection object
+        """
 
     @staticmethod
     @abc.abstractmethod
@@ -90,7 +107,11 @@ class APRSClient:
 
     @abc.abstractmethod
     def decode_packet(self, *args, **kwargs):
-        pass
+        """Decode raw APRS packet data into a Packet object.
+
+        Returns:
+            Packet: Decoded APRS packet
+        """
 
     @abc.abstractmethod
     def consumer(self, callback, blocking=False, immortal=False, raw=False):

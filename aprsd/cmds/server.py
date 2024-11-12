@@ -8,7 +8,7 @@ from oslo_config import cfg
 import aprsd
 from aprsd import cli_helper
 from aprsd import main as aprsd_main
-from aprsd import packets, plugin, threads, utils
+from aprsd import plugin, threads, utils
 from aprsd.client import client_factory
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
@@ -87,28 +87,23 @@ def server(ctx, flush):
         LOG.error("APRS client is not properly configured in config file.")
         sys.exit(-1)
 
-    # Now load the msgTrack from disk if any
-    packets.PacketList()
-    if flush:
-        LOG.debug("Deleting saved MsgTrack.")
-        packets.PacketTrack().flush()
-        packets.WatchList().flush()
-        packets.SeenList().flush()
-        packets.PacketList().flush()
-    else:
-        # Try and load saved MsgTrack list
-        LOG.debug("Loading saved MsgTrack object.")
-        packets.PacketTrack().load()
-        packets.WatchList().load()
-        packets.SeenList().load()
-        packets.PacketList().load()
-
-    keepalive = keep_alive.KeepAliveThread()
-    keepalive.start()
-
     if not CONF.enable_seen_list:
         # just deregister the class from the packet collector
         packet_collector.PacketCollector().unregister(seen_list.SeenList)
+
+    # Now load the msgTrack from disk if any
+    if flush:
+        LOG.debug("Flushing All packet tracking objects.")
+        packet_collector.PacketCollector().flush()
+    else:
+        # Try and load saved MsgTrack list
+        LOG.debug("Loading saved packet tracking data.")
+        packet_collector.PacketCollector().load()
+
+    # Now start all the main processing threads.
+
+    keepalive = keep_alive.KeepAliveThread()
+    keepalive.start()
 
     stats_store_thread = stats_thread.APRSDStatsStoreThread()
     stats_store_thread.start()

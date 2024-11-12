@@ -1,10 +1,12 @@
 import logging
 from typing import Optional
 
+from geopy.distance import geodesic
 from loguru import logger
 from oslo_config import cfg
 
-from aprsd.packets.core import AckPacket, RejectPacket
+from aprsd import utils
+from aprsd.packets.core import AckPacket, GPSPacket, RejectPacket
 
 
 LOG = logging.getLogger()
@@ -16,6 +18,8 @@ TO_COLOR = "fg #D033FF"
 TX_COLOR = "red"
 RX_COLOR = "green"
 PACKET_COLOR = "cyan"
+DISTANCE_COLOR = "fg #FF5733"
+DEGREES_COLOR = "fg #FFA900"
 
 
 def log_multiline(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> None:
@@ -97,19 +101,19 @@ def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> No
     if header:
         if tx:
             via_color = "red"
-            arrow = f"<{via_color}>-></{via_color}>"
+            arrow = f"<{via_color}>\u2192</{via_color}>"
             logit.append(
-                f"<red>TX {arrow}</red> "
+                f"<red>TX\u2191</red> "
                 f"<cyan>{name}</cyan>"
                 f":{packet.msgNo}"
                 f" ({packet.send_count + 1} of {pkt_max_send_count})",
             )
         else:
-            via_color = "fg #828282"
-            arrow = f"<{via_color}>-></{via_color}>"
-            left_arrow = f"<{via_color}><-</{via_color}>"
+            via_color = "fg #1AA730"
+            arrow = f"<{via_color}>\u2192</{via_color}>"
+            f"<{via_color}><-</{via_color}>"
             logit.append(
-                f"<fg #1AA730>RX</fg #1AA730> {left_arrow} "
+                f"<fg #1AA730>RX\u2193</fg #1AA730> "
                 f"<cyan>{name}</cyan>"
                 f":{packet.msgNo}",
             )
@@ -138,6 +142,20 @@ def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> No
         if msg:
             msg = msg.replace("<", "\\<")
             logit.append(f"<light-yellow><b>{msg}</b></light-yellow>")
+
+    # is there distance information?
+    if isinstance(packet, GPSPacket) and CONF.latitude and CONF.longitude:
+        my_coords = (CONF.latitude, CONF.longitude)
+        packet_coords = (packet.latitude, packet.longitude)
+        try:
+            bearing = utils.calculate_initial_compass_bearing(my_coords, packet_coords)
+        except Exception as e:
+            LOG.error(f"Failed to calculate bearing: {e}")
+            bearing = 0
+        logit.append(
+            f" : <{DEGREES_COLOR}>{utils.degrees_to_cardinal(bearing, full_string=True)}</{DEGREES_COLOR}>"
+            f"<{DISTANCE_COLOR}>@{geodesic(my_coords, packet_coords).miles:.2f}miles</{DISTANCE_COLOR}>",
+        )
 
     LOGU.opt(colors=True).info(" ".join(logit))
     log_multiline(packet, tx, header)

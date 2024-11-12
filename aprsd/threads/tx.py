@@ -53,7 +53,10 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
     # After prepare, as prepare assigns the msgNo
     collector.PacketCollector().tx(packet)
     if isinstance(packet, core.AckPacket):
-        _send_ack(packet, direct=direct, aprs_client=aprs_client)
+        if CONF.enable_sending_ack_packets:
+            _send_ack(packet, direct=direct, aprs_client=aprs_client)
+        else:
+            LOG.info("Sending ack packets is disabled. Not sending AckPacket.")
     else:
         _send_packet(packet, direct=direct, aprs_client=aprs_client)
 
@@ -89,6 +92,9 @@ def _send_direct(packet, aprs_client=None):
     except Exception as e:
         LOG.error(f"Failed to send packet: {packet}")
         LOG.error(e)
+        return False
+    else:
+        return True
 
 
 class SendPacketThread(aprsd_threads.APRSDThread):
@@ -150,8 +156,17 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                 # no attempt time, so lets send it, and start
                 # tracking the time.
                 packet.last_send_time = int(round(time.time()))
-                _send_direct(packet)
-                packet.send_count += 1
+                sent = False
+                try:
+                    sent = _send_direct(packet)
+                except Exception:
+                    LOG.error(f"Failed to send packet: {packet}")
+                else:
+                    # If an exception happens while sending
+                    # we don't want this attempt to count
+                    # against the packet
+                    if sent:
+                        packet.send_count += 1
 
             time.sleep(1)
             # Make sure we get called again.
@@ -199,8 +214,18 @@ class SendAckThread(aprsd_threads.APRSDThread):
             send_now = True
 
         if send_now:
-            _send_direct(self.packet)
-            self.packet.send_count += 1
+            sent = False
+            try:
+                sent = _send_direct(self.packet)
+            except Exception:
+                LOG.error(f"Failed to send packet: {self.packet}")
+            else:
+                # If an exception happens while sending
+                # we don't want this attempt to count
+                # against the packet
+                if sent:
+                    self.packet.send_count += 1
+
             self.packet.last_send_time = int(round(time.time()))
 
         time.sleep(1)

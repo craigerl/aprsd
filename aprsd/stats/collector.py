@@ -10,7 +10,7 @@ LOG = logging.getLogger("APRSD")
 @runtime_checkable
 class StatsProducer(Protocol):
     """The StatsProducer protocol is used to define the interface for collecting stats."""
-    def stats(self, serializeable=False) -> dict:
+    def stats(self, serializable=False) -> dict:
         """provide stats in a dictionary format."""
         ...
 
@@ -25,14 +25,18 @@ class Collector:
         stats = {}
         for name in self.producers:
             cls = name()
-            if isinstance(cls, StatsProducer):
-                try:
-                    stats[cls.__class__.__name__] = cls.stats(serializable=serializable).copy()
-                except Exception as e:
-                    LOG.error(f"Error in producer {name} (stats): {e}")
-            else:
-                raise TypeError(f"{cls} is not an instance of StatsProducer")
+            try:
+                stats[cls.__class__.__name__] = cls.stats(serializable=serializable).copy()
+            except Exception as e:
+                LOG.error(f"Error in producer {name} (stats): {e}")
         return stats
 
     def register_producer(self, producer_name: Callable):
+        if not isinstance(producer_name, StatsProducer):
+            raise TypeError(f"Producer {producer_name} is not a StatsProducer")
         self.producers.append(producer_name)
+
+    def unregister_producer(self, producer_name: Callable):
+        if not isinstance(producer_name, StatsProducer):
+            raise TypeError(f"Producer {producer_name} is not a StatsProducer")
+        self.producers.remove(producer_name)

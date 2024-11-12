@@ -3,7 +3,7 @@ import logging
 
 from oslo_config import cfg
 
-from aprsd.packets import collector, core
+from aprsd.packets import core
 from aprsd.utils import objectstore
 
 
@@ -37,9 +37,10 @@ class PacketList(objectstore.ObjectStoreMixin):
             self._total_rx += 1
             self._add(packet)
             ptype = packet.__class__.__name__
-            if ptype not in self.data["types"]:
-                self.data["types"][ptype] = {"tx": 0, "rx": 0}
-            self.data["types"][ptype]["rx"] += 1
+            type_stats = self.data["types"].setdefault(
+                ptype, {"tx": 0, "rx": 0},
+            )
+            type_stats["rx"] += 1
 
     def tx(self, packet: type[core.Packet]):
         """Add a packet that was received."""
@@ -47,9 +48,10 @@ class PacketList(objectstore.ObjectStoreMixin):
             self._total_tx += 1
             self._add(packet)
             ptype = packet.__class__.__name__
-            if ptype not in self.data["types"]:
-                self.data["types"][ptype] = {"tx": 0, "rx": 0}
-            self.data["types"][ptype]["tx"] += 1
+            type_stats = self.data["types"].setdefault(
+                ptype, {"tx": 0, "rx": 0},
+            )
+            type_stats["tx"] += 1
 
     def add(self, packet):
         with self.lock:
@@ -81,36 +83,18 @@ class PacketList(objectstore.ObjectStoreMixin):
             return self._total_tx
 
     def stats(self, serializable=False) -> dict:
-        # limit the number of packets to return to 50
         with self.lock:
-            tmp = OrderedDict(
-                reversed(
-                    list(
-                        self.data.get("packets", OrderedDict()).items(),
-                    ),
-                ),
-            )
-            pkts = []
-            count = 1
-            for packet in tmp:
-                pkts.append(tmp[packet])
-                count += 1
-                if count > CONF.packet_list_stats_maxlen:
-                    break
+            # Get last N packets directly using list slicing
+            packets_list = list(self.data.get("packets", {}).values())
+            pkts = packets_list[-CONF.packet_list_stats_maxlen:][::-1]
 
             stats = {
-                "total_tracked": self._total_rx + self._total_rx,
+                "total_tracked": self._total_rx + self._total_tx,  # Fixed typo: was rx + rx
                 "rx": self._total_rx,
                 "tx": self._total_tx,
-                "types": self.data.get("types", []),
+                "types": self.data.get("types", {}),  # Changed default from [] to {}
                 "packet_count": len(self.data.get("packets", [])),
                 "maxlen": self.maxlen,
                 "packets": pkts,
             }
             return stats
-
-
-# Now register the PacketList with the collector
-# every packet we RX and TX goes through the collector
-# for processing for whatever reason is needed.
-collector.PacketCollector().register(PacketList)

@@ -2,6 +2,7 @@
 
 import errno
 import functools
+import math
 import os
 import re
 import sys
@@ -80,6 +81,16 @@ def rgb_from_name(name):
     green = (hash >> 8) & 255
     blue = (hash >> 16) & 255
     return red, green, blue
+
+
+def hextriplet(colortuple):
+    """Convert a color tuple to a hex triplet."""
+    return "#" + "".join(f"{i:02X}" for i in colortuple)
+
+
+def hex_from_name(name):
+    """Create a hex color from a string."""
+    return hextriplet(rgb_from_name(name))
 
 
 def human_size(bytes, units=None):
@@ -161,3 +172,47 @@ def load_entry_points(group):
         except Exception as e:
             print(f"Extension {ep.name} of group {group} failed to load with {e}", file=sys.stderr)
             print(traceback.format_exc(), file=sys.stderr)
+
+
+def calculate_initial_compass_bearing(start, end):
+    if (type(start) != tuple) or (type(end) != tuple):  # noqa: E721
+        raise TypeError("Only tuples are supported as arguments")
+
+    lat1 = math.radians(float(start[0]))
+    lat2 = math.radians(float(end[0]))
+
+    diff_long = math.radians(float(end[1]) - float(start[1]))
+
+    x = math.sin(diff_long) * math.cos(lat2)
+    y = math.cos(lat1) * math.sin(lat2) - (
+        math.sin(lat1)
+        * math.cos(lat2) * math.cos(diff_long)
+    )
+
+    initial_bearing = math.atan2(x, y)
+
+    # Now we have the initial bearing but math.atan2 return values
+    # from -180° to + 180° which is not what we want for a compass bearing
+    # The solution is to normalize the initial bearing as shown below
+    initial_bearing = math.degrees(initial_bearing)
+    compass_bearing = (initial_bearing + 360) % 360
+
+    return compass_bearing
+
+
+def degrees_to_cardinal(bearing, full_string=False):
+    if full_string:
+        directions = [
+            "North", "North-Northeast", "Northeast", "East-Northeast", "East", "East-Southeast",
+            "Southeast", "South-Southeast", "South", "South-Southwest", "Southwest", "West-Southwest",
+            "West", "West-Northwest", "Northwest", "North-Northwest", "North",
+        ]
+    else:
+        directions = [
+            "N", "NNE", "NE", "ENE", "E", "ESE",
+            "SE", "SSE", "S", "SSW", "SW", "WSW",
+            "W", "WNW", "NW", "NNW", "N",
+        ]
+
+    cardinal = directions[round(bearing / 22.5)]
+    return cardinal

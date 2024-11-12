@@ -3,6 +3,7 @@ import logging
 import time
 import tracemalloc
 
+from loguru import logger
 from oslo_config import cfg
 
 from aprsd import packets, utils
@@ -14,6 +15,7 @@ from aprsd.threads import APRSDThread, APRSDThreadList
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
+LOGU = logger
 
 
 class KeepAliveThread(APRSDThread):
@@ -87,7 +89,12 @@ class KeepAliveThread(APRSDThread):
                     key = thread["name"]
                     if not alive:
                         LOG.error(f"Thread {thread}")
-                    LOG.info(f"{key: <15} Alive? {str(alive): <5} {str(age): <20}")
+
+                    thread_hex = f"fg {utils.hex_from_name(key)}"
+                    t_name = f"<{thread_hex}>{key:<15}</{thread_hex}>"
+                    thread_msg = f"{t_name} Alive? {str(alive): <5} {str(age): <20}"
+                    LOGU.opt(colors=True).info(thread_msg)
+                    # LOG.info(f"{key: <15} Alive? {str(alive): <5} {str(age): <20}")
 
             # check the APRS connection
             cl = client_factory.create()

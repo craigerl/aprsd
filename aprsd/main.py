@@ -54,7 +54,7 @@ def cli(ctx):
 
 def load_commands():
     from .cmds import (  # noqa
-        completion, dev, fetch_stats, healthcheck, list_plugins, listen,
+        admin, completion, dev, fetch_stats, healthcheck, list_plugins, listen,
         send_message, server, webchat,
     )
 
@@ -79,11 +79,15 @@ def signal_handler(sig, frame):
             ),
         )
         time.sleep(1.5)
-        packets.PacketTrack().save()
-        packets.WatchList().save()
-        packets.SeenList().save()
-        packets.PacketList().save()
-        LOG.info(collector.Collector().collect())
+        try:
+            packets.PacketTrack().save()
+            packets.WatchList().save()
+            packets.SeenList().save()
+            packets.PacketList().save()
+            collector.Collector().collect()
+        except Exception as e:
+            LOG.error(f"Failed to save data: {e}")
+            sys.exit(0)
         # signal.signal(signal.SIGTERM, sys.exit(0))
         # sys.exit(0)
 

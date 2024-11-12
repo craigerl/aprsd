@@ -12,6 +12,7 @@ import imapclient
 from oslo_config import cfg
 
 from aprsd import packets, plugin, threads, utils
+from aprsd.stats import collector
 from aprsd.threads import tx
 from aprsd.utils import trace
 
@@ -126,6 +127,11 @@ class EmailPlugin(plugin.APRSDRegexCommandPluginBase):
 
             shortcuts = _build_shortcuts_dict()
             LOG.info(f"Email shortcuts {shortcuts}")
+
+            # Register the EmailStats producer with the stats collector
+            # We do this here to prevent EmailStats from being registered
+            # when email is not enabled in the config file.
+            collector.Collector().register_producer(EmailStats)
         else:
             LOG.info("Email services not enabled.")
             self.enabled = False

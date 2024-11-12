@@ -141,6 +141,12 @@ aprsd_opts = [
         default=True,
         help="Set this to False to disable the help plugin.",
     ),
+    cfg.BoolOpt(
+        "enable_sending_ack_packets",
+        default=True,
+        help="Set this to False, to disable sending of ack packets. This will entirely stop"
+             "APRSD from sending ack packets.",
+    ),
 ]
 
 watch_list_opts = [
@@ -210,7 +216,6 @@ enabled_plugins_opts = [
             "aprsd.plugins.fortune.FortunePlugin",
             "aprsd.plugins.location.LocationPlugin",
             "aprsd.plugins.ping.PingPlugin",
-            "aprsd.plugins.query.QueryPlugin",
             "aprsd.plugins.time.TimePlugin",
             "aprsd.plugins.weather.OWMWeatherPlugin",
             "aprsd.plugins.version.VersionPlugin",

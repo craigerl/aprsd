@@ -4,7 +4,7 @@ import logging
 from oslo_config import cfg
 
 from aprsd import utils
-from aprsd.packets import collector, core
+from aprsd.packets import core
 from aprsd.utils import objectstore
 
 
@@ -117,6 +117,3 @@ class WatchList(objectstore.ObjectStoreMixin):
                 return False
         else:
             return False
-
-
-collector.PacketCollector().register(WatchList)

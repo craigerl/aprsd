@@ -33,7 +33,11 @@ class Aprsdis(aprslib.IS):
 
     def stop(self):
         self.thread_stop = True
-        LOG.info("Shutdown Aprsdis client.")
+        LOG.warning("Shutdown Aprsdis client.")
+
+    def close(self):
+        LOG.warning("Closing Aprsdis client.")
+        super().close()
 
     @wrapt.synchronized(lock)
     def send(self, packet: core.Packet):
@@ -189,14 +193,14 @@ class Aprsdis(aprslib.IS):
             except ParseError as exp:
                 self.logger.log(
                     11,
-                    "%s\n    Packet: %s",
+                    "%s    Packet: '%s'",
                     exp,
                     exp.packet,
                 )
             except UnknownFormat as exp:
                 self.logger.log(
                     9,
-                    "%s\n    Packet: %s",
+                    "%s    Packet: '%s'",
                     exp,
                     exp.packet,
                 )

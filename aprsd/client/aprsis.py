@@ -126,7 +126,10 @@ class APRSISClient(base.APRSClient):
         return aprs_client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
-        self._client.consumer(
-            callback, blocking=blocking,
-            immortal=immortal, raw=raw,
-        )
+        try:
+            self._client.consumer(
+                callback, blocking=blocking,
+                immortal=immortal, raw=raw,
+            )
+        except Exception as e:
+            LOG.error(f"Exception in consumer: {e}")

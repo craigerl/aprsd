@@ -10,12 +10,13 @@ import sys
 import time
 
 import click
+from loguru import logger
 from oslo_config import cfg
 from rich.console import Console
 
 # local imports here
 import aprsd
-from aprsd import cli_helper, packets, plugin, threads
+from aprsd import cli_helper, packets, plugin, threads, utils
 from aprsd.client import client_factory
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
@@ -24,12 +25,14 @@ from aprsd.packets import seen_list
 from aprsd.stats import collector
 from aprsd.threads import keep_alive, rx
 from aprsd.threads import stats as stats_thread
+from aprsd.threads.aprsd import APRSDThread
 
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
 LOG = logging.getLogger("APRSD")
 CONF = cfg.CONF
+LOGU = logger
 console = Console()
 
 
@@ -42,16 +45,21 @@ def signal_handler(sig, frame):
             ),
         )
         time.sleep(5)
-        LOG.info(collector.Collector().collect())
+        # Last save to disk
+        collector.Collector().collect()
 
 
 class APRSDListenThread(rx.APRSDRXThread):
-    def __init__(self, packet_queue, packet_filter=None, plugin_manager=None):
+    def __init__(
+        self, packet_queue, packet_filter=None, plugin_manager=None,
+        enabled_plugins=[], log_packets=False,
+    ):
         super().__init__(packet_queue)
         self.packet_filter = packet_filter
         self.plugin_manager = plugin_manager
         if self.plugin_manager:
             LOG.info(f"Plugins {self.plugin_manager.get_message_plugins()}")
+        self.log_packets = log_packets
 
     def process_packet(self, *args, **kwargs):
         packet = self._client.decode_packet(*args, **kwargs)
@@ -72,19 +80,58 @@ class APRSDListenThread(rx.APRSDRXThread):
         if self.packet_filter:
             filter_class = filters[self.packet_filter]
             if isinstance(packet, filter_class):
-                packet_log.log(packet)
+                if self.log_packets:
+                    packet_log.log(packet)
                 if self.plugin_manager:
                     # Don't do anything with the reply
                     # This is the listen only command.
                     self.plugin_manager.run(packet)
         else:
-            packet_log.log(packet)
+            if self.log_packets:
+                LOG.error("PISS")
+                packet_log.log(packet)
             if self.plugin_manager:
                 # Don't do anything with the reply.
                 # This is the listen only command.
                 self.plugin_manager.run(packet)
 
         packet_collector.PacketCollector().rx(packet)
+
+
+class ListenStatsThread(APRSDThread):
+    """Log the stats from the PacketList."""
+
+    def __init__(self):
+        super().__init__("PacketStatsLog")
+        self._last_total_rx = 0
+
+    def loop(self):
+        if self.loop_count % 10 == 0:
+            # log the stats every 10 seconds
+            stats_json = collector.Collector().collect()
+            stats = stats_json["PacketList"]
+            total_rx = stats["rx"]
+            rx_delta = total_rx - self._last_total_rx
+            rate = rx_delta / 10
+
+            # Log summary stats
+            LOGU.opt(colors=True).info(
+                f"<green>RX Rate: {rate} pps</green>  "
+                f"<yellow>Total RX: {total_rx}</yellow> "
+                f"<red>RX Last 10 secs: {rx_delta}</red>",
+            )
+            self._last_total_rx = total_rx
+
+            # Log individual type stats
+            for k, v in stats["types"].items():
+                thread_hex = f"fg {utils.hex_from_name(k)}"
+                LOGU.opt(colors=True).info(
+                    f"<{thread_hex}>{k:<15}</{thread_hex}> "
+                    f"<blue>RX: {v['rx']}</blue> <red>TX: {v['tx']}</red>",
+                )
+
+        time.sleep(1)
+        return True
 
 
 @cli.command()
@@ -122,6 +169,11 @@ class APRSDListenThread(rx.APRSDRXThread):
     help="Filter by packet type",
 )
 @click.option(
+    "--enable-plugin",
+    multiple=True,
+    help="Enable a plugin.  This is the name of the file in the plugins directory.",
+)
+@click.option(
     "--load-plugins",
     default=False,
     is_flag=True,
@@ -132,6 +184,18 @@ class APRSDListenThread(rx.APRSDRXThread):
     nargs=-1,
     required=True,
 )
+@click.option(
+    "--log-packets",
+    default=False,
+    is_flag=True,
+    help="Log incoming packets.",
+)
+@click.option(
+    "--enable-packet-stats",
+    default=False,
+    is_flag=True,
+    help="Enable packet stats periodic logging.",
+)
 @click.pass_context
 @cli_helper.process_standard_options
 def listen(
@@ -139,8 +203,11 @@ def listen(
     aprs_login,
     aprs_password,
     packet_filter,
+    enable_plugin,
     load_plugins,
     filter,
+    log_packets,
+    enable_packet_stats,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
 
@@ -194,22 +261,32 @@ def listen(
     aprs_client.set_filter(filter)
 
     keepalive = keep_alive.KeepAliveThread()
-    # keepalive.start()
 
     if not CONF.enable_seen_list:
         # just deregister the class from the packet collector
         packet_collector.PacketCollector().unregister(seen_list.SeenList)
 
     pm = None
-    pm = plugin.PluginManager()
     if load_plugins:
+        pm = plugin.PluginManager()
         LOG.info("Loading plugins")
         pm.setup_plugins(load_help_plugin=False)
+    elif enable_plugin:
+        pm = plugin.PluginManager()
+        pm.setup_plugins(
+            load_help_plugin=False,
+            plugin_list=enable_plugin,
+        )
     else:
         LOG.warning(
             "Not Loading any plugins use --load-plugins to load what's "
             "defined in the config file.",
         )
+
+    if pm:
+        for p in pm.get_plugins():
+            LOG.info("Loaded plugin %s", p.__class__.__name__)
+
     stats = stats_thread.APRSDStatsStoreThread()
     stats.start()
 
@@ -218,9 +295,14 @@ def listen(
         packet_queue=threads.packet_queue,
         packet_filter=packet_filter,
         plugin_manager=pm,
+        enabled_plugins=enable_plugin,
+        log_packets=log_packets,
     )
     LOG.debug("Start APRSDListenThread")
     listen_thread.start()
+    if enable_packet_stats:
+        listen_stats = ListenStatsThread()
+        listen_stats.start()
 
     keepalive.start()
     LOG.debug("keepalive Join")

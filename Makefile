@@ -1,5 +1,5 @@
 WORKDIR?=.
-VENVDIR ?= $(WORKDIR)/.aprsd-venv
+VENVDIR ?= $(WORKDIR)/.venv
 
 .DEFAULT_GOAL := help
 
@@ -24,7 +24,7 @@ run: venv  ## Create a virtual environment for running aprsd commands
 
 changelog: dev
 	npm i -g auto-changelog
-	auto-changelog -l false -o ChangeLog.md
+	auto-changelog -l false --sort-commits date -o ChangeLog.md
 
 docs: changelog
 	m2r --overwrite ChangeLog.md
