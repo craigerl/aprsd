@@ -101,7 +101,7 @@ def test_plugin(
 
     pm = plugin.PluginManager()
     if load_all:
-        pm.setup_plugins()
+        pm.setup_plugins(load_help_plugin=CONF.load_help_plugin)
     obj = pm._create_class(plugin_path, plugin.APRSDPluginBase)
     if not obj:
         click.echo(ctx.get_help())

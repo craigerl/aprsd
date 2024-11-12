@@ -470,7 +470,7 @@ class PluginManager:
     def reload_plugins(self):
         with self.lock:
             del self._pluggy_pm
-            self.setup_plugins()
+            self.setup_plugins(load_help_plugin=CONF.load_help_plugin)
 
     def setup_plugins(
         self, load_help_plugin=True,

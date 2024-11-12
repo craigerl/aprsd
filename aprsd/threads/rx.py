@@ -334,15 +334,8 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             # response, then we send a usage statement.
             if to_call == CONF.callsign and not replied:
 
-                # Is the help plugin installed?
-                help_available = False
-                for p in pm.get_message_plugins():
-                    if isinstance(p, plugin.HelpPlugin):
-                        help_available = True
-                        break
-
                 # Tailor the messages accordingly
-                if help_available:
+                if CONF.load_help_plugin:
                     LOG.warning("Sending help!")
                     message_text = "Unknown command! Send 'help' message for help"
                 else:
