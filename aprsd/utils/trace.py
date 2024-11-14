@@ -28,7 +28,8 @@ def trace(*dec_args, **dec_kwargs):
 
     def _decorator(f):
 
-        func_name = f.__name__
+        func_name = f.__qualname__
+        func_file = "/".join(f.__code__.co_filename.split("/")[-4:])
 
         @functools.wraps(f)
         def trace_logging_wrapper(*args, **kwargs):
@@ -46,10 +47,11 @@ def trace(*dec_args, **dec_kwargs):
 
             if pass_filter:
                 logger.debug(
-                    "==> %(func)s: call %(all_args)r",
+                    "==> %(func)s: call %(all_args)r file: %(file)s",
                     {
                         "func": func_name,
                         "all_args": str(all_args),
+                        "file": func_file,
                     },
                 )
 
