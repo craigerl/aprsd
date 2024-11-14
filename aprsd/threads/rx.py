@@ -333,8 +333,15 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             # If the message was for us and we didn't have a
             # response, then we send a usage statement.
             if to_call == CONF.callsign and not replied:
-                LOG.warning("Sending help!")
-                message_text = "Unknown command! Send 'help' message for help"
+
+                # Tailor the messages accordingly
+                if CONF.load_help_plugin:
+                    LOG.warning("Sending help!")
+                    message_text = "Unknown command! Send 'help' message for help"
+                else:
+                    LOG.warning("Unknown command!")
+                    message_text = "Unknown command!"
+
                 tx.send(
                     packets.MessagePacket(
                         from_call=CONF.callsign,

@@ -65,7 +65,7 @@ def server(ctx, flush):
     # log file output.
     LOG.info("Loading Plugin Manager and registering plugins")
     plugin_manager = plugin.PluginManager()
-    plugin_manager.setup_plugins()
+    plugin_manager.setup_plugins(load_help_plugin=CONF.load_help_plugin)
 
     # Dump all the config options now.
     CONF.log_opt_values(LOG, logging.DEBUG)

@@ -137,6 +137,11 @@ aprsd_opts = [
         help="Set this to False, to disable logging of packets to the log file.",
     ),
     cfg.BoolOpt(
+        "load_help_plugin",
+        default=True,
+        help="Set this to False to disable the help plugin.",
+    ),
+    cfg.BoolOpt(
         "enable_sending_ack_packets",
         default=True,
         help="Set this to False, to disable sending of ack packets. This will entirely stop"
