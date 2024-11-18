@@ -15,7 +15,6 @@ loguru
 oslo.config
 pluggy
 python-socketio
-pyyaml
 requests
 # Pinned due to gray needing 12.6.0
 rich~=12.6.0
