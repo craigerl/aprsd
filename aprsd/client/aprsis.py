@@ -126,10 +126,14 @@ class APRSISClient(base.APRSClient):
         return aprs_client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
-        try:
-            self._client.consumer(
-                callback, blocking=blocking,
-                immortal=immortal, raw=raw,
-            )
-        except Exception as e:
-            LOG.error(f"Exception in consumer: {e}")
+        if self._client:
+            try:
+                self._client.consumer(
+                    callback, blocking=blocking,
+                    immortal=immortal, raw=raw,
+                )
+            except Exception as e:
+                LOG.error(e)
+                LOG.info(e.__cause__)
+        else:
+            LOG.warning("client is None, might be resetting.")

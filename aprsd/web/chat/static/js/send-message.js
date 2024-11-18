@@ -101,7 +101,7 @@ function init_chat() {
 
    $("#sendform").submit(function(event) {
        event.preventDefault();
-       to_call = $('#to_call').val();
+       to_call = $('#to_call').val().toUpperCase();
        message = $('#message').val();
        path = $('#pkt_path option:selected').val();
        if (to_call == "") {
@@ -116,6 +116,8 @@ function init_chat() {
            //console.log(msg);
            socket.emit("send", msg);
            $('#message').val('');
+           callsign_select(to_call);
+           activate_callsign_tab(to_call);
        }
    });
 
@@ -418,7 +420,7 @@ function append_message(callsign, msg, msg_html) {
 
   // Find the right div to place the html
   new_callsign = add_callsign(callsign, msg);
-  update_callsign_path(callsign, msg);
+  //update_callsign_path(callsign, msg);
   append_message_html(callsign, msg_html, new_callsign);
   len = Object.keys(callsign_list).length;
   if (new_callsign && len == 1) {
@@ -565,16 +567,21 @@ function ack_msg(msg) {
    scroll_main_content();
 }
 
+function activate_callsign_tab(callsign) {
+    tab_content = tab_string(callsign, id=true);
+    $(tab_content).click();
+}
+
 function callsign_select(callsign) {
     var tocall = $("#to_call");
-    tocall.val(callsign);
+    tocall.val(callsign.toUpperCase());
     scroll_main_content(callsign);
     selected_tab_callsign = callsign;
     tab_notify_id = tab_notification_id(callsign, true);
     $(tab_notify_id).addClass('visually-hidden');
     $(tab_notify_id).text(0);
     // Now update the path
-    $('#pkt_path').val(callsign_list[callsign]);
+    // $('#pkt_path').val(callsign_list[callsign]);
 }
 
 function call_callsign_location(callsign) {
