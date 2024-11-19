@@ -423,7 +423,7 @@ function append_message(callsign, msg, msg_html) {
   //update_callsign_path(callsign, msg);
   append_message_html(callsign, msg_html, new_callsign);
   len = Object.keys(callsign_list).length;
-  if (new_callsign && len == 1) {
+  if (new_callsign) {
       //Now click the tab if and only if there is only one tab
       callsign_tab_id = callsign_tab(callsign);
       $(callsign_tab_id).click();
