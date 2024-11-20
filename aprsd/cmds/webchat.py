@@ -1,7 +1,6 @@
 import datetime
 import json
 import logging
-import math
 import signal
 import sys
 import threading
@@ -14,13 +13,14 @@ from flask_httpauth import HTTPBasicAuth
 from flask_socketio import Namespace, SocketIO
 from geopy.distance import geodesic
 from oslo_config import cfg
+import timeago
 from werkzeug.security import check_password_hash, generate_password_hash
 import wrapt
 
 import aprsd
-from aprsd import (
-    cli_helper, client, packets, plugin_utils, stats, threads, utils,
-)
+from aprsd import cli_helper, client, packets, plugin_utils, stats, threads
+from aprsd import utils
+from aprsd import utils as aprsd_utils
 from aprsd.client import client_factory, kiss
 from aprsd.main import cli
 from aprsd.threads import aprsd as aprsd_threads
@@ -131,47 +131,6 @@ def verify_password(username, password):
         return username
 
 
-def calculate_initial_compass_bearing(point_a, point_b):
-    """
-    Calculates the bearing between two points.
-    The formulae used is the following:
-        θ = atan2(sin(Δlong).cos(lat2),
-                  cos(lat1).sin(lat2) − sin(lat1).cos(lat2).cos(Δlong))
-    :Parameters:
-      - `pointA: The tuple representing the latitude/longitude for the
-        first point. Latitude and longitude must be in decimal degrees
-      - `pointB: The tuple representing the latitude/longitude for the
-        second point. Latitude and longitude must be in decimal degrees
-    :Returns:
-      The bearing in degrees
-    :Returns Type:
-      float
-    """
-    if (type(point_a) is not tuple) or (type(point_b) is not tuple):
-        raise TypeError("Only tuples are supported as arguments")
-
-    lat1 = math.radians(point_a[0])
-    lat2 = math.radians(point_b[0])
-
-    diff_long = math.radians(point_b[1] - point_a[1])
-
-    x = math.sin(diff_long) * math.cos(lat2)
-    y = math.cos(lat1) * math.sin(lat2) - (
-        math.sin(lat1)
-        * math.cos(lat2) * math.cos(diff_long)
-    )
-
-    initial_bearing = math.atan2(x, y)
-
-    # Now we have the initial bearing but math.atan2 return values
-    # from -180° to + 180° which is not what we want for a compass bearing
-    # The solution is to normalize the initial bearing as shown below
-    initial_bearing = math.degrees(initial_bearing)
-    compass_bearing = (initial_bearing + 360) % 360
-
-    return compass_bearing
-
-
 def _build_location_from_repeat(message):
     # This is a location message Format is
     # ^ld^callsign:latitude,longitude,altitude,course,speed,timestamp
@@ -188,16 +147,19 @@ def _build_location_from_repeat(message):
             course = float(b[3])
             speed = float(b[4])
             time = int(b[5])
+            compass_bearing = aprsd_utils.degrees_to_cardinal(course)
             data = {
                 "callsign": callsign,
                 "lat": lat,
                 "lon": lon,
                 "altitude": alt,
                 "course": course,
+                "compass_bearing": compass_bearing,
                 "speed": speed,
                 "lasttime": time,
+                "timeago": timeago.format(time),
             }
-            LOG.warning(f"Location data from REPEAT {data}")
+            LOG.debug(f"Location data from REPEAT {data}")
             return data
 
 
@@ -208,25 +170,32 @@ def _calculate_location_data(location_data):
     alt = location_data["altitude"]
     speed = location_data["speed"]
     lasttime = location_data["lasttime"]
+    timeago_str = location_data.get(
+        "timeago",
+        timeago.format(lasttime),
+    )
     # now calculate distance from our own location
     distance = 0
     if CONF.webchat.latitude and CONF.webchat.longitude:
         our_lat = float(CONF.webchat.latitude)
         our_lon = float(CONF.webchat.longitude)
         distance = geodesic((our_lat, our_lon), (lat, lon)).kilometers
-        bearing = calculate_initial_compass_bearing(
+        bearing = aprsd_utils.calculate_initial_compass_bearing(
             (our_lat, our_lon),
             (lat, lon),
         )
+        compass_bearing = aprsd_utils.degrees_to_cardinal(bearing)
     return {
         "callsign": location_data["callsign"],
         "lat": lat,
         "lon": lon,
         "altitude": alt,
         "course": f"{bearing:0.1f}",
+        "compass_bearing": compass_bearing,
         "speed": speed,
         "lasttime": lasttime,
-        "distance": f"{distance:0.3f}",
+        "timeago": timeago_str,
+        "distance": f"{distance:0.1f}",
     }
 
 

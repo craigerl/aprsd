@@ -174,14 +174,29 @@ def load_entry_points(group):
             print(traceback.format_exc(), file=sys.stderr)
 
 
-def calculate_initial_compass_bearing(start, end):
-    if (type(start) != tuple) or (type(end) != tuple):  # noqa: E721
+def calculate_initial_compass_bearing(point_a, point_b):
+    """
+    Calculates the bearing between two points.
+    The formulae used is the following:
+        θ = atan2(sin(Δlong).cos(lat2),
+                  cos(lat1).sin(lat2) − sin(lat1).cos(lat2).cos(Δlong))
+    :Parameters:
+      - `pointA: The tuple representing the latitude/longitude for the
+        first point. Latitude and longitude must be in decimal degrees
+      - `pointB: The tuple representing the latitude/longitude for the
+        second point. Latitude and longitude must be in decimal degrees
+    :Returns:
+      The bearing in degrees
+    :Returns Type:
+      float
+    """
+    if (type(point_a) != tuple) or (type(point_b) != tuple):  # noqa: E721
         raise TypeError("Only tuples are supported as arguments")
 
-    lat1 = math.radians(float(start[0]))
-    lat2 = math.radians(float(end[0]))
+    lat1 = math.radians(float(point_a[0]))
+    lat2 = math.radians(float(point_b[0]))
 
-    diff_long = math.radians(float(end[1]) - float(start[1]))
+    diff_long = math.radians(float(point_b[1]) - float(point_a[1]))
 
     x = math.sin(diff_long) * math.cos(lat2)
     y = math.cos(lat1) * math.sin(lat2) - (

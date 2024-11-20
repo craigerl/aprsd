@@ -17,25 +17,24 @@ function reload_popovers() {
 }
 
 function build_location_string(msg) {
-   dt = new Date(parseInt(msg['lasttime']) * 1000);
-   loc = "Last Location Update: " + dt.toLocaleString();
-   loc += "<br>Latitude: " + msg['lat'] + "<br>Longitude: " + msg['lon'];
-   loc += "<br>" + "Altitude: " + msg['altitude'] + " m";
-   loc += "<br>" + "Speed: " + msg['speed'] + " kph";
-   loc += "<br>" + "Bearing: " + msg['course'] + "°";
-   loc += "<br>" + "distance: " + msg['distance'] + " km";
-   return loc;
+    dt = new Date(parseInt(msg['lasttime']) * 1000);
+    loc = "Last Location Update: " + dt.toLocaleString();
+    loc += "<br>Latitude: " + msg['lat'] + "<br>Longitude: " + msg['lon'];
+    loc += "<br>" + "Altitude: " + msg['altitude'] + " m";
+    loc += "<br>" + "Speed: " + msg['speed'] + " kph";
+    loc += "<br>" + "Bearing: " + msg['compass_bearing'];
+    loc += "<br>" + "distance: " + msg['distance'] + " km";
+    return loc;
 }
 
 function build_location_string_small(msg) {
-
-   dt = new Date(parseInt(msg['lasttime']) * 1000);
-
+    dt = new Date(parseInt(msg['lasttime']) * 1000);
     loc = "" + msg['distance'] + "km";
     //loc += "Lat " + msg['lat'] + "&nbsp;Lon " + msg['lon'];
-    loc += "@" + msg['course'] + "°";
+    loc += "&nbsp;" + msg['compass_bearing'];
     //loc += "&nbsp;Distance " + msg['distance'] + " km";
-    loc += "&nbsp;" + dt.toLocaleString();
+    //loc += "&nbsp;" + dt.toLocaleString();
+    loc += "&nbsp;" + msg['timeago'];
     return loc;
 }
 
@@ -346,9 +345,9 @@ function create_callsign_tab_content(callsign, active=false) {
   item_html += '<div class="" style="border: 1px solid #999999;background-color:#aaaaaa;">';
   item_html += '<div class="row" style="padding-top:4px;padding-bottom:4px;background-color:#aaaaaa;margin:0px;">';
   item_html +=   '<div class="d-flex col-md-10 justify-content-left" style="padding:0px;margin:0px;">';
-  item_html +=     '<button onclick="call_callsign_location(\''+callsign+'\');" style="margin-left:2px;padding: 0px 4px 0px 4px;" type="button" class="btn btn-primary">';
-  item_html +=     '<span id="'+location_id+'Spinner" class="d-none spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Update</button>';
-  item_html +=   '&nbsp;<span id="'+location_id+'">'+location_str+'</span></div>';
+  item_html +=     '<button onclick="call_callsign_location(\''+callsign+'\');" style="margin-left:2px;padding: 0px 4px 0px 4px;font-size: .9rem" type="button" class="btn btn-primary">';
+  item_html +=     '<span id="'+location_id+'Spinner" class="d-none spinner-border spinner-border-sm" role="status" aria-hidden="true" style="font-size: .9rem"></span>Update</button>';
+  item_html +=   '&nbsp;<span id="'+location_id+'" style="font-size: .9rem">'+location_str+'</span></div>';
   item_html += '</div>';
   item_html += '<div class="speech-wrapper" id="'+wrapper_id+'"></div>';
   item_html += '</div>';

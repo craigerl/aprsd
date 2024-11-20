@@ -34,7 +34,7 @@ imagesize==1.4.1          # via sphinx
 iniconfig==2.0.0          # via pytest
 isort==5.13.2             # via -r requirements-dev.in, gray
 jinja2==3.1.4             # via sphinx
-libcst==1.5.0             # via fixit
+libcst==1.5.1             # via fixit
 m2r==0.3.1                # via -r requirements-dev.in
 markupsafe==3.0.2         # via jinja2
 mccabe==0.7.0             # via flake8
