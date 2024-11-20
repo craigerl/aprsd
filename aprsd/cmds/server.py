@@ -54,6 +54,15 @@ def server(ctx, flush):
         LOG.error("No Clients are enabled in config.")
         sys.exit(-1)
 
+    # Make sure we have 1 client transport enabled
+    if not client_factory.is_client_enabled():
+        LOG.error("No Clients are enabled in config.")
+        sys.exit(-1)
+
+    if not client_factory.is_client_configured():
+        LOG.error("APRS client is not properly configured in config file.")
+        sys.exit(-1)
+
     # Creates the client object
     LOG.info("Creating client connection")
     aprs_client = client_factory.create()
@@ -85,15 +94,6 @@ def server(ctx, flush):
     LOG.info("Watchlist Plugins enabled and running:")
     for p in watchlist_plugins:
         LOG.info(p)
-
-    # Make sure we have 1 client transport enabled
-    if not client_factory.is_client_enabled():
-        LOG.error("No Clients are enabled in config.")
-        sys.exit(-1)
-
-    if not client_factory.is_client_configured():
-        LOG.error("APRS client is not properly configured in config file.")
-        sys.exit(-1)
 
     if not CONF.enable_seen_list:
         # just deregister the class from the packet collector
