@@ -256,6 +256,12 @@ def listen(
     LOG.info("Creating client connection")
     aprs_client = client_factory.create()
     LOG.info(aprs_client)
+    if not aprs_client.login_success:
+        # We failed to login, will just quit!
+        msg = f"Login Failure: {aprs_client.login_failure}"
+        LOG.error(msg)
+        print(msg)
+        sys.exit(-1)
 
     LOG.debug(f"Filter by '{filter}'")
     aprs_client.set_filter(filter)

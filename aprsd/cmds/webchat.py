@@ -24,7 +24,9 @@ from aprsd import utils as aprsd_utils
 from aprsd.client import client_factory, kiss
 from aprsd.main import cli
 from aprsd.threads import aprsd as aprsd_threads
-from aprsd.threads import keep_alive, rx, tx
+from aprsd.threads import keep_alive, rx
+from aprsd.threads import stats as stats_thread
+from aprsd.threads import tx
 from aprsd.utils import trace
 
 
@@ -614,9 +616,23 @@ def webchat(ctx, flush, port):
         LOG.error("APRS client is not properly configured in config file.")
         sys.exit(-1)
 
+    # Creates the client object
+    LOG.info("Creating client connection")
+    aprs_client = client_factory.create()
+    LOG.info(aprs_client)
+    if not aprs_client.login_success:
+        # We failed to login, will just quit!
+        msg = f"Login Failure: {aprs_client.login_failure}"
+        LOG.error(msg)
+        print(msg)
+        sys.exit(-1)
+
     keepalive = keep_alive.KeepAliveThread()
     LOG.info("Start KeepAliveThread")
     keepalive.start()
+
+    stats_store_thread = stats_thread.APRSDStatsStoreThread()
+    stats_store_thread.start()
 
     socketio = init_flask(loglevel, quiet)
     rx_thread = rx.APRSDPluginRXThread(

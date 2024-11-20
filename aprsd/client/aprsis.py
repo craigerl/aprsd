@@ -23,13 +23,24 @@ class APRSISClient(base.APRSClient):
         max_timeout = {"hours": 0.0, "minutes": 2, "seconds": 0}
         self.max_delta = datetime.timedelta(**max_timeout)
 
-    def stats(self) -> dict:
+    def stats(self, serializable=False) -> dict:
         stats = {}
         if self.is_configured():
+            if self._client:
+                keepalive = self._client.aprsd_keepalive
+                server_string = self._client.server_string
+                if serializable:
+                    keepalive = keepalive.isoformat()
+            else:
+                keepalive = "None"
+                server_string = "None"
             stats = {
-                "server_string": self._client.server_string,
-                "sever_keepalive": self._client.aprsd_keepalive,
+                "connected": self.is_connected,
                 "filter": self.filter,
+                "keepalive": keepalive,
+                "login_status": self.login_status,
+                "server_string": server_string,
+                "transport": self.transport(),
             }
 
         return stats
@@ -99,22 +110,31 @@ class APRSISClient(base.APRSClient):
         self.connected = False
         backoff = 1
         aprs_client = None
+        retries = 3
+        retry_count = 0
         while not self.connected:
+            retry_count += 1
+            if retry_count >= retries:
+                break
             try:
                 LOG.info(f"Creating aprslib client({host}:{port}) and logging in {user}.")
                 aprs_client = aprsis.Aprsdis(user, passwd=password, host=host, port=port)
                 # Force the log to be the same
                 aprs_client.logger = LOG
                 aprs_client.connect()
-                self.connected = True
+                self.connected = self.login_status["success"] = True
+                self.login_status["message"] = aprs_client.server_string
                 backoff = 1
             except LoginError as e:
                 LOG.error(f"Failed to login to APRS-IS Server '{e}'")
-                self.connected = False
+                self.connected = self.login_status["success"] = False
+                self.login_status["message"] = e.message
+                LOG.error(e.message)
                 time.sleep(backoff)
             except Exception as e:
                 LOG.error(f"Unable to connect to APRS-IS server. '{e}' ")
-                self.connected = False
+                self.connected = self.login_status["success"] = False
+                self.login_status["message"] = e.message
                 time.sleep(backoff)
                 # Don't allow the backoff to go to inifinity.
                 if backoff > 5:
@@ -135,5 +155,7 @@ class APRSISClient(base.APRSClient):
             except Exception as e:
                 LOG.error(e)
                 LOG.info(e.__cause__)
+                raise e
         else:
             LOG.warning("client is None, might be resetting.")
+            self.connected = False

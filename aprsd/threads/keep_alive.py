@@ -5,6 +5,7 @@ import tracemalloc
 
 from loguru import logger
 from oslo_config import cfg
+import timeago
 
 from aprsd import packets, utils
 from aprsd.client import client_factory
@@ -98,6 +99,9 @@ class KeepAliveThread(APRSDThread):
 
             # check the APRS connection
             cl = client_factory.create()
+            cl_stats = cl.stats()
+            keepalive = timeago.format(cl_stats.get("keepalive", None))
+            LOGU.opt(colors=True).info(f"<green>Client keepalive {keepalive}</green>")
             # Reset the connection if it's dead and this isn't our
             # First time through the loop.
             # The first time through the loop can happen at startup where

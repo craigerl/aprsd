@@ -14,8 +14,11 @@ LOG = logging.getLogger("APRSD")
 
 class APRSDFakeClient(base.APRSClient, metaclass=trace.TraceWrapperMetaclass):
 
-    def stats(self) -> dict:
-        return {}
+    def stats(self, serializable=False) -> dict:
+        return {
+            "transport": "Fake",
+            "connected": True,
+        }
 
     @staticmethod
     def is_enabled():

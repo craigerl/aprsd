@@ -17,12 +17,18 @@ class KISSClient(base.APRSClient):
 
     _client = None
 
-    def stats(self) -> dict:
+    def stats(self, serializable=False) -> dict:
         stats = {}
         if self.is_configured():
-            return {
+            stats = {
+                "connected": self.is_connected,
                 "transport": self.transport(),
             }
+            if self.transport() == client.TRANSPORT_TCPKISS:
+                stats["host"] = CONF.kiss_tcp.host
+                stats["port"] = CONF.kiss_tcp.port
+            elif self.transport() == client.TRANSPORT_SERIALKISS:
+                stats["device"] = CONF.kiss_serial.device
         return stats
 
     @staticmethod

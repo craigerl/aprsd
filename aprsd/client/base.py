@@ -19,6 +19,10 @@ class APRSClient:
     _client = None
 
     connected = False
+    login_status = {
+        "success": False,
+        "message": None,
+    }
     filter = None
     lock = threading.Lock()
 
@@ -37,6 +41,18 @@ class APRSClient:
         Returns:
             dict: Statistics about the connection and packet handling
         """
+
+    @property
+    def is_connected(self):
+        return self.connected
+
+    @property
+    def login_success(self):
+        return self.login_status.get("success", False)
+
+    @property
+    def login_failure(self):
+        return self.login_status["message"]
 
     def set_filter(self, filter):
         self.filter = filter

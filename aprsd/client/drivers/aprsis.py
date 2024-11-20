@@ -27,6 +27,9 @@ class Aprsdis(aprslib.IS):
     # date for last time we heard from the server
     aprsd_keepalive = datetime.datetime.now()
 
+    # Which server we are connected to?
+    server_string = "None"
+
     # timeout in seconds
     select_timeout = 1
     lock = threading.Lock()

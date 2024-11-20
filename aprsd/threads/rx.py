@@ -18,6 +18,8 @@ LOG = logging.getLogger("APRSD")
 
 
 class APRSDRXThread(APRSDThread):
+    _client = None
+
     def __init__(self, packet_queue):
         super().__init__("RX_PKT")
         self.packet_queue = packet_queue
@@ -33,6 +35,12 @@ class APRSDRXThread(APRSDThread):
             self._client = client_factory.create()
             time.sleep(1)
             return True
+
+        if not self._client.is_connected:
+            self._client = client_factory.create()
+            time.sleep(1)
+            return True
+
         # setup the consumer of messages and block until a messages
         try:
             # This will register a packet consumer with aprslib

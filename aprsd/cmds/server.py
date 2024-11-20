@@ -58,6 +58,14 @@ def server(ctx, flush):
     LOG.info("Creating client connection")
     aprs_client = client_factory.create()
     LOG.info(aprs_client)
+    if not aprs_client.login_success:
+        # We failed to login, will just quit!
+        msg = f"Login Failure: {aprs_client.login_failure}"
+        LOG.error(msg)
+        print(msg)
+        sys.exit(-1)
+
+    # Check to make sure the login worked.
 
     # Create the initial PM singleton and Register plugins
     # We register plugins first here so we can register each
