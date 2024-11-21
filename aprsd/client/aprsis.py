@@ -37,8 +37,8 @@ class APRSISClient(base.APRSClient):
             stats = {
                 "connected": self.is_connected,
                 "filter": self.filter,
-                "keepalive": keepalive,
                 "login_status": self.login_status,
+                "server_keepalive": keepalive,
                 "server_string": server_string,
                 "transport": self.transport(),
             }

@@ -53,12 +53,19 @@ class TestAPRSISClient(unittest.TestCase):
 
         with mock.patch.object(APRSISClient, "is_configured", return_value=True):
             stats = self.client.stats()
+            from rich.console import Console
+            c = Console()
+            c.print(stats)
             self.assertEqual(
                 {
-                    "server_string": mock_client.server_string,
-                    "sever_keepalive": mock_client.aprsd_keepalive,
+                    "connected": True,
                     "filter": "m/50",
-                }, stats,
+                    "login_status": {"message": mock.ANY, "success": True},
+                    "server_keepalive": mock_client.aprsd_keepalive,
+                    "server_string": mock_client.server_string,
+                    "transport": "aprsis",
+                },
+                stats,
             )
 
     def test_is_configured_missing_login(self):
