@@ -2,6 +2,7 @@ import abc
 import datetime
 import logging
 import threading
+import time
 from typing import List
 
 import wrapt
@@ -14,6 +15,8 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
     """Base class for all threads in APRSD."""
 
     loop_count = 1
+    _pause = False
+    thread_stop = False
 
     def __init__(self, name):
         super().__init__(name=name)
@@ -25,6 +28,16 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         """ see if we have a quit message from the global queue."""
         if self.thread_stop:
             return True
+
+    def pause(self):
+        """Logically pause the processing of the main loop."""
+        LOG.debug(f"Pausing thread '{self.name}' loop_count {self.loop_count}")
+        self._pause = True
+
+    def unpause(self):
+        """Logically resume processing of the main loop."""
+        LOG.debug(f"Resuming thread '{self.name}' loop_count {self.loop_count}")
+        self._pause = False
 
     def stop(self):
         self.thread_stop = True
@@ -47,11 +60,14 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
     def run(self):
         LOG.debug("Starting")
         while not self._should_quit():
-            self.loop_count += 1
-            can_loop = self.loop()
-            self._last_loop = datetime.datetime.now()
-            if not can_loop:
-                self.stop()
+            if self._pause:
+                time.sleep(1)
+            else:
+                self.loop_count += 1
+                can_loop = self.loop()
+                self._last_loop = datetime.datetime.now()
+                if not can_loop:
+                    self.stop()
         self._cleanup()
         APRSDThreadList().remove(self)
         LOG.debug("Exiting")
