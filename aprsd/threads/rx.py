@@ -23,7 +23,6 @@ class APRSDRXThread(APRSDThread):
     def __init__(self, packet_queue):
         super().__init__("RX_PKT")
         self.packet_queue = packet_queue
-        self._client = client_factory.create()
 
     def stop(self):
         self.thread_stop = True
