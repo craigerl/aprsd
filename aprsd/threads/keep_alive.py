@@ -100,7 +100,11 @@ class KeepAliveThread(APRSDThread):
             # check the APRS connection
             cl = client_factory.create()
             cl_stats = cl.stats()
-            keepalive = timeago.format(cl_stats.get("keepalive", None))
+            ka = cl_stats.get("keepalive", None)
+            if ka:
+                keepalive = timeago.format(ka)
+            else:
+                keepalive = "N/A"
             LOGU.opt(colors=True).info(f"<green>Client keepalive {keepalive}</green>")
             # Reset the connection if it's dead and this isn't our
             # First time through the loop.
