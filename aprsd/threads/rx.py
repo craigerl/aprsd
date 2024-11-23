@@ -70,6 +70,7 @@ class APRSDRXThread(APRSDThread):
             self._client.reset()
             time.sleep(5)
         # Continue to loop
+        time.sleep(1)
         return True
 
     def _process_packet(self, *args, **kwargs):
