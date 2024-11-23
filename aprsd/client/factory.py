@@ -42,6 +42,7 @@ class Client(Protocol):
 class ClientFactory:
     _instance = None
     clients = []
+    client = None
 
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
@@ -62,8 +63,12 @@ class ClientFactory:
     def create(self, key=None):
         for client in self.clients:
             if client.is_enabled():
-                return client()
+                self.client = client()
+                return self.client
         raise Exception("No client is configured!!")
+
+    def client_exists(self):
+        return bool(self.client)
 
     def is_client_enabled(self):
         """Make sure at least one client is enabled."""
