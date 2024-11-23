@@ -40,6 +40,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         self._pause = False
 
     def stop(self):
+        LOG.debug(f"Stopping thread '{self.name}'")
         self.thread_stop = True
 
     @abc.abstractmethod
@@ -118,6 +119,24 @@ class APRSDThreadList:
             if hasattr(th, "packet"):
                 LOG.info(F"{th.name} packet {th.packet}")
             th.stop()
+
+    @wrapt.synchronized
+    def pause_all(self):
+        """Iterate over all threads and pause them."""
+        for th in self.threads_list:
+            LOG.info(f"Pausing Thread {th.name}")
+            if hasattr(th, "packet"):
+                LOG.info(F"{th.name} packet {th.packet}")
+            th.pause()
+
+    @wrapt.synchronized
+    def unpause_all(self):
+        """Iterate over all threads and resume them."""
+        for th in self.threads_list:
+            LOG.info(f"Resuming Thread {th.name}")
+            if hasattr(th, "packet"):
+                LOG.info(F"{th.name} packet {th.packet}")
+            th.unpause()
 
     @wrapt.synchronized(lock)
     def info(self):
