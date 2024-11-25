@@ -110,4 +110,5 @@ class KISSClient(base.APRSClient):
         return self._client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
+        LOG.info(f"{self.__class__.__name__}.consumer called")
         self._client.consumer(callback)
