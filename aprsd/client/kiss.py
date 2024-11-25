@@ -101,8 +101,12 @@ class KISSClient(base.APRSClient):
             return packet
 
     def setup_connection(self):
-        self._client = kiss.KISS3Client()
-        self.connected = True
+        try:
+            self._client = kiss.KISS3Client()
+            self.connected = self.login_status["success"] = True
+        except Exception as ex:
+            self.connected = self.login_status["success"] = False
+            self.login_status["message"] = str(ex)
         return self._client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
