@@ -121,6 +121,12 @@ class APRSDDupeRXThread(APRSDRXThread):
                 # Find the packet in the list of already seen packets
                 # Based on the packet.key
                 found = pkt_list.find(packet)
+                if not packet.msgNo:
+                    # If the packet doesn't have a message id
+                    # then there is no reliable way to detect
+                    # if it's a dupe, so we just pass it on.
+                    # it shouldn't get acked either.
+                    found = False
             except KeyError:
                 found = False
 
@@ -223,7 +229,10 @@ class APRSDProcessPacketThread(APRSDThread):
                 self.process_piggyback_ack(packet)
             # Only ack messages that were sent directly to us
             if isinstance(packet, packets.MessagePacket):
-                if to_call and to_call.lower() == our_call:
+                if (
+                    to_call and to_call.lower() == our_call
+                    and msg_id
+                ):
                     # It's a MessagePacket and it's for us!
                     # let any threads do their thing, then ack
                     # send an ack last
