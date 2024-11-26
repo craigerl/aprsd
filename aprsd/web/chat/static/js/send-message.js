@@ -507,6 +507,7 @@ function sent_msg(msg) {
     append_message(msg['to_call'], msg, msg_html);
     save_data();
     scroll_main_content(msg['to_call']);
+    reload_popovers();
 }
 
 function from_msg(msg) {
@@ -533,6 +534,7 @@ function from_msg(msg) {
    append_message(from, msg, msg_html);
    save_data();
    scroll_main_content(from);
+   reload_popovers();
 }
 
 function ack_msg(msg) {
