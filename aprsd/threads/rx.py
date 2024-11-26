@@ -11,6 +11,7 @@ from aprsd.client import client_factory
 from aprsd.packets import collector
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
+from aprsd.utils import trace
 
 
 CONF = cfg.CONF
@@ -92,6 +93,7 @@ class APRSDDupeRXThread(APRSDRXThread):
     to be processed.
     """
 
+    @trace.trace
     def process_packet(self, *args, **kwargs):
         """This handles the processing of an inbound packet.
 
@@ -104,7 +106,6 @@ class APRSDDupeRXThread(APRSDRXThread):
         PluginProcessPacketThread for processing.
         """
         packet = self._client.decode_packet(*args, **kwargs)
-        # LOG.debug(raw)
         packet_log.log(packet)
         pkt_list = packets.PacketList()
 
@@ -229,20 +230,18 @@ class APRSDProcessPacketThread(APRSDThread):
                 self.process_piggyback_ack(packet)
             # Only ack messages that were sent directly to us
             if isinstance(packet, packets.MessagePacket):
-                if (
-                    to_call and to_call.lower() == our_call
-                    and msg_id
-                ):
+                if to_call and to_call.lower() == our_call:
                     # It's a MessagePacket and it's for us!
                     # let any threads do their thing, then ack
                     # send an ack last
-                    tx.send(
-                        packets.AckPacket(
-                            from_call=CONF.callsign,
-                            to_call=from_call,
-                            msgNo=msg_id,
-                        ),
-                    )
+                    if msg_id:
+                        tx.send(
+                            packets.AckPacket(
+                                from_call=CONF.callsign,
+                                to_call=from_call,
+                                msgNo=msg_id,
+                            ),
+                        )
 
                     self.process_our_message_packet(packet)
                 else:
@@ -262,7 +261,7 @@ class APRSDProcessPacketThread(APRSDThread):
     def process_other_packet(self, packet, for_us=False):
         """Process an APRS Packet that isn't a message or ack"""
         if not for_us:
-            LOG.info("Got a packet not meant for us.")
+            LOG.info("Got a packet meant for someone else '{packet.to_call}'")
         else:
             LOG.info("Got a non AckPacket/MessagePacket")
 
