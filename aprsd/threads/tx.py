@@ -48,7 +48,7 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
     """Send a packet either in a thread or directly to the client."""
     # prepare the packet for sending.
     # This constructs the packet.raw
-    packet.prepare()
+    packet.prepare(create_msg_number=True)
     # Have to call the collector to track the packet
     # After prepare, as prepare assigns the msgNo
     collector.PacketCollector().tx(packet)

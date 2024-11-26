@@ -8,6 +8,7 @@ import flask_socketio
 from oslo_config import cfg
 
 from aprsd import conf  # noqa: F401
+from aprsd.client import fake as fake_client
 from aprsd.cmds import webchat  # noqa
 from aprsd.packets import core
 
@@ -64,11 +65,13 @@ class TestSendMessageCommand(unittest.TestCase):
     @mock.patch("aprsd.threads.tx.send")
     @mock.patch("aprsd.packets.PacketList.rx")
     @mock.patch("aprsd.cmds.webchat.socketio")
+    @mock.patch("aprsd.client.factory.ClientFactory.create")
     def test_process_our_message_packet(
         self,
         mock_tx_send,
         mock_packet_add,
         mock_socketio,
+        mock_factory,
     ):
         self.config_and_init()
         mock_socketio.emit = mock.MagicMock()
@@ -77,6 +80,7 @@ class TestSendMessageCommand(unittest.TestCase):
             msg_number=1,
             message_format=core.PACKET_TYPE_MESSAGE,
         )
+        mock_factory.return_value = fake_client.APRSDFakeClient()
         mock_queue = mock.MagicMock()
         socketio = mock.MagicMock()
         wcp = webchat.WebChatProcessPacketThread(mock_queue, socketio)

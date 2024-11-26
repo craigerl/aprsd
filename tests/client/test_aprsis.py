@@ -61,7 +61,7 @@ class TestAPRSISClient(unittest.TestCase):
                     "connected": True,
                     "filter": "m/50",
                     "login_status": {"message": mock.ANY, "success": True},
-                    "server_keepalive": mock_client.aprsd_keepalive,
+                    "connection_keepalive": mock_client.aprsd_keepalive,
                     "server_string": mock_client.server_string,
                     "transport": "aprsis",
                 },

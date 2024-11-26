@@ -12,7 +12,7 @@ from dataclasses_json import (
 )
 from loguru import logger
 
-from aprsd.utils import counter
+from aprsd.utils import counter, trace
 
 
 # For mypy to be happy
@@ -127,10 +127,11 @@ class Packet:
         msg = self._filter_for_send(self.raw).rstrip("\n")
         return msg
 
-    def prepare(self) -> None:
+    @trace.trace
+    def prepare(self, create_msg_number=False) -> None:
         """Do stuff here that is needed prior to sending over the air."""
         # now build the raw message for sending
-        if not self.msgNo:
+        if not self.msgNo and create_msg_number:
             self.msgNo = _init_msgNo()
         self._build_payload()
         self._build_raw()
@@ -244,11 +245,17 @@ class MessagePacket(Packet):
         return self._filter_for_send(self.message_text).rstrip("\n")
 
     def _build_payload(self):
-        self.payload = ":{}:{}{{{}".format(
-            self.to_call.ljust(9),
-            self._filter_for_send(self.message_text).rstrip("\n"),
-            str(self.msgNo),
-        )
+        if self.msgNo:
+            self.payload = ":{}:{}{{{}".format(
+                self.to_call.ljust(9),
+                self._filter_for_send(self.message_text).rstrip("\n"),
+                str(self.msgNo),
+            )
+        else:
+            self.payload = ":{}:{}".format(
+                self.to_call.ljust(9),
+                self._filter_for_send(self.message_text).rstrip("\n"),
+            )
 
 
 @dataclass_json
