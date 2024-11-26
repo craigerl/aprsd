@@ -38,7 +38,7 @@ class APRSISClient(base.APRSClient):
                 "connected": self.is_connected,
                 "filter": self.filter,
                 "login_status": self.login_status,
-                "server_keepalive": keepalive,
+                "connection_keepalive": keepalive,
                 "server_string": server_string,
                 "transport": self.transport(),
             }

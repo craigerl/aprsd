@@ -100,7 +100,7 @@ class KeepAliveThread(APRSDThread):
             # check the APRS connection
             cl = client_factory.create()
             cl_stats = cl.stats()
-            ka = cl_stats.get("keepalive", None)
+            ka = cl_stats.get("connection_keepalive", None)
             if ka:
                 keepalive = timeago.format(ka)
             else:

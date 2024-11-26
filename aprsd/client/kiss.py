@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 import aprslib
@@ -16,12 +17,17 @@ LOG = logging.getLogger("APRSD")
 class KISSClient(base.APRSClient):
 
     _client = None
+    keepalive = datetime.datetime.now()
 
     def stats(self, serializable=False) -> dict:
         stats = {}
         if self.is_configured():
+            keepalive = self.keepalive
+            if serializable:
+                keepalive = keepalive.isoformat()
             stats = {
                 "connected": self.is_connected,
+                "connection_keepalive": keepalive,
                 "transport": self.transport(),
             }
             if self.transport() == client.TRANSPORT_TCPKISS:
@@ -110,5 +116,9 @@ class KISSClient(base.APRSClient):
         return self._client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
-        LOG.info(f"{self.__class__.__name__}.consumer called")
-        self._client.consumer(callback)
+        try:
+            self._client.consumer(callback)
+            self.keepalive = datetime.datetime.now()
+        except Exception as ex:
+            LOG.error(f"Consumer failed {ex}")
+            LOG.error(ex)
