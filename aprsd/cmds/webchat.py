@@ -38,7 +38,7 @@ socketio = None
 
 # List of callsigns that we don't want to track/fetch their location
 callsign_no_track = [
-    "REPEAT", "WB4BOR-11", "APDW16", "WXNOW", "WXBOT", "BLN0", "BLN1", "BLN2",
+    "APDW16", "BLN0", "BLN1", "BLN2",
     "BLN3", "BLN4", "BLN5", "BLN6", "BLN7", "BLN8", "BLN9",
 ]
 
@@ -319,6 +319,7 @@ class WebChatProcessPacketThread(rx.APRSDProcessPacketThread):
         elif (
             from_call not in callsign_locations
             and from_call not in callsign_no_track
+            and client_factory.create().transport() in [client.TRANSPORT_APRSIS, client.TRANSPORT_FAKE]
         ):
             # We have to ask aprs for the location for the callsign
             # We send a message packet to wb4bor-11 asking for location.
@@ -377,7 +378,8 @@ def _get_transport(stats):
 @flask_app.route("/location/<callsign>", methods=["POST"])
 def location(callsign):
     LOG.debug(f"Fetch location for callsign {callsign}")
-    populate_callsign_location(callsign)
+    if not callsign in callsign_no_track:
+        populate_callsign_location(callsign)
 
 
 @auth.login_required
@@ -542,7 +544,8 @@ class SendMessageNamespace(Namespace):
 
     def on_get_callsign_location(self, data):
         LOG.debug(f"on_callsign_location {data}")
-        populate_callsign_location(data["callsign"])
+        if data["callsign"] not in callsign_no_track:
+            populate_callsign_location(data["callsign"])
 
 
 @trace.trace
