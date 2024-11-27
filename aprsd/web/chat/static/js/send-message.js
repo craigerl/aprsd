@@ -510,9 +510,28 @@ function sent_msg(msg) {
     reload_popovers();
 }
 
+function str_to_int(my_string) {
+    total = 0
+    for (let i = 0; i < my_string.length; i++) {
+        total += my_string.charCodeAt(i);
+    }
+    return total
+}
+
 function from_msg(msg) {
    if (!from_msg_list.hasOwnProperty(msg["from_call"])) {
         from_msg_list[msg["from_call"]] = new Array();
+   }
+
+   // Try to account for messages that have no msgNo
+   console.log(msg)
+   if (msg["msgNo"] == null) {
+        console.log("Need to add msgNO!!")
+        // create an artificial msgNo
+        total = str_to_int(msg["from_call"])
+        total += str_to_int(msg["addresse"])
+        total += str_to_int(msg["message_text"])
+        msg["msgNo"] = total
    }
 
    if (msg["msgNo"] in from_msg_list[msg["from_call"]]) {

@@ -500,8 +500,8 @@ class SendMessageNamespace(Namespace):
         pkt.prepare()
         self.msg = pkt
         msgs = SentMessages()
-        msgs.add(pkt)
         tx.send(pkt)
+        msgs.add(pkt)
         msgs.set_status(pkt.msgNo, "Sending")
         obj = msgs.get(pkt.msgNo)
         socketio.emit(
