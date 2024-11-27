@@ -88,6 +88,13 @@ class APRSDThreadList:
             cls.threads_list = []
         return cls._instance
 
+    def __contains__(self, name):
+        """See if we have a thread in our list"""
+        for t in self.threads_list:
+            if t.name == name:
+                return True
+        return False
+
     def stats(self, serializable=False) -> dict:
         stats = {}
         for th in self.threads_list:
