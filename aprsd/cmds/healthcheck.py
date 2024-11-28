@@ -74,7 +74,7 @@ def healthcheck(ctx, timeout):
                 console.log("No APRSClientStats")
                 sys.exit(-1)
             else:
-                aprsis_last_update = client_stats["server_keepalive"]
+                aprsis_last_update = client_stats["connection_keepalive"]
                 d = now - aprsis_last_update
                 max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
                 max_delta = datetime.timedelta(**max_timeout)
