@@ -3,7 +3,6 @@ aprslib>=0.7.0
 beautifulsoup4
 click
 click-params
-dataclasses
 dataclasses-json
 flask
 flask-httpauth
