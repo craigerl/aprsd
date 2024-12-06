@@ -394,7 +394,7 @@ class BeaconPacket(GPSPacket):
         if self.raw_timestamp:
             return f"{self.from_call}:{self.raw_timestamp}"
         else:
-            return f"{self.from_call}:{self.human_info.replace(' ','')}"
+            return f"{self.from_call}:{self.human_info.replace(' ', '')}"
 
     @property
     def human_info(self) -> str:
@@ -450,7 +450,7 @@ class TelemetryPacket(GPSPacket):
         if self.raw_timestamp:
             return f"{self.from_call}:{self.raw_timestamp}"
         else:
-            return f"{self.from_call}:{self.human_info.replace(' ','')}"
+            return f"{self.from_call}:{self.human_info.replace(' ', '')}"
 
     @property
     def human_info(self) -> str:
@@ -629,11 +629,11 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
             # Temperature in degrees F
             f"t{self.temperature:03.0f}",
             # Rainfall (in hundredths of an inch) in the last hour
-            f"r{self.rain_1h*100:03.0f}",
+            f"r{self.rain_1h * 100:03.0f}",
             # Rainfall (in hundredths of an inch) in last 24 hours
-            f"p{self.rain_24h*100:03.0f}",
+            f"p{self.rain_24h * 100:03.0f}",
             # Rainfall (in hundredths of an inch) since midnigt
-            f"P{self.rain_since_midnight*100:03.0f}",
+            f"P{self.rain_since_midnight * 100:03.0f}",
             # Humidity
             f"h{self.humidity:02d}",
             # Barometric pressure (in tenths of millibars/tenths of hPascal)
