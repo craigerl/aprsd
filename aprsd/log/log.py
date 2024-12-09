@@ -68,19 +68,9 @@ def setup_logging(loglevel=None, quiet=False):
         "aprslib.parsing",
         "aprslib.exceptions",
     ]
-    webserver_list = [
-        "werkzeug",
-        "werkzeug._internal",
-        "socketio",
-        "urllib3.connectionpool",
-        "chardet",
-        "chardet.charsetgroupprober",
-        "chardet.eucjpprober",
-        "chardet.mbcharsetprober",
-    ]
 
     # We don't really want to see the aprslib parsing debug output.
-    disable_list = imap_list + aprslib_list + webserver_list
+    disable_list = imap_list + aprslib_list
 
     # remove every other logger's handlers
     # and propagate to root logger
@@ -90,12 +80,6 @@ def setup_logging(loglevel=None, quiet=False):
             logging.getLogger(name).propagate = False
         else:
             logging.getLogger(name).propagate = True
-
-    if CONF.webchat.disable_url_request_logging:
-        for name in webserver_list:
-            logging.getLogger(name).handlers = []
-            logging.getLogger(name).propagate = True
-            logging.getLogger(name).setLevel(logging.ERROR)
 
     handlers = [
         {
