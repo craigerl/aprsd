@@ -11,16 +11,11 @@ watch_list_group = cfg.OptGroup(
     name="watch_list",
     title="Watch List settings",
 )
-webchat_group = cfg.OptGroup(
-    name="webchat",
-    title="Settings specific to the webchat command",
-)
 
 registry_group = cfg.OptGroup(
     name="aprs_registry",
     title="APRS Registry settings",
 )
-
 
 aprsd_opts = [
     cfg.StrOpt(
@@ -194,34 +189,6 @@ enabled_plugins_opts = [
     ),
 ]
 
-webchat_opts = [
-    cfg.StrOpt(
-        "web_ip",
-        default="0.0.0.0",
-        help="The ip address to listen on",
-    ),
-    cfg.PortOpt(
-        "web_port",
-        default=8001,
-        help="The port to listen on",
-    ),
-    cfg.StrOpt(
-        "latitude",
-        default=None,
-        help="Latitude for the GPS Beacon button.  If not set, the button will not be enabled.",
-    ),
-    cfg.StrOpt(
-        "longitude",
-        default=None,
-        help="Longitude for the GPS Beacon button.  If not set, the button will not be enabled.",
-    ),
-    cfg.BoolOpt(
-        "disable_url_request_logging",
-        default=False,
-        help="Disable the logging of url requests in the webchat command.",
-    ),
-]
-
 registry_opts = [
     cfg.BoolOpt(
         "enabled",
@@ -261,8 +228,6 @@ def register_opts(config):
     config.register_opts(enabled_plugins_opts)
     config.register_group(watch_list_group)
     config.register_opts(watch_list_opts, group=watch_list_group)
-    config.register_group(webchat_group)
-    config.register_opts(webchat_opts, group=webchat_group)
     config.register_group(registry_group)
     config.register_opts(registry_opts, group=registry_group)
 
@@ -271,6 +236,5 @@ def list_opts():
     return {
         "DEFAULT": (aprsd_opts + enabled_plugins_opts),
         watch_list_group.name: watch_list_opts,
-        webchat_group.name: webchat_opts,
         registry_group.name: registry_opts,
     }
