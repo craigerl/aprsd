@@ -54,7 +54,7 @@ def cli(ctx):
 
 def load_commands():
     from .cmds import (  # noqa
-        admin, completion, dev, fetch_stats, healthcheck, list_plugins, listen,
+        completion, dev, fetch_stats, healthcheck, list_plugins, listen,
         send_message, server, webchat,
     )
 
