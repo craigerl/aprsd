@@ -27,8 +27,8 @@ class TestSendMessageCommand(unittest.TestCase):
         if password:
             CONF.aprs_network.password = password
 
-        CONF.admin.user = "admin"
-        CONF.admin.password = "password"
+        # CONF.aprsd_admin_extension.user = "admin"
+        # CONF.aprsd_admin_extension.password = "password"
 
     @mock.patch("aprsd.log.log.setup_logging")
     def test_no_tocallsign(self, mock_logging):
