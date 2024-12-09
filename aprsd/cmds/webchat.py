@@ -14,7 +14,6 @@ from flask_socketio import Namespace, SocketIO
 from geopy.distance import geodesic
 from oslo_config import cfg
 import timeago
-from werkzeug.security import check_password_hash, generate_password_hash
 import wrapt
 
 import aprsd
@@ -33,7 +32,6 @@ from aprsd.utils import trace
 CONF = cfg.CONF
 LOG = logging.getLogger()
 auth = HTTPBasicAuth()
-users = {}
 socketio = None
 
 # List of callsigns that we don't want to track/fetch their location
@@ -120,17 +118,6 @@ class SentMessages:
         """We got a packet back from the sent message."""
         if id in self.data:
             self.data[id]["reply"] = packet
-
-
-# HTTPBasicAuth doesn't work on a class method.
-# This has to be out here.  Rely on the APRSDFlask
-# class to initialize the users from the config
-@auth.verify_password
-def verify_password(username, password):
-    global users
-
-    if username in users and check_password_hash(users[username], password):
-        return username
 
 
 def _build_location_from_repeat(message):
@@ -338,10 +325,6 @@ class LocationProcessingThread(aprsd_threads.APRSDThread):
 
     def loop(self):
         pass
-
-
-def set_config():
-    global users
 
 
 def _get_transport(stats):
@@ -603,8 +586,6 @@ def webchat(ctx, flush, port):
     LOG.info(f"APRSD Started version: {aprsd.__version__}")
 
     CONF.log_opt_values(logging.getLogger(), logging.DEBUG)
-    user = CONF.admin.user
-    users[user] = generate_password_hash(CONF.admin.password)
     if not port:
         port = CONF.webchat.web_port
 

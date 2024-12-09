@@ -1,5 +1,4 @@
 import logging
-from logging.handlers import QueueHandler
 import queue
 import sys
 
@@ -122,16 +121,16 @@ def setup_logging(loglevel=None, quiet=False):
         for name in imap_list:
             logging.getLogger(name).propagate = True
 
-    if CONF.admin.web_enabled:
-        qh = QueueHandler(logging_queue)
-        handlers.append(
-            {
-                "sink": qh, "serialize": False,
-                "format": CONF.logging.logformat,
-                "level": log_level,
-                "colorize": False,
-            },
-        )
+    # if CONF.admin.web_enabled:
+    #     qh = QueueHandler(logging_queue)
+    #     handlers.append(
+    #         {
+    #             "sink": qh, "serialize": False,
+    #             "format": CONF.logging.logformat,
+    #             "level": log_level,
+    #             "colorize": False,
+    #         },
+    #     )
 
     # configure loguru
     logger.configure(handlers=handlers)
