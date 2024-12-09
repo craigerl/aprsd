@@ -7,24 +7,15 @@ home = str(Path.home())
 DEFAULT_CONFIG_DIR = f"{home}/.config/aprsd/"
 APRSD_DEFAULT_MAGIC_WORD = "CHANGEME!!!"
 
-admin_group = cfg.OptGroup(
-    name="admin",
-    title="Admin web interface settings",
-)
 watch_list_group = cfg.OptGroup(
     name="watch_list",
     title="Watch List settings",
-)
-webchat_group = cfg.OptGroup(
-    name="webchat",
-    title="Settings specific to the webchat command",
 )
 
 registry_group = cfg.OptGroup(
     name="aprs_registry",
     title="APRS Registry settings",
 )
-
 
 aprsd_opts = [
     cfg.StrOpt(
@@ -178,35 +169,6 @@ watch_list_opts = [
     ),
 ]
 
-admin_opts = [
-    cfg.BoolOpt(
-        "web_enabled",
-        default=False,
-        help="Enable the Admin Web Interface",
-    ),
-    cfg.StrOpt(
-        "web_ip",
-        default="0.0.0.0",
-        help="The ip address to listen on",
-    ),
-    cfg.PortOpt(
-        "web_port",
-        default=8001,
-        help="The port to listen on",
-    ),
-    cfg.StrOpt(
-        "user",
-        default="admin",
-        help="The admin user for the admin web interface",
-    ),
-    cfg.StrOpt(
-        "password",
-        default="password",
-        secret=True,
-        help="Admin interface password",
-    ),
-]
-
 
 enabled_plugins_opts = [
     cfg.ListOpt(
@@ -224,34 +186,6 @@ enabled_plugins_opts = [
         help="Comma separated list of enabled plugins for APRSD."
              "To enable installed external plugins add them here."
              "The full python path to the class name must be used",
-    ),
-]
-
-webchat_opts = [
-    cfg.StrOpt(
-        "web_ip",
-        default="0.0.0.0",
-        help="The ip address to listen on",
-    ),
-    cfg.PortOpt(
-        "web_port",
-        default=8001,
-        help="The port to listen on",
-    ),
-    cfg.StrOpt(
-        "latitude",
-        default=None,
-        help="Latitude for the GPS Beacon button.  If not set, the button will not be enabled.",
-    ),
-    cfg.StrOpt(
-        "longitude",
-        default=None,
-        help="Longitude for the GPS Beacon button.  If not set, the button will not be enabled.",
-    ),
-    cfg.BoolOpt(
-        "disable_url_request_logging",
-        default=False,
-        help="Disable the logging of url requests in the webchat command.",
     ),
 ]
 
@@ -292,12 +226,8 @@ registry_opts = [
 def register_opts(config):
     config.register_opts(aprsd_opts)
     config.register_opts(enabled_plugins_opts)
-    config.register_group(admin_group)
-    config.register_opts(admin_opts, group=admin_group)
     config.register_group(watch_list_group)
     config.register_opts(watch_list_opts, group=watch_list_group)
-    config.register_group(webchat_group)
-    config.register_opts(webchat_opts, group=webchat_group)
     config.register_group(registry_group)
     config.register_opts(registry_opts, group=registry_group)
 
@@ -305,8 +235,6 @@ def register_opts(config):
 def list_opts():
     return {
         "DEFAULT": (aprsd_opts + enabled_plugins_opts),
-        admin_group.name: admin_opts,
         watch_list_group.name: watch_list_opts,
-        webchat_group.name: webchat_opts,
         registry_group.name: registry_opts,
     }
