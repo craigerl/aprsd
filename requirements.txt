@@ -18,7 +18,6 @@ debtcollector==3.0.0      # via oslo-config
 geographiclib==2.0        # via geopy
 geopy==2.4.1              # via -r requirements.in
 idna==3.10                # via requests
-imapclient==3.0.1         # via -r requirements.in
 importlib-metadata==8.5.0  # via ax253, kiss3
 kiss3==8.0.0              # via -r requirements.in
 loguru==0.7.3             # via -r requirements.in
