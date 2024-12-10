@@ -4,7 +4,6 @@ beautifulsoup4
 click
 dataclasses-json
 geopy
-imapclient
 kiss3
 loguru
 oslo.config

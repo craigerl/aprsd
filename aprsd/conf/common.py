@@ -174,7 +174,6 @@ enabled_plugins_opts = [
     cfg.ListOpt(
         "enabled_plugins",
         default=[
-            "aprsd.plugins.email.EmailPlugin",
             "aprsd.plugins.fortune.FortunePlugin",
             "aprsd.plugins.location.LocationPlugin",
             "aprsd.plugins.ping.PingPlugin",
