@@ -3,6 +3,7 @@ aprslib>=0.7.0
 beautifulsoup4
 click
 dataclasses-json
+haversine
 kiss3
 loguru
 oslo.config

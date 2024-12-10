@@ -15,6 +15,7 @@ click==8.1.7              # via -r requirements.in
 commonmark==0.9.1         # via rich
 dataclasses-json==0.6.7   # via -r requirements.in
 debtcollector==3.0.0      # via oslo-config
+haversine==2.9.0          # via -r requirements.in
 idna==3.10                # via requests
 importlib-metadata==8.5.0  # via ax253, kiss3
 kiss3==8.0.0              # via -r requirements.in
