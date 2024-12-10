@@ -20,9 +20,7 @@ from thesmuggler import smuggle
 from aprsd import cli_helper
 from aprsd import plugin as aprsd_plugin
 from aprsd.main import cli
-from aprsd.plugins import (
-    fortune, location, notify, ping, time, version, weather,
-)
+from aprsd.plugins import fortune, notify, ping, time, version, weather
 
 
 LOG = logging.getLogger("APRSD")
@@ -122,7 +120,7 @@ def get_installed_extensions():
 
 
 def show_built_in_plugins(console):
-    modules = [fortune, location, notify, ping, time, version, weather]
+    modules = [fortune, notify, ping, time, version, weather]
     plugins = []
 
     for module in modules:
