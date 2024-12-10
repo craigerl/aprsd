@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from geopy.distance import geodesic
+from haversine import Unit, haversine
 from loguru import logger
 from oslo_config import cfg
 
@@ -145,8 +145,8 @@ def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> No
 
     # is there distance information?
     if isinstance(packet, GPSPacket) and CONF.latitude and CONF.longitude:
-        my_coords = (CONF.latitude, CONF.longitude)
-        packet_coords = (packet.latitude, packet.longitude)
+        my_coords = (float(CONF.latitude), float(CONF.longitude))
+        packet_coords = (float(packet.latitude), float(packet.longitude))
         try:
             bearing = utils.calculate_initial_compass_bearing(my_coords, packet_coords)
         except Exception as e:
@@ -154,7 +154,7 @@ def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> No
             bearing = 0
         logit.append(
             f" : <{DEGREES_COLOR}>{utils.degrees_to_cardinal(bearing, full_string=True)}</{DEGREES_COLOR}>"
-            f"<{DISTANCE_COLOR}>@{geodesic(my_coords, packet_coords).miles:.2f}miles</{DISTANCE_COLOR}>",
+            f"<{DISTANCE_COLOR}>@{haversine(my_coords, packet_coords, unit=Unit.MILES):.2f}miles</{DISTANCE_COLOR}>",
         )
 
     LOGU.opt(colors=True).info(" ".join(logit))
