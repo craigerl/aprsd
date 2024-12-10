@@ -21,7 +21,7 @@ from aprsd import cli_helper
 from aprsd import plugin as aprsd_plugin
 from aprsd.main import cli
 from aprsd.plugins import (
-    email, fortune, location, notify, ping, time, version, weather,
+    fortune, location, notify, ping, time, version, weather,
 )
 
 
