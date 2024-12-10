@@ -32,7 +32,7 @@ docs: changelog
 	mv ChangeLog.rst docs/changelog.rst
 	tox -edocs
 
-clean: clean-build clean-pyc clean-test clean-dev ## remove all build, test, coverage and Python artifacts
+clean: clean-dev clean-test clean-build clean-pyc ## remove all build, test, coverage and Python artifacts
 
 clean-build: ## remove build artifacts
 	rm -fr build/
