@@ -88,7 +88,6 @@ class APRSDListenThread(rx.APRSDRXThread):
                     self.plugin_manager.run(packet)
         else:
             if self.log_packets:
-                LOG.error("PISS")
                 packet_log.log(packet)
             if self.plugin_manager:
                 # Don't do anything with the reply.
