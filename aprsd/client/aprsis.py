@@ -3,7 +3,9 @@ import logging
 import time
 
 from aprslib.exceptions import LoginError
+from loguru import logger
 from oslo_config import cfg
+import timeago
 
 from aprsd import client, exception
 from aprsd.client import base
@@ -13,11 +15,13 @@ from aprsd.packets import core
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
+LOGU = logger
 
 
 class APRSISClient(base.APRSClient):
 
     _client = None
+    _checks = False
 
     def __init__(self):
         max_timeout = {"hours": 0.0, "minutes": 2, "seconds": 0}
@@ -44,6 +48,20 @@ class APRSISClient(base.APRSClient):
             }
 
         return stats
+
+    def keepalive_check(self):
+        # Don't check the first time through.
+        if not self.is_alive() and self._checks:
+            LOG.warning("Resetting client.  It's not alive.")
+            self.reset()
+        self._checks = True
+
+    def keepalive_log(self):
+        if ka := self._client.aprsd_keepalive:
+            keepalive = timeago.format(ka)
+        else:
+            keepalive = "N/A"
+        LOGU.opt(colors=True).info(f"<green>Client keepalive {keepalive}</green>")
 
     @staticmethod
     def is_enabled():
@@ -81,14 +99,13 @@ class APRSISClient(base.APRSClient):
         if delta > self.max_delta:
             LOG.error(f"Connection is stale, last heard {delta} ago.")
             return True
+        return False
 
     def is_alive(self):
-        if self._client:
-            return self._client.is_alive() and not self._is_stale_connection()
-        else:
+        if not self._client:
             LOG.warning(f"APRS_CLIENT {self._client} alive? NO!!!")
             return False
-
+        return self._client.is_alive() and not self._is_stale_connection()
     def close(self):
         if self._client:
             self._client.stop()

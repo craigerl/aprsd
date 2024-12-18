@@ -14,7 +14,7 @@ from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import seen_list
 from aprsd.threads import aprsd as aprsd_threads
-from aprsd.threads import keep_alive, registry, rx
+from aprsd.threads import keepalive, registry, rx
 from aprsd.threads import stats as stats_thread
 from aprsd.threads import tx
 from aprsd.utils import singleton
@@ -146,7 +146,7 @@ def server(ctx, flush):
 
     # Now start all the main processing threads.
 
-    server_threads.register(keep_alive.KeepAliveThread())
+    server_threads.register(keepalive.KeepAliveThread())
     server_threads.register(stats_thread.APRSDStatsStoreThread())
     server_threads.register(
         rx.APRSDPluginRXThread(
