@@ -23,7 +23,7 @@ from aprsd.packets import collector as packet_collector
 from aprsd.packets import log as packet_log
 from aprsd.packets import seen_list
 from aprsd.stats import collector
-from aprsd.threads import keep_alive, rx
+from aprsd.threads import keepalive, rx
 from aprsd.threads import stats as stats_thread
 from aprsd.threads.aprsd import APRSDThread
 
@@ -126,7 +126,7 @@ class ListenStatsThread(APRSDThread):
                 thread_hex = f"fg {utils.hex_from_name(k)}"
                 LOGU.opt(colors=True).info(
                     f"<{thread_hex}>{k:<15}</{thread_hex}> "
-                    f"<blue>RX: {v['rx']}</blue> <red>TX: {v['tx']}</red>",
+                    f"<blue>RX: {v["rx"]}</blue> <red>TX: {v["tx"]}</red>",
                 )
 
         time.sleep(1)
@@ -265,7 +265,7 @@ def listen(
     LOG.debug(f"Filter by '{filter}'")
     aprs_client.set_filter(filter)
 
-    keepalive = keep_alive.KeepAliveThread()
+    keepalive = keepalive.KeepAliveThread()
 
     if not CONF.enable_seen_list:
         # just deregister the class from the packet collector

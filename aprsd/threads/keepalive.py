@@ -5,13 +5,11 @@ import tracemalloc
 
 from loguru import logger
 from oslo_config import cfg
-import timeago
 
 from aprsd import packets, utils
-from aprsd.client import client_factory
 from aprsd.log import log as aprsd_log
 from aprsd.stats import collector
-from aprsd.threads import APRSDThread, APRSDThreadList
+from aprsd.threads import APRSDThread, APRSDThreadList, keepalive_collector
 
 
 CONF = cfg.CONF
@@ -36,15 +34,6 @@ class KeepAliveThread(APRSDThread):
             thread_list = APRSDThreadList()
             now = datetime.datetime.now()
 
-            if "EmailStats" in stats_json:
-                email_stats = stats_json["EmailStats"]
-                if email_stats.get("last_check_time"):
-                    email_thread_time = utils.strfdelta(now - email_stats["last_check_time"])
-                else:
-                    email_thread_time = "N/A"
-            else:
-                email_thread_time = "N/A"
-
             if "APRSClientStats" in stats_json and stats_json["APRSClientStats"].get("transport") == "aprsis":
                 if stats_json["APRSClientStats"].get("server_keepalive"):
                     last_msg_time = utils.strfdelta(now - stats_json["APRSClientStats"]["server_keepalive"])
@@ -64,7 +53,7 @@ class KeepAliveThread(APRSDThread):
 
             keepalive = (
                 "{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} "
-                "Last:{} Email: {} - RAM Current:{} Peak:{} Threads:{} LoggingQueue:{}"
+                "Last:{} - RAM Current:{} Peak:{} Threads:{} LoggingQueue:{}"
             ).format(
                 stats_json["APRSDStats"]["callsign"],
                 stats_json["APRSDStats"]["uptime"],
@@ -74,7 +63,6 @@ class KeepAliveThread(APRSDThread):
                 tx_msg,
                 rx_msg,
                 last_msg_time,
-                email_thread_time,
                 stats_json["APRSDStats"]["memory_current_str"],
                 stats_json["APRSDStats"]["memory_peak_str"],
                 len(thread_list),
@@ -97,35 +85,11 @@ class KeepAliveThread(APRSDThread):
                     LOGU.opt(colors=True).info(thread_msg)
                     # LOG.info(f"{key: <15} Alive? {str(alive): <5} {str(age): <20}")
 
-            # check the APRS connection
-            cl = client_factory.create()
-            cl_stats = cl.stats()
-            ka = cl_stats.get("connection_keepalive", None)
-            if ka:
-                keepalive = timeago.format(ka)
-            else:
-                keepalive = "N/A"
-            LOGU.opt(colors=True).info(f"<green>Client keepalive {keepalive}</green>")
-            # Reset the connection if it's dead and this isn't our
-            # First time through the loop.
-            # The first time through the loop can happen at startup where
-            # The keepalive thread starts before the client has a chance
-            # to make it's connection the first time.
-            if not cl.is_alive() and self.cntr > 0:
-                LOG.error(f"{cl.__class__.__name__} is not alive!!! Resetting")
-                client_factory.create().reset()
-            # else:
-            #     # See if we should reset the aprs-is client
-            #     # Due to losing a keepalive from them
-            #     delta_dict = utils.parse_delta_str(last_msg_time)
-            #     delta = datetime.timedelta(**delta_dict)
-            #
-            #     if delta > self.max_delta:
-            #         #  We haven't gotten a keepalive from aprs-is in a while
-            #         # reset the connection.a
-            #         if not client.KISSClient.is_enabled():
-            #             LOG.warning(f"Resetting connection to APRS-IS {delta}")
-            #             client.factory.create().reset()
+            # Go through the registered keepalive collectors
+            # and check them as well as call log.
+            collect = keepalive_collector.KeepAliveCollector()
+            collect.check()
+            collect.log()
 
             # Check version every day
             delta = now - self.checker_time
