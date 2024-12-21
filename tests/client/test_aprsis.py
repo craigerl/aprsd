@@ -54,6 +54,7 @@ class TestAPRSISClient(unittest.TestCase):
         with mock.patch.object(APRSISClient, "is_configured", return_value=True):
             stats = self.client.stats()
             from rich.console import Console
+
             c = Console()
             c.print(stats)
             self.assertEqual(

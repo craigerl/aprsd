@@ -2,8 +2,8 @@
 import logging
 
 import click
-from oslo_config import cfg
 import requests
+from oslo_config import cfg
 from rich.console import Console
 from rich.table import Table
 
@@ -12,7 +12,6 @@ import aprsd
 from aprsd import cli_helper
 from aprsd.main import cli
 from aprsd.threads.stats import StatsStore
-
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
@@ -23,12 +22,14 @@ CONF = cfg.CONF
 @cli.command()
 @cli_helper.add_options(cli_helper.common_options)
 @click.option(
-    "--host", type=str,
+    "--host",
+    type=str,
     default=None,
     help="IP address of the remote aprsd admin web ui fetch stats from.",
 )
 @click.option(
-    "--port", type=int,
+    "--port",
+    type=int,
     default=None,
     help="Port of the remote aprsd web admin interface to fetch stats from.",
 )
@@ -169,8 +170,8 @@ def fetch_stats(ctx, host, port):
     "--show-section",
     default=["All"],
     help="Show specific sections of the stats. "
-         " Choices: All, APRSDStats, APRSDThreadList, APRSClientStats,"
-         " PacketList, SeenList, WatchList",
+    " Choices: All, APRSDStats, APRSDThreadList, APRSClientStats,"
+    " PacketList, SeenList, WatchList",
     multiple=True,
     type=click.Choice(
         [

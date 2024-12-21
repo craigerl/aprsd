@@ -1,7 +1,7 @@
-from functools import update_wrapper
 import logging
-from pathlib import Path
 import typing as t
+from functools import update_wrapper
+from pathlib import Path
 
 import click
 from oslo_config import cfg
@@ -10,7 +10,6 @@ import aprsd
 from aprsd import conf  # noqa: F401
 from aprsd.log import log
 from aprsd.utils import trace
-
 
 CONF = cfg.CONF
 home = str(Path.home())
@@ -58,6 +57,7 @@ class AliasedGroup(click.Group):
         calling into :meth:`add_command`.
         Copied from `click` and extended for `aliases`.
         """
+
         def decorator(f):
             aliases = kwargs.pop("aliases", [])
             cmd = click.decorators.command(*args, **kwargs)(f)
@@ -65,6 +65,7 @@ class AliasedGroup(click.Group):
             for alias in aliases:
                 self.add_command(cmd, name=alias)
             return cmd
+
         return decorator
 
     def group(self, *args, **kwargs):
@@ -74,6 +75,7 @@ class AliasedGroup(click.Group):
         calling into :meth:`add_command`.
         Copied from `click` and extended for `aliases`.
         """
+
         def decorator(f):
             aliases = kwargs.pop("aliases", [])
             cmd = click.decorators.group(*args, **kwargs)(f)
@@ -81,6 +83,7 @@ class AliasedGroup(click.Group):
             for alias in aliases:
                 self.add_command(cmd, name=alias)
             return cmd
+
         return decorator
 
 
@@ -89,6 +92,7 @@ def add_options(options):
         for option in reversed(options):
             func = option(func)
         return func
+
     return _add_options
 
 
@@ -103,7 +107,9 @@ def process_standard_options(f: F) -> F:
             default_config_files = None
         try:
             CONF(
-                [], project="aprsd", version=aprsd.__version__,
+                [],
+                project="aprsd",
+                version=aprsd.__version__,
                 default_config_files=default_config_files,
             )
         except cfg.ConfigFilesNotFoundError:
@@ -119,7 +125,7 @@ def process_standard_options(f: F) -> F:
             trace.setup_tracing(["method", "api"])
 
         if not config_file_found:
-            LOG = logging.getLogger("APRSD")   # noqa: N806
+            LOG = logging.getLogger("APRSD")  # noqa: N806
             LOG.error("No config file found!! run 'aprsd sample-config'")
 
         del kwargs["loglevel"]
@@ -132,6 +138,7 @@ def process_standard_options(f: F) -> F:
 
 def process_standard_options_no_config(f: F) -> F:
     """Use this as a decorator when config isn't needed."""
+
     def new_func(*args, **kwargs):
         ctx = args[0]
         ctx.ensure_object(dict)

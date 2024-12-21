@@ -4,13 +4,11 @@ from typing import Callable, Protocol, runtime_checkable
 from aprsd import exception
 from aprsd.packets import core
 
-
 LOG = logging.getLogger("APRSD")
 
 
 @runtime_checkable
 class Client(Protocol):
-
     def __init__(self):
         pass
 

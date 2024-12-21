@@ -11,7 +11,6 @@ from . import fake
 
 
 class TestPacketBase(unittest.TestCase):
-
     def _fake_dict(
         self,
         from_call=fake.FAKE_FROM_CALLSIGN,
@@ -79,7 +78,6 @@ class TestPacketBase(unittest.TestCase):
 
     @mock.patch("aprsd.packets.core.GPSPacket._build_time_zulu")
     def test_packet_format_rain_1h(self, mock_time_zulu):
-
         mock_time_zulu.return_value = "221450"
 
         wx = packets.WeatherPacket(
@@ -106,7 +104,9 @@ class TestPacketBase(unittest.TestCase):
 
     def test_beacon_factory(self):
         """Test to ensure a beacon packet is created."""
-        packet_raw = "WB4BOR-12>APZ100,WIDE2-1:@161647z3724.15N107847.58W$ APRSD WebChat"
+        packet_raw = (
+            "WB4BOR-12>APZ100,WIDE2-1:@161647z3724.15N107847.58W$ APRSD WebChat"
+        )
         packet_dict = aprslib.parse(packet_raw)
         packet = packets.factory(packet_dict)
         self.assertIsInstance(packet, packets.BeaconPacket)
@@ -162,7 +162,9 @@ class TestPacketBase(unittest.TestCase):
 
         # Packet with telemetry and DAO
         # http://www.aprs.org/datum.txt
-        packet_raw = 'KD9YIL>T0PX9W,WIDE1-1,WIDE2-1,qAO,NU9R-10:`sB,l#P>/\'"6+}|#*%U\'a|!whl!|3'
+        packet_raw = (
+            "KD9YIL>T0PX9W,WIDE1-1,WIDE2-1,qAO,NU9R-10:`sB,l#P>/'\"6+}|#*%U'a|!whl!|3"
+        )
         packet_dict = aprslib.parse(packet_raw)
         packet = packets.factory(packet_dict)
         self.assertIsInstance(packet, packets.MicEPacket)
@@ -175,7 +177,9 @@ class TestPacketBase(unittest.TestCase):
             msgNo=123,
         )
 
-        expected = f"{fake.FAKE_FROM_CALLSIGN}>APZ100::{fake.FAKE_TO_CALLSIGN:<9}:ack123"
+        expected = (
+            f"{fake.FAKE_FROM_CALLSIGN}>APZ100::{fake.FAKE_TO_CALLSIGN:<9}:ack123"
+        )
         self.assertEqual(expected, str(ack))
 
     def test_reject_format(self):
@@ -186,7 +190,9 @@ class TestPacketBase(unittest.TestCase):
             msgNo=123,
         )
 
-        expected = f"{fake.FAKE_FROM_CALLSIGN}>APZ100::{fake.FAKE_TO_CALLSIGN:<9}:rej123"
+        expected = (
+            f"{fake.FAKE_FROM_CALLSIGN}>APZ100::{fake.FAKE_TO_CALLSIGN:<9}:rej123"
+        )
         self.assertEqual(expected, str(reject))
 
     def test_beacon_format(self):
@@ -240,7 +246,9 @@ class TestPacketBase(unittest.TestCase):
             bid=0,
         )
 
-        expected = f"{fake.FAKE_FROM_CALLSIGN}>APZ100::BLN{bid:<9}:{packet.message_text}"
+        expected = (
+            f"{fake.FAKE_FROM_CALLSIGN}>APZ100::BLN{bid:<9}:{packet.message_text}"
+        )
         self.assertEqual(expected, str(packet))
 
         # bulletin id = 1

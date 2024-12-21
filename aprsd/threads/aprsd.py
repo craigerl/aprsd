@@ -7,7 +7,6 @@ from typing import List
 
 import wrapt
 
-
 LOG = logging.getLogger("APRSD")
 
 
@@ -25,7 +24,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         self._last_loop = datetime.datetime.now()
 
     def _should_quit(self):
-        """ see if we have a quit message from the global queue."""
+        """see if we have a quit message from the global queue."""
         if self.thread_stop:
             return True
 
@@ -51,7 +50,9 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         """Add code to subclass to do any cleanup"""
 
     def __str__(self):
-        out = f"Thread <{self.__class__.__name__}({self.name}) Alive? {self.is_alive()}>"
+        out = (
+            f"Thread <{self.__class__.__name__}({self.name}) Alive? {self.is_alive()}>"
+        )
         return out
 
     def loop_age(self):
@@ -124,7 +125,7 @@ class APRSDThreadList:
         for th in self.threads_list:
             LOG.info(f"Stopping Thread {th.name}")
             if hasattr(th, "packet"):
-                LOG.info(F"{th.name} packet {th.packet}")
+                LOG.info(f"{th.name} packet {th.packet}")
             th.stop()
 
     @wrapt.synchronized
@@ -133,7 +134,7 @@ class APRSDThreadList:
         for th in self.threads_list:
             LOG.info(f"Pausing Thread {th.name}")
             if hasattr(th, "packet"):
-                LOG.info(F"{th.name} packet {th.packet}")
+                LOG.info(f"{th.name} packet {th.packet}")
             th.pause()
 
     @wrapt.synchronized
@@ -142,7 +143,7 @@ class APRSDThreadList:
         for th in self.threads_list:
             LOG.info(f"Resuming Thread {th.name}")
             if hasattr(th, "packet"):
-                LOG.info(F"{th.name} packet {th.packet}")
+                LOG.info(f"{th.name} packet {th.packet}")
             th.unpause()
 
     @wrapt.synchronized(lock)
@@ -153,7 +154,11 @@ class APRSDThreadList:
             alive = thread.is_alive()
             age = thread.loop_age()
             key = thread.__class__.__name__
-            info[key] = {"alive": True if alive else False, "age": age, "name": thread.name}
+            info[key] = {
+                "alive": True if alive else False,
+                "age": age,
+                "name": thread.name,
+            }
         return info
 
     @wrapt.synchronized(lock)

@@ -2,13 +2,12 @@ import logging
 import threading
 import time
 
-from oslo_config import cfg
 import wrapt
+from oslo_config import cfg
 
 from aprsd.stats import collector
 from aprsd.threads import APRSDThread
 from aprsd.utils import objectstore
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -16,6 +15,7 @@ LOG = logging.getLogger("APRSD")
 
 class StatsStore(objectstore.ObjectStoreMixin):
     """Container to save the stats from the collector."""
+
     lock = threading.Lock()
     data = {}
 

@@ -22,11 +22,11 @@
 # python included libs
 import datetime
 import importlib.metadata as imp
-from importlib.metadata import version as metadata_version
 import logging
 import signal
 import sys
 import time
+from importlib.metadata import version as metadata_version
 
 import click
 from oslo_config import cfg, generator
@@ -35,7 +35,6 @@ from oslo_config import cfg, generator
 import aprsd
 from aprsd import cli_helper, packets, threads, utils
 from aprsd.stats import collector
-
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
@@ -54,8 +53,14 @@ def cli(ctx):
 
 def load_commands():
     from .cmds import (  # noqa
-        admin, completion, dev, fetch_stats, healthcheck, list_plugins, listen,
-        send_message, server, webchat,
+        completion,
+        dev,
+        fetch_stats,
+        healthcheck,
+        list_plugins,
+        listen,
+        send_message,
+        server,
     )
 
 
@@ -115,6 +120,7 @@ def sample_config(ctx):
 
     def _get_selected_entry_points():
         import sys
+
         if sys.version_info < (3, 10):
             all = imp.entry_points()
             selected = []

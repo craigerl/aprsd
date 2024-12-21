@@ -9,11 +9,11 @@ import click
 from oslo_config import cfg
 
 from aprsd import cli_helper, conf, packets, plugin
+
 # local imports here
 from aprsd.client import base
 from aprsd.main import cli
 from aprsd.utils import trace
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -112,7 +112,8 @@ def test_plugin(
     # Register the plugin they wanted tested.
     LOG.info(
         "Testing plugin {} Version {}".format(
-            obj.__class__, obj.version,
+            obj.__class__,
+            obj.version,
         ),
     )
     pm.register_msg(obj)

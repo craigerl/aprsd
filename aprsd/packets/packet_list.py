@@ -1,11 +1,10 @@
-from collections import OrderedDict
 import logging
+from collections import OrderedDict
 
 from oslo_config import cfg
 
 from aprsd.packets import core
 from aprsd.utils import objectstore
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -13,6 +12,7 @@ LOG = logging.getLogger("APRSD")
 
 class PacketList(objectstore.ObjectStoreMixin):
     """Class to keep track of the packets we tx/rx."""
+
     _instance = None
     _total_rx: int = 0
     _total_tx: int = 0
@@ -38,7 +38,8 @@ class PacketList(objectstore.ObjectStoreMixin):
             self._add(packet)
             ptype = packet.__class__.__name__
             type_stats = self.data["types"].setdefault(
-                ptype, {"tx": 0, "rx": 0},
+                ptype,
+                {"tx": 0, "rx": 0},
             )
             type_stats["rx"] += 1
 
@@ -49,7 +50,8 @@ class PacketList(objectstore.ObjectStoreMixin):
             self._add(packet)
             ptype = packet.__class__.__name__
             type_stats = self.data["types"].setdefault(
-                ptype, {"tx": 0, "rx": 0},
+                ptype,
+                {"tx": 0, "rx": 0},
             )
             type_stats["tx"] += 1
 
@@ -86,10 +88,11 @@ class PacketList(objectstore.ObjectStoreMixin):
         with self.lock:
             # Get last N packets directly using list slicing
             packets_list = list(self.data.get("packets", {}).values())
-            pkts = packets_list[-CONF.packet_list_stats_maxlen:][::-1]
+            pkts = packets_list[-CONF.packet_list_stats_maxlen :][::-1]
 
             stats = {
-                "total_tracked": self._total_rx + self._total_tx,  # Fixed typo: was rx + rx
+                "total_tracked": self._total_rx
+                + self._total_tx,  # Fixed typo: was rx + rx
                 "rx": self._total_rx,
                 "tx": self._total_tx,
                 "types": self.data.get("types", {}),  # Changed default from [] to {}

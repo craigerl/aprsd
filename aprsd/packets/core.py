@@ -1,19 +1,22 @@
-from dataclasses import dataclass, field
-from datetime import datetime
 import logging
 import re
 import time
+from dataclasses import dataclass, field
+from datetime import datetime
+
 # Due to a failure in python 3.8
 from typing import Any, List, Optional, Type, TypeVar, Union
 
 from aprslib import util as aprslib_util
 from dataclasses_json import (
-    CatchAll, DataClassJsonMixin, Undefined, dataclass_json,
+    CatchAll,
+    DataClassJsonMixin,
+    Undefined,
+    dataclass_json,
 )
 from loguru import logger
 
-from aprsd.utils import counter, trace
-
+from aprsd.utils import counter
 
 # For mypy to be happy
 A = TypeVar("A", bound="DataClassJsonMixin")
@@ -51,7 +54,7 @@ def _init_send_time():
     return NO_DATE
 
 
-def _init_msgNo():    # noqa: N802
+def _init_msgNo():  # noqa: N802
     """For some reason __post__init doesn't get called.
 
     So in order to initialize the msgNo field in the packet
@@ -84,14 +87,16 @@ class Packet:
     to_call: Optional[str] = field(default=None)
     addresse: Optional[str] = field(default=None)
     format: Optional[str] = field(default=None)
-    msgNo: Optional[str] = field(default=None)   # noqa: N815
-    ackMsgNo: Optional[str] = field(default=None)   # noqa: N815
+    msgNo: Optional[str] = field(default=None)  # noqa: N815
+    ackMsgNo: Optional[str] = field(default=None)  # noqa: N815
     packet_type: Optional[str] = field(default=None)
     timestamp: float = field(default_factory=_init_timestamp, compare=False, hash=False)
     # Holds the raw text string to be sent over the wire
     # or holds the raw string from input packet
     raw: Optional[str] = field(default=None, compare=False, hash=False)
-    raw_dict: dict = field(repr=False, default_factory=lambda: {}, compare=False, hash=False)
+    raw_dict: dict = field(
+        repr=False, default_factory=lambda: {}, compare=False, hash=False
+    )
     # Built by calling prepare().  raw needs this built first.
     payload: Optional[str] = field(default=None)
 
@@ -129,7 +134,6 @@ class Packet:
         msg = self._filter_for_send(self.raw).rstrip("\n")
         return msg
 
-    @trace.trace
     def prepare(self, create_msg_number=False) -> None:
         """Do stuff here that is needed prior to sending over the air."""
         # now build the raw message for sending
@@ -141,12 +145,12 @@ class Packet:
     def _build_payload(self) -> None:
         """The payload is the non headers portion of the packet."""
         if not self.to_call:
-            raise ValueError("to_call isn't set. Must set to_call before calling prepare()")
+            raise ValueError(
+                "to_call isn't set. Must set to_call before calling prepare()"
+            )
 
         # The base packet class has no real payload
-        self.payload = (
-            f":{self.to_call.ljust(9)}"
-        )
+        self.payload = f":{self.to_call.ljust(9)}"
 
     def _build_raw(self) -> None:
         """Build the self.raw which is what is sent over the air."""
@@ -167,8 +171,10 @@ class Packet:
         message = msg[:67]
         # We all miss George Carlin
         return re.sub(
-            "fuck|shit|cunt|piss|cock|bitch", "****",
-            message, flags=re.IGNORECASE,
+            "fuck|shit|cunt|piss|cock|bitch",
+            "****",
+            message,
+            flags=re.IGNORECASE,
         )
 
     def __str__(self) -> str:
@@ -215,10 +221,7 @@ class BulletinPacket(Packet):
         return f"BLN{self.bid} {self.message_text}"
 
     def _build_payload(self) -> None:
-        self.payload = (
-            f":BLN{self.bid:<9}"
-            f":{self.message_text}"
-        )
+        self.payload = f":BLN{self.bid:<9}" f":{self.message_text}"
 
 
 @dataclass_json
@@ -336,10 +339,7 @@ class GPSPacket(Packet):
         self.payload = "".join(payload)
 
     def _build_raw(self):
-        self.raw = (
-            f"{self.from_call}>{self.to_call},WIDE2-1:"
-            f"{self.payload}"
-        )
+        self.raw = f"{self.from_call}>{self.to_call},WIDE2-1:" f"{self.payload}"
 
     @property
     def human_info(self) -> str:
@@ -371,10 +371,7 @@ class BeaconPacket(GPSPacket):
         lat = aprslib_util.latitude_to_ddm(self.latitude)
         lon = aprslib_util.longitude_to_ddm(self.longitude)
 
-        self.payload = (
-            f"@{time_zulu}z{lat}{self.symbol_table}"
-            f"{lon}"
-        )
+        self.payload = f"@{time_zulu}z{lat}{self.symbol_table}" f"{lon}"
 
         if self.comment:
             comment = self._filter_for_send(self.comment)
@@ -383,10 +380,7 @@ class BeaconPacket(GPSPacket):
             self.payload = f"{self.payload}{self.symbol}APRSD Beacon"
 
     def _build_raw(self):
-        self.raw = (
-            f"{self.from_call}>APZ100:"
-            f"{self.payload}"
-        )
+        self.raw = f"{self.from_call}>APZ100:" f"{self.payload}"
 
     @property
     def key(self) -> str:
@@ -475,10 +469,7 @@ class ObjectPacket(GPSPacket):
         lat = aprslib_util.latitude_to_ddm(self.latitude)
         long = aprslib_util.longitude_to_ddm(self.longitude)
 
-        self.payload = (
-            f"*{time_zulu}z{lat}{self.symbol_table}"
-            f"{long}{self.symbol}"
-        )
+        self.payload = f"*{time_zulu}z{lat}{self.symbol_table}" f"{long}{self.symbol}"
 
         if self.comment:
             comment = self._filter_for_send(self.comment)
@@ -495,10 +486,7 @@ class ObjectPacket(GPSPacket):
         The frequency, uplink_tone, offset is part of the comment
         """
 
-        self.raw = (
-            f"{self.from_call}>APZ100:;{self.to_call:9s}"
-            f"{self.payload}"
-        )
+        self.raw = f"{self.from_call}>APZ100:;{self.to_call:9s}" f"{self.payload}"
 
     @property
     def human_info(self) -> str:
@@ -548,11 +536,13 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
             if "speed" in raw:
                 del raw["speed"]
             # Let's adjust the rain numbers as well, since it's wrong
-            raw["rain_1h"] = round((raw.get("rain_1h", 0) / .254) * .01, 3)
+            raw["rain_1h"] = round((raw.get("rain_1h", 0) / 0.254) * 0.01, 3)
             raw["weather"]["rain_1h"] = raw["rain_1h"]
-            raw["rain_24h"] = round((raw.get("rain_24h", 0) / .254) * .01, 3)
+            raw["rain_24h"] = round((raw.get("rain_24h", 0) / 0.254) * 0.01, 3)
             raw["weather"]["rain_24h"] = raw["rain_24h"]
-            raw["rain_since_midnight"] = round((raw.get("rain_since_midnight", 0) / .254) * .01, 3)
+            raw["rain_since_midnight"] = round(
+                (raw.get("rain_since_midnight", 0) / 0.254) * 0.01, 3
+            )
             raw["weather"]["rain_since_midnight"] = raw["rain_since_midnight"]
 
         if "wind_direction" not in raw:
@@ -594,26 +584,26 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
     def _build_payload(self):
         """Build an uncompressed weather packet
 
-        Format =
+         Format =
 
-       _CSE/SPDgXXXtXXXrXXXpXXXPXXXhXXbXXXXX%type NEW FORMAT APRS793 June 97
-                                                  NOT BACKWARD COMPATIBLE
+        _CSE/SPDgXXXtXXXrXXXpXXXPXXXhXXbXXXXX%type NEW FORMAT APRS793 June 97
+                                                   NOT BACKWARD COMPATIBLE
 
 
-        Where: CSE/SPD is wind direction and sustained 1 minute speed
-        t is in degrees F
+         Where: CSE/SPD is wind direction and sustained 1 minute speed
+         t is in degrees F
 
-        r is Rain per last 60 minutes
-            1.04 inches of rain will show as r104
-        p is precipitation per last 24 hours (sliding 24 hour window)
-        P is precip per last 24 hours since midnight
-        b is Baro in tenths of a mb
-        h is humidity in percent. 00=100
-        g is Gust (peak winds in last 5 minutes)
-        # is the raw rain counter for remote WX stations
-        See notes on remotes below
-        % shows software type d=Dos, m=Mac, w=Win, etc
-        type shows type of WX instrument
+         r is Rain per last 60 minutes
+             1.04 inches of rain will show as r104
+         p is precipitation per last 24 hours (sliding 24 hour window)
+         P is precip per last 24 hours since midnight
+         b is Baro in tenths of a mb
+         h is humidity in percent. 00=100
+         g is Gust (peak winds in last 5 minutes)
+         # is the raw rain counter for remote WX stations
+         See notes on remotes below
+         % shows software type d=Dos, m=Mac, w=Win, etc
+         type shows type of WX instrument
 
         """
         time_zulu = self._build_time_zulu()
@@ -623,7 +613,8 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
             f"{self.longitude}{self.symbol}",
             f"{self.wind_direction:03d}",
             # Speed = sustained 1 minute wind speed in mph
-            f"{self.symbol_table}", f"{self.wind_speed:03.0f}",
+            f"{self.symbol_table}",
+            f"{self.wind_speed:03.0f}",
             # wind gust (peak wind speed in mph in the last 5 minutes)
             f"g{self.wind_gust:03.0f}",
             # Temperature in degrees F
@@ -645,11 +636,7 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
         self.payload = "".join(contents)
 
     def _build_raw(self):
-
-        self.raw = (
-            f"{self.from_call}>{self.to_call},WIDE1-1,WIDE2-1:"
-            f"{self.payload}"
-        )
+        self.raw = f"{self.from_call}>{self.to_call},WIDE1-1,WIDE2-1:" f"{self.payload}"
 
 
 @dataclass(unsafe_hash=True)
@@ -693,14 +680,17 @@ class UnknownPacket:
 
     All of the unknown attributes are stored in the unknown_fields
     """
+
     unknown_fields: CatchAll
     _type: str = "UnknownPacket"
     from_call: Optional[str] = field(default=None)
     to_call: Optional[str] = field(default=None)
-    msgNo: str = field(default_factory=_init_msgNo)   # noqa: N815
+    msgNo: str = field(default_factory=_init_msgNo)  # noqa: N815
     format: Optional[str] = field(default=None)
     raw: Optional[str] = field(default=None)
-    raw_dict: dict = field(repr=False, default_factory=lambda: {}, compare=False, hash=False)
+    raw_dict: dict = field(
+        repr=False, default_factory=lambda: {}, compare=False, hash=False
+    )
     path: List[str] = field(default_factory=list, compare=False, hash=False)
     packet_type: Optional[str] = field(default=None)
     via: Optional[str] = field(default=None, compare=False, hash=False)

@@ -1,5 +1,4 @@
 import logging
-from logging.handlers import QueueHandler
 import queue
 import sys
 
@@ -7,7 +6,6 @@ from loguru import logger
 from oslo_config import cfg
 
 from aprsd.conf import log as conf_log
-
 
 CONF = cfg.CONF
 # LOG = logging.getLogger("APRSD")
@@ -19,6 +17,7 @@ class QueueLatest(queue.Queue):
 
     This prevents the queue from blowing up in size.
     """
+
     def put(self, *args, **kwargs):
         try:
             super().put(*args, **kwargs)
@@ -44,7 +43,9 @@ class InterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
 
 
 # Setup the log faciility
@@ -60,43 +61,18 @@ def setup_logging(loglevel=None, quiet=False):
     logging.root.handlers = [InterceptHandler()]
     logging.root.setLevel(log_level)
 
-    imap_list = [
-        "imapclient.imaplib", "imaplib", "imapclient",
-        "imapclient.util",
-    ]
-    aprslib_list = [
+    # We don't really want to see the aprslib parsing debug output.
+    disable_list = [
         "aprslib",
         "aprslib.parsing",
         "aprslib.exceptions",
     ]
-    webserver_list = [
-        "werkzeug",
-        "werkzeug._internal",
-        "socketio",
-        "urllib3.connectionpool",
-        "chardet",
-        "chardet.charsetgroupprober",
-        "chardet.eucjpprober",
-        "chardet.mbcharsetprober",
-    ]
-
-    # We don't really want to see the aprslib parsing debug output.
-    disable_list = imap_list + aprslib_list + webserver_list
 
     # remove every other logger's handlers
     # and propagate to root logger
     for name in logging.root.manager.loggerDict.keys():
         logging.getLogger(name).handlers = []
-        if name in disable_list:
-            logging.getLogger(name).propagate = False
-        else:
-            logging.getLogger(name).propagate = True
-
-    if CONF.webchat.disable_url_request_logging:
-        for name in webserver_list:
-            logging.getLogger(name).handlers = []
-            logging.getLogger(name).propagate = True
-            logging.getLogger(name).setLevel(logging.ERROR)
+        logging.getLogger(name).propagate = name not in disable_list
 
     handlers = [
         {
@@ -115,21 +91,6 @@ def setup_logging(loglevel=None, quiet=False):
                 "format": CONF.logging.logformat,
                 "colorize": False,
                 "level": log_level,
-            },
-        )
-
-    if CONF.email_plugin.enabled and CONF.email_plugin.debug:
-        for name in imap_list:
-            logging.getLogger(name).propagate = True
-
-    if CONF.admin.web_enabled:
-        qh = QueueHandler(logging_queue)
-        handlers.append(
-            {
-                "sink": qh, "serialize": False,
-                "format": CONF.logging.logformat,
-                "level": log_level,
-                "colorize": False,
             },
         )
 

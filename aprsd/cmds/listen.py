@@ -23,10 +23,9 @@ from aprsd.packets import collector as packet_collector
 from aprsd.packets import log as packet_log
 from aprsd.packets import seen_list
 from aprsd.stats import collector
-from aprsd.threads import keep_alive, rx
+from aprsd.threads import keepalive, rx
 from aprsd.threads import stats as stats_thread
 from aprsd.threads.aprsd import APRSDThread
-
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
@@ -51,8 +50,12 @@ def signal_handler(sig, frame):
 
 class APRSDListenThread(rx.APRSDRXThread):
     def __init__(
-        self, packet_queue, packet_filter=None, plugin_manager=None,
-        enabled_plugins=[], log_packets=False,
+        self,
+        packet_queue,
+        packet_filter=None,
+        plugin_manager=None,
+        enabled_plugins=[],
+        log_packets=False,
     ):
         super().__init__(packet_queue)
         self.packet_filter = packet_filter
@@ -265,7 +268,7 @@ def listen(
     LOG.debug(f"Filter by '{filter}'")
     aprs_client.set_filter(filter)
 
-    keepalive = keep_alive.KeepAliveThread()
+    keepalive_thread = keepalive.KeepAliveThread()
 
     if not CONF.enable_seen_list:
         # just deregister the class from the packet collector
@@ -309,9 +312,9 @@ def listen(
         listen_stats = ListenStatsThread()
         listen_stats.start()
 
-    keepalive.start()
+    keepalive_thread.start()
     LOG.debug("keepalive Join")
-    keepalive.join()
+    keepalive_thread.join()
     LOG.debug("listen_thread Join")
     listen_thread.join()
     stats.join()

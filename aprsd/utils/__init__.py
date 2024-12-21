@@ -13,10 +13,10 @@ import update_checker
 import aprsd
 
 from .fuzzyclock import fuzzy  # noqa: F401
+
 # Make these available by anyone importing
 # aprsd.utils
 from .ring_buffer import RingBuffer  # noqa: F401
-
 
 if sys.version_info.major == 3 and sys.version_info.minor >= 3:
     from collections.abc import MutableMapping
@@ -26,11 +26,13 @@ else:
 
 def singleton(cls):
     """Make a class a Singleton class (only one instance)"""
+
     @functools.wraps(cls)
     def wrapper_singleton(*args, **kwargs):
         if wrapper_singleton.instance is None:
             wrapper_singleton.instance = cls(*args, **kwargs)
         return wrapper_singleton.instance
+
     wrapper_singleton.instance = None
     return wrapper_singleton
 
@@ -170,7 +172,10 @@ def load_entry_points(group):
         try:
             ep.load()
         except Exception as e:
-            print(f"Extension {ep.name} of group {group} failed to load with {e}", file=sys.stderr)
+            print(
+                f"Extension {ep.name} of group {group} failed to load with {e}",
+                file=sys.stderr,
+            )
             print(traceback.format_exc(), file=sys.stderr)
 
 
@@ -200,8 +205,7 @@ def calculate_initial_compass_bearing(point_a, point_b):
 
     x = math.sin(diff_long) * math.cos(lat2)
     y = math.cos(lat1) * math.sin(lat2) - (
-        math.sin(lat1)
-        * math.cos(lat2) * math.cos(diff_long)
+        math.sin(lat1) * math.cos(lat2) * math.cos(diff_long)
     )
 
     initial_bearing = math.atan2(x, y)
@@ -218,15 +222,43 @@ def calculate_initial_compass_bearing(point_a, point_b):
 def degrees_to_cardinal(bearing, full_string=False):
     if full_string:
         directions = [
-            "North", "North-Northeast", "Northeast", "East-Northeast", "East", "East-Southeast",
-            "Southeast", "South-Southeast", "South", "South-Southwest", "Southwest", "West-Southwest",
-            "West", "West-Northwest", "Northwest", "North-Northwest", "North",
+            "North",
+            "North-Northeast",
+            "Northeast",
+            "East-Northeast",
+            "East",
+            "East-Southeast",
+            "Southeast",
+            "South-Southeast",
+            "South",
+            "South-Southwest",
+            "Southwest",
+            "West-Southwest",
+            "West",
+            "West-Northwest",
+            "Northwest",
+            "North-Northwest",
+            "North",
         ]
     else:
         directions = [
-            "N", "NNE", "NE", "ENE", "E", "ESE",
-            "SE", "SSE", "S", "SSW", "SW", "WSW",
-            "W", "WNW", "NW", "NNW", "N",
+            "N",
+            "NNE",
+            "NE",
+            "ENE",
+            "E",
+            "ESE",
+            "SE",
+            "SSE",
+            "S",
+            "SSW",
+            "SW",
+            "WSW",
+            "W",
+            "WNW",
+            "NW",
+            "NNW",
+            "N",
         ]
 
     cardinal = directions[round(bearing / 22.5)]

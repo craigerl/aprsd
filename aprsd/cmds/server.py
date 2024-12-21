@@ -6,20 +6,52 @@ import click
 from oslo_config import cfg
 
 import aprsd
-from aprsd import cli_helper
+from aprsd import cli_helper, plugin, threads, utils
 from aprsd import main as aprsd_main
-from aprsd import plugin, threads, utils
 from aprsd.client import client_factory
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import seen_list
-from aprsd.threads import keep_alive, log_monitor, registry, rx
+from aprsd.threads import aprsd as aprsd_threads
+from aprsd.threads import keepalive, registry, rx, tx
 from aprsd.threads import stats as stats_thread
-from aprsd.threads import tx
-
+from aprsd.utils import singleton
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
+
+
+@singleton
+class ServerThreads:
+    """Registry for threads that the server command runs.
+
+    This enables extensions to register a thread to run during
+    the server command.
+
+    """
+
+    def __init__(self):
+        self.threads: list[aprsd_threads.APRSDThread] = []
+
+    def register(self, thread: aprsd_threads.APRSDThread):
+        if not isinstance(thread, aprsd_threads.APRSDThread):
+            raise TypeError(f"Thread {thread} is not an APRSDThread")
+        self.threads.append(thread)
+
+    def unregister(self, thread: aprsd_threads.APRSDThread):
+        if not isinstance(thread, aprsd_threads.APRSDThread):
+            raise TypeError(f"Thread {thread} is not an APRSDThread")
+        self.threads.remove(thread)
+
+    def start(self):
+        """Start all threads in the list."""
+        for thread in self.threads:
+            thread.start()
+
+    def join(self):
+        """Join all the threads in the list"""
+        for thread in self.threads:
+            thread.join()
 
 
 # main() ###
@@ -40,6 +72,8 @@ def server(ctx, flush):
     """Start the aprsd server gateway process."""
     signal.signal(signal.SIGINT, aprsd_main.signal_handler)
     signal.signal(signal.SIGTERM, aprsd_main.signal_handler)
+
+    server_threads = ServerThreads()
 
     level, msg = utils._check_version()
     if level:
@@ -110,36 +144,28 @@ def server(ctx, flush):
 
     # Now start all the main processing threads.
 
-    keepalive = keep_alive.KeepAliveThread()
-    keepalive.start()
-
-    stats_store_thread = stats_thread.APRSDStatsStoreThread()
-    stats_store_thread.start()
-
-    rx_thread = rx.APRSDPluginRXThread(
-        packet_queue=threads.packet_queue,
+    server_threads.register(keepalive.KeepAliveThread())
+    server_threads.register(stats_thread.APRSDStatsStoreThread())
+    server_threads.register(
+        rx.APRSDPluginRXThread(
+            packet_queue=threads.packet_queue,
+        ),
     )
-    process_thread = rx.APRSDPluginProcessPacketThread(
-        packet_queue=threads.packet_queue,
+    server_threads.register(
+        rx.APRSDPluginProcessPacketThread(
+            packet_queue=threads.packet_queue,
+        ),
     )
-    rx_thread.start()
-    process_thread.start()
 
     if CONF.enable_beacon:
         LOG.info("Beacon Enabled.  Starting Beacon thread.")
-        bcn_thread = tx.BeaconSendThread()
-        bcn_thread.start()
+        server_threads.register(tx.BeaconSendThread())
 
     if CONF.aprs_registry.enabled:
         LOG.info("Registry Enabled.  Starting Registry thread.")
-        registry_thread = registry.APRSRegistryThread()
-        registry_thread.start()
+        server_threads.register(registry.APRSRegistryThread())
 
-    if CONF.admin.web_enabled:
-        log_monitor_thread = log_monitor.LogMonitorThread()
-        log_monitor_thread.start()
-
-    rx_thread.join()
-    process_thread.join()
+    server_threads.start()
+    server_threads.join()
 
     return 0

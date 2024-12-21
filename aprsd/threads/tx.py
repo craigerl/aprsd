@@ -2,20 +2,18 @@ import logging
 import threading
 import time
 
+import wrapt
 from oslo_config import cfg
 from rush import quota, throttle
 from rush.contrib import decorator
 from rush.limiters import periodic
 from rush.stores import dictionary
-import wrapt
 
 from aprsd import conf  # noqa
 from aprsd import threads as aprsd_threads
 from aprsd.client import client_factory
-from aprsd.packets import collector, core
+from aprsd.packets import collector, core, tracker
 from aprsd.packets import log as packet_log
-from aprsd.packets import tracker
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -238,6 +236,7 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
 
     Settings are in the [DEFAULT] section of the config file.
     """
+
     _loop_cnt: int = 1
 
     def __init__(self):

@@ -2,29 +2,19 @@ from pathlib import Path
 
 from oslo_config import cfg
 
-
 home = str(Path.home())
 DEFAULT_CONFIG_DIR = f"{home}/.config/aprsd/"
 APRSD_DEFAULT_MAGIC_WORD = "CHANGEME!!!"
 
-admin_group = cfg.OptGroup(
-    name="admin",
-    title="Admin web interface settings",
-)
 watch_list_group = cfg.OptGroup(
     name="watch_list",
     title="Watch List settings",
-)
-webchat_group = cfg.OptGroup(
-    name="webchat",
-    title="Settings specific to the webchat command",
 )
 
 registry_group = cfg.OptGroup(
     name="aprs_registry",
     title="APRS Registry settings",
 )
-
 
 aprsd_opts = [
     cfg.StrOpt(
@@ -56,15 +46,15 @@ aprsd_opts = [
         "ack_rate_limit_period",
         default=1,
         help="The wait period in seconds per Ack packet being sent."
-             "1 means 1 ack packet per second allowed."
-             "2 means 1 pack packet every 2 seconds allowed",
+        "1 means 1 ack packet per second allowed."
+        "2 means 1 pack packet every 2 seconds allowed",
     ),
     cfg.IntOpt(
         "msg_rate_limit_period",
         default=2,
         help="Wait period in seconds per non AckPacket being sent."
-             "2 means 1 packet every 2 seconds allowed."
-             "5 means 1 pack packet every 5 seconds allowed",
+        "2 means 1 packet every 2 seconds allowed."
+        "5 means 1 pack packet every 5 seconds allowed",
     ),
     cfg.IntOpt(
         "packet_dupe_timeout",
@@ -75,7 +65,7 @@ aprsd_opts = [
         "enable_beacon",
         default=False,
         help="Enable sending of a GPS Beacon packet to locate this service. "
-             "Requires latitude and longitude to be set.",
+        "Requires latitude and longitude to be set.",
     ),
     cfg.IntOpt(
         "beacon_interval",
@@ -102,8 +92,8 @@ aprsd_opts = [
         choices=["compact", "multiline", "both"],
         default="compact",
         help="When logging packets 'compact' will use a single line formatted for each packet."
-             "'multiline' will use multiple lines for each packet and is the traditional format."
-             "both will log both compact and multiline.",
+        "'multiline' will use multiple lines for each packet and is the traditional format."
+        "both will log both compact and multiline.",
     ),
     cfg.IntOpt(
         "default_packet_send_count",
@@ -129,7 +119,7 @@ aprsd_opts = [
         "enable_seen_list",
         default=True,
         help="Enable the Callsign seen list tracking feature.  This allows aprsd to keep track of "
-             "callsigns that have been seen and when they were last seen.",
+        "callsigns that have been seen and when they were last seen.",
     ),
     cfg.BoolOpt(
         "enable_packet_logging",
@@ -145,7 +135,7 @@ aprsd_opts = [
         "enable_sending_ack_packets",
         default=True,
         help="Set this to False, to disable sending of ack packets. This will entirely stop"
-             "APRSD from sending ack packets.",
+        "APRSD from sending ack packets.",
     ),
 ]
 
@@ -154,8 +144,8 @@ watch_list_opts = [
         "enabled",
         default=False,
         help="Enable the watch list feature.  Still have to enable "
-             "the correct plugin.  Built-in plugin to use is "
-             "aprsd.plugins.notify.NotifyPlugin",
+        "the correct plugin.  Built-in plugin to use is "
+        "aprsd.plugins.notify.NotifyPlugin",
     ),
     cfg.ListOpt(
         "callsigns",
@@ -174,36 +164,7 @@ watch_list_opts = [
         "alert_time_seconds",
         default=3600,
         help="Time to wait before alert is sent on new message for "
-             "users in callsigns.",
-    ),
-]
-
-admin_opts = [
-    cfg.BoolOpt(
-        "web_enabled",
-        default=False,
-        help="Enable the Admin Web Interface",
-    ),
-    cfg.StrOpt(
-        "web_ip",
-        default="0.0.0.0",
-        help="The ip address to listen on",
-    ),
-    cfg.PortOpt(
-        "web_port",
-        default=8001,
-        help="The port to listen on",
-    ),
-    cfg.StrOpt(
-        "user",
-        default="admin",
-        help="The admin user for the admin web interface",
-    ),
-    cfg.StrOpt(
-        "password",
-        default="password",
-        secret=True,
-        help="Admin interface password",
+        "users in callsigns.",
     ),
 ]
 
@@ -212,7 +173,6 @@ enabled_plugins_opts = [
     cfg.ListOpt(
         "enabled_plugins",
         default=[
-            "aprsd.plugins.email.EmailPlugin",
             "aprsd.plugins.fortune.FortunePlugin",
             "aprsd.plugins.location.LocationPlugin",
             "aprsd.plugins.ping.PingPlugin",
@@ -222,36 +182,8 @@ enabled_plugins_opts = [
             "aprsd.plugins.notify.NotifySeenPlugin",
         ],
         help="Comma separated list of enabled plugins for APRSD."
-             "To enable installed external plugins add them here."
-             "The full python path to the class name must be used",
-    ),
-]
-
-webchat_opts = [
-    cfg.StrOpt(
-        "web_ip",
-        default="0.0.0.0",
-        help="The ip address to listen on",
-    ),
-    cfg.PortOpt(
-        "web_port",
-        default=8001,
-        help="The port to listen on",
-    ),
-    cfg.StrOpt(
-        "latitude",
-        default=None,
-        help="Latitude for the GPS Beacon button.  If not set, the button will not be enabled.",
-    ),
-    cfg.StrOpt(
-        "longitude",
-        default=None,
-        help="Longitude for the GPS Beacon button.  If not set, the button will not be enabled.",
-    ),
-    cfg.BoolOpt(
-        "disable_url_request_logging",
-        default=False,
-        help="Disable the logging of url requests in the webchat command.",
+        "To enable installed external plugins add them here."
+        "The full python path to the class name must be used",
     ),
 ]
 
@@ -260,16 +192,16 @@ registry_opts = [
         "enabled",
         default=False,
         help="Enable sending aprs registry information.  This will let the "
-             "APRS registry know about your service and it's uptime.  "
-             "No personal information is sent, just the callsign, uptime and description. "
-             "The service callsign is the callsign set in [DEFAULT] section.",
+        "APRS registry know about your service and it's uptime.  "
+        "No personal information is sent, just the callsign, uptime and description. "
+        "The service callsign is the callsign set in [DEFAULT] section.",
     ),
     cfg.StrOpt(
         "description",
         default=None,
         help="Description of the service to send to the APRS registry. "
-             "This is what will show up in the APRS registry."
-             "If not set, the description will be the same as the callsign.",
+        "This is what will show up in the APRS registry."
+        "If not set, the description will be the same as the callsign.",
     ),
     cfg.StrOpt(
         "registry_url",
@@ -292,12 +224,8 @@ registry_opts = [
 def register_opts(config):
     config.register_opts(aprsd_opts)
     config.register_opts(enabled_plugins_opts)
-    config.register_group(admin_group)
-    config.register_opts(admin_opts, group=admin_group)
     config.register_group(watch_list_group)
     config.register_opts(watch_list_opts, group=watch_list_group)
-    config.register_group(webchat_group)
-    config.register_opts(webchat_opts, group=webchat_group)
     config.register_group(registry_group)
     config.register_opts(registry_opts, group=registry_group)
 
@@ -305,8 +233,6 @@ def register_opts(config):
 def list_opts():
     return {
         "DEFAULT": (aprsd_opts + enabled_plugins_opts),
-        admin_group.name: admin_opts,
         watch_list_group.name: watch_list_opts,
-        webchat_group.name: webchat_opts,
         registry_group.name: registry_opts,
     }
