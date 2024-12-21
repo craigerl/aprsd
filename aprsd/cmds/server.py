@@ -6,19 +6,16 @@ import click
 from oslo_config import cfg
 
 import aprsd
-from aprsd import cli_helper
+from aprsd import cli_helper, plugin, threads, utils
 from aprsd import main as aprsd_main
-from aprsd import plugin, threads, utils
 from aprsd.client import client_factory
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import seen_list
 from aprsd.threads import aprsd as aprsd_threads
-from aprsd.threads import keepalive, registry, rx
+from aprsd.threads import keepalive, registry, rx, tx
 from aprsd.threads import stats as stats_thread
-from aprsd.threads import tx
 from aprsd.utils import singleton
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -32,6 +29,7 @@ class ServerThreads:
     the server command.
 
     """
+
     def __init__(self):
         self.threads: list[aprsd_threads.APRSDThread] = []
 

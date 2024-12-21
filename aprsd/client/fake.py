@@ -7,13 +7,11 @@ from aprsd.client import base
 from aprsd.client.drivers import fake as fake_driver
 from aprsd.utils import trace
 
-
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
 class APRSDFakeClient(base.APRSClient, metaclass=trace.TraceWrapperMetaclass):
-
     def stats(self, serializable=False) -> dict:
         return {
             "transport": "Fake",

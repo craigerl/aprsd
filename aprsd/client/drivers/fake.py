@@ -3,20 +3,19 @@ import threading
 import time
 
 import aprslib
-from oslo_config import cfg
 import wrapt
+from oslo_config import cfg
 
 from aprsd import conf  # noqa
 from aprsd.packets import core
 from aprsd.utils import trace
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
 
 class APRSDFakeClient(metaclass=trace.TraceWrapperMetaclass):
-    '''Fake client for testing.'''
+    """Fake client for testing."""
 
     # flag to tell us to stop
     thread_stop = False

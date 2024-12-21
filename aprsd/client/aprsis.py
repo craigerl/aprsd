@@ -2,16 +2,15 @@ import datetime
 import logging
 import time
 
+import timeago
 from aprslib.exceptions import LoginError
 from loguru import logger
 from oslo_config import cfg
-import timeago
 
 from aprsd import client, exception
 from aprsd.client import base
 from aprsd.client.drivers import aprsis
 from aprsd.packets import core
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -19,7 +18,6 @@ LOGU = logger
 
 
 class APRSISClient(base.APRSClient):
-
     _client = None
     _checks = False
 
@@ -106,6 +104,7 @@ class APRSISClient(base.APRSClient):
             LOG.warning(f"APRS_CLIENT {self._client} alive? NO!!!")
             return False
         return self._client.is_alive() and not self._is_stale_connection()
+
     def close(self):
         if self._client:
             self._client.stop()
@@ -134,8 +133,12 @@ class APRSISClient(base.APRSClient):
             if retry_count >= retries:
                 break
             try:
-                LOG.info(f"Creating aprslib client({host}:{port}) and logging in {user}.")
-                aprs_client = aprsis.Aprsdis(user, passwd=password, host=host, port=port)
+                LOG.info(
+                    f"Creating aprslib client({host}:{port}) and logging in {user}."
+                )
+                aprs_client = aprsis.Aprsdis(
+                    user, passwd=password, host=host, port=port
+                )
                 # Force the log to be the same
                 aprs_client.logger = LOG
                 aprs_client.connect()
@@ -166,8 +169,10 @@ class APRSISClient(base.APRSClient):
         if self._client:
             try:
                 self._client.consumer(
-                    callback, blocking=blocking,
-                    immortal=immortal, raw=raw,
+                    callback,
+                    blocking=blocking,
+                    immortal=immortal,
+                    raw=raw,
                 )
             except Exception as e:
                 LOG.error(e)

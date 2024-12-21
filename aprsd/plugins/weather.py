@@ -2,12 +2,11 @@ import json
 import logging
 import re
 
-from oslo_config import cfg
 import requests
+from oslo_config import cfg
 
 from aprsd import plugin, plugin_utils
 from aprsd.utils import trace
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -205,8 +204,9 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     def help(self):
         _help = [
-            "openweathermap: Send {} to get weather "
-            "from your location".format(self.command_regex),
+            "openweathermap: Send {} to get weather " "from your location".format(
+                self.command_regex
+            ),
             "openweathermap: Send {} <callsign> to get "
             "weather from <callsign>".format(self.command_regex),
         ]
@@ -327,10 +327,12 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     def help(self):
         _help = [
-            "avwxweather: Send {} to get weather "
-            "from your location".format(self.command_regex),
-            "avwxweather: Send {} <callsign> to get "
-            "weather from <callsign>".format(self.command_regex),
+            "avwxweather: Send {} to get weather " "from your location".format(
+                self.command_regex
+            ),
+            "avwxweather: Send {} <callsign> to get " "weather from <callsign>".format(
+                self.command_regex
+            ),
         ]
         return _help
 

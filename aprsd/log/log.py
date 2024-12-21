@@ -7,7 +7,6 @@ from oslo_config import cfg
 
 from aprsd.conf import log as conf_log
 
-
 CONF = cfg.CONF
 # LOG = logging.getLogger("APRSD")
 LOG = logger
@@ -18,6 +17,7 @@ class QueueLatest(queue.Queue):
 
     This prevents the queue from blowing up in size.
     """
+
     def put(self, *args, **kwargs):
         try:
             super().put(*args, **kwargs)
@@ -43,7 +43,9 @@ class InterceptHandler(logging.Handler):
             frame = frame.f_back
             depth += 1
 
-        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        logger.opt(depth=depth, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
 
 
 # Setup the log faciility

@@ -7,12 +7,10 @@ from aprsd.plugins import weather as weather_plugin
 
 from .. import fake, test_plugin
 
-
 CONF = cfg.CONF
 
 
 class TestUSWeatherPlugin(test_plugin.TestPlugin):
-
     def test_not_enabled_missing_aprs_fi_key(self):
         # When the aprs.fi api key isn't set, then
         # the LocationPlugin will be disabled.
@@ -108,7 +106,6 @@ class TestUSWeatherPlugin(test_plugin.TestPlugin):
 
 
 class TestUSMetarPlugin(test_plugin.TestPlugin):
-
     def test_not_enabled_missing_aprs_fi_key(self):
         # When the aprs.fi api key isn't set, then
         # the LocationPlugin will be disabled.
@@ -161,9 +158,9 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
 
     @mock.patch("aprsd.plugin_utils.get_weather_gov_metar")
     def test_airport_works(self, mock_metar):
-
         class Response:
             text = '{"properties": {"rawMessage": "BOGUSMETAR"}}'
+
         mock_metar.return_value = Response()
 
         CONF.aprs_fi.apiKey = "abc123"

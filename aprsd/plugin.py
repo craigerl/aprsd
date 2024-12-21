@@ -8,13 +8,12 @@ import re
 import textwrap
 import threading
 
-from oslo_config import cfg
 import pluggy
+from oslo_config import cfg
 
 import aprsd
 from aprsd import client, packets, threads
 from aprsd.packets import watch_list
-
 
 # setup the global logger
 CONF = cfg.CONF
@@ -166,7 +165,8 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 except Exception as ex:
                     LOG.error(
                         "Plugin {} failed to process packet {}".format(
-                            self.__class__, ex,
+                            self.__class__,
+                            ex,
                         ),
                     )
                 if result:
@@ -214,7 +214,9 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
             return result
 
         if not isinstance(packet, packets.MessagePacket):
-            LOG.warning(f"{self.__class__.__name__} Got a {packet.__class__.__name__} ignoring")
+            LOG.warning(
+                f"{self.__class__.__name__} Got a {packet.__class__.__name__} ignoring"
+            )
             return packets.NULL_MESSAGE
 
         result = None
@@ -236,7 +238,8 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 except Exception as ex:
                     LOG.error(
                         "Plugin {} failed to process packet {}".format(
-                            self.__class__, ex,
+                            self.__class__,
+                            ex,
                         ),
                     )
                     LOG.exception(ex)
@@ -286,7 +289,8 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
             reply = None
             for p in pm.get_plugins():
                 if (
-                    p.enabled and isinstance(p, APRSDRegexCommandPluginBase)
+                    p.enabled
+                    and isinstance(p, APRSDRegexCommandPluginBase)
                     and p.command_name.lower() == command_name
                 ):
                     reply = p.help()
@@ -345,6 +349,7 @@ class PluginManager:
 
     def stats(self, serializable=False) -> dict:
         """Collect and return stats for all plugins."""
+
         def full_name_with_qualname(obj):
             return "{}.{}".format(
                 obj.__class__.__module__,
@@ -354,7 +359,6 @@ class PluginManager:
         plugin_stats = {}
         plugins = self.get_plugins()
         if plugins:
-
             for p in plugins:
                 plugin_stats[full_name_with_qualname(p)] = {
                     "enabled": p.enabled,
@@ -439,7 +443,9 @@ class PluginManager:
                         )
                         self._watchlist_pm.register(plugin_obj)
                     else:
-                        LOG.warning(f"Plugin {plugin_obj.__class__.__name__} is disabled")
+                        LOG.warning(
+                            f"Plugin {plugin_obj.__class__.__name__} is disabled"
+                        )
                 elif isinstance(plugin_obj, APRSDRegexCommandPluginBase):
                     if plugin_obj.enabled:
                         LOG.info(
@@ -451,7 +457,9 @@ class PluginManager:
                         )
                         self._pluggy_pm.register(plugin_obj)
                     else:
-                        LOG.warning(f"Plugin {plugin_obj.__class__.__name__} is disabled")
+                        LOG.warning(
+                            f"Plugin {plugin_obj.__class__.__name__} is disabled"
+                        )
                 elif isinstance(plugin_obj, APRSDPluginBase):
                     if plugin_obj.enabled:
                         LOG.info(
@@ -462,7 +470,9 @@ class PluginManager:
                         )
                         self._pluggy_pm.register(plugin_obj)
                     else:
-                        LOG.warning(f"Plugin {plugin_obj.__class__.__name__} is disabled")
+                        LOG.warning(
+                            f"Plugin {plugin_obj.__class__.__name__} is disabled"
+                        )
         except Exception as ex:
             LOG.error(f"Couldn't load plugin '{plugin_name}'")
             LOG.exception(ex)
@@ -473,7 +483,8 @@ class PluginManager:
             self.setup_plugins(load_help_plugin=CONF.load_help_plugin)
 
     def setup_plugins(
-        self, load_help_plugin=True,
+        self,
+        load_help_plugin=True,
         plugin_list=[],
     ):
         """Create the plugin manager and register plugins."""

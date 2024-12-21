@@ -4,8 +4,9 @@ import queue
 # aprsd.threads
 from .aprsd import APRSDThread, APRSDThreadList  # noqa: F401
 from .rx import (  # noqa: F401
-    APRSDDupeRXThread, APRSDProcessPacketThread, APRSDRXThread,
+    APRSDDupeRXThread,
+    APRSDProcessPacketThread,
+    APRSDRXThread,
 )
-
 
 packet_queue = queue.Queue(maxsize=20)

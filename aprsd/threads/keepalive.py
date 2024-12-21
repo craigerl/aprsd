@@ -9,8 +9,8 @@ from oslo_config import cfg
 from aprsd import packets, utils
 from aprsd.log import log as aprsd_log
 from aprsd.stats import collector
-from aprsd.threads import APRSDThread, APRSDThreadList, keepalive_collector
-
+from aprsd.threads import APRSDThread, APRSDThreadList
+from aprsd.utils import keepalive_collector
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -34,9 +34,14 @@ class KeepAliveThread(APRSDThread):
             thread_list = APRSDThreadList()
             now = datetime.datetime.now()
 
-            if "APRSClientStats" in stats_json and stats_json["APRSClientStats"].get("transport") == "aprsis":
+            if (
+                "APRSClientStats" in stats_json
+                and stats_json["APRSClientStats"].get("transport") == "aprsis"
+            ):
                 if stats_json["APRSClientStats"].get("server_keepalive"):
-                    last_msg_time = utils.strfdelta(now - stats_json["APRSClientStats"]["server_keepalive"])
+                    last_msg_time = utils.strfdelta(
+                        now - stats_json["APRSClientStats"]["server_keepalive"]
+                    )
                 else:
                     last_msg_time = "N/A"
             else:

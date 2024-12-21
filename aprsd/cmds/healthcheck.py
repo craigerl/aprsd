@@ -13,12 +13,14 @@ from oslo_config import cfg
 from rich.console import Console
 
 import aprsd
-from aprsd import cli_helper
-from aprsd import conf  # noqa
+from aprsd import (
+    cli_helper,
+    conf,  # noqa
+)
+
 # local imports here
 from aprsd.main import cli
 from aprsd.threads import stats as stats_threads
-
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10

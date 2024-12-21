@@ -4,7 +4,6 @@ The options for log setup
 
 from oslo_config import cfg
 
-
 DEFAULT_LOGIN = "NOCALL"
 
 aprs_group = cfg.OptGroup(
@@ -31,7 +30,7 @@ aprs_opts = [
         "enabled",
         default=True,
         help="Set enabled to False if there is no internet connectivity."
-             "This is useful for a direwolf KISS aprs connection only.",
+        "This is useful for a direwolf KISS aprs connection only.",
     ),
     cfg.StrOpt(
         "login",
@@ -42,8 +41,8 @@ aprs_opts = [
         "password",
         secret=True,
         help="APRS Password "
-             "Get the passcode for your callsign here: "
-             "https://apps.magicbug.co.uk/passcode",
+        "Get the passcode for your callsign here: "
+        "https://apps.magicbug.co.uk/passcode",
     ),
     cfg.HostAddressOpt(
         "host",

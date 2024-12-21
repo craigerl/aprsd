@@ -3,13 +3,13 @@ from typing import Callable, Protocol, runtime_checkable
 
 from aprsd.utils import singleton
 
-
 LOG = logging.getLogger("APRSD")
 
 
 @runtime_checkable
 class StatsProducer(Protocol):
     """The StatsProducer protocol is used to define the interface for collecting stats."""
+
     def stats(self, serializable=False) -> dict:
         """provide stats in a dictionary format."""
         ...
@@ -18,6 +18,7 @@ class StatsProducer(Protocol):
 @singleton
 class Collector:
     """The Collector class is used to collect stats from multiple StatsProducer instances."""
+
     def __init__(self):
         self.producers: list[Callable] = []
 
@@ -26,7 +27,9 @@ class Collector:
         for name in self.producers:
             cls = name()
             try:
-                stats[cls.__class__.__name__] = cls.stats(serializable=serializable).copy()
+                stats[cls.__class__.__name__] = cls.stats(
+                    serializable=serializable
+                ).copy()
             except Exception as e:
                 LOG.error(f"Error in producer {name} (stats): {e}")
         return stats

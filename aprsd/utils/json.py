@@ -10,8 +10,13 @@ class EnhancedJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime.datetime):
             args = (
-                "year", "month", "day", "hour", "minute",
-                "second", "microsecond",
+                "year",
+                "month",
+                "day",
+                "hour",
+                "minute",
+                "second",
+                "microsecond",
             )
             return {
                 "__type__": "datetime.datetime",
@@ -63,10 +68,10 @@ class SimpleJSONEncoder(json.JSONEncoder):
 
 
 class EnhancedJSONDecoder(json.JSONDecoder):
-
     def __init__(self, *args, **kwargs):
         super().__init__(
-            *args, object_hook=self.object_hook,
+            *args,
+            object_hook=self.object_hook,
             **kwargs,
         )
 

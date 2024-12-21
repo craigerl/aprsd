@@ -2,15 +2,14 @@ import datetime
 import logging
 
 import aprslib
+import timeago
 from loguru import logger
 from oslo_config import cfg
-import timeago
 
 from aprsd import client, exception
 from aprsd.client import base
 from aprsd.client.drivers import kiss
 from aprsd.packets import core
-
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -18,7 +17,6 @@ LOGU = logger
 
 
 class KISSClient(base.APRSClient):
-
     _client = None
     keepalive = datetime.datetime.now()
 

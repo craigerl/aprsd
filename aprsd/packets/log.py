@@ -8,7 +8,6 @@ from oslo_config import cfg
 from aprsd import utils
 from aprsd.packets.core import AckPacket, GPSPacket, RejectPacket
 
-
 LOG = logging.getLogger()
 LOGU = logger
 CONF = cfg.CONF
@@ -22,7 +21,9 @@ DISTANCE_COLOR = "fg #FF5733"
 DEGREES_COLOR = "fg #FFA900"
 
 
-def log_multiline(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> None:
+def log_multiline(
+    packet, tx: Optional[bool] = False, header: Optional[bool] = True
+) -> None:
     """LOG a packet to the logfile."""
     if not CONF.enable_packet_logging:
         return
@@ -121,8 +122,7 @@ def log(packet, tx: Optional[bool] = False, header: Optional[bool] = True) -> No
         via_color = "green"
         arrow = f"<{via_color}>-></{via_color}>"
         logit.append(
-            f"<cyan>{name}</cyan>"
-            f":{packet.msgNo}",
+            f"<cyan>{name}</cyan>" f":{packet.msgNo}",
         )
 
     tmp = None

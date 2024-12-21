@@ -1,19 +1,17 @@
 from unittest import mock
 
-from oslo_config import cfg
 import pytz
+from oslo_config import cfg
 
 from aprsd.plugins import time as time_plugin
 from aprsd.utils import fuzzy
 
 from .. import fake, test_plugin
 
-
 CONF = cfg.CONF
 
 
 class TestTimePlugins(test_plugin.TestPlugin):
-
     @mock.patch("aprsd.plugins.time.TimePlugin._get_local_tz")
     @mock.patch("aprsd.plugins.time.TimePlugin._get_utcnow")
     def test_time(self, mock_utcnow, mock_localtz):

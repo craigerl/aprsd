@@ -3,13 +3,13 @@ from typing import Callable, Protocol, runtime_checkable
 
 from aprsd.utils import singleton
 
-
 LOG = logging.getLogger("APRSD")
 
 
 @runtime_checkable
 class KeepAliveProducer(Protocol):
     """The KeepAliveProducer protocol is used to define the interface for running Keepalive checks."""
+
     def keepalive_check(self) -> dict:
         """Check for keepalive."""
         ...
@@ -22,6 +22,7 @@ class KeepAliveProducer(Protocol):
 @singleton
 class KeepAliveCollector:
     """The Collector class is used to collect stats from multiple StatsProducer instances."""
+
     def __init__(self):
         self.producers: list[Callable] = []
 

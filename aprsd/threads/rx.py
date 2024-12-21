@@ -13,7 +13,6 @@ from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
 from aprsd.utils import trace
 
-
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
@@ -53,7 +52,9 @@ class APRSDRXThread(APRSDThread):
             # kwargs.  :(
             # https://github.com/rossengeorgiev/aprs-python/pull/56
             self._client.consumer(
-                self._process_packet, raw=False, blocking=False,
+                self._process_packet,
+                raw=False,
+                blocking=False,
             )
         except (
             aprslib.exceptions.ConnectionDrop,
@@ -138,7 +139,9 @@ class APRSDDupeRXThread(APRSDRXThread):
             elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
                 # If the packet came in within N seconds of the
                 # Last time seeing the packet, then we drop it as a dupe.
-                LOG.warning(f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.")
+                LOG.warning(
+                    f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping."
+                )
             else:
                 LOG.warning(
                     f"Packet {packet.from_call}:{packet.msgNo} already tracked "
@@ -149,7 +152,7 @@ class APRSDDupeRXThread(APRSDRXThread):
 
 
 class APRSDPluginRXThread(APRSDDupeRXThread):
-    """"Process received packets.
+    """ "Process received packets.
 
     For backwards compatibility, we keep the APRSDPluginRXThread.
     """
@@ -249,7 +252,8 @@ class APRSDProcessPacketThread(APRSDThread):
                     self.process_other_packet(packet, for_us=False)
             else:
                 self.process_other_packet(
-                    packet, for_us=(to_call.lower() == our_call),
+                    packet,
+                    for_us=(to_call.lower() == our_call),
                 )
         LOG.debug(f"Packet processing complete for pkt '{packet.key}'")
         return False
@@ -349,7 +353,6 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             # If the message was for us and we didn't have a
             # response, then we send a usage statement.
             if to_call == CONF.callsign and not replied:
-
                 # Tailor the messages accordingly
                 if CONF.load_help_plugin:
                     LOG.warning("Sending help!")

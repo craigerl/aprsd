@@ -1,12 +1,4 @@
 build
-check-manifest
-flake8
-gray
-isort
-mypy
-pep8-naming
-pytest
-pytest-cov
 pip
 pip-tools
 pre-commit

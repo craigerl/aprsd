@@ -9,9 +9,9 @@ import sys
 from traceback import print_tb
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup
 import click
 import requests
+from bs4 import BeautifulSoup
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
@@ -21,7 +21,6 @@ from aprsd import cli_helper
 from aprsd import plugin as aprsd_plugin
 from aprsd.main import cli
 from aprsd.plugins import fortune, notify, ping, time, version, weather
-
 
 LOG = logging.getLogger("APRSD")
 PYPI_URL = "https://pypi.org/search/"
@@ -79,7 +78,8 @@ def get_module_info(package_name, module_name, module_path):
                         obj_list.append(
                             {
                                 "package": package_name,
-                                "name": mem_name, "obj": obj,
+                                "name": mem_name,
+                                "obj": obj,
                                 "version": obj.version,
                                 "path": f"{'.'.join([module_name, obj.__name__])}",
                             },
@@ -99,7 +99,9 @@ def _get_installed_aprsd_items():
                 module = importlib.import_module(name)
                 pkgs = walk_package(module)
                 for pkg in pkgs:
-                    pkg_info = get_module_info(module.__name__, pkg.name, module.__path__[0])
+                    pkg_info = get_module_info(
+                        module.__name__, pkg.name, module.__path__[0]
+                    )
                     if "plugin" in name:
                         plugins[name] = pkg_info
                     elif "extension" in name:
@@ -193,10 +195,18 @@ def show_pypi_plugins(installed_plugins, console):
     table.add_column("Installed?", style="red", justify="center")
     for snippet in snippets:
         link = urljoin(PYPI_URL, snippet.get("href"))
-        package = re.sub(r"\s+", " ", snippet.select_one('span[class*="name"]').text.strip())
-        version = re.sub(r"\s+", " ", snippet.select_one('span[class*="version"]').text.strip())
-        created = re.sub(r"\s+", " ", snippet.select_one('span[class*="created"]').text.strip())
-        description = re.sub(r"\s+", " ", snippet.select_one('p[class*="description"]').text.strip())
+        package = re.sub(
+            r"\s+", " ", snippet.select_one('span[class*="name"]').text.strip()
+        )
+        version = re.sub(
+            r"\s+", " ", snippet.select_one('span[class*="version"]').text.strip()
+        )
+        created = re.sub(
+            r"\s+", " ", snippet.select_one('span[class*="created"]').text.strip()
+        )
+        description = re.sub(
+            r"\s+", " ", snippet.select_one('p[class*="description"]').text.strip()
+        )
         emoji = ":open_file_folder:"
 
         if "aprsd-" not in package or "-plugin" not in package:
@@ -210,7 +220,10 @@ def show_pypi_plugins(installed_plugins, console):
 
         table.add_row(
             f"[link={link}]{emoji}[/link] {package}",
-            description, version, created, installed,
+            description,
+            version,
+            created,
+            installed,
         )
 
     console.print("\n")
@@ -234,10 +247,18 @@ def show_pypi_extensions(installed_extensions, console):
     table.add_column("Installed?", style="red", justify="center")
     for snippet in snippets:
         link = urljoin(PYPI_URL, snippet.get("href"))
-        package = re.sub(r"\s+", " ", snippet.select_one('span[class*="name"]').text.strip())
-        version = re.sub(r"\s+", " ", snippet.select_one('span[class*="version"]').text.strip())
-        created = re.sub(r"\s+", " ", snippet.select_one('span[class*="created"]').text.strip())
-        description = re.sub(r"\s+", " ", snippet.select_one('p[class*="description"]').text.strip())
+        package = re.sub(
+            r"\s+", " ", snippet.select_one('span[class*="name"]').text.strip()
+        )
+        version = re.sub(
+            r"\s+", " ", snippet.select_one('span[class*="version"]').text.strip()
+        )
+        created = re.sub(
+            r"\s+", " ", snippet.select_one('span[class*="created"]').text.strip()
+        )
+        description = re.sub(
+            r"\s+", " ", snippet.select_one('p[class*="description"]').text.strip()
+        )
         emoji = ":open_file_folder:"
 
         if "aprsd-" not in package or "-extension" not in package:
@@ -251,7 +272,10 @@ def show_pypi_extensions(installed_extensions, console):
 
         table.add_row(
             f"[link={link}]{emoji}[/link] {package}",
-            description, version, created, installed,
+            description,
+            version,
+            created,
+            installed,
         )
 
     console.print("\n")

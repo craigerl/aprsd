@@ -1,6 +1,5 @@
 from oslo_config import cfg
 
-
 aprsfi_group = cfg.OptGroup(
     name="aprs_fi",
     title="APRS.FI website settings",
@@ -21,8 +20,7 @@ owm_wx_group = cfg.OptGroup(
 aprsfi_opts = [
     cfg.StrOpt(
         "apiKey",
-        help="Get the apiKey from your aprs.fi account here:"
-             "http://aprs.fi/account",
+        help="Get the apiKey from your aprs.fi account here:" "http://aprs.fi/account",
     ),
 ]
 
@@ -30,11 +28,11 @@ owm_wx_opts = [
     cfg.StrOpt(
         "apiKey",
         help="OWMWeatherPlugin api key to OpenWeatherMap's API."
-             "This plugin uses the openweathermap API to fetch"
-             "location and weather information."
-             "To use this plugin you need to get an openweathermap"
-             "account and apikey."
-             "https://home.openweathermap.org/api_keys",
+        "This plugin uses the openweathermap API to fetch"
+        "location and weather information."
+        "To use this plugin you need to get an openweathermap"
+        "account and apikey."
+        "https://home.openweathermap.org/api_keys",
     ),
 ]
 
@@ -42,16 +40,16 @@ avwx_opts = [
     cfg.StrOpt(
         "apiKey",
         help="avwx-api is an opensource project that has"
-             "a hosted service here: https://avwx.rest/"
-             "You can launch your own avwx-api in a container"
-             "by cloning the githug repo here:"
-             "https://github.com/avwx-rest/AVWX-API",
+        "a hosted service here: https://avwx.rest/"
+        "You can launch your own avwx-api in a container"
+        "by cloning the githug repo here:"
+        "https://github.com/avwx-rest/AVWX-API",
     ),
     cfg.StrOpt(
         "base_url",
         default="https://avwx.rest",
         help="The base url for the avwx API.  If you are hosting your own"
-             "Here is where you change the url to point to yours.",
+        "Here is where you change the url to point to yours.",
     ),
 ]
 

@@ -11,13 +11,11 @@ from aprsd.main import cli
 
 from .. import fake
 
-
 CONF = cfg.CONF
 F = t.TypeVar("F", bound=t.Callable[..., t.Any])
 
 
 class TestSendMessageCommand(unittest.TestCase):
-
     def config_and_init(self, login=None, password=None):
         CONF.callsign = fake.FAKE_TO_CALLSIGN
         CONF.trace_enabled = False
@@ -41,7 +39,8 @@ class TestSendMessageCommand(unittest.TestCase):
         runner = CliRunner()
 
         result = runner.invoke(
-            cli, ["send-message"],
+            cli,
+            ["send-message"],
             catch_exceptions=False,
         )
         assert result.exit_code == 2
@@ -58,7 +57,8 @@ class TestSendMessageCommand(unittest.TestCase):
         runner = CliRunner()
 
         result = runner.invoke(
-            cli, ["send-message", "WB4BOR"],
+            cli,
+            ["send-message", "WB4BOR"],
             catch_exceptions=False,
         )
         assert result.exit_code == 2

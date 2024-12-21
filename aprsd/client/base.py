@@ -2,12 +2,11 @@ import abc
 import logging
 import threading
 
-from oslo_config import cfg
 import wrapt
+from oslo_config import cfg
 
 from aprsd.packets import core
-from aprsd.threads import keepalive_collector
-
+from aprsd.utils import keepalive_collector
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
