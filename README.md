@@ -1,105 +1,115 @@
-===============================================
-APRSD - Ham radio APRS-IS Message plugin server
-===============================================
+# APRSD - Ham radio APRS-IS Message plugin server
 
-KM6LYW and WB4BOR
-____________________
+## KM6LYW and WB4BOR
 
-|pypi| |pytest| |versions| |slack| |issues| |commit| |imports| |down|
+[![pypi](https://badge.fury.io/py/aprsd.svg)](https://badge.fury.io/py/aprsd)
+[![pytest](https://github.com/craigerl/aprsd/workflows/python/badge.svg)](https://github.com/craigerl/aprsd/actions)
+[![versions](https://img.shields.io/pypi/pyversions/aprsd.svg)](https://pypi.org/pypi/aprsd)
+[![slack](https://img.shields.io/badge/slack-@hemna/aprsd-blue.svg?logo=slack)](https://hemna.slack.com/app_redirect?channel=C01KQSCP5RP)
+![issues](https://img.shields.io/github/issues/craigerl/aprsd)
+![commit](https://img.shields.io/github/last-commit/craigerl/aprsd)
+[![imports](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://timothycrosley.github.io/isort/)
+[![down](https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/aprsd)
 
+[APRSD](http://github.com/craigerl/aprsd) is a Ham radio
+[APRS](http://aprs.org) message command gateway built on python.
 
-`APRSD <http://github.com/craigerl/aprsd>`_ is a Ham radio `APRS <http://aprs.org>`_ message command gateway built on python.
+### Table of Contents
 
+1.  [What is APRSD](#what-is-aprsd)
+2.  [APRSD Overview Diagram](#aprsd-overview-diagram)
+3.  [Typical Use Case](#typical-use-case)
+4.  [Installation](#installation)
+5.  [Example Usage](#example-usage)
+6.  [Help](#help)
+7.  [Commands](#commands)
+    -   [Configuration](#configuration)
+    -   [Server](#server)
+    -   [Current List of Built-in
+        Plugins](#current-list-of-built-in-plugins)
+    -   [Pypi.org APRSD Installable Plugin
+        Packages](#pypiorg-aprsd-installable-plugin-packages)
+    -   [🐍 APRSD Installed 3rd Party
+        Plugins](#aprsd-installed-3rd-party-plugins)
+    -   [Send Message](#send-message)
+    -   [Send Email (Radio to SMTP
+        Server)](#send-email-radio-to-smtp-server)
+    -   [Receive Email (IMAP Server to
+        Radio)](#receive-email-imap-server-to-radio)
+    -   [Location](#location)
+    -   [Web Admin Interface](#web-admin-interface)
+8.  [Development](#development)
+    -   [Building Your Own APRSD
+        Plugins](#building-your-own-aprsd-plugins)
+9.  [Workflow](#workflow)
+10. [Release](#release)
+11. [Docker Container](#docker-container)
+    -   [Building](#building-1)
+    -   [Official Build](#official-build)
+    -   [Development Build](#development-build)
+    -   [Running the Container](#running-the-container)
 
-Table of Contents
-=================
+---
 
-1. `What is APRSD <#what-is-aprsd>`_
-2. `APRSD Overview Diagram <#aprsd-overview-diagram>`_
-3. `Typical Use Case <#typical-use-case>`_
-4. `Installation <#installation>`_
-5. `Example Usage <#example-usage>`_
-6. `Help <#help>`_
-7. `Commands <#commands>`_
-   - `Configuration <#configuration>`_
-   - `Server <#server>`_
-   - `Current List of Built-in Plugins <#current-list-of-built-in-plugins>`_
-   - `Pypi.org APRSD Installable Plugin Packages <#pypiorg-aprsd-installable-plugin-packages>`_
-   - `🐍 APRSD Installed 3rd Party Plugins <#aprsd-installed-3rd-party-plugins>`_
-   - `Send Message <#send-message>`_
-   - `Send Email (Radio to SMTP Server) <#send-email-radio-to-smtp-server>`_
-   - `Receive Email (IMAP Server to Radio) <#receive-email-imap-server-to-radio>`_
-   - `Location <#location>`_
-   - `Web Admin Interface <#web-admin-interface>`_
-8. `Development <#development>`_
-   - `Building Your Own APRSD Plugins <#building-your-own-aprsd-plugins>`_
-9. `Workflow <#workflow>`_
-10. `Release <#release>`_
-11. `Docker Container <#docker-container>`_
-    - `Building <#building-1>`_
-    - `Official Build <#official-build>`_
-    - `Development Build <#development-build>`_
-    - `Running the Container <#running-the-container>`_
+> [!WARNING]
+> Legal operation of this software requires an amateur radio license and a valid call sign.
 
+> [!NOTE]
+> Star this repo to follow our progress! This code is under active development, and contributions are both welcomed and appreciated. See [CONTRIBUTING.md](<https://github.com/craigerl/aprsd/blob/master/CONTRIBUTING.md>) for details.
 
-What is APRSD
-=============
-APRSD is a python application for interacting with the APRS network and providing
-APRS services for HAM radio operators.
+### What is APRSD
+
+APRSD is a python application for interacting with the APRS network and
+providing APRS services for HAM radio operators.
 
 APRSD currently has 4 main commands to use.
-    * server - Connect to APRS and listen/respond to APRS messages
-    * webchat - web based chat program over APRS
-    * send-message - Send a message to a callsign via APRS_IS.
-    * listen - Listen to packets on the APRS-IS Network based on FILTER.
 
-Each of those commands can connect to the APRS-IS network if internet connectivity
-is available.  If internet is not available, then APRS can be configured to talk
-to a TCP KISS TNC for radio connectivity.
+:   -   server - Connect to APRS and listen/respond to APRS messages
+    -   webchat - web based chat program over APRS
+    -   send-message - Send a message to a callsign via APRS_IS.
+    -   listen - Listen to packets on the APRS-IS Network based on
+        FILTER.
 
-Please `read the docs`_ to learn more!
+Each of those commands can connect to the APRS-IS network if internet
+connectivity is available. If internet is not available, then APRS can
+be configured to talk to a TCP KISS TNC for radio connectivity.
 
-APRSD Overview Diagram
-======================
+Please [read the docs](https://aprsd.readthedocs.io) to learn more!
 
-.. image:: https://raw.githubusercontent.com/craigerl/aprsd/master/docs/_static/aprsd_overview.svg?sanitize=true
+### APRSD Overview Diagram
 
-Typical use case
-================
+![image](https://raw.githubusercontent.com/craigerl/aprsd/master/docs/_static/aprsd_overview.svg?sanitize=true)
 
-APRSD's typical use case is that of providing an APRS wide service to all HAM
-radio operators.  For example the callsign 'REPEAT' on the APRS network is actually
-an instance of APRSD that can provide a list of HAM repeaters in the area of the
-callsign that sent the message.
+### Typical use case
 
+APRSD\'s typical use case is that of providing an APRS wide service to
+all HAM radio operators. For example the callsign \'REPEAT\' on the APRS
+network is actually an instance of APRSD that can provide a list of HAM
+repeaters in the area of the callsign that sent the message.
 
-Ham radio operator using an APRS enabled HAM radio sends a message to check
-the weather.  An APRS message is sent, and then picked up by APRSD.  The
-APRS packet is decoded, and the message is sent through the list of plugins
-for processing.  For example, the WeatherPlugin picks up the message, fetches the weather
-for the area around the user who sent the request, and then responds with
-the weather conditions in that area.  Also includes a watch list of HAM
-callsigns to look out for.  The watch list can notify you when a HAM callsign
-in the list is seen and now available to message on the APRS network.
+Ham radio operator using an APRS enabled HAM radio sends a message to
+check the weather. An APRS message is sent, and then picked up by APRSD.
+The APRS packet is decoded, and the message is sent through the list of
+plugins for processing. For example, the WeatherPlugin picks up the
+message, fetches the weather for the area around the user who sent the
+request, and then responds with the weather conditions in that area.
+Also includes a watch list of HAM callsigns to look out for. The watch
+list can notify you when a HAM callsign in the list is seen and now
+available to message on the APRS network.
 
+### Installation
 
+To install `aprsd`, use Pip:
 
-Installation
-=============
+`pip install aprsd`
 
-To install ``aprsd``, use Pip:
+### Example usage
 
-``pip install aprsd``
+`aprsd -h`
 
-Example usage
-==============
+### Help
 
-``aprsd -h``
-
-Help
-====
-::
-
+:
 
     └─> aprsd -h
     Usage: aprsd [OPTIONS] COMMAND [ARGS]...
@@ -123,29 +133,24 @@ Help
       version          Show the APRSD version.
       webchat          Web based HAM Radio chat program!
 
+### Commands
 
-Commands
-========
+### Configuration
 
-Configuration
-=============
-This command outputs a sample config yml formatted block that you can edit
-and use to pass in to ``aprsd`` with ``-c``.  By default aprsd looks in ``~/.config/aprsd/aprsd.yml``
+This command outputs a sample config yml formatted block that you can
+edit and use to pass in to `aprsd` with `-c`. By default aprsd looks in
+`~/.config/aprsd/aprsd.yml`
 
-``aprsd sample-config``
-
-::
+`aprsd sample-config`
 
     └─> aprsd sample-config
     ...
 
-server
-======
+### server
 
 This is the main server command that will listen to APRS-IS servers and
-look for incomming commands to the callsign configured in the config file
-
-::
+look for incomming commands to the callsign configured in the config
+file
 
     └─[$] > aprsd server --help
         Usage: aprsd server [OPTIONS]
@@ -176,10 +181,7 @@ look for incomming commands to the callsign configured in the config file
     12/07/2021 03:16:17 PM MainThread      INFO     aprs.port = 14580                                                                     server.py:60
     12/07/2021 03:16:17 PM MainThread      INFO     aprs.logfile = /tmp/aprsd.log                                                         server.py:60
 
-
-Current list of built-in plugins
---------------------------------
-::
+#### Current list of built-in plugins
 
     └─> aprsd list-plugins
                                                            🐍 APRSD Built-in Plugins 🐍
@@ -226,15 +228,10 @@ Current list of built-in plugins
     │ aprsd-weewx-plugin │ WeewxMQTTPlugin │   1.0   │ RegexCommand │ aprsd_weewx_plugin.weewx.WeewxMQTTPlugin │
     └────────────────────┴─────────────────┴─────────┴──────────────┴──────────────────────────────────────────┘
 
+### send-message
 
-
-send-message
-============
-
-This command is typically used for development to send another aprsd instance
-test messages
-
-::
+This command is typically used for development to send another aprsd
+instance test messages
 
     └─[$] > aprsd send-message -h
     Usage: aprsd send-message [OPTIONS] TOCALLSIGN COMMAND...
@@ -260,11 +257,7 @@ test messages
       --raw TEXT                      Send a raw message.  Implies --no-ack
       -h, --help                      Show this message and exit.
 
-
-SEND EMAIL (radio to smtp server)
-=================================
-
-::
+### SEND EMAIL (radio to smtp server)
 
     Received message______________
     Raw         : KM6XXX>APY400,WIDE1-1,qAO,KM6XXX-1::KM6XXX-9 :-user@host.com test new shortcuts global, radio to pc{29
@@ -282,11 +275,7 @@ SEND EMAIL (radio to smtp server)
     To          : KM6XXX
     Ack number  : 29
 
-
-RECEIVE EMAIL (imap server to radio)
-====================================
-
-::
+### RECEIVE EMAIL (imap server to radio)
 
     Sending message_______________ 6(Tx3)
     Raw         : KM6XXX-9>APRS::KM6XXX   :-somebody@gmail.com email from internet to radio{6
@@ -299,11 +288,7 @@ RECEIVE EMAIL (imap server to radio)
     Message     : ack6
     Msg number  : 0
 
-
-LOCATION
-========
-
-::
+### LOCATION
 
     Received Message _______________
     Raw         : KM6XXX-6>APRS,TCPIP*,qAC,T2CAEAST::KM6XXX-14:location{2
@@ -325,178 +310,144 @@ LOCATION
     Ack         : 2
     Sending ack _______________ Complete
 
-AND... ping, fortune, time.....
+AND\... ping, fortune, time\.....
 
+### Web Admin Interface
 
-Web Admin Interface
-===================
-APRSD has a web admin interface that allows you to view the status of the running APRSD server instance.
-The web admin interface shows graphs of packet counts, packet types, number of threads running, the latest
-packets sent and received, and the status of each of the plugins that are loaded.  You can also view the logfile
-and view the raw APRSD configuration file.
+APRSD has a web admin interface that allows you to view the status of
+the running APRSD server instance. The web admin interface shows graphs
+of packet counts, packet types, number of threads running, the latest
+packets sent and received, and the status of each of the plugins that
+are loaded. You can also view the logfile and view the raw APRSD
+configuration file.
 
-To start the web admin interface, You have to install gunicorn in your virtualenv that already has aprsd installed.
+To start the web admin interface, You have to install gunicorn in your
+virtualenv that already has aprsd installed.
 
-::
+    source <path to APRSD's virtualenv>/bin/activate
+    aprsd admin --loglevel INFO
 
-  source <path to APRSD's virtualenv>/bin/activate
-  aprsd admin --loglevel INFO
+The web admin interface will be running on port 8080 on the local
+machine. <http://localhost:8080>
 
-The web admin interface will be running on port 8080 on the local machine.  http://localhost:8080
+### Development
 
+-   `git clone git@github.com:craigerl/aprsd.git`
+-   `cd aprsd`
+-   `make`
 
-Development
-===========
-
-* ``git clone git@github.com:craigerl/aprsd.git``
-* ``cd aprsd``
-* ``make``
-
-Workflow
---------
+#### Workflow
 
 While working aprsd, The workflow is as follows:
 
-* Checkout a new branch to work on by running
+-   Checkout a new branch to work on by running
 
-  ``git checkout -b mybranch``
+    `git checkout -b mybranch`
 
-* Make your changes to the code
-* Run Tox with the following options:
+-   Make your changes to the code
 
-  - ``tox -epep8``
-  - ``tox -efmt``
-  - ``tox -p``
+-   Run Tox with the following options:
 
-* Commit your changes. This will run the pre-commit hooks which does checks too
+    -   `tox -epep8`
+    -   `tox -efmt`
+    -   `tox -p`
 
-  ``git commit``
+-   Commit your changes. This will run the pre-commit hooks which does
+    checks too
 
-* Once you are done with all of your commits, then push up the branch to
-  github with:
+    `git commit`
 
-  ``git push -u origin mybranch``
+-   Once you are done with all of your commits, then push up the branch
+    to github with:
 
-* Create a pull request from your branch so github tests can run and we can do
-  a code review.
+    `git push -u origin mybranch`
 
+-   Create a pull request from your branch so github tests can run and
+    we can do a code review.
 
-Release
--------
+#### Release
 
 To do release to pypi:
 
-* Tag release with:
+-   Tag release with:
 
-  ``git tag -v1.XX -m "New release"``
+    `git tag -v1.XX -m "New release"`
 
-* Push release tag:
+-   Push release tag:
 
-  ``git push origin master --tags``
+    `git push origin master --tags`
 
-* Do a test build and verify build is valid by running:
+-   Do a test build and verify build is valid by running:
 
-  ``make build``
+    `make build`
 
-* Once twine is happy, upload release to pypi:
+-   Once twine is happy, upload release to pypi:
 
-  ``make upload``
+    `make upload`
 
+#### Building your own APRSD plugins
 
-Building your own APRSD plugins
--------------------------------
+APRSD plugins are the mechanism by which APRSD can respond to APRS
+Messages. The plugins are loaded at server startup and can also be
+loaded at listen startup. When a packet is received by APRSD, it is
+passed to each of the plugins in the order they were registered in the
+config file. The plugins can then decide what to do with the packet.
+When a plugin is called, it is passed a APRSD Packet object. The plugin
+can then do something with the packet and return a reply message if
+desired. If a plugin does not want to reply to the packet, it can just
+return None. When a plugin does return a reply message, APRSD will send
+the reply message to the appropriate destination.
 
-APRSD plugins are the mechanism by which APRSD can respond to APRS Messages.  The plugins are loaded at server startup
-and can also be loaded at listen startup.  When a packet is received by APRSD, it is passed to each of the plugins
-in the order they were registered in the config file.  The plugins can then decide what to do with the packet.
-When a plugin is called, it is passed a APRSD Packet object.  The plugin can then do something with the packet and
-return a reply message if desired.  If a plugin does not want to reply to the packet, it can just return None.
-When a plugin does return a reply message, APRSD will send the reply message to the appropriate destination.
+For example, when a \'ping\' message is received, the PingPlugin will
+return a reply message of \'pong\'. When APRSD receives the \'pong\'
+message, it will be sent back to the original caller of the ping
+message.
 
-For example, when a 'ping' message is received, the PingPlugin will return a reply message of 'pong'.  When APRSD
-receives the 'pong' message, it will be sent back to the original caller of the ping message.
+APRSD plugins are simply python packages that can be installed from
+pypi.org. They are installed into the aprsd virtualenv and can be
+imported by APRSD at runtime. The plugins are registered in the config
+file and loaded at startup of the aprsd server command or the aprsd
+listen command.
 
-APRSD plugins are simply python packages that can be installed from pypi.org.  They are installed into the
-aprsd virtualenv and can be imported by APRSD at runtime.  The plugins are registered in the config file and loaded
-at startup of the aprsd server command or the aprsd listen command.
+#### Overview
 
-Overview
---------
-You can build your own plugins by following the instructions in the `Building your own APRSD plugins`_ section.
+You can build your own plugins by following the instructions in the
+[Building your own APRSD plugins](#building-your-own-aprsd-plugins)
+section.
 
 Plugins are called by APRSD when packe
 
-Docker Container
-================
+### Docker Container
 
-Building
-========
+### Building
 
-There are 2 versions of the container Dockerfile that can be used.
-The main Dockerfile, which is for building the official release container
+There are 2 versions of the container Dockerfile that can be used. The
+main Dockerfile, which is for building the official release container
 based off of the pip install version of aprsd and the Dockerfile-dev,
-which is used for building a container based off of a git branch of
-the repo.
+which is used for building a container based off of a git branch of the
+repo.
 
-Official Build
-==============
+### Official Build
 
-``docker build -t hemna6969/aprsd:latest .``
+`docker build -t hemna6969/aprsd:latest .`
 
-Development Build
-=================
+### Development Build
 
-``docker build -t hemna6969/aprsd:latest -f Dockerfile-dev .``
+`docker build -t hemna6969/aprsd:latest -f Dockerfile-dev .`
 
+### Running the container
 
-Running the container
-=====================
+There is a `docker-compose.yml` file in the `docker/` directory that can
+be used to run your container. To provide the container an `aprsd.conf`
+configuration file, change your `docker-compose.yml` as shown below:
 
-There is a ``docker-compose.yml`` file in the ``docker/`` directory
-that can be used to run your container. To provide the container
-an ``aprsd.conf`` configuration file, change your
-``docker-compose.yml`` as shown below:
-
-::
-
-     volumes:
-         - $HOME/.config/aprsd:/config
+    volumes:
+        - $HOME/.config/aprsd:/config
 
 To install plugins at container start time, pass in a list of
-comma-separated list of plugins on PyPI using the ``APRSD_PLUGINS``
-environment variable in the ``docker-compose.yml`` file. Note that
-version constraints may also be provided. For example:
-
-::
+comma-separated list of plugins on PyPI using the `APRSD_PLUGINS`
+environment variable in the `docker-compose.yml` file. Note that version
+constraints may also be provided. For example:
 
     environment:
         - APRSD_PLUGINS=aprsd-slack-plugin>=1.0.2,aprsd-twitter-plugin
-
-
-.. badges
-
-.. |pypi| image:: https://badge.fury.io/py/aprsd.svg
-    :target: https://badge.fury.io/py/aprsd
-
-.. |pytest| image:: https://github.com/craigerl/aprsd/workflows/python/badge.svg
-    :target: https://github.com/craigerl/aprsd/actions
-
-.. |versions| image:: https://img.shields.io/pypi/pyversions/aprsd.svg
-    :target: https://pypi.org/pypi/aprsd
-
-.. |slack| image:: https://img.shields.io/badge/slack-@hemna/aprsd-blue.svg?logo=slack
-    :target: https://hemna.slack.com/app_redirect?channel=C01KQSCP5RP
-
-.. |imports| image:: https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336
-    :target: https://timothycrosley.github.io/isort/
-
-.. |issues| image:: https://img.shields.io/github/issues/craigerl/aprsd
-
-.. |commit| image:: https://img.shields.io/github/last-commit/craigerl/aprsd
-
-.. |down| image:: https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads
-     :target: https://pepy.tech/project/aprsd
-
-.. links
-.. _read the docs:
- https://aprsd.readthedocs.io

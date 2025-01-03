@@ -26,3 +26,16 @@ repos:
       args: ["check", "--select", "I", "--fix"]
     ###### Relevant part above ######
     - id: ruff-format
+
+- repo: https://github.com/astral-sh/uv-pre-commit
+  # uv version.
+  rev: 0.5.11
+  hooks:
+    # Compile requirements
+    - id: pip-compile
+      name: pip-compile requirements.in
+      args: [requirements.in, -o, requirements.txt]
+    - id: pip-compile
+      name: pip-compile requirements-dev.in
+      args: [requirements-dev.in, -o, requirements-dev.txt]
+      files: ^requirements-dev\.(in|txt)$
