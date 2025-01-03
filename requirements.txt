@@ -9,8 +9,6 @@ attrs==24.3.0
     #   rush
 ax253==0.1.5.post1
     # via kiss3
-beautifulsoup4==4.12.3
-    # via -r requirements.in
 bitarray==3.0.0
     # via
     #   ax253
@@ -39,7 +37,7 @@ kiss3==8.0.0
     # via -r requirements.in
 loguru==0.7.3
     # via -r requirements.in
-marshmallow==3.23.2
+marshmallow==3.23.3
     # via dataclasses-json
 mypy-extensions==1.0.0
     # via typing-inspect
@@ -78,8 +76,6 @@ rich==12.6.0
     # via -r requirements.in
 rush==2021.4.0
     # via -r requirements.in
-soupsieve==2.6
-    # via beautifulsoup4
 stevedore==5.4.0
     # via oslo-config
 thesmuggler==1.0.1

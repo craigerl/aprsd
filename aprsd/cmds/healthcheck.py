@@ -13,9 +13,9 @@ from oslo_config import cfg
 from rich.console import Console
 
 import aprsd
-from aprsd import (
+from aprsd import (  # noqa: F401
     cli_helper,
-    conf,  # noqa
+    conf,
 )
 
 # local imports here

@@ -3,8 +3,8 @@ from unittest import mock
 
 from oslo_config import cfg
 
-from aprsd import (
-    conf,  # noqa: F401
+from aprsd import (  # noqa: F401
+    conf,
     packets,
     plugins,
 )

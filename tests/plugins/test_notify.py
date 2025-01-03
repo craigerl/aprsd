@@ -2,9 +2,9 @@ from unittest import mock
 
 from oslo_config import cfg
 
-from aprsd import (
+from aprsd import (  # noqa: F401
     client,
-    conf,  # noqa: F401
+    conf,
     packets,
 )
 from aprsd.plugins import notify as notify_plugin

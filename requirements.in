@@ -1,6 +1,4 @@
 aprslib>=0.7.0
-# For the list-plugins pypi.org search scraping
-beautifulsoup4
 click
 dataclasses-json
 haversine

@@ -4,10 +4,8 @@ import inspect
 import logging
 import os
 import pkgutil
-import re
 import sys
 from traceback import print_tb
-from urllib.parse import urljoin
 
 import click
 import requests
@@ -162,13 +160,15 @@ def show_built_in_plugins(console):
     console.print(table)
 
 
-def _get_pypi_packages():
+def _get_pypi_packages_OLD():
     query = "aprsd"
     snippets = []
     s = requests.Session()
+    c = Console()
     for page in range(1, 3):
         params = {"q": query, "page": page}
         r = s.get(PYPI_URL, params=params)
+        c.print(f"r = {r.text}")
         soup = BeautifulSoup(r.text, "html.parser")
         snippets += soup.select('a[class*="snippet"]')
         if not hasattr(s, "start_url"):
@@ -177,8 +177,34 @@ def _get_pypi_packages():
     return snippets
 
 
+def _get_pypi_packages():
+    if simple_r := requests.get(
+        "https://pypi.org/simple",
+        headers={"Accept": "application/vnd.pypi.simple.v1+json"},
+    ):
+        simple_response = simple_r.json()
+    else:
+        simple_response = {}
+
+    key = "aprsd"
+    matches = [
+        p["name"] for p in simple_response["projects"] if p["name"].startswith(key)
+    ]
+
+    packages = []
+    for pkg in matches:
+        # Get info for first match
+        if r := requests.get(
+            f"https://pypi.org/pypi/{pkg}/json",
+            headers={"Accept": "application/json"},
+        ):
+            packages.append(r.json())
+
+    return packages
+
+
 def show_pypi_plugins(installed_plugins, console):
-    snippets = _get_pypi_packages()
+    packages = _get_pypi_packages()
 
     title = Text.assemble(
         ("Pypi.org APRSD Installable Plugin Packages\n\n", "bold magenta"),
@@ -193,33 +219,21 @@ def show_pypi_plugins(installed_plugins, console):
     table.add_column("Version", style="yellow", justify="center")
     table.add_column("Released", style="bold green", justify="center")
     table.add_column("Installed?", style="red", justify="center")
-    for snippet in snippets:
-        link = urljoin(PYPI_URL, snippet.get("href"))
-        package = re.sub(
-            r"\s+", " ", snippet.select_one('span[class*="name"]').text.strip()
-        )
-        version = re.sub(
-            r"\s+", " ", snippet.select_one('span[class*="version"]').text.strip()
-        )
-        created = re.sub(
-            r"\s+", " ", snippet.select_one('span[class*="created"]').text.strip()
-        )
-        description = re.sub(
-            r"\s+", " ", snippet.select_one('p[class*="description"]').text.strip()
-        )
-        emoji = ":open_file_folder:"
+    emoji = ":open_file_folder:"
+    for package in packages:
+        link = package["info"]["package_url"]
+        version = package["info"]["version"]
+        package_name = package["info"]["name"]
+        description = package["info"]["summary"]
+        created = package["releases"][version][0]["upload_time"]
 
-        if "aprsd-" not in package or "-plugin" not in package:
+        if "aprsd-" not in package_name or "-plugin" not in package_name:
             continue
 
-        under = package.replace("-", "_")
-        if under in installed_plugins:
-            installed = "Yes"
-        else:
-            installed = "No"
-
+        under = package_name.replace("-", "_")
+        installed = "Yes" if under in installed_plugins else "No"
         table.add_row(
-            f"[link={link}]{emoji}[/link] {package}",
+            f"[link={link}]{emoji}[/link] {package_name}",
             description,
             version,
             created,
@@ -231,7 +245,7 @@ def show_pypi_plugins(installed_plugins, console):
 
 
 def show_pypi_extensions(installed_extensions, console):
-    snippets = _get_pypi_packages()
+    packages = _get_pypi_packages()
 
     title = Text.assemble(
         ("Pypi.org APRSD Installable Extension Packages\n\n", "bold magenta"),
@@ -245,33 +259,21 @@ def show_pypi_extensions(installed_extensions, console):
     table.add_column("Version", style="yellow", justify="center")
     table.add_column("Released", style="bold green", justify="center")
     table.add_column("Installed?", style="red", justify="center")
-    for snippet in snippets:
-        link = urljoin(PYPI_URL, snippet.get("href"))
-        package = re.sub(
-            r"\s+", " ", snippet.select_one('span[class*="name"]').text.strip()
-        )
-        version = re.sub(
-            r"\s+", " ", snippet.select_one('span[class*="version"]').text.strip()
-        )
-        created = re.sub(
-            r"\s+", " ", snippet.select_one('span[class*="created"]').text.strip()
-        )
-        description = re.sub(
-            r"\s+", " ", snippet.select_one('p[class*="description"]').text.strip()
-        )
-        emoji = ":open_file_folder:"
+    emoji = ":open_file_folder:"
 
-        if "aprsd-" not in package or "-extension" not in package:
+    for package in packages:
+        link = package["info"]["package_url"]
+        version = package["info"]["version"]
+        package_name = package["info"]["name"]
+        description = package["info"]["summary"]
+        created = package["releases"][version][0]["upload_time"]
+        if "aprsd-" not in package_name or "-extension" not in package_name:
             continue
 
-        under = package.replace("-", "_")
-        if under in installed_extensions:
-            installed = "Yes"
-        else:
-            installed = "No"
-
+        under = package_name.replace("-", "_")
+        installed = "Yes" if under in installed_extensions else "No"
         table.add_row(
-            f"[link={link}]{emoji}[/link] {package}",
+            f"[link={link}]{emoji}[/link] {package_name}",
             description,
             version,
             created,
@@ -337,5 +339,7 @@ def list_extensions(ctx):
 
     with console.status("Show APRSD Extensions") as status:
         status.update("Fetching pypi.org APRSD Extensions")
+
+        status.update("Looking for installed APRSD Extensions")
         installed_extensions = get_installed_extensions()
         show_pypi_extensions(installed_extensions, console)
