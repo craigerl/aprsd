@@ -113,6 +113,7 @@ class ListenStatsThread(APRSDThread):
             stats_json = collector.Collector().collect()
             stats = stats_json["PacketList"]
             total_rx = stats["rx"]
+            packet_count = len(stats["packets"])
             rx_delta = total_rx - self._last_total_rx
             rate = rx_delta / 10
 
@@ -120,7 +121,8 @@ class ListenStatsThread(APRSDThread):
             LOGU.opt(colors=True).info(
                 f"<green>RX Rate: {rate} pps</green>  "
                 f"<yellow>Total RX: {total_rx}</yellow> "
-                f"<red>RX Last 10 secs: {rx_delta}</red>",
+                f"<red>RX Last 10 secs: {rx_delta}</red> "
+                f"<white>Packets in PacketList: {packet_count}</white>",
             )
             self._last_total_rx = total_rx
 

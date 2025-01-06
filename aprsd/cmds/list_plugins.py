@@ -91,19 +91,17 @@ def _get_installed_aprsd_items():
     plugins = {}
     extensions = {}
     for finder, name, ispkg in pkgutil.iter_modules():
-        if name.startswith("aprsd_"):
-            print(f"Found aprsd_ module: {name}")
-            if ispkg:
-                module = importlib.import_module(name)
-                pkgs = walk_package(module)
-                for pkg in pkgs:
-                    pkg_info = get_module_info(
-                        module.__name__, pkg.name, module.__path__[0]
-                    )
-                    if "plugin" in name:
-                        plugins[name] = pkg_info
-                    elif "extension" in name:
-                        extensions[name] = pkg_info
+        if ispkg and name.startswith("aprsd_"):
+            module = importlib.import_module(name)
+            pkgs = walk_package(module)
+            for pkg in pkgs:
+                pkg_info = get_module_info(
+                    module.__name__, pkg.name, module.__path__[0]
+                )
+                if "plugin" in name:
+                    plugins[name] = pkg_info
+                elif "extension" in name:
+                    extensions[name] = pkg_info
     return plugins, extensions
 
 
