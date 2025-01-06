@@ -87,6 +87,11 @@ APRSD Has the ability to add plugins and extensions.  Plugins add new message fi
 
 You can see the [available plugins/extensions on pypi here:](https://pypi.org/search/?q=aprsd) [https://pypi.org/search/?q=aprsd](https://pypi.org/search/?q=aprsd)
 
+> [!NOTE]
+> aprsd admin and webchat have been extracted into separate extensions.
+> [See admin extension here](https://github.com/hemna/aprsd-admin-extension)
+> [See webchat extension here](https://github.com/hemna/aprsd-webchat-extension)
+
 ### APRSD Overview Diagram
 
 ![image](https://raw.githubusercontent.com/craigerl/aprsd/master/docs/_static/aprsd_overview.svg?sanitize=true)
