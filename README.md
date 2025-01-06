@@ -147,7 +147,6 @@ To install `aprsd`, use Pip:
       send-message     Send a message to a callsign via APRS_IS.
       server           Start the aprsd server gateway process.
       version          Show the APRSD version.
-      webchat          Web based HAM Radio chat program!
 
 ### Commands
 

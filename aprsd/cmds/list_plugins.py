@@ -9,7 +9,6 @@ from traceback import print_tb
 
 import click
 import requests
-from bs4 import BeautifulSoup
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
@@ -156,23 +155,6 @@ def show_built_in_plugins(console):
         table.add_row(entry["name"], entry["short_desc"], entry["type"], entry["path"])
 
     console.print(table)
-
-
-def _get_pypi_packages_OLD():
-    query = "aprsd"
-    snippets = []
-    s = requests.Session()
-    c = Console()
-    for page in range(1, 3):
-        params = {"q": query, "page": page}
-        r = s.get(PYPI_URL, params=params)
-        c.print(f"r = {r.text}")
-        soup = BeautifulSoup(r.text, "html.parser")
-        snippets += soup.select('a[class*="snippet"]')
-        if not hasattr(s, "start_url"):
-            s.start_url = r.url.rsplit("&page", maxsplit=1).pop(0)
-
-    return snippets
 
 
 def _get_pypi_packages():
