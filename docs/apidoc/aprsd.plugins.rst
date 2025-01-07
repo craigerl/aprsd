@@ -4,26 +4,10 @@ aprsd.plugins package
 Submodules
 ----------
 
-aprsd.plugins.email module
---------------------------
-
-.. automodule:: aprsd.plugins.email
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 aprsd.plugins.fortune module
 ----------------------------
 
 .. automodule:: aprsd.plugins.fortune
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.plugins.location module
------------------------------
-
-.. automodule:: aprsd.plugins.location
    :members:
    :undoc-members:
    :show-inheritance:

@@ -28,6 +28,14 @@ aprsd.utils.json module
    :undoc-members:
    :show-inheritance:
 
+aprsd.utils.keepalive\_collector module
+---------------------------------------
+
+.. automodule:: aprsd.utils.keepalive_collector
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.utils.objectstore module
 ------------------------------
 

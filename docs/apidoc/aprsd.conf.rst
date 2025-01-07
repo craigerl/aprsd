@@ -44,14 +44,6 @@ aprsd.conf.plugin\_common module
    :undoc-members:
    :show-inheritance:
 
-aprsd.conf.plugin\_email module
--------------------------------
-
-.. automodule:: aprsd.conf.plugin_email
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 

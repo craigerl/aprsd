@@ -12,18 +12,10 @@ aprsd.threads.aprsd module
    :undoc-members:
    :show-inheritance:
 
-aprsd.threads.keep\_alive module
---------------------------------
+aprsd.threads.keepalive module
+------------------------------
 
-.. automodule:: aprsd.threads.keep_alive
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.threads.log\_monitor module
----------------------------------
-
-.. automodule:: aprsd.threads.log_monitor
+.. automodule:: aprsd.threads.keepalive
    :members:
    :undoc-members:
    :show-inheritance:
