@@ -13,12 +13,12 @@ repos:
     - id: check-illegal-windows-names
 
 - repo: https://github.com/asottile/setup-cfg-fmt
-  rev: v2.5.0
+  rev: v2.7.0
   hooks:
     - id: setup-cfg-fmt
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.8.4
+  rev: v0.9.0
   hooks:
     - id: ruff
     ###### Relevant part below ######
@@ -29,7 +29,7 @@ repos:
 
 - repo: https://github.com/astral-sh/uv-pre-commit
   # uv version.
-  rev: 0.5.11
+  rev: 0.5.16
   hooks:
     # Compile requirements
     - id: pip-compile
