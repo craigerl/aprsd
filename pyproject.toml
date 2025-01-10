@@ -173,3 +173,20 @@ skip_gitignore = true
 branch = true
 
 [tool.setuptools_scm]
+
+[tool.ruff]
+line-length = 88
+select = [
+    "F",  # pyflakes rules
+    "E",  # pycodestyle error rules
+    "W",  # pycodestyle warning rules
+    "B",  # flake8-bugbear rules
+  #    "I",  # isort rules
+]
+ignore = [
+    "E501",  # line-too-long
+]
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "single"
