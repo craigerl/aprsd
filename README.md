@@ -3,7 +3,6 @@
 ## KM6LYW and WB4BOR
 
 [![pypi](https://badge.fury.io/py/aprsd.svg)](https://badge.fury.io/py/aprsd)
-[![pytest](https://github.com/craigerl/aprsd/workflows/python/badge.svg)](https://github.com/craigerl/aprsd/actions)
 [![versions](https://img.shields.io/pypi/pyversions/aprsd.svg)](https://pypi.org/pypi/aprsd)
 [![slack](https://img.shields.io/badge/slack-@hemna/aprsd-blue.svg?logo=slack)](https://hemna.slack.com/app_redirect?channel=C01KQSCP5RP)
 ![issues](https://img.shields.io/github/issues/craigerl/aprsd)
