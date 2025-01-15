@@ -425,3 +425,7 @@ constraints may also be provided. For example:
 ### Activity
 
 ![Alt](https://repobeats.axiom.co/api/embed/8b96657861770a15f0b851a5eebafb34d0e0b3d3.svg "Repobeats analytics image")
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=craigerl/aprsd&type=Date)](https://star-history.com/#craigerl/aprsd&Date)
