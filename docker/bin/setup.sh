@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -x
 
+source /app/.venv/bin/activate
+
 # The default command
 # Override the command in docker-compose.yml to change
 # what command you want to run in the container
@@ -18,7 +20,7 @@ if [ ! -z "${APRSD_PLUGINS}" ]; then
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$plugin'"
-        pip3 install --user $plugin
+        uv pip install --user $plugin
     done
 fi
 
@@ -30,7 +32,7 @@ if [ ! -z "${APRSD_EXTENSIONS}" ]; then
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$extension'"
-        pip3 install --user $extension
+        uv pip install --user $extension
     done
 fi
 
