@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -x
 
+source /app/.venv/bin/activate
+
 if [ ! -z "${APRSD_PLUGINS}" ]; then
     OLDIFS=$IFS
     IFS=','
@@ -9,7 +11,7 @@ if [ ! -z "${APRSD_PLUGINS}" ]; then
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$plugin'"
-        pip3 install --user $plugin
+        uv pip install $plugin
     done
 fi
 if [ ! -z "${APRSD_EXTENSIONS}" ]; then
@@ -20,7 +22,7 @@ if [ ! -z "${APRSD_EXTENSIONS}" ]; then
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$extension'"
-        pip3 install --user $extension
+        uv pip install $extension
     done
 fi
 
@@ -40,5 +42,7 @@ fi
 export COLUMNS=200
 #exec gunicorn -b :8000 --workers 4 "aprsd.admin_web:create_app(config_file='$APRSD_CONFIG', log_level='$LOG_LEVEL')"
 # exec gunicorn -b :8000 --workers 4 "aprsd.wsgi:app"
-exec uwsgi --http :8000 --gevent 1000 --http-websockets --master -w aprsd.wsgi --callable app
+#exec uwsgi --http :8000 --gevent 1000 --http-websockets --master -w aprsd.wsgi --callable app
 #exec aprsd listen -c $APRSD_CONFIG --loglevel ${LOG_LEVEL} ${APRSD_LOAD_PLUGINS} ${APRSD_LISTEN_FILTER}
+#
+uv run aprsd admin web -c $APRSD_CONFIG --loglevel ${LOG_LEVEL} 

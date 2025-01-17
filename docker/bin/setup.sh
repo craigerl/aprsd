@@ -20,7 +20,7 @@ if [ ! -z "${APRSD_PLUGINS}" ]; then
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$plugin'"
-        uv pip install --user $plugin
+        uv pip install $plugin
     done
 fi
 
@@ -32,7 +32,7 @@ if [ ! -z "${APRSD_EXTENSIONS}" ]; then
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$extension'"
-        uv pip install --user $extension
+        uv pip install $extension
     done
 fi
 
