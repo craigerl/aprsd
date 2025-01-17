@@ -86,4 +86,4 @@ CMD ["server"]
 # USER appuser
 
 HEALTHCHECK --interval=1m --timeout=12s --start-period=30s \
-    CMD aprsd healthcheck --config /config/aprsd.conf --loglevel DEBUG
+    CMD uv run aprsd healthcheck --config /config/aprsd.conf --loglevel DEBUG
