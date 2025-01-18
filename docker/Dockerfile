@@ -73,6 +73,7 @@ COPY --from=install /config config
 ADD bin/setup.sh /app
 ADD bin/admin.sh /app
 ADD bin/listen.sh /app
+ADD bin/healthcheck.sh /app
 
 RUN ls -al /app
 # For the web admin interface
@@ -86,4 +87,4 @@ CMD ["server"]
 # USER appuser
 
 HEALTHCHECK --interval=1m --timeout=12s --start-period=30s \
-    CMD uv run aprsd healthcheck --config /config/aprsd.conf --loglevel DEBUG
+    CMD /app/healthcheck.sh
