@@ -88,8 +88,10 @@ You can see the [available plugins/extensions on pypi here:](https://pypi.org/se
 
 > [!NOTE]
 > aprsd admin and webchat have been extracted into separate extensions.
-> [See admin extension here](https://github.com/hemna/aprsd-admin-extension)
-> [See webchat extension here](https://github.com/hemna/aprsd-webchat-extension)
+ * [See admin extension here](https://github.com/hemna/aprsd-admin-extension) <div id="admin logo" align="left"><img src="https://raw.githubusercontent.com/hemna/aprsd-admin-extension/refs/heads/master/screenshot.png" alt="Web Admin" width="340"/></div>
+
+ * [See webchat extension here](https://github.com/hemna/aprsd-webchat-extension) <div id="webchat logo" align="left"><img src="https://raw.githubusercontent.com/hemna/aprsd-webchat-extension/master/screenshot.png" alt="Webchat" width="340"/></div>
+
 
 ### APRSD Overview Diagram
 
