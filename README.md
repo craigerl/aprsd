@@ -13,6 +13,8 @@
 [APRSD](http://github.com/craigerl/aprsd) is a Ham radio
 [APRS](http://aprs.org) message command gateway built on python.
 
+![image](./aprsd_logo.png)
+
 ### Table of Contents
 
 1.  [What is APRSD](#what-is-aprsd)
