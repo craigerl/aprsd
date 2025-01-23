@@ -1,4 +1,4 @@
-# APRSD - Ham radio APRS-IS Message plugin server
+# APRSD - Ham radio APRS-IS Message platform software
 
 ## KM6LYW and WB4BOR
 
@@ -11,7 +11,7 @@
 [![down](https://static.pepy.tech/personalized-badge/aprsd?period=month&units=international_system&left_color=black&right_color=orange&left_text=Downloads)](https://pepy.tech/project/aprsd)
 
 [APRSD](http://github.com/craigerl/aprsd) is a Ham radio
-[APRS](http://aprs.org) message command gateway built on python.
+[APRS](http://aprs.org) message platform built with python.
 
 ![image](./aprsd_logo.png)
 
@@ -60,7 +60,7 @@
 
 ### What is APRSD
 
-APRSD is a python application for interacting with the APRS network and
+APRSD is a python application for interacting with the APRS network and Ham radios with KISS interfaces and
 providing APRS services for HAM radio operators.
 
 APRSD currently has 4 main commands to use.
@@ -77,7 +77,7 @@ APRSD currently has 4 main commands to use.
 
 Each of those commands can connect to the APRS-IS network if internet
 connectivity is available. If internet is not available, then APRS can
-be configured to talk to a TCP KISS TNC for radio connectivity.
+be configured to talk to a TCP KISS TNC for radio connectivity directly.
 
 Please [read the docs](https://aprsd.readthedocs.io) to learn more!
 
@@ -89,11 +89,36 @@ APRSD Has the ability to add plugins and extensions.  Plugins add new message fi
 You can see the [available plugins/extensions on pypi here:](https://pypi.org/search/?q=aprsd) [https://pypi.org/search/?q=aprsd](https://pypi.org/search/?q=aprsd)
 
 > [!NOTE]
-> aprsd admin and webchat have been extracted into separate extensions.
+> aprsd admin and webchat commands have been extracted into separate extensions.
  * [See admin extension here](https://github.com/hemna/aprsd-admin-extension) <div id="admin logo" align="left"><img src="https://raw.githubusercontent.com/hemna/aprsd-admin-extension/refs/heads/master/screenshot.png" alt="Web Admin" width="340"/></div>
 
  * [See webchat extension here](https://github.com/hemna/aprsd-webchat-extension) <div id="webchat logo" align="left"><img src="https://raw.githubusercontent.com/hemna/aprsd-webchat-extension/master/screenshot.png" alt="Webchat" width="340"/></div>
 
+
+### List of existing plugins - APRS Message processing/responders
+
+ - [aprsd-email-plugin](https://github.com/hemna/aprsd-email-plugin) - send/receive email!
+ - [aprsd-location-plugin](https://github.com/hemna/aprsd-location-plugin) - get latest GPS location.
+ - [aprsd-locationdata-plugin](https://github.com/hemna/aprsd-locationdata-plugin) - get latest GPS location
+ - [aprsd-digipi-plugin](https://github.com/hemna/aprsd-digipi-plugin) - Look for digipi beacon packets
+ - [aprsd-w3w-plugin](https://github.com/hemna/aprsd-w3w-plugin) - get your w3w coordinates
+ - [aprsd-mqtt-plugin](https://github.com/hemna/aprsd-mqtt-plugin) - send aprs packets to an MQTT topic
+ - [aprsd-telegram-plugin](https://github.com/hemna/aprsd-telegram-plugin) - send/receive messages to telegram
+ - [aprsd-borat-plugin](https://github.com/hemna/aprsd-borat-plugin) - get Borat quotes
+ - [aprsd-wxnow-plugin](https://github.com/hemna/aprsd-wxnow-plugin) - get closest N weather station reports
+ - [aprsd-weewx-plugin](https://github.com/hemna/aprsd-weewx-plugin) - get weather from your weewx weather station
+ - [aprsd-slack-plugin](https://github.com/hemna/aprsd-slack-plugin) - send/receive messages to a slack channel
+ - [aprsd-sentry-plugin](https://github.com/hemna/aprsd-sentry-plugin) -
+ - [aprsd-repeat-plugins](https://github.com/hemna/aprsd-repeat-plugins) - plugins for the REPEAT service. Get nearest Ham radio repeaters!
+ - [aprsd-twitter-plugin](https://github.com/hemna/aprsd-twitter-plugin) - make tweets from your Ham Radio!
+ - [aprsd-timeopencage-plugin](https://github.com/hemna/aprsd-timeopencage-plugin) - Get local time for a callsign
+ - [aprsd-stock-plugin](https://github.com/hemna/aprsd-stock-plugin) - get stock quotes from your Ham radio
+
+### List of existing extensions - Add new capabilities to APRSD
+
+ - [aprsd-admin-extension](https://github.com/hemna/aprsd-admin-extension) - Web Administration page for APRSD
+ - [aprsd-webchat-extension](https://github.com/hemna/aprsd-webchat-extension) - Web page for APRS Messaging
+ - [aprsd-irc-extension](https://github.com/hemna/aprsd-irc-extension) - an IRC like server command for APRS
 
 ### APRSD Overview Diagram
 
