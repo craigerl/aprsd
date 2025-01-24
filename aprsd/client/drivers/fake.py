@@ -1,3 +1,4 @@
+import datetime
 import logging
 import threading
 import time
@@ -19,6 +20,9 @@ class APRSDFakeClient(metaclass=trace.TraceWrapperMetaclass):
 
     # flag to tell us to stop
     thread_stop = False
+
+    # date for last time we heard from the server
+    aprsd_keepalive = datetime.datetime.now()
 
     lock = threading.Lock()
     path = []
@@ -63,6 +67,7 @@ class APRSDFakeClient(metaclass=trace.TraceWrapperMetaclass):
         raw = 'GTOWN>APDW16,WIDE1-1,WIDE2-1:}KM6LYW-9>APZ100,TCPIP,GTOWN*::KM6LYW   :KM6LYW: 19 Miles SW'
         pkt_raw = aprslib.parse(raw)
         pkt = core.factory(pkt_raw)
+        self.aprsd_keepalive = datetime.datetime.now()
         callback(packet=pkt)
         LOG.debug(f'END blocking FAKE consumer {self}')
         time.sleep(8)

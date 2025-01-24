@@ -1,20 +1,23 @@
+import datetime
 import logging
 
-from ax253 import Frame
 import kiss
+from ax253 import Frame
 from oslo_config import cfg
 
 from aprsd import conf  # noqa
 from aprsd.packets import core
 from aprsd.utils import trace
 
-
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class KISS3Client:
     path = []
+
+    # date for last time we heard from the server
+    aprsd_keepalive = datetime.datetime.now()
 
     def __init__(self):
         self.setup()
@@ -26,7 +29,7 @@ class KISS3Client:
         # we can be TCP kiss or Serial kiss
         if CONF.kiss_serial.enabled:
             LOG.debug(
-                "KISS({}) Serial connection to {}".format(
+                'KISS({}) Serial connection to {}'.format(
                     kiss.__version__,
                     CONF.kiss_serial.device,
                 ),
@@ -39,7 +42,7 @@ class KISS3Client:
             self.path = CONF.kiss_serial.path
         elif CONF.kiss_tcp.enabled:
             LOG.debug(
-                "KISS({}) TCP Connection to {}:{}".format(
+                'KISS({}) TCP Connection to {}:{}'.format(
                     kiss.__version__,
                     CONF.kiss_tcp.host,
                     CONF.kiss_tcp.port,
@@ -52,7 +55,7 @@ class KISS3Client:
             )
             self.path = CONF.kiss_tcp.path
 
-        LOG.debug("Starting KISS interface connection")
+        LOG.debug('Starting KISS interface connection')
         self.kiss.start()
 
     @trace.trace
@@ -74,18 +77,19 @@ class KISS3Client:
             frame = Frame.from_bytes(frame_bytes)
             # Now parse it with aprslib
             kwargs = {
-                "frame": frame,
+                'frame': frame,
             }
             self._parse_callback(**kwargs)
+            self.aprsd_keepalive = datetime.datetime.now()
         except Exception as ex:
-            LOG.error("Failed to parse bytes received from KISS interface.")
+            LOG.error('Failed to parse bytes received from KISS interface.')
             LOG.exception(ex)
 
     def consumer(self, callback):
-        LOG.debug("Start blocking KISS consumer")
+        LOG.debug('Start blocking KISS consumer')
         self._parse_callback = callback
         self.kiss.read(callback=self.parse_frame, min_frames=None)
-        LOG.debug(f"END blocking KISS consumer {self.kiss}")
+        LOG.debug(f'END blocking KISS consumer {self.kiss}')
 
     def send(self, packet):
         """Send an APRS Message object."""
@@ -94,24 +98,24 @@ class KISS3Client:
         path = self.path
         if isinstance(packet, core.Packet):
             packet.prepare()
-            payload = packet.payload.encode("US-ASCII")
+            payload = packet.payload.encode('US-ASCII')
             if packet.path:
                 path = packet.path
         else:
-            msg_payload = f"{packet.raw}{{{str(packet.msgNo)}"
+            msg_payload = f'{packet.raw}{{{str(packet.msgNo)}'
             payload = (
-                ":{:<9}:{}".format(
+                ':{:<9}:{}'.format(
                     packet.to_call,
                     msg_payload,
                 )
-            ).encode("US-ASCII")
+            ).encode('US-ASCII')
 
         LOG.debug(
             f"KISS Send '{payload}' TO '{packet.to_call}' From "
             f"'{packet.from_call}' with PATH '{path}'",
         )
         frame = Frame.ui(
-            destination="APZ100",
+            destination='APZ100',
             source=packet.from_call,
             path=path,
             info=payload,
