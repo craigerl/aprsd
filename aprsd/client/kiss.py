@@ -12,7 +12,7 @@ from aprsd.client.drivers import kiss
 from aprsd.packets import core
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 LOGU = logger
 
 
@@ -27,15 +27,15 @@ class KISSClient(base.APRSClient):
             if serializable:
                 keepalive = keepalive.isoformat()
             stats = {
-                "connected": self.is_connected,
-                "connection_keepalive": keepalive,
-                "transport": self.transport(),
+                'connected': self.is_connected,
+                'connection_keepalive': keepalive,
+                'transport': self.transport(),
             }
             if self.transport() == client.TRANSPORT_TCPKISS:
-                stats["host"] = CONF.kiss_tcp.host
-                stats["port"] = CONF.kiss_tcp.port
+                stats['host'] = CONF.kiss_tcp.host
+                stats['port'] = CONF.kiss_tcp.port
             elif self.transport() == client.TRANSPORT_SERIALKISS:
-                stats["device"] = CONF.kiss_serial.device
+                stats['device'] = CONF.kiss_serial.device
         return stats
 
     @staticmethod
@@ -56,15 +56,15 @@ class KISSClient(base.APRSClient):
             transport = KISSClient.transport()
             if transport == client.TRANSPORT_SERIALKISS:
                 if not CONF.kiss_serial.device:
-                    LOG.error("KISS serial enabled, but no device is set.")
+                    LOG.error('KISS serial enabled, but no device is set.')
                     raise exception.MissingConfigOptionException(
-                        "kiss_serial.device is not set.",
+                        'kiss_serial.device is not set.',
                     )
             elif transport == client.TRANSPORT_TCPKISS:
                 if not CONF.kiss_tcp.host:
-                    LOG.error("KISS TCP enabled, but no host is set.")
+                    LOG.error('KISS TCP enabled, but no host is set.')
                     raise exception.MissingConfigOptionException(
-                        "kiss_tcp.host is not set.",
+                        'kiss_tcp.host is not set.',
                     )
 
             return True
@@ -91,8 +91,8 @@ class KISSClient(base.APRSClient):
         if ka := self._client.aprsd_keepalive:
             keepalive = timeago.format(ka)
         else:
-            keepalive = "N/A"
-        LOGU.opt(colors=True).info(f"<green>Client keepalive {keepalive}</green>")
+            keepalive = 'N/A'
+        LOGU.opt(colors=True).info(f'<green>Client keepalive {keepalive}</green>')
 
     @staticmethod
     def transport():
@@ -104,8 +104,8 @@ class KISSClient(base.APRSClient):
 
     def decode_packet(self, *args, **kwargs):
         """We get a frame, which has to be decoded."""
-        LOG.debug(f"kwargs {kwargs}")
-        frame = kwargs["frame"]
+        LOG.debug(f'kwargs {kwargs}')
+        frame = kwargs['frame']
         LOG.debug(f"Got an APRS Frame '{frame}'")
         # try and nuke the * from the fromcall sign.
         # frame.header._source._ch = False
@@ -114,20 +114,23 @@ class KISSClient(base.APRSClient):
         # msg = frame.tnc2
         # LOG.debug(f"Decoding {msg}")
 
-        raw = aprslib.parse(str(frame))
-        packet = core.factory(raw)
-        if isinstance(packet, core.ThirdPartyPacket):
-            return packet.subpacket
-        else:
-            return packet
+        try:
+            raw = aprslib.parse(str(frame))
+            packet = core.factory(raw)
+            if isinstance(packet, core.ThirdPartyPacket):
+                return packet.subpacket
+            else:
+                return packet
+        except Exception as ex:
+            LOG.error(f'Error decoding packet: {ex}')
 
     def setup_connection(self):
         try:
             self._client = kiss.KISS3Client()
-            self.connected = self.login_status["success"] = True
+            self.connected = self.login_status['success'] = True
         except Exception as ex:
-            self.connected = self.login_status["success"] = False
-            self.login_status["message"] = str(ex)
+            self.connected = self.login_status['success'] = False
+            self.login_status['message'] = str(ex)
         return self._client
 
     def consumer(self, callback, blocking=False, immortal=False, raw=False):
@@ -135,5 +138,5 @@ class KISSClient(base.APRSClient):
             self._client.consumer(callback)
             self.keepalive = datetime.datetime.now()
         except Exception as ex:
-            LOG.error(f"Consumer failed {ex}")
+            LOG.error(f'Consumer failed {ex}')
             LOG.error(ex)
