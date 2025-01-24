@@ -15,40 +15,35 @@
 
 ![image](./aprsd_logo.png)
 
-### Table of Contents
+# Table of Contents
 
-1.  [What is APRSD](#what-is-aprsd)
-2.  [APRSD Overview Diagram](#aprsd-overview-diagram)
-3.  [Typical Use Case](#typical-use-case)
-4.  [Installation](#installation)
-5.  [Example Usage](#example-usage)
-6.  [Help](#help)
-7.  [Commands](#commands)
-    -   [Configuration](#configuration)
-    -   [Server](#server)
-    -   [Current List of Built-in
-        Plugins](#current-list-of-built-in-plugins)
-    -   [Pypi.org APRSD Installable Plugin
-        Packages](#pypiorg-aprsd-installable-plugin-packages)
-    -   [🐍 APRSD Installed 3rd Party
-        Plugins](#aprsd-installed-3rd-party-plugins)
-    -   [Send Message](#send-message)
-    -   [Send Email (Radio to SMTP
-        Server)](#send-email-radio-to-smtp-server)
-    -   [Receive Email (IMAP Server to
-        Radio)](#receive-email-imap-server-to-radio)
-    -   [Location](#location)
-    -   [Web Admin Interface](#web-admin-interface)
-8.  [Development](#development)
-    -   [Building Your Own APRSD
-        Plugins](#building-your-own-aprsd-plugins)
-9.  [Workflow](#workflow)
-10. [Release](#release)
-11. [Docker Container](#docker-container)
-    -   [Building](#building-1)
-    -   [Official Build](#official-build)
-    -   [Development Build](#development-build)
-    -   [Running the Container](#running-the-container)
+1. [APRSD - Ham radio APRS-IS Message platform software](#aprsd---ham-radio-aprs-is-message-platform-software)
+2. [What is APRSD](#what-is-aprsd)
+3. [APRSD Plugins/Extensions](#aprsd-pluginsextensions)
+4. [List of existing plugins - APRS Message processing/responders](#list-of-existing-plugins---aprs-message-processingresponders)
+5. [List of existing extensions - Add new capabilities to APRSD](#list-of-existing-extensions---add-new-capabilities-to-aprsd)
+6. [APRSD Overview Diagram](#aprsd-overview-diagram)
+7. [Typical use case](#typical-use-case)
+8. [Installation](#installation)
+9. [Example usage](#example-usage)
+10. [Help](#help)
+11. [Commands](#commands)
+12. [Configuration](#configuration)
+13. [server](#server)
+14. [Current list plugins](#current-list-plugins)
+15. [Current list extensions](#current-list-extensions)
+16. [send-message](#send-message)
+17. [Development](#development)
+18. [Release](#release)
+19. [Building your own APRSD plugins](#building-your-own-aprsd-plugins)
+20. [Overview](#overview)
+21. [Docker Container](#docker-container)
+22. [Building](#building)
+23. [Official Build](#official-build)
+24. [Development Build](#development-build)
+25. [Running the container](#running-the-container)
+26. [Activity](#activity)
+27. [Star History](#star-history)
 
 ---
 
