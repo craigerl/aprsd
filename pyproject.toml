@@ -30,7 +30,7 @@ dynamic = ["version", "dependencies", "optional-dependencies"]
 #
 # This field corresponds to the "Description" metadata field:
 # https://packaging.python.org/specifications/core-metadata/#description-optional
-readme = {file = "README.rst", content-type = "text/x-rst"}
+readme = {file = "README.md", content-type = "text/markdown"}
 
 
 # This is either text indicating the license for the distribution, or a file
