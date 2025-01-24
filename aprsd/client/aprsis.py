@@ -2,7 +2,9 @@ import datetime
 import logging
 import time
 
+import timeago
 from aprslib.exceptions import LoginError
+from loguru import logger
 from oslo_config import cfg
 
 from aprsd import client, exception
@@ -10,14 +12,14 @@ from aprsd.client import base
 from aprsd.client.drivers import aprsis
 from aprsd.packets import core
 
-
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
+LOGU = logger
 
 
 class APRSISClient(base.APRSClient):
-
     _client = None
+    _checks = False
 
     def __init__(self):
         max_timeout = {"hours": 0.0, "minutes": 2, "seconds": 0}
@@ -44,6 +46,20 @@ class APRSISClient(base.APRSClient):
             }
 
         return stats
+
+    def keepalive_check(self):
+        # Don't check the first time through.
+        if not self.is_alive() and self._checks:
+            LOG.warning("Resetting client.  It's not alive.")
+            self.reset()
+        self._checks = True
+
+    def keepalive_log(self):
+        if ka := self._client.aprsd_keepalive:
+            keepalive = timeago.format(ka)
+        else:
+            keepalive = "N/A"
+        LOGU.opt(colors=True).info(f"<green>Client keepalive {keepalive}</green>")
 
     @staticmethod
     def is_enabled():
@@ -81,13 +97,13 @@ class APRSISClient(base.APRSClient):
         if delta > self.max_delta:
             LOG.error(f"Connection is stale, last heard {delta} ago.")
             return True
+        return False
 
     def is_alive(self):
-        if self._client:
-            return self._client.is_alive() and not self._is_stale_connection()
-        else:
+        if not self._client:
             LOG.warning(f"APRS_CLIENT {self._client} alive? NO!!!")
             return False
+        return self._client.is_alive() and not self._is_stale_connection()
 
     def close(self):
         if self._client:
@@ -117,8 +133,12 @@ class APRSISClient(base.APRSClient):
             if retry_count >= retries:
                 break
             try:
-                LOG.info(f"Creating aprslib client({host}:{port}) and logging in {user}.")
-                aprs_client = aprsis.Aprsdis(user, passwd=password, host=host, port=port)
+                LOG.info(
+                    f"Creating aprslib client({host}:{port}) and logging in {user}."
+                )
+                aprs_client = aprsis.Aprsdis(
+                    user, passwd=password, host=host, port=port
+                )
                 # Force the log to be the same
                 aprs_client.logger = LOG
                 aprs_client.connect()
@@ -149,8 +169,10 @@ class APRSISClient(base.APRSClient):
         if self._client:
             try:
                 self._client.consumer(
-                    callback, blocking=blocking,
-                    immortal=immortal, raw=raw,
+                    callback,
+                    blocking=blocking,
+                    immortal=immortal,
+                    raw=raw,
                 )
             except Exception as e:
                 LOG.error(e)

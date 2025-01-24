@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -x
 
+source /app/.venv/bin/activate
+
 if [ ! -z "${APRSD_PLUGINS}" ]; then
     OLDIFS=$IFS
     IFS=','
@@ -9,7 +11,7 @@ if [ ! -z "${APRSD_PLUGINS}" ]; then
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$plugin'"
-        pip3 install --user $plugin
+        uv pip install --user $plugin
     done
 fi
 
@@ -21,7 +23,7 @@ if [ ! -z "${APRSD_EXTENSIONS}" ]; then
         IFS=$OLDIFS
         # call your procedure/other scripts here below
         echo "Installing '$extension'"
-        pip3 install --user $extension
+        uv pip install --user $extension
     done
 fi
 
@@ -35,7 +37,7 @@ echo "Log level is set to ${LOG_LEVEL}";
 APRSD_CONFIG="/config/aprsd.conf"
 if [ ! -e "$APRSD_CONFIG" ]; then
     echo "'$APRSD_CONFIG' File does not exist. Creating."
-    aprsd sample-config > $APRSD_CONFIG
+    uv run aprsd sample-config > $APRSD_CONFIG
 fi
 
 export COLUMNS=200

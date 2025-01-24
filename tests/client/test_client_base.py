@@ -109,7 +109,8 @@ class TestAPRSClient(unittest.TestCase):
         """Test handling of client creation failure."""
         # Make setup_connection raise an exception
         with mock.patch.object(
-            self.client, "setup_connection",
+            self.client,
+            "setup_connection",
             side_effect=Exception("Connection failed"),
         ):
             with self.assertRaises(Exception):

@@ -2,6 +2,8 @@ import datetime
 import logging
 
 import aprslib
+import timeago
+from loguru import logger
 from oslo_config import cfg
 
 from aprsd import client, exception
@@ -9,13 +11,12 @@ from aprsd.client import base
 from aprsd.client.drivers import kiss
 from aprsd.packets import core
 
-
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
+LOGU = logger
 
 
 class KISSClient(base.APRSClient):
-
     _client = None
     keepalive = datetime.datetime.now()
 
@@ -78,6 +79,20 @@ class KISSClient(base.APRSClient):
     def close(self):
         if self._client:
             self._client.stop()
+
+    def keepalive_check(self):
+        # Don't check the first time through.
+        if not self.is_alive() and self._checks:
+            LOG.warning("Resetting client.  It's not alive.")
+            self.reset()
+        self._checks = True
+
+    def keepalive_log(self):
+        if ka := self._client.aprsd_keepalive:
+            keepalive = timeago.format(ka)
+        else:
+            keepalive = "N/A"
+        LOGU.opt(colors=True).info(f"<green>Client keepalive {keepalive}</green>")
 
     @staticmethod
     def transport():

@@ -7,12 +7,10 @@ from aprsd.plugins import version as version_plugin
 
 from .. import fake, test_plugin
 
-
 CONF = cfg.CONF
 
 
 class TestVersionPlugin(test_plugin.TestPlugin):
-
     @mock.patch("aprsd.stats.app.APRSDStats.uptime")
     def test_version(self, mock_stats):
         mock_stats.return_value = "00:00:00"

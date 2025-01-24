@@ -4,7 +4,6 @@ from oslo_config import cfg
 
 from aprsd import packets, plugin
 
-
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
 
@@ -43,9 +42,7 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
                 pkt = packets.MessagePacket(
                     from_call=CONF.callsign,
                     to_call=notify_callsign,
-                    message_text=(
-                        f"{fromcall} was just seen by type:'{packet_type}'"
-                    ),
+                    message_text=(f"{fromcall} was just seen by type:'{packet_type}'"),
                     allow_delay=False,
                 )
                 pkt.allow_delay = False

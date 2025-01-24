@@ -5,7 +5,6 @@ import logging
 import time
 import types
 
-
 VALID_TRACE_FLAGS = {"method", "api"}
 TRACE_API = False
 TRACE_METHOD = False
@@ -27,7 +26,6 @@ def trace(*dec_args, **dec_kwargs):
     """
 
     def _decorator(f):
-
         func_name = f.__qualname__
         func_file = "/".join(f.__code__.co_filename.split("/")[-4:])
 

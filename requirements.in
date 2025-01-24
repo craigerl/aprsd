@@ -1,26 +1,15 @@
 aprslib>=0.7.0
-# For the list-plugins pypi.org search scraping
-beautifulsoup4
 click
-click-params
 dataclasses-json
-flask
-flask-httpauth
-flask-socketio
-geopy
-imapclient
+haversine
 kiss3
 loguru
 oslo.config
 pluggy
-python-socketio
 requests
 # Pinned due to gray needing 12.6.0
 rich~=12.6.0
 rush
-shellingham
-six
-tabulate
 thesmuggler
 tzlocal
 update_checker

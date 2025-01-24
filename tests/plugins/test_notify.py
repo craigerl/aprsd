@@ -2,12 +2,14 @@ from unittest import mock
 
 from oslo_config import cfg
 
-from aprsd import client, packets
-from aprsd import conf  # noqa: F401
+from aprsd import (  # noqa: F401
+    client,
+    conf,
+    packets,
+)
 from aprsd.plugins import notify as notify_plugin
 
 from .. import fake, test_plugin
-
 
 CONF = cfg.CONF
 DEFAULT_WATCHLIST_CALLSIGNS = fake.FAKE_FROM_CALLSIGN
@@ -49,7 +51,6 @@ class TestWatchListPlugin(test_plugin.TestPlugin):
 
 
 class TestAPRSDWatchListPluginBase(TestWatchListPlugin):
-
     def test_watchlist_not_enabled(self):
         self.config_and_init(watchlist_enabled=False)
         plugin = fake.FakeWatchListPlugin()
@@ -79,7 +80,6 @@ class TestAPRSDWatchListPluginBase(TestWatchListPlugin):
 
 
 class TestNotifySeenPlugin(TestWatchListPlugin):
-
     def test_disabled(self):
         self.config_and_init(watchlist_enabled=False)
         plugin = notify_plugin.NotifySeenPlugin()
@@ -128,7 +128,9 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
 
     @mock.patch("aprsd.client.factory.ClientFactory", autospec=True)
     @mock.patch("aprsd.packets.WatchList.is_old")
-    def test_callsign_in_watchlist_old_same_alert_callsign(self, mock_is_old, mock_factory):
+    def test_callsign_in_watchlist_old_same_alert_callsign(
+        self, mock_is_old, mock_factory
+    ):
         client.client_factory = mock_factory
         mock_is_old.return_value = True
         self.config_and_init(

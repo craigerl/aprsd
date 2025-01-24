@@ -1,6 +1,6 @@
 from oslo_config import cfg
 
-from aprsd.conf import client, common, log, plugin_common, plugin_email
+from aprsd.conf import client, common, log, plugin_common
 
 
 CONF = cfg.CONF
@@ -11,7 +11,6 @@ client.register_opts(CONF)
 
 # plugins
 plugin_common.register_opts(CONF)
-plugin_email.register_opts(CONF)
 
 
 def set_lib_defaults():

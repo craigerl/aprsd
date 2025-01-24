@@ -2,11 +2,11 @@ import abc
 import logging
 import threading
 
-from oslo_config import cfg
 import wrapt
+from oslo_config import cfg
 
 from aprsd.packets import core
-
+from aprsd.utils import keepalive_collector
 
 CONF = cfg.CONF
 LOG = logging.getLogger("APRSD")
@@ -30,6 +30,7 @@ class APRSClient:
         """This magic turns this into a singleton."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            keepalive_collector.KeepAliveCollector().register(cls)
             # Put any initialization here.
             cls._instance._create_client()
         return cls._instance
@@ -41,6 +42,16 @@ class APRSClient:
         Returns:
             dict: Statistics about the connection and packet handling
         """
+
+    @abc.abstractmethod
+    def keepalive_check(self) -> None:
+        """Called during keepalive run to check status."""
+        ...
+
+    @abc.abstractmethod
+    def keepalive_log(self) -> None:
+        """Log any keepalive information."""
+        ...
 
     @property
     def is_connected(self):

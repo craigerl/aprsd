@@ -18,7 +18,7 @@ description = "APRSd is a APRS-IS server that can be used to connect to APRS-IS 
 # 'Programming Language' classifiers in this file, 'pip install' will check this
 # and refuse to install the project if the version does not match. See
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/#python-requires
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 dynamic = ["version", "dependencies", "optional-dependencies"]
 
@@ -173,3 +173,20 @@ skip_gitignore = true
 branch = true
 
 [tool.setuptools_scm]
+
+[tool.ruff]
+line-length = 88
+select = [
+    "F",  # pyflakes rules
+    "E",  # pycodestyle error rules
+    "W",  # pycodestyle warning rules
+    "B",  # flake8-bugbear rules
+  #    "I",  # isort rules
+]
+ignore = [
+    "E501",  # line-too-long
+]
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "single"

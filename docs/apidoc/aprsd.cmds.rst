@@ -68,14 +68,6 @@ aprsd.cmds.server module
    :undoc-members:
    :show-inheritance:
 
-aprsd.cmds.webchat module
--------------------------
-
-.. automodule:: aprsd.cmds.webchat
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 

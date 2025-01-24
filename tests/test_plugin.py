@@ -3,20 +3,20 @@ from unittest import mock
 
 from oslo_config import cfg
 
-from aprsd import conf  # noqa: F401
-from aprsd import packets
+from aprsd import (  # noqa: F401
+    conf,
+    packets,
+    plugins,
+)
 from aprsd import plugin as aprsd_plugin
-from aprsd import plugins
 from aprsd.packets import core
 
 from . import fake
-
 
 CONF = cfg.CONF
 
 
 class TestPluginManager(unittest.TestCase):
-
     def setUp(self) -> None:
         self.fromcall = fake.FAKE_FROM_CALLSIGN
         self.config_and_init()
@@ -82,7 +82,6 @@ class TestPluginManager(unittest.TestCase):
 
 
 class TestPlugin(unittest.TestCase):
-
     def setUp(self) -> None:
         self.fromcall = fake.FAKE_FROM_CALLSIGN
         self.ack = 1
@@ -103,7 +102,6 @@ class TestPlugin(unittest.TestCase):
 
 
 class TestPluginBase(TestPlugin):
-
     @mock.patch.object(fake.FakeBaseNoThreadsPlugin, "process")
     def test_base_plugin_no_threads(self, mock_process):
         p = fake.FakeBaseNoThreadsPlugin()

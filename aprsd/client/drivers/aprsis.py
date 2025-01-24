@@ -4,16 +4,19 @@ import select
 import threading
 
 import aprslib
+import wrapt
 from aprslib import is_py3
 from aprslib.exceptions import (
-    ConnectionDrop, ConnectionError, GenericError, LoginError, ParseError,
+    ConnectionDrop,
+    ConnectionError,
+    GenericError,
+    LoginError,
+    ParseError,
     UnknownFormat,
 )
-import wrapt
 
 import aprsd
 from aprsd.packets import core
-
 
 LOG = logging.getLogger("APRSD")
 

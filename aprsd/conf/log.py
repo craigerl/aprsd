@@ -1,10 +1,10 @@
 """
 The options for log setup
 """
+
 import logging
 
 from oslo_config import cfg
-
 
 LOG_LEVELS = {
     "CRITICAL": logging.CRITICAL,
@@ -59,7 +59,5 @@ def register_opts(config):
 
 def list_opts():
     return {
-        logging_group.name: (
-            logging_opts
-        ),
+        logging_group.name: (logging_opts),
     }

@@ -16,7 +16,6 @@ Subpackages
    aprsd.stats
    aprsd.threads
    aprsd.utils
-   aprsd.web
 
 Submodules
 ----------
@@ -45,14 +44,6 @@ aprsd.main module
    :undoc-members:
    :show-inheritance:
 
-aprsd.messaging module
-----------------------
-
-.. automodule:: aprsd.messaging
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 aprsd.plugin module
 -------------------
 
@@ -65,14 +56,6 @@ aprsd.plugin\_utils module
 --------------------------
 
 .. automodule:: aprsd.plugin_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.wsgi module
------------------
-
-.. automodule:: aprsd.wsgi
    :members:
    :undoc-members:
    :show-inheritance:
