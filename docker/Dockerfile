@@ -55,7 +55,8 @@ RUN if [ "$INSTALL_TYPE" = "pypi" ]; then \
        uv pip install aprsd==$APRSD_PIP_VERSION; \
     elif [ "$INSTALL_TYPE" = "github" ]; then \
        git clone -b $APRSD_BRANCH https://github.com/craigerl/aprsd; \
-       cd /app/aprsd && uv pip install .; \
+       ls -al /app/aprsd; \
+       uv pip install /app/aprsd; \
        ls -al /app/.venv/lib/python3.11/site-packages/aprsd*; \
     fi
 # RUN uv pip install gevent uwsgi
