@@ -6,7 +6,7 @@ on:
       aprsd_version:
         required: true
         options:
-          - 3.0.0
+          - 4.0.0
       logLevel:
         description: 'Log level'
         required: true
@@ -42,8 +42,9 @@ jobs:
         file: ./Dockerfile
         build-args: |
             VERSION=${{ inputs.aprsd_version }}
+            BRANCH=${{ inputs.aprsd_version }}
             BUILDX_QEMU_ENV=true
         push: true
         tags: |
-          hemna6969/aprsd:v${{ inputs.aprsd_version }}
+          hemna6969/aprsd:${{ inputs.aprsd_version }}
           hemna6969/aprsd:latest
