@@ -41,8 +41,8 @@ jobs:
         platforms: linux/amd64,linux/arm64
         file: ./Dockerfile
         build-args: |
+            INSTALL_TYPE=pypi
             VERSION=${{ inputs.aprsd_version }}
-            BRANCH=${{ inputs.aprsd_version }}
             BUILDX_QEMU_ENV=true
         push: true
         tags: |
