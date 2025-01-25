@@ -25,14 +25,14 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
 
     def setup(self):
         for path in FORTUNE_PATHS:
-            if shutil.which(path):
-                self.fortune_path = path
+            self.fortune_path = shutil.which(path)
+            LOG.info(f'Fortune path {self.fortune_path}')
+            if self.fortune_path:
                 break
         if not self.fortune_path:
             self.enabled = False
         else:
             self.enabled = True
-        LOG.info(f'Fortune path {self.fortune_path}')
 
     @trace.trace
     def process(self, packet: packets.MessagePacket):
