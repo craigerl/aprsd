@@ -86,10 +86,8 @@ class KISS3Client:
             LOG.exception(ex)
 
     def consumer(self, callback):
-        LOG.debug('Start blocking KISS consumer')
         self._parse_callback = callback
         self.kiss.read(callback=self.parse_frame, min_frames=None)
-        LOG.debug(f'END blocking KISS consumer {self.kiss}')
 
     def send(self, packet):
         """Send an APRS Message object."""
