@@ -1,22 +1,21 @@
 import logging
-from typing import  Union
+from typing import Union
 
 from oslo_config import cfg
 
-from aprsd.packets import core
 from aprsd import packets
+from aprsd.packets import core
 from aprsd.utils import singleton
 
-
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 @singleton
 class PacketTypeFilter:
     """This filter is used to filter out packets that don't match a specific type.
 
-    To use this, register it with the PacketFilter class, 
+    To use this, register it with the PacketFilter class,
     then instante it and call set_allow_list() with a list of packet types
     you want to allow to pass the filtering.  All other packets will be
     filtered out.
@@ -36,12 +35,14 @@ class PacketTypeFilter:
         packets.UnknownPacket.__name__: packets.UnknownPacket,
     }
 
-    allow_list = tuple()
+    allow_list = ()
 
     def set_allow_list(self, filter_list):
         tmp_list = []
         for filter in filter_list:
-            LOG.warning(f"Setting filter {filter} : {self.filters[filter]} to tmp {tmp_list}")
+            LOG.warning(
+                f'Setting filter {filter} : {self.filters[filter]} to tmp {tmp_list}'
+            )
             tmp_list.append(self.filters[filter])
         self.allow_list = tuple(tmp_list)
 
