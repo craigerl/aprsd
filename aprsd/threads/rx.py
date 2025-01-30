@@ -8,15 +8,12 @@ from oslo_config import cfg
 
 from aprsd import packets, plugin
 from aprsd.client import client_factory
-from aprsd.packets import collector
+from aprsd.packets import collector, filter
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
-from aprsd.utils import trace
-from aprsd.packets import filter
-from aprsd.packets.filters import dupe_filter
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class APRSDRXThread(APRSDThread):
@@ -24,18 +21,19 @@ class APRSDRXThread(APRSDThread):
 
     A packet is received in the main loop and then sent to the
     process_packet method, which sends the packet through the collector
-    to track the packet for stats, and then put into the packet queue 
-    for processing in a separate thread.  
+    to track the packet for stats, and then put into the packet queue
+    for processing in a separate thread.
     """
+
     _client = None
 
     # This is the queue that packets are sent to for processing.
-    # We process packets in a separate thread to help prevent 
+    # We process packets in a separate thread to help prevent
     # getting blocked by the APRS server trying to send us packets.
     packet_queue = None
 
     def __init__(self, packet_queue):
-        super().__init__("RX_PKT")
+        super().__init__('RX_PKT')
         self.packet_queue = packet_queue
 
     def stop(self):
@@ -74,7 +72,7 @@ class APRSDRXThread(APRSDThread):
             aprslib.exceptions.ConnectionDrop,
             aprslib.exceptions.ConnectionError,
         ):
-            LOG.error("Connection dropped, reconnecting")
+            LOG.error('Connection dropped, reconnecting')
             # Force the deletion of the client object connected to aprs
             # This will cause a reconnect, next time client.get_client()
             # is called
@@ -82,7 +80,7 @@ class APRSDRXThread(APRSDThread):
             time.sleep(5)
         except Exception:
             # LOG.exception(ex)
-            LOG.error("Resetting connection and trying again.")
+            LOG.error('Resetting connection and trying again.')
             self._client.reset()
             time.sleep(5)
         # Continue to loop
@@ -100,7 +98,6 @@ class APRSDRXThread(APRSDThread):
 
 
 class APRSDFilterThread(APRSDThread):
-
     def __init__(self, thread_name, packet_queue):
         super().__init__(thread_name)
         self.packet_queue = packet_queue
@@ -110,13 +107,13 @@ class APRSDFilterThread(APRSDThread):
         if not filter.PacketFilter().filter(packet):
             return None
         return packet
-    
+
     def print_packet(self, packet):
         """Allow a child of this class to override this.
 
         This is helpful if for whatever reason the child class
         doesn't want to log packets.
-        
+
         """
         packet_log.log(packet)
 
@@ -135,7 +132,7 @@ class APRSDFilterThread(APRSDThread):
 class APRSDProcessPacketThread(APRSDFilterThread):
     """Base class for processing received packets after they have been filtered.
 
-    Packets are received from the client, then filtered for dupes, 
+    Packets are received from the client, then filtered for dupes,
     then sent to the packet queue.  This thread pulls packets from
     the packet queue for processing.
 
@@ -145,34 +142,33 @@ class APRSDProcessPacketThread(APRSDFilterThread):
     for processing."""
 
     def __init__(self, packet_queue):
-        super().__init__("ProcessPKT", packet_queue=packet_queue)
+        super().__init__('ProcessPKT', packet_queue=packet_queue)
         if not CONF.enable_sending_ack_packets:
             LOG.warning(
-                "Sending ack packets is disabled, messages "
-                "will not be acknowledged.",
+                'Sending ack packets is disabled, messages will not be acknowledged.',
             )
 
     def process_ack_packet(self, packet):
         """We got an ack for a message, no need to resend it."""
         ack_num = packet.msgNo
-        LOG.debug(f"Got ack for message {ack_num}")
+        LOG.debug(f'Got ack for message {ack_num}')
         collector.PacketCollector().rx(packet)
 
     def process_piggyback_ack(self, packet):
         """We got an ack embedded in a packet."""
         ack_num = packet.ackMsgNo
-        LOG.debug(f"Got PiggyBackAck for message {ack_num}")
+        LOG.debug(f'Got PiggyBackAck for message {ack_num}')
         collector.PacketCollector().rx(packet)
 
     def process_reject_packet(self, packet):
         """We got a reject message for a packet.  Stop sending the message."""
         ack_num = packet.msgNo
-        LOG.debug(f"Got REJECT for message {ack_num}")
+        LOG.debug(f'Got REJECT for message {ack_num}')
         collector.PacketCollector().rx(packet)
 
     def process_packet(self, packet):
         """Process a packet received from aprs-is server."""
-        LOG.debug(f"ProcessPKT-LOOP {self.loop_count}")
+        LOG.debug(f'ProcessPKT-LOOP {self.loop_count}')
 
         # set this now as we are going to process it.
         # This is used during dupe checking, so set it early
@@ -200,7 +196,7 @@ class APRSDProcessPacketThread(APRSDFilterThread):
         ):
             self.process_reject_packet(packet)
         else:
-            if hasattr(packet, "ackMsgNo") and packet.ackMsgNo:
+            if hasattr(packet, 'ackMsgNo') and packet.ackMsgNo:
                 # we got an ack embedded in this packet
                 # we need to handle the ack
                 self.process_piggyback_ack(packet)
@@ -240,7 +236,7 @@ class APRSDProcessPacketThread(APRSDFilterThread):
         if not for_us:
             LOG.info("Got a packet meant for someone else '{packet.to_call}'")
         else:
-            LOG.info("Got a non AckPacket/MessagePacket")
+            LOG.info('Got a non AckPacket/MessagePacket')
 
 
 class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
@@ -260,7 +256,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                             tx.send(subreply)
                         else:
                             wl = CONF.watch_list
-                            to_call = wl["alert_callsign"]
+                            to_call = wl['alert_callsign']
                             tx.send(
                                 packets.MessagePacket(
                                     from_call=CONF.callsign,
@@ -272,7 +268,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     # We have a message based object.
                     tx.send(reply)
         except Exception as ex:
-            LOG.error("Plugin failed!!!")
+            LOG.error('Plugin failed!!!')
             LOG.exception(ex)
 
     def process_our_message_packet(self, packet):
@@ -328,11 +324,11 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             if to_call == CONF.callsign and not replied:
                 # Tailor the messages accordingly
                 if CONF.load_help_plugin:
-                    LOG.warning("Sending help!")
+                    LOG.warning('Sending help!')
                     message_text = "Unknown command! Send 'help' message for help"
                 else:
-                    LOG.warning("Unknown command!")
-                    message_text = "Unknown command!"
+                    LOG.warning('Unknown command!')
+                    message_text = 'Unknown command!'
 
                 tx.send(
                     packets.MessagePacket(
@@ -342,11 +338,11 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     ),
                 )
         except Exception as ex:
-            LOG.error("Plugin failed!!!")
+            LOG.error('Plugin failed!!!')
             LOG.exception(ex)
             # Do we need to send a reply?
             if to_call == CONF.callsign:
-                reply = "A Plugin failed! try again?"
+                reply = 'A Plugin failed! try again?'
                 tx.send(
                     packets.MessagePacket(
                         from_call=CONF.callsign,
@@ -355,4 +351,4 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     ),
                 )
 
-        LOG.debug("Completed process_our_message_packet")
+        LOG.debug('Completed process_our_message_packet')
