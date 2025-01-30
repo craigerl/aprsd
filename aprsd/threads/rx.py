@@ -8,12 +8,9 @@ from oslo_config import cfg
 
 from aprsd import packets, plugin
 from aprsd.client import client_factory
-from aprsd.packets import collector
+from aprsd.packets import collector, filter
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
-from aprsd.utils import trace
-from aprsd.packets import filter
-from aprsd.packets.filters import dupe_filter
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
@@ -24,13 +21,14 @@ class APRSDRXThread(APRSDThread):
 
     A packet is received in the main loop and then sent to the
     process_packet method, which sends the packet through the collector
-    to track the packet for stats, and then put into the packet queue 
-    for processing in a separate thread.  
+    to track the packet for stats, and then put into the packet queue
+    for processing in a separate thread.
     """
+
     _client = None
 
     # This is the queue that packets are sent to for processing.
-    # We process packets in a separate thread to help prevent 
+    # We process packets in a separate thread to help prevent
     # getting blocked by the APRS server trying to send us packets.
     packet_queue = None
 
@@ -139,7 +137,6 @@ class APRSDRXThread(APRSDThread):
 
 
 class APRSDFilterThread(APRSDThread):
-
     def __init__(self, thread_name, packet_queue):
         super().__init__(thread_name)
         self.packet_queue = packet_queue
@@ -149,13 +146,13 @@ class APRSDFilterThread(APRSDThread):
         if not filter.PacketFilter().filter(packet):
             return None
         return packet
-    
+
     def print_packet(self, packet):
         """Allow a child of this class to override this.
 
         This is helpful if for whatever reason the child class
         doesn't want to log packets.
-        
+
         """
         packet_log.log(packet)
 
@@ -174,7 +171,7 @@ class APRSDFilterThread(APRSDThread):
 class APRSDProcessPacketThread(APRSDFilterThread):
     """Base class for processing received packets after they have been filtered.
 
-    Packets are received from the client, then filtered for dupes, 
+    Packets are received from the client, then filtered for dupes,
     then sent to the packet queue.  This thread pulls packets from
     the packet queue for processing.
 
@@ -184,7 +181,7 @@ class APRSDProcessPacketThread(APRSDFilterThread):
     for processing."""
 
     def __init__(self, packet_queue):
-        super().__init__("ProcessPKT", packet_queue=packet_queue)
+        super().__init__('ProcessPKT', packet_queue=packet_queue)
         if not CONF.enable_sending_ack_packets:
             LOG.warning(
                 'Sending ack packets is disabled, messages will not be acknowledged.',
@@ -210,7 +207,7 @@ class APRSDProcessPacketThread(APRSDFilterThread):
 
     def process_packet(self, packet):
         """Process a packet received from aprs-is server."""
-        LOG.debug(f"ProcessPKT-LOOP {self.loop_count}")
+        LOG.debug(f'ProcessPKT-LOOP {self.loop_count}')
 
         # set this now as we are going to process it.
         # This is used during dupe checking, so set it early
