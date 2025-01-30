@@ -1,28 +1,27 @@
 import logging
-from typing import  Union
+from typing import Union
 
 from oslo_config import cfg
 
-from aprsd.packets import core
 from aprsd import packets
-from aprsd.utils import trace
-
+from aprsd.packets import core
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class DupePacketFilter:
     """This is a packet filter to detect duplicate packets.
 
     This Uses the PacketList object to see if a packet exists
-    already.  If it does exist in the PacketList, then we need to 
+    already.  If it does exist in the PacketList, then we need to
     check the flag on the packet to see if it's been processed before.
-    If the packet has been processed already within the allowed 
+    If the packet has been processed already within the allowed
     timeframe, then it's a dupe.
     """
+
     def filter(self, packet: type[core.Packet]) -> Union[type[core.Packet], None]:
-        #LOG.debug(f"{self.__class__.__name__}.filter called for packet {packet}")
+        # LOG.debug(f"{self.__class__.__name__}.filter called for packet {packet}")
         """Filter a packet out if it's already been seen and processed."""
         if isinstance(packet, core.AckPacket):
             # We don't need to drop AckPackets, those should be
@@ -51,7 +50,7 @@ class DupePacketFilter:
             if not found:
                 # We haven't seen this packet before, so we process it.
                 return packet
-            
+
             if not packet.processed:
                 # We haven't processed this packet through the plugins.
                 return packet
@@ -59,11 +58,11 @@ class DupePacketFilter:
                 # If the packet came in within N seconds of the
                 # Last time seeing the packet, then we drop it as a dupe.
                 LOG.warning(
-                    f"Packet {packet.from_call}:{packet.msgNo} already tracked, dropping."
+                    f'Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.'
                 )
             else:
                 LOG.warning(
-                    f"Packet {packet.from_call}:{packet.msgNo} already tracked "
-                    f"but older than {CONF.packet_dupe_timeout} seconds. processing.",
+                    f'Packet {packet.from_call}:{packet.msgNo} already tracked '
+                    f'but older than {CONF.packet_dupe_timeout} seconds. processing.',
                 )
                 return packet
