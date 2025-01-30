@@ -13,6 +13,7 @@ import click
 from loguru import logger
 from oslo_config import cfg
 from rich.console import Console
+from typing import Union
 
 # local imports here
 import aprsd
@@ -22,10 +23,15 @@ from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import log as packet_log
 from aprsd.packets import seen_list
+from aprsd.packets import core
+from aprsd.packets.filters import dupe_filter
+from aprsd.packets.filters import packet_type
+from aprsd.packets.filter import PacketFilter
 from aprsd.stats import collector
 from aprsd.threads import keepalive, rx
 from aprsd.threads import stats as stats_thread
 from aprsd.threads.aprsd import APRSDThread
+from aprsd.utils import singleton
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
@@ -48,7 +54,7 @@ def signal_handler(sig, frame):
         collector.Collector().collect()
 
 
-class APRSDListenThread(rx.APRSDRXThread):
+class APRSDListenProcessThread(rx.APRSDFilterThread):
     def __init__(
         self,
         packet_queue,
@@ -57,47 +63,22 @@ class APRSDListenThread(rx.APRSDRXThread):
         enabled_plugins=[],
         log_packets=False,
     ):
-        super().__init__(packet_queue)
+        super().__init__("ListenProcThread", packet_queue)
         self.packet_filter = packet_filter
         self.plugin_manager = plugin_manager
         if self.plugin_manager:
             LOG.info(f"Plugins {self.plugin_manager.get_message_plugins()}")
         self.log_packets = log_packets
 
-    def process_packet(self, *args, **kwargs):
-        packet = self._client.decode_packet(*args, **kwargs)
-        filters = {
-            packets.Packet.__name__: packets.Packet,
-            packets.AckPacket.__name__: packets.AckPacket,
-            packets.BeaconPacket.__name__: packets.BeaconPacket,
-            packets.GPSPacket.__name__: packets.GPSPacket,
-            packets.MessagePacket.__name__: packets.MessagePacket,
-            packets.MicEPacket.__name__: packets.MicEPacket,
-            packets.ObjectPacket.__name__: packets.ObjectPacket,
-            packets.StatusPacket.__name__: packets.StatusPacket,
-            packets.ThirdPartyPacket.__name__: packets.ThirdPartyPacket,
-            packets.WeatherPacket.__name__: packets.WeatherPacket,
-            packets.UnknownPacket.__name__: packets.UnknownPacket,
-        }
+    def print_packet(self, packet):
+        if self.log_packets:
+            packet_log.log(packet)
 
-        if self.packet_filter:
-            filter_class = filters[self.packet_filter]
-            if isinstance(packet, filter_class):
-                if self.log_packets:
-                    packet_log.log(packet)
-                if self.plugin_manager:
-                    # Don't do anything with the reply
-                    # This is the listen only command.
-                    self.plugin_manager.run(packet)
-        else:
-            if self.log_packets:
-                packet_log.log(packet)
-            if self.plugin_manager:
-                # Don't do anything with the reply.
-                # This is the listen only command.
-                self.plugin_manager.run(packet)
-
-        packet_collector.PacketCollector().rx(packet)
+    def process_packet(self, packet: type[core.Packet]):
+        if self.plugin_manager:
+            # Don't do anything with the reply.
+            # This is the listen only command.
+            self.plugin_manager.run(packet)
 
 
 class ListenStatsThread(APRSDThread):
@@ -106,23 +87,24 @@ class ListenStatsThread(APRSDThread):
     def __init__(self):
         super().__init__("PacketStatsLog")
         self._last_total_rx = 0
+        self.period = 31
 
     def loop(self):
-        if self.loop_count % 10 == 0:
+        if self.loop_count % self.period == 0:
             # log the stats every 10 seconds
             stats_json = collector.Collector().collect()
             stats = stats_json["PacketList"]
             total_rx = stats["rx"]
             packet_count = len(stats["packets"])
             rx_delta = total_rx - self._last_total_rx
-            rate = rx_delta / 10
+            rate = rx_delta / self.period 
 
             # Log summary stats
             LOGU.opt(colors=True).info(
-                f"<green>RX Rate: {rate} pps</green>  "
+                f"<green>RX Rate: {rate:.2f} pps</green>  "
                 f"<yellow>Total RX: {total_rx}</yellow> "
-                f"<red>RX Last 10 secs: {rx_delta}</red> "
-                f"<white>Packets in PacketList: {packet_count}</white>",
+                f"<red>RX Last {self.period} secs: {rx_delta}</red> "
+                f"<white>Packets in PacketListStats: {packet_count}</white>",
             )
             self._last_total_rx = total_rx
 
@@ -170,6 +152,8 @@ class ListenStatsThread(APRSDThread):
         ],
         case_sensitive=False,
     ),
+    multiple=True,
+    default=[],
     help="Filter by packet type",
 )
 @click.option(
@@ -267,7 +251,7 @@ def listen(
         print(msg)
         sys.exit(-1)
 
-    LOG.debug(f"Filter by '{filter}'")
+    LOG.debug(f"Filter messages on aprsis server by '{filter}'")
     aprs_client.set_filter(filter)
 
     keepalive_thread = keepalive.KeepAliveThread()
@@ -275,6 +259,15 @@ def listen(
     if not CONF.enable_seen_list:
         # just deregister the class from the packet collector
         packet_collector.PacketCollector().unregister(seen_list.SeenList)
+
+    # we don't want the dupe filter to run here.
+    PacketFilter().unregister(dupe_filter.DupePacketFilter)
+    if packet_filter:
+        LOG.info("Enabling packet filtering for {packet_filter}")
+        packet_type.PacketTypeFilter().set_allow_list(packet_filter)
+        PacketFilter().register(packet_type.PacketTypeFilter)
+    else:
+        LOG.info("No packet filtering enabled.")
 
     pm = None
     if load_plugins:
@@ -300,15 +293,20 @@ def listen(
     stats = stats_thread.APRSDStatsStoreThread()
     stats.start()
 
-    LOG.debug("Create APRSDListenThread")
-    listen_thread = APRSDListenThread(
+    LOG.debug("Start APRSDRxThread")
+    rx_thread = rx.APRSDRXThread(packet_queue=threads.packet_queue)
+    rx_thread.start()
+
+
+    LOG.debug("Create APRSDListenProcessThread")
+    listen_thread = APRSDListenProcessThread(
         packet_queue=threads.packet_queue,
         packet_filter=packet_filter,
         plugin_manager=pm,
         enabled_plugins=enable_plugin,
         log_packets=log_packets,
     )
-    LOG.debug("Start APRSDListenThread")
+    LOG.debug("Start APRSDListenProcessThread")
     listen_thread.start()
     if enable_packet_stats:
         listen_stats = ListenStatsThread()
@@ -317,6 +315,6 @@ def listen(
     keepalive_thread.start()
     LOG.debug("keepalive Join")
     keepalive_thread.join()
-    LOG.debug("listen_thread Join")
+    rx_thread.join()
     listen_thread.join()
     stats.join()

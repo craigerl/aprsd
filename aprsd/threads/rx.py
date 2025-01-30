@@ -12,13 +12,27 @@ from aprsd.packets import collector
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
 from aprsd.utils import trace
+from aprsd.packets import filter
+from aprsd.packets.filters import dupe_filter
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
 
 
 class APRSDRXThread(APRSDThread):
+    """Main Class to connect to an APRS Client and recieve packets.
+
+    A packet is received in the main loop and then sent to the
+    process_packet method, which sends the packet through the collector
+    to track the packet for stats, and then put into the packet queue 
+    for processing in a separate thread.  
+    """
     _client = None
+
+    # This is the queue that packets are sent to for processing.
+    # We process packets in a separate thread to help prevent 
+    # getting blocked by the APRS server trying to send us packets.
+    packet_queue = None
 
     def __init__(self, packet_queue):
         super().__init__('RX_PKT')
@@ -52,7 +66,7 @@ class APRSDRXThread(APRSDThread):
             # kwargs.  :(
             # https://github.com/rossengeorgiev/aprs-python/pull/56
             self._client.consumer(
-                self._process_packet,
+                self.process_packet,
                 raw=False,
                 blocking=False,
             )
@@ -73,37 +87,7 @@ class APRSDRXThread(APRSDThread):
             time.sleep(5)
         return True
 
-    def _process_packet(self, *args, **kwargs):
-        """Intermediate callback so we can update the keepalive time."""
-        # Now call the 'real' packet processing for a RX'x packet
-        self.process_packet(*args, **kwargs)
-
-    @abc.abstractmethod
     def process_packet(self, *args, **kwargs):
-        pass
-
-
-class APRSDDupeRXThread(APRSDRXThread):
-    """Process received packets.
-
-    This is the main APRSD Server command thread that
-    receives packets and makes sure the packet
-    hasn't been seen previously before sending it on
-    to be processed.
-    """
-
-    @trace.trace
-    def process_packet(self, *args, **kwargs):
-        """This handles the processing of an inbound packet.
-
-        When a packet is received by the connected client object,
-        it sends the raw packet into this function.  This function then
-        decodes the packet via the client, and then processes the packet.
-        Ack Packets are sent to the PluginProcessPacketThread for processing.
-        All other packets have to be checked as a dupe, and then only after
-        we haven't seen this packet before, do we send it to the
-        PluginProcessPacketThread for processing.
-        """
         packet = self._client.decode_packet(*args, **kwargs)
         if not packet:
             LOG.error(
@@ -154,15 +138,45 @@ class APRSDDupeRXThread(APRSDRXThread):
                 self.packet_queue.put(packet)
 
 
-class APRSDPluginRXThread(APRSDDupeRXThread):
-    """ "Process received packets.
+class APRSDFilterThread(APRSDThread):
 
-    For backwards compatibility, we keep the APRSDPluginRXThread.
-    """
+    def __init__(self, thread_name, packet_queue):
+        super().__init__(thread_name)
+        self.packet_queue = packet_queue
+
+    def filter_packet(self, packet):
+        # Do any packet filtering prior to processing
+        if not filter.PacketFilter().filter(packet):
+            return None
+        return packet
+    
+    def print_packet(self, packet):
+        """Allow a child of this class to override this.
+
+        This is helpful if for whatever reason the child class
+        doesn't want to log packets.
+        
+        """
+        packet_log.log(packet)
+
+    def loop(self):
+        try:
+            packet = self.packet_queue.get(timeout=1)
+            self.print_packet(packet)
+            if packet:
+                if self.filter_packet(packet):
+                    self.process_packet(packet)
+        except queue.Empty:
+            pass
+        return True
 
 
-class APRSDProcessPacketThread(APRSDThread):
-    """Base class for processing received packets.
+class APRSDProcessPacketThread(APRSDFilterThread):
+    """Base class for processing received packets after they have been filtered.
+
+    Packets are received from the client, then filtered for dupes, 
+    then sent to the packet queue.  This thread pulls packets from
+    the packet queue for processing.
 
     This is the base class for processing packets coming from
     the consumer.  This base class handles sending ack packets and
@@ -170,8 +184,7 @@ class APRSDProcessPacketThread(APRSDThread):
     for processing."""
 
     def __init__(self, packet_queue):
-        self.packet_queue = packet_queue
-        super().__init__('ProcessPKT')
+        super().__init__("ProcessPKT", packet_queue=packet_queue)
         if not CONF.enable_sending_ack_packets:
             LOG.warning(
                 'Sending ack packets is disabled, messages will not be acknowledged.',
@@ -195,18 +208,14 @@ class APRSDProcessPacketThread(APRSDThread):
         LOG.debug(f'Got REJECT for message {ack_num}')
         collector.PacketCollector().rx(packet)
 
-    def loop(self):
-        try:
-            packet = self.packet_queue.get(timeout=1)
-            if packet:
-                self.process_packet(packet)
-        except queue.Empty:
-            pass
-        return True
-
     def process_packet(self, packet):
         """Process a packet received from aprs-is server."""
-        LOG.debug(f'ProcessPKT-LOOP {self.loop_count}')
+        LOG.debug(f"ProcessPKT-LOOP {self.loop_count}")
+
+        # set this now as we are going to process it.
+        # This is used during dupe checking, so set it early
+        packet.processed = True
+
         our_call = CONF.callsign.lower()
 
         from_call = packet.from_call
