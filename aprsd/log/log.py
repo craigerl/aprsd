@@ -63,10 +63,20 @@ def setup_logging(loglevel=None, quiet=False):
 
     # We don't really want to see the aprslib parsing debug output.
     disable_list = [
-        "aprslib",
-        "aprslib.parsing",
-        "aprslib.exceptions",
+        'aprslib',
+        'aprslib.parsing',
+        'aprslib.exceptions',
     ]
+
+    chardet_list = [
+        'chardet',
+        'chardet.charsetprober',
+        'chardet.eucjpprober',
+    ]
+
+    for name in chardet_list:
+        disable = logging.getLogger(name)
+        disable.setLevel(logging.ERROR)
 
     # remove every other logger's handlers
     # and propagate to root logger
@@ -76,24 +86,24 @@ def setup_logging(loglevel=None, quiet=False):
 
     handlers = [
         {
-            "sink": sys.stdout,
-            "serialize": False,
-            "format": CONF.logging.logformat,
-            "colorize": True,
-            "level": log_level,
+            'sink': sys.stdout,
+            'serialize': False,
+            'format': CONF.logging.logformat,
+            'colorize': True,
+            'level': log_level,
         },
     ]
     if CONF.logging.logfile:
         handlers.append(
             {
-                "sink": CONF.logging.logfile,
-                "serialize": False,
-                "format": CONF.logging.logformat,
-                "colorize": False,
-                "level": log_level,
+                'sink': CONF.logging.logfile,
+                'serialize': False,
+                'format': CONF.logging.logformat,
+                'colorize': False,
+                'level': log_level,
             },
         )
 
     # configure loguru
     logger.configure(handlers=handlers)
-    logger.level("DEBUG", color="<fg #BABABA>")
+    logger.level('DEBUG', color='<fg #BABABA>')
