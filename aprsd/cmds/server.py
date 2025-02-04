@@ -147,7 +147,7 @@ def server(ctx, flush):
     server_threads.register(keepalive.KeepAliveThread())
     server_threads.register(stats_thread.APRSDStatsStoreThread())
     server_threads.register(
-        rx.APRSDPluginRXThread(
+        rx.APRSDRXThread(
             packet_queue=threads.packet_queue,
         ),
     )

@@ -106,6 +106,8 @@ class Packet:
     last_send_time: float = field(repr=False, default=0, compare=False, hash=False)
     # Was the packet acked?
     acked: bool = field(repr=False, default=False, compare=False, hash=False)
+    # Was the packet previously processed (for dupe checking)
+    processed: bool = field(repr=False, default=False, compare=False, hash=False)
 
     # Do we allow this packet to be saved to send later?
     allow_delay: bool = field(repr=False, default=True, compare=False, hash=False)
@@ -186,12 +188,11 @@ class Packet:
 
     def __repr__(self) -> str:
         """Build the repr version of the packet."""
-        repr = (
+        return (
             f"{self.__class__.__name__}:"
             f" From: {self.from_call}  "
             f"   To: {self.to_call}"
         )
-        return repr
 
 
 @dataclass_json
@@ -694,6 +695,8 @@ class UnknownPacket:
     path: List[str] = field(default_factory=list, compare=False, hash=False)
     packet_type: Optional[str] = field(default=None)
     via: Optional[str] = field(default=None, compare=False, hash=False)
+    # Was the packet previously processed (for dupe checking)
+    processed: bool = field(repr=False, default=False, compare=False, hash=False)
 
     @property
     def key(self) -> str:
