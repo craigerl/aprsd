@@ -105,6 +105,11 @@ class APRSDDupeRXThread(APRSDRXThread):
         PluginProcessPacketThread for processing.
         """
         packet = self._client.decode_packet(*args, **kwargs)
+        if not packet:
+            LOG.error(
+                'No packet received from decode_packet.  Most likely a failure to parse'
+            )
+            return
         packet_log.log(packet)
         pkt_list = packets.PacketList()
 
