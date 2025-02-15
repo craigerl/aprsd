@@ -140,3 +140,4 @@ class KISSClient(base.APRSClient):
         except Exception as ex:
             LOG.error(f'Consumer failed {ex}')
             LOG.error(ex)
+            raise ex

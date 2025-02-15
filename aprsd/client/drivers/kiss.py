@@ -18,12 +18,13 @@ class KISS3Client:
 
     # date for last time we heard from the server
     aprsd_keepalive = datetime.datetime.now()
+    _connected = False
 
     def __init__(self):
         self.setup()
 
     def is_alive(self):
-        return True
+        return self._connected
 
     def setup(self):
         # we can be TCP kiss or Serial kiss
@@ -56,17 +57,33 @@ class KISS3Client:
             self.path = CONF.kiss_tcp.path
 
         LOG.debug('Starting KISS interface connection')
-        self.kiss.start()
+        try:
+            self.kiss.start()
+            if self.kiss.protocol.transport.is_closing():
+                LOG.warning('KISS transport is closing, not setting consumer callback')
+                self._connected = False
+            else:
+                self._connected = True
+        except Exception:
+            LOG.error('Failed to start KISS interface.')
+            self._connected = False
 
     @trace.trace
     def stop(self):
+        if not self._connected:
+            # do nothing since we aren't connected
+            return
+
         try:
             self.kiss.stop()
             self.kiss.loop.call_soon_threadsafe(
                 self.kiss.protocol.transport.close,
             )
-        except Exception as ex:
-            LOG.exception(ex)
+        except Exception:
+            LOG.error('Failed to stop KISS interface.')
+
+    def close(self):
+        self.stop()
 
     def set_filter(self, filter):
         # This does nothing right now.
@@ -86,8 +103,14 @@ class KISS3Client:
             LOG.exception(ex)
 
     def consumer(self, callback):
+        if not self._connected:
+            raise Exception('KISS transport is not connected')
+
         self._parse_callback = callback
-        self.kiss.read(callback=self.parse_frame, min_frames=None)
+        if not self.kiss.protocol.transport.is_closing():
+            self.kiss.read(callback=self.parse_frame, min_frames=1)
+        else:
+            self._connected = False
 
     def send(self, packet):
         """Send an APRS Message object."""
