@@ -6,9 +6,8 @@ import threading
 
 from oslo_config import cfg
 
-
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class ObjectStoreMixin:
@@ -63,7 +62,7 @@ class ObjectStoreMixin:
     def _save_filename(self):
         save_location = CONF.save_location
 
-        return "{}/{}.p".format(
+        return '{}/{}.p'.format(
             save_location,
             self.__class__.__name__.lower(),
         )
@@ -75,13 +74,13 @@ class ObjectStoreMixin:
         self._init_store()
         save_filename = self._save_filename()
         if len(self) > 0:
-            LOG.info(
-                f"{self.__class__.__name__}::Saving"
-                f" {len(self)} entries to disk at "
-                f"{save_filename}",
+            LOG.debug(
+                f'{self.__class__.__name__}::Saving'
+                f' {len(self)} entries to disk at '
+                f'{save_filename}',
             )
             with self.lock:
-                with open(save_filename, "wb+") as fp:
+                with open(save_filename, 'wb+') as fp:
                     pickle.dump(self.data, fp)
         else:
             LOG.debug(
@@ -97,21 +96,21 @@ class ObjectStoreMixin:
             return
         if os.path.exists(self._save_filename()):
             try:
-                with open(self._save_filename(), "rb") as fp:
+                with open(self._save_filename(), 'rb') as fp:
                     raw = pickle.load(fp)
                     if raw:
                         self.data = raw
                         LOG.debug(
-                            f"{self.__class__.__name__}::Loaded {len(self)} entries from disk.",
+                            f'{self.__class__.__name__}::Loaded {len(self)} entries from disk.',
                         )
                     else:
-                        LOG.debug(f"{self.__class__.__name__}::No data to load.")
+                        LOG.debug(f'{self.__class__.__name__}::No data to load.')
             except (pickle.UnpicklingError, Exception) as ex:
-                LOG.error(f"Failed to UnPickle {self._save_filename()}")
+                LOG.error(f'Failed to UnPickle {self._save_filename()}')
                 LOG.error(ex)
                 self.data = {}
         else:
-            LOG.debug(f"{self.__class__.__name__}::No save file found.")
+            LOG.debug(f'{self.__class__.__name__}::No save file found.')
 
     def flush(self):
         """Nuke the old pickle file that stored the old results from last aprsd run."""

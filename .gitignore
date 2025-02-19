@@ -60,3 +60,9 @@ AUTHORS
 Makefile.venv
 # Copilot
 .DS_Store
+
+.python-version
+.fleet
+.vscode
+.envrc
+.doit.db
