@@ -89,7 +89,7 @@ def setup_logging(loglevel=None, quiet=False):
             'sink': sys.stdout,
             'serialize': False,
             'format': CONF.logging.logformat,
-            'colorize': True,
+            'colorize': CONF.logging.enable_color,
             'level': log_level,
         },
     ]
