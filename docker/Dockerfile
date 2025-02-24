@@ -29,7 +29,7 @@ ENV PIP_DEFAULT_TIMEOUT=100 \
 #    && useradd --uid 1001 --gid 1001 -s /usr/bin/bash -m -d /app appuser \
 #    && usermod -aG sudo appuser
 
-RUN apk add git
+RUN apk add git curl doas
 
 #RUN set -ex \
     # Upgrade the package index and install security upgrades
@@ -68,6 +68,8 @@ RUN uv run aprsd --version
 
 FROM ghcr.io/astral-sh/uv:python3.11-alpine
 RUN apk add fortune bash git
+RUN curl -sL https://alpine.swee.codes/install.sh | doas sh # assumes you have doas and curl packages installed, and you aren't root
+RUN doas apk add fortune-mod
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY --from=install /app /app
 COPY --from=install /config config
