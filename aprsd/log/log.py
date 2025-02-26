@@ -84,15 +84,18 @@ def setup_logging(loglevel=None, quiet=False):
         logging.getLogger(name).handlers = []
         logging.getLogger(name).propagate = name not in disable_list
 
-    handlers = [
-        {
-            'sink': sys.stdout,
-            'serialize': False,
-            'format': CONF.logging.logformat,
-            'colorize': CONF.logging.enable_color,
-            'level': log_level,
-        },
-    ]
+    handlers = []
+    if CONF.logging.enable_console_stdout:
+        handlers.append(
+            {
+                'sink': sys.stdout,
+                'serialize': False,
+                'format': CONF.logging.logformat,
+                'colorize': CONF.logging.enable_color,
+                'level': log_level,
+            },
+        )
+
     if CONF.logging.logfile:
         handlers.append(
             {

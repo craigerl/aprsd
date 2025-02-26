@@ -9,7 +9,7 @@ from aprsd.packets import core
 from aprsd.utils import keepalive_collector
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class APRSClient:
@@ -20,8 +20,8 @@ class APRSClient:
 
     connected = False
     login_status = {
-        "success": False,
-        "message": None,
+        'success': False,
+        'message': None,
     }
     filter = None
     lock = threading.Lock()
@@ -59,16 +59,19 @@ class APRSClient:
 
     @property
     def login_success(self):
-        return self.login_status.get("success", False)
+        return self.login_status.get('success', False)
 
     @property
     def login_failure(self):
-        return self.login_status["message"]
+        return self.login_status['message']
 
     def set_filter(self, filter):
         self.filter = filter
         if self._client:
             self._client.set_filter(filter)
+
+    def get_filter(self):
+        return self.filter
 
     @property
     def client(self):
@@ -80,16 +83,16 @@ class APRSClient:
         try:
             self._client = self.setup_connection()
             if self.filter:
-                LOG.info("Creating APRS client filter")
+                LOG.info('Creating APRS client filter')
                 self._client.set_filter(self.filter)
         except Exception as e:
-            LOG.error(f"Failed to create APRS client: {e}")
+            LOG.error(f'Failed to create APRS client: {e}')
             self._client = None
             raise
 
     def stop(self):
         if self._client:
-            LOG.info("Stopping client connection.")
+            LOG.info('Stopping client connection.')
             self._client.stop()
 
     def send(self, packet: core.Packet) -> None:
@@ -103,16 +106,16 @@ class APRSClient:
     @wrapt.synchronized(lock)
     def reset(self) -> None:
         """Call this to force a rebuild/reconnect."""
-        LOG.info("Resetting client connection.")
+        LOG.info('Resetting client connection.')
         if self._client:
             self._client.close()
             del self._client
             self._create_client()
         else:
-            LOG.warning("Client not initialized, nothing to reset.")
+            LOG.warning('Client not initialized, nothing to reset.')
 
         # Recreate the client
-        LOG.info(f"Creating new client {self.client}")
+        LOG.info(f'Creating new client {self.client}')
 
     @abc.abstractmethod
     def setup_connection(self):

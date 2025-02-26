@@ -54,6 +54,11 @@ logging_opts = [
         default=True,
         help='Enable ANSI color codes in logging',
     ),
+    cfg.BoolOpt(
+        'enable_console_stdout',
+        default=True,
+        help='Enable logging to the console/stdout.',
+    ),
 ]
 
 
