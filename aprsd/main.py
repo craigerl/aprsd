@@ -39,8 +39,8 @@ from aprsd.stats import collector
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
-CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+LOG = logging.getLogger('APRSD')
+CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 flask_enabled = False
 
 
@@ -68,18 +68,18 @@ def main():
     # First import all the possible commands for the CLI
     # The commands themselves live in the cmds directory
     load_commands()
-    utils.load_entry_points("aprsd.extension")
-    cli(auto_envvar_prefix="APRSD")
+    utils.load_entry_points('aprsd.extension')
+    cli(auto_envvar_prefix='APRSD')
 
 
 def signal_handler(sig, frame):
     global flask_enabled
 
-    click.echo("signal_handler: called")
+    click.echo('signal_handler: called')
     threads.APRSDThreadList().stop_all()
-    if "subprocess" not in str(frame):
+    if 'subprocess' not in str(frame):
         LOG.info(
-            "Ctrl+C, Sending all threads exit! Can take up to 10 seconds {}".format(
+            'Ctrl+C, Sending all threads exit! Can take up to 10 seconds {}'.format(
                 datetime.datetime.now(),
             ),
         )
@@ -91,7 +91,7 @@ def signal_handler(sig, frame):
             packets.PacketList().save()
             collector.Collector().collect()
         except Exception as e:
-            LOG.error(f"Failed to save data: {e}")
+            LOG.error(f'Failed to save data: {e}')
             sys.exit(0)
         # signal.signal(signal.SIGTERM, sys.exit(0))
         # sys.exit(0)
@@ -108,9 +108,9 @@ def check_version(ctx):
     """Check this version against the latest in pypi.org."""
     level, msg = utils._check_version()
     if level:
-        click.secho(msg, fg="yellow")
+        click.secho(msg, fg='yellow')
     else:
-        click.secho(msg, fg="green")
+        click.secho(msg, fg='green')
 
 
 @cli.command()
@@ -124,12 +124,12 @@ def sample_config(ctx):
         if sys.version_info < (3, 10):
             all = imp.entry_points()
             selected = []
-            if "oslo.config.opts" in all:
-                for x in all["oslo.config.opts"]:
-                    if x.group == "oslo.config.opts":
+            if 'oslo.config.opts' in all:
+                for x in all['oslo.config.opts']:
+                    if x.group == 'oslo.config.opts':
                         selected.append(x)
         else:
-            selected = imp.entry_points(group="oslo.config.opts")
+            selected = imp.entry_points(group='oslo.config.opts')
 
         return selected
 
@@ -139,23 +139,23 @@ def sample_config(ctx):
         # selected = imp.entry_points(group="oslo.config.opts")
         selected = _get_selected_entry_points()
         for entry in selected:
-            if "aprsd" in entry.name:
-                args.append("--namespace")
+            if 'aprsd' in entry.name:
+                args.append('--namespace')
                 args.append(entry.name)
 
         return args
 
     args = get_namespaces()
-    config_version = metadata_version("oslo.config")
+    config_version = metadata_version('oslo.config')
     logging.basicConfig(level=logging.WARN)
     conf = cfg.ConfigOpts()
     generator.register_cli_opts(conf)
     try:
         conf(args, version=config_version)
-    except cfg.RequiredOptError:
+    except cfg.RequiredOptError as ex:
         conf.print_help()
         if not sys.argv[1:]:
-            raise SystemExit
+            raise SystemExit from ex
         raise
     generator.generate(conf)
     return
@@ -165,9 +165,9 @@ def sample_config(ctx):
 @click.pass_context
 def version(ctx):
     """Show the APRSD version."""
-    click.echo(click.style("APRSD Version : ", fg="white"), nl=False)
-    click.secho(f"{aprsd.__version__}", fg="yellow", bold=True)
+    click.echo(click.style('APRSD Version : ', fg='white'), nl=False)
+    click.secho(f'{aprsd.__version__}', fg='yellow', bold=True)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

@@ -17,24 +17,24 @@ from aprsd.packets import watch_list
 
 # setup the global logger
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 CORE_MESSAGE_PLUGINS = [
-    "aprsd.plugins.email.EmailPlugin",
-    "aprsd.plugins.fortune.FortunePlugin",
-    "aprsd.plugins.location.LocationPlugin",
-    "aprsd.plugins.ping.PingPlugin",
-    "aprsd.plugins.time.TimePlugin",
-    "aprsd.plugins.weather.USWeatherPlugin",
-    "aprsd.plugins.version.VersionPlugin",
+    'aprsd.plugins.email.EmailPlugin',
+    'aprsd.plugins.fortune.FortunePlugin',
+    'aprsd.plugins.location.LocationPlugin',
+    'aprsd.plugins.ping.PingPlugin',
+    'aprsd.plugins.time.TimePlugin',
+    'aprsd.plugins.weather.USWeatherPlugin',
+    'aprsd.plugins.version.VersionPlugin',
 ]
 
 CORE_NOTIFY_PLUGINS = [
-    "aprsd.plugins.notify.NotifySeenPlugin",
+    'aprsd.plugins.notify.NotifySeenPlugin',
 ]
 
-hookspec = pluggy.HookspecMarker("aprsd")
-hookimpl = pluggy.HookimplMarker("aprsd")
+hookspec = pluggy.HookspecMarker('aprsd')
+hookimpl = pluggy.HookimplMarker('aprsd')
 
 
 class APRSDPluginSpec:
@@ -76,14 +76,14 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
                     else:
                         LOG.error(
                             "Can't start thread {}:{}, Must be a child "
-                            "of aprsd.threads.APRSDThread".format(
+                            'of aprsd.threads.APRSDThread'.format(
                                 self,
                                 thread,
                             ),
                         )
             except Exception:
                 LOG.error(
-                    "Failed to start threads for plugin {}".format(
+                    'Failed to start threads for plugin {}'.format(
                         self,
                     ),
                 )
@@ -93,7 +93,7 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         return self.message_counter
 
     def help(self) -> str:
-        return "Help!"
+        return 'Help!'
 
     @abc.abstractmethod
     def setup(self):
@@ -147,10 +147,10 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
             # make sure the timeout is set or this doesn't work
             if watch_list:
                 aprs_client = client.client_factory.create().client
-                filter_str = "b/{}".format("/".join(watch_list))
+                filter_str = 'b/{}'.format('/'.join(watch_list))
                 aprs_client.set_filter(filter_str)
             else:
-                LOG.warning("Watch list enabled, but no callsigns set.")
+                LOG.warning('Watch list enabled, but no callsigns set.')
 
     @hookimpl
     def filter(self, packet: type[packets.Packet]) -> str | packets.MessagePacket:
@@ -164,7 +164,7 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                     result = self.process(packet)
                 except Exception as ex:
                     LOG.error(
-                        "Plugin {} failed to process packet {}".format(
+                        'Plugin {} failed to process packet {}'.format(
                             self.__class__,
                             ex,
                         ),
@@ -172,7 +172,7 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                 if result:
                     self.tx_inc()
         else:
-            LOG.warning(f"{self.__class__} plugin is not enabled")
+            LOG.warning(f'{self.__class__} plugin is not enabled')
 
         return result
 
@@ -196,7 +196,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     def help(self):
-        return "{}: {}".format(
+        return '{}: {}'.format(
             self.command_name.lower(),
             self.command_regex,
         )
@@ -207,7 +207,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
 
     @hookimpl
     def filter(self, packet: packets.MessagePacket) -> str | packets.MessagePacket:
-        LOG.debug(f"{self.__class__.__name__} called")
+        LOG.debug(f'{self.__class__.__name__} called')
         if not self.enabled:
             result = f"{self.__class__.__name__} isn't enabled"
             LOG.warning(result)
@@ -215,7 +215,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
 
         if not isinstance(packet, packets.MessagePacket):
             LOG.warning(
-                f"{self.__class__.__name__} Got a {packet.__class__.__name__} ignoring"
+                f'{self.__class__.__name__} Got a {packet.__class__.__name__} ignoring'
             )
             return packets.NULL_MESSAGE
 
@@ -237,7 +237,7 @@ class APRSDRegexCommandPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
                     result = self.process(packet)
                 except Exception as ex:
                     LOG.error(
-                        "Plugin {} failed to process packet {}".format(
+                        'Plugin {} failed to process packet {}'.format(
                             self.__class__,
                             ex,
                         ),
@@ -254,7 +254,7 @@ class APRSFIKEYMixin:
 
     def ensure_aprs_fi_key(self):
         if not CONF.aprs_fi.apiKey:
-            LOG.error("Config aprs_fi.apiKey is not set")
+            LOG.error('Config aprs_fi.apiKey is not set')
             self.enabled = False
         else:
             self.enabled = True
@@ -266,25 +266,25 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
     This plugin is in this file to prevent a circular import.
     """
 
-    command_regex = "^[hH]"
-    command_name = "help"
+    command_regex = '^[hH]'
+    command_name = 'help'
 
     def help(self):
-        return "Help: send APRS help or help <plugin>"
+        return 'Help: send APRS help or help <plugin>'
 
     def process(self, packet: packets.MessagePacket):
-        LOG.info("HelpPlugin")
+        LOG.info('HelpPlugin')
         # fromcall = packet.get("from")
         message = packet.message_text
         # ack = packet.get("msgNo", "0")
-        a = re.search(r"^.*\s+(.*)", message)
+        a = re.search(r'^.*\s+(.*)', message)
         command_name = None
         if a is not None:
             command_name = a.group(1).lower()
 
         pm = PluginManager()
 
-        if command_name and "?" not in command_name:
+        if command_name and '?' not in command_name:
             # user wants help for a specific plugin
             reply = None
             for p in pm.get_plugins():
@@ -303,20 +303,20 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
             LOG.debug(p)
             if p.enabled and isinstance(p, APRSDRegexCommandPluginBase):
                 name = p.command_name.lower()
-                if name not in list and "help" not in name:
+                if name not in list and 'help' not in name:
                     list.append(name)
 
         list.sort()
-        reply = " ".join(list)
+        reply = ' '.join(list)
         lines = textwrap.wrap(reply, 60)
         replies = ["Send APRS MSG of 'help' or 'help <plugin>'"]
         for line in lines:
-            replies.append(f"plugins: {line}")
+            replies.append(f'plugins: {line}')
 
         for entry in replies:
-            LOG.debug(f"{len(entry)} {entry}")
+            LOG.debug(f'{len(entry)} {entry}')
 
-        LOG.debug(f"{replies}")
+        LOG.debug(f'{replies}')
         return replies
 
 
@@ -341,17 +341,17 @@ class PluginManager:
         return cls._instance
 
     def _init(self):
-        self._pluggy_pm = pluggy.PluginManager("aprsd")
+        self._pluggy_pm = pluggy.PluginManager('aprsd')
         self._pluggy_pm.add_hookspecs(APRSDPluginSpec)
         # For the watchlist plugins
-        self._watchlist_pm = pluggy.PluginManager("aprsd")
+        self._watchlist_pm = pluggy.PluginManager('aprsd')
         self._watchlist_pm.add_hookspecs(APRSDPluginSpec)
 
     def stats(self, serializable=False) -> dict:
         """Collect and return stats for all plugins."""
 
         def full_name_with_qualname(obj):
-            return "{}.{}".format(
+            return '{}.{}'.format(
                 obj.__class__.__module__,
                 obj.__class__.__qualname__,
             )
@@ -361,10 +361,10 @@ class PluginManager:
         if plugins:
             for p in plugins:
                 plugin_stats[full_name_with_qualname(p)] = {
-                    "enabled": p.enabled,
-                    "rx": p.rx_count,
-                    "tx": p.tx_count,
-                    "version": p.version,
+                    'enabled': p.enabled,
+                    'rx': p.rx_count,
+                    'tx': p.tx_count,
+                    'version': p.version,
                 }
 
         return plugin_stats
@@ -392,19 +392,19 @@ class PluginManager:
         module_name = None
         class_name = None
         try:
-            module_name, class_name = module_class_string.rsplit(".", 1)
+            module_name, class_name = module_class_string.rsplit('.', 1)
             module = importlib.import_module(module_name)
             # Commented out because the email thread starts in a different context
             # and hence gives a different singleton for the EmailStats
             # module = importlib.reload(module)
         except Exception as ex:
             if not module_name:
-                LOG.error(f"Failed to load Plugin {module_class_string}")
+                LOG.error(f'Failed to load Plugin {module_class_string}')
             else:
                 LOG.error(f"Failed to load Plugin '{module_name}' : '{ex}'")
             return
 
-        assert hasattr(module, class_name), "class {} is not in {}".format(
+        assert hasattr(module, class_name), 'class {} is not in {}'.format(
             class_name,
             module_name,
         )
@@ -412,7 +412,7 @@ class PluginManager:
         #     class_name, module_name))
         cls = getattr(module, class_name)
         if super_cls is not None:
-            assert issubclass(cls, super_cls), "class {} should inherit from {}".format(
+            assert issubclass(cls, super_cls), 'class {} should inherit from {}'.format(
                 class_name,
                 super_cls.__name__,
             )
@@ -444,7 +444,7 @@ class PluginManager:
                         self._watchlist_pm.register(plugin_obj)
                     else:
                         LOG.warning(
-                            f"Plugin {plugin_obj.__class__.__name__} is disabled"
+                            f'Plugin {plugin_obj.__class__.__name__} is disabled'
                         )
                 elif isinstance(plugin_obj, APRSDRegexCommandPluginBase):
                     if plugin_obj.enabled:
@@ -458,7 +458,7 @@ class PluginManager:
                         self._pluggy_pm.register(plugin_obj)
                     else:
                         LOG.warning(
-                            f"Plugin {plugin_obj.__class__.__name__} is disabled"
+                            f'Plugin {plugin_obj.__class__.__name__} is disabled'
                         )
                 elif isinstance(plugin_obj, APRSDPluginBase):
                     if plugin_obj.enabled:
@@ -471,7 +471,7 @@ class PluginManager:
                         self._pluggy_pm.register(plugin_obj)
                     else:
                         LOG.warning(
-                            f"Plugin {plugin_obj.__class__.__name__} is disabled"
+                            f'Plugin {plugin_obj.__class__.__name__} is disabled'
                         )
         except Exception as ex:
             LOG.error(f"Couldn't load plugin '{plugin_name}'")
@@ -485,11 +485,11 @@ class PluginManager:
     def setup_plugins(
         self,
         load_help_plugin=True,
-        plugin_list=[],
+        plugin_list=None,
     ):
         """Create the plugin manager and register plugins."""
 
-        LOG.info("Loading APRSD Plugins")
+        LOG.info('Loading APRSD Plugins')
         # Help plugin is always enabled.
         if load_help_plugin:
             _help = HelpPlugin()
@@ -509,7 +509,7 @@ class PluginManager:
             for p_name in CORE_MESSAGE_PLUGINS:
                 self._load_plugin(p_name)
 
-        LOG.info("Completed Plugin Loading.")
+        LOG.info('Completed Plugin Loading.')
 
     def run(self, packet: packets.MessagePacket):
         """Execute all the plugins run method."""
@@ -524,7 +524,7 @@ class PluginManager:
         """Stop all threads created by all plugins."""
         with self.lock:
             for p in self.get_plugins():
-                if hasattr(p, "stop_threads"):
+                if hasattr(p, 'stop_threads'):
                     p.stop_threads()
 
     def register_msg(self, obj):

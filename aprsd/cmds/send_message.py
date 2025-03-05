@@ -3,58 +3,60 @@ import sys
 import time
 
 import aprslib
-from aprslib.exceptions import LoginError
 import click
+from aprslib.exceptions import LoginError
 from oslo_config import cfg
 
 import aprsd
-from aprsd import cli_helper, packets
-from aprsd import conf  # noqa : F401
+import aprsd.packets  # noqa : F401
+from aprsd import (
+    cli_helper,
+    conf,  # noqa : F401
+    packets,
+)
 from aprsd.client import client_factory
 from aprsd.main import cli
-import aprsd.packets  # noqa : F401
 from aprsd.packets import collector
 from aprsd.packets import log as packet_log
 from aprsd.threads import tx
 
-
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 @cli.command()
 @cli_helper.add_options(cli_helper.common_options)
 @click.option(
-    "--aprs-login",
-    envvar="APRS_LOGIN",
+    '--aprs-login',
+    envvar='APRS_LOGIN',
     show_envvar=True,
-    help="What callsign to send the message from. Defaults to config entry.",
+    help='What callsign to send the message from. Defaults to config entry.',
 )
 @click.option(
-    "--aprs-password",
-    envvar="APRS_PASSWORD",
+    '--aprs-password',
+    envvar='APRS_PASSWORD',
     show_envvar=True,
-    help="the APRS-IS password for APRS_LOGIN. Defaults to config entry.",
+    help='the APRS-IS password for APRS_LOGIN. Defaults to config entry.',
 )
 @click.option(
-    "--no-ack",
-    "-n",
+    '--no-ack',
+    '-n',
     is_flag=True,
     show_default=True,
     default=False,
     help="Don't wait for an ack, just sent it to APRS-IS and bail.",
 )
 @click.option(
-    "--wait-response",
-    "-w",
+    '--wait-response',
+    '-w',
     is_flag=True,
     show_default=True,
     default=False,
-    help="Wait for a response to the message?",
+    help='Wait for a response to the message?',
 )
-@click.option("--raw", default=None, help="Send a raw message.  Implies --no-ack")
-@click.argument("tocallsign", required=True)
-@click.argument("command", nargs=-1, required=True)
+@click.option('--raw', default=None, help='Send a raw message.  Implies --no-ack')
+@click.argument('tocallsign', required=True)
+@click.argument('command', nargs=-1, required=True)
 @click.pass_context
 @cli_helper.process_standard_options
 def send_message(
@@ -69,11 +71,11 @@ def send_message(
 ):
     """Send a message to a callsign via APRS_IS."""
     global got_ack, got_response
-    quiet = ctx.obj["quiet"]
+    quiet = ctx.obj['quiet']
 
     if not aprs_login:
         if CONF.aprs_network.login == conf.client.DEFAULT_LOGIN:
-            click.echo("Must set --aprs_login or APRS_LOGIN")
+            click.echo('Must set --aprs_login or APRS_LOGIN')
             ctx.exit(-1)
             return
         else:
@@ -81,15 +83,15 @@ def send_message(
 
     if not aprs_password:
         if not CONF.aprs_network.password:
-            click.echo("Must set --aprs-password or APRS_PASSWORD")
+            click.echo('Must set --aprs-password or APRS_PASSWORD')
             ctx.exit(-1)
             return
         else:
             aprs_password = CONF.aprs_network.password
 
-    LOG.info(f"APRSD LISTEN Started version: {aprsd.__version__}")
+    LOG.info(f'APRSD LISTEN Started version: {aprsd.__version__}')
     if type(command) is tuple:
-        command = " ".join(command)
+        command = ' '.join(command)
     if not quiet:
         if raw:
             LOG.info(f"L'{aprs_login}' R'{raw}'")
@@ -129,7 +131,7 @@ def send_message(
                 sys.exit(0)
 
     try:
-        client_factory.create().client
+        client_factory.create().client  # noqa: B018
     except LoginError:
         sys.exit(-1)
 
@@ -140,7 +142,7 @@ def send_message(
     # message
     if raw:
         tx.send(
-            packets.Packet(from_call="", to_call="", raw=raw),
+            packets.Packet(from_call='', to_call='', raw=raw),
             direct=True,
         )
         sys.exit(0)
@@ -164,7 +166,7 @@ def send_message(
         aprs_client = client_factory.create().client
         aprs_client.consumer(rx_packet, raw=False)
     except aprslib.exceptions.ConnectionDrop:
-        LOG.error("Connection dropped, reconnecting")
+        LOG.error('Connection dropped, reconnecting')
         time.sleep(5)
         # Force the deletion of the client object connected to aprs
         # This will cause a reconnect, next time client.get_client()
