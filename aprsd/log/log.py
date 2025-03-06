@@ -51,7 +51,7 @@ class InterceptHandler(logging.Handler):
 # Setup the log faciility
 # to disable log to stdout, but still log to file
 # use the --quiet option on the cmdln
-def setup_logging(loglevel=None, quiet=False):
+def setup_logging(loglevel=None, quiet=False, custom_handler=None):
     if not loglevel:
         log_level = CONF.logging.log_level
     else:
@@ -106,6 +106,9 @@ def setup_logging(loglevel=None, quiet=False):
                 'level': log_level,
             },
         )
+
+    if custom_handler:
+        handlers.append(custom_handler)
 
     # configure loguru
     logger.configure(handlers=handlers)
