@@ -9,7 +9,7 @@ from aprsd import plugin, plugin_utils
 from aprsd.utils import trace
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
@@ -26,22 +26,22 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
     """
 
     # command_regex = r"^([w][x]|[w][x]\s|weather)"
-    command_regex = r"^[wW]"
+    command_regex = r'^[wW]'
 
-    command_name = "USWeather"
-    short_description = "Provide USA only weather of GPS Beacon location"
+    command_name = 'USWeather'
+    short_description = 'Provide USA only weather of GPS Beacon location'
 
     def setup(self):
         self.ensure_aprs_fi_key()
 
     @trace.trace
     def process(self, packet):
-        LOG.info("Weather Plugin")
+        LOG.info('Weather Plugin')
         fromcall = packet.from_call
-        message = packet.get("message_text", None)
+        message = packet.get('message_text', None)
         # message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
-        a = re.search(r"^.*\s+(.*)", message)
+        a = re.search(r'^.*\s+(.*)', message)
         if a is not None:
             searchcall = a.group(1)
             searchcall = searchcall.upper()
@@ -51,34 +51,34 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
-            LOG.error(f"Failed to fetch aprs.fi data {ex}")
-            return "Failed to fetch aprs.fi location"
+            LOG.error(f'Failed to fetch aprs.fi data {ex}')
+            return 'Failed to fetch aprs.fi location'
 
-        LOG.debug(f"LocationPlugin: aprs_data = {aprs_data}")
-        if not len(aprs_data["entries"]):
+        LOG.debug(f'LocationPlugin: aprs_data = {aprs_data}')
+        if not len(aprs_data['entries']):
             LOG.error("Didn't get any entries from aprs.fi")
-            return "Failed to fetch aprs.fi location"
+            return 'Failed to fetch aprs.fi location'
 
-        lat = aprs_data["entries"][0]["lat"]
-        lon = aprs_data["entries"][0]["lng"]
+        lat = aprs_data['entries'][0]['lat']
+        lon = aprs_data['entries'][0]['lng']
 
         try:
             wx_data = plugin_utils.get_weather_gov_for_gps(lat, lon)
         except Exception as ex:
             LOG.error(f"Couldn't fetch forecast.weather.gov '{ex}'")
-            return "Unable to get weather"
+            return 'Unable to get weather'
 
-        LOG.info(f"WX data {wx_data}")
+        LOG.info(f'WX data {wx_data}')
 
         reply = (
-            "%sF(%sF/%sF) %s. %s, %s."
+            '%sF(%sF/%sF) %s. %s, %s.'
             % (
-                wx_data["currentobservation"]["Temp"],
-                wx_data["data"]["temperature"][0],
-                wx_data["data"]["temperature"][1],
-                wx_data["data"]["weather"][0],
-                wx_data["time"]["startPeriodName"][1],
-                wx_data["data"]["weather"][1],
+                wx_data['currentobservation']['Temp'],
+                wx_data['data']['temperature'][0],
+                wx_data['data']['temperature'][1],
+                wx_data['data']['weather'][0],
+                wx_data['time']['startPeriodName'][1],
+                wx_data['data']['weather'][1],
             )
         ).rstrip()
         LOG.debug(f"reply: '{reply}' ")
@@ -100,31 +100,31 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
 
     """
 
-    command_regex = r"^([m]|[M]|[m]\s|metar)"
-    command_name = "USMetar"
-    short_description = "USA only METAR of GPS Beacon location"
+    command_regex = r'^([m]|[M]|[m]\s|metar)'
+    command_name = 'USMetar'
+    short_description = 'USA only METAR of GPS Beacon location'
 
     def setup(self):
         self.ensure_aprs_fi_key()
 
     @trace.trace
     def process(self, packet):
-        fromcall = packet.get("from")
-        message = packet.get("message_text", None)
+        fromcall = packet.get('from')
+        message = packet.get('message_text', None)
         # ack = packet.get("msgNo", "0")
         LOG.info(f"WX Plugin '{message}'")
-        a = re.search(r"^.*\s+(.*)", message)
+        a = re.search(r'^.*\s+(.*)', message)
         if a is not None:
             searchcall = a.group(1)
             station = searchcall.upper()
             try:
                 resp = plugin_utils.get_weather_gov_metar(station)
             except Exception as e:
-                LOG.debug(f"Weather failed with:  {str(e)}")
-                reply = "Unable to find station METAR"
+                LOG.debug(f'Weather failed with:  {str(e)}')
+                reply = 'Unable to find station METAR'
             else:
                 station_data = json.loads(resp.text)
-                reply = station_data["properties"]["rawMessage"]
+                reply = station_data['properties']['rawMessage']
 
             return reply
         else:
@@ -136,36 +136,36 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
             try:
                 aprs_data = plugin_utils.get_aprs_fi(api_key, fromcall)
             except Exception as ex:
-                LOG.error(f"Failed to fetch aprs.fi data {ex}")
-                return "Failed to fetch aprs.fi location"
+                LOG.error(f'Failed to fetch aprs.fi data {ex}')
+                return 'Failed to fetch aprs.fi location'
 
             # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
-            if not len(aprs_data["entries"]):
-                LOG.error("Found no entries from aprs.fi!")
-                return "Failed to fetch aprs.fi location"
+            if not len(aprs_data['entries']):
+                LOG.error('Found no entries from aprs.fi!')
+                return 'Failed to fetch aprs.fi location'
 
-            lat = aprs_data["entries"][0]["lat"]
-            lon = aprs_data["entries"][0]["lng"]
+            lat = aprs_data['entries'][0]['lat']
+            lon = aprs_data['entries'][0]['lng']
 
             try:
                 wx_data = plugin_utils.get_weather_gov_for_gps(lat, lon)
             except Exception as ex:
                 LOG.error(f"Couldn't fetch forecast.weather.gov '{ex}'")
-                return "Unable to metar find station."
+                return 'Unable to metar find station.'
 
-            if wx_data["location"]["metar"]:
-                station = wx_data["location"]["metar"]
+            if wx_data['location']['metar']:
+                station = wx_data['location']['metar']
                 try:
                     resp = plugin_utils.get_weather_gov_metar(station)
                 except Exception as e:
-                    LOG.debug(f"Weather failed with:  {str(e)}")
-                    reply = "Failed to get Metar"
+                    LOG.debug(f'Weather failed with:  {str(e)}')
+                    reply = 'Failed to get Metar'
                 else:
                     station_data = json.loads(resp.text)
-                    reply = station_data["properties"]["rawMessage"]
+                    reply = station_data['properties']['rawMessage']
             else:
                 # Couldn't find a station
-                reply = "No Metar station found"
+                reply = 'No Metar station found'
 
         return reply
 
@@ -190,35 +190,36 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     """
 
     # command_regex = r"^([w][x]|[w][x]\s|weather)"
-    command_regex = r"^[wW]"
+    command_regex = r'^[wW]'
 
-    command_name = "OpenWeatherMap"
-    short_description = "OpenWeatherMap weather of GPS Beacon location"
+    command_name = 'OpenWeatherMap'
+    short_description = 'OpenWeatherMap weather of GPS Beacon location'
 
     def setup(self):
         if not CONF.owm_weather_plugin.apiKey:
-            LOG.error("Config.owm_weather_plugin.apiKey is not set.  Disabling")
+            LOG.error('Config.owm_weather_plugin.apiKey is not set.  Disabling')
             self.enabled = False
         else:
             self.enabled = True
 
     def help(self):
         _help = [
-            "openweathermap: Send {} to get weather " "from your location".format(
+            'openweathermap: Send {} to get weather from your location'.format(
                 self.command_regex
             ),
-            "openweathermap: Send {} <callsign> to get "
-            "weather from <callsign>".format(self.command_regex),
+            'openweathermap: Send {} <callsign> to get weather from <callsign>'.format(
+                self.command_regex
+            ),
         ]
         return _help
 
     @trace.trace
     def process(self, packet):
-        fromcall = packet.get("from_call")
-        message = packet.get("message_text", None)
+        fromcall = packet.get('from_call')
+        message = packet.get('message_text', None)
         # ack = packet.get("msgNo", "0")
         LOG.info(f"OWMWeather Plugin '{message}'")
-        a = re.search(r"^.*\s+(.*)", message)
+        a = re.search(r'^.*\s+(.*)', message)
         if a is not None:
             searchcall = a.group(1)
             searchcall = searchcall.upper()
@@ -230,16 +231,16 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
-            LOG.error(f"Failed to fetch aprs.fi data {ex}")
-            return "Failed to fetch location"
+            LOG.error(f'Failed to fetch aprs.fi data {ex}')
+            return 'Failed to fetch location'
 
         # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
-        if not len(aprs_data["entries"]):
-            LOG.error("Found no entries from aprs.fi!")
-            return "Failed to fetch location"
+        if not len(aprs_data['entries']):
+            LOG.error('Found no entries from aprs.fi!')
+            return 'Failed to fetch location'
 
-        lat = aprs_data["entries"][0]["lat"]
-        lon = aprs_data["entries"][0]["lng"]
+        lat = aprs_data['entries'][0]['lat']
+        lon = aprs_data['entries'][0]['lng']
 
         units = CONF.units
         api_key = CONF.owm_weather_plugin.apiKey
@@ -249,40 +250,40 @@ class OWMWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
                 lat,
                 lon,
                 units=units,
-                exclude="minutely,hourly",
+                exclude='minutely,hourly',
             )
         except Exception as ex:
             LOG.error(f"Couldn't fetch openweathermap api '{ex}'")
             # default to UTC
-            return "Unable to get weather"
+            return 'Unable to get weather'
 
-        if units == "metric":
-            degree = "C"
+        if units == 'metric':
+            degree = 'C'
         else:
-            degree = "F"
+            degree = 'F'
 
-        if "wind_gust" in wx_data["current"]:
-            wind = "{:.0f}@{}G{:.0f}".format(
-                wx_data["current"]["wind_speed"],
-                wx_data["current"]["wind_deg"],
-                wx_data["current"]["wind_gust"],
+        if 'wind_gust' in wx_data['current']:
+            wind = '{:.0f}@{}G{:.0f}'.format(
+                wx_data['current']['wind_speed'],
+                wx_data['current']['wind_deg'],
+                wx_data['current']['wind_gust'],
             )
         else:
-            wind = "{:.0f}@{}".format(
-                wx_data["current"]["wind_speed"],
-                wx_data["current"]["wind_deg"],
+            wind = '{:.0f}@{}'.format(
+                wx_data['current']['wind_speed'],
+                wx_data['current']['wind_deg'],
             )
 
         # LOG.debug(wx_data["current"])
         # LOG.debug(wx_data["daily"])
-        reply = "{} {:.1f}{}/{:.1f}{} Wind {} {}%".format(
-            wx_data["current"]["weather"][0]["description"],
-            wx_data["current"]["temp"],
+        reply = '{} {:.1f}{}/{:.1f}{} Wind {} {}%'.format(
+            wx_data['current']['weather'][0]['description'],
+            wx_data['current']['temp'],
             degree,
-            wx_data["current"]["dew_point"],
+            wx_data['current']['dew_point'],
             degree,
             wind,
-            wx_data["current"]["humidity"],
+            wx_data['current']['humidity'],
         )
 
         return reply
@@ -311,26 +312,26 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
     docker build -f Dockerfile -t avwx-api:master .
     """
 
-    command_regex = r"^([m]|[m]|[m]\s|metar)"
-    command_name = "AVWXWeather"
-    short_description = "AVWX weather of GPS Beacon location"
+    command_regex = r'^([m]|[m]|[m]\s|metar)'
+    command_name = 'AVWXWeather'
+    short_description = 'AVWX weather of GPS Beacon location'
 
     def setup(self):
         if not CONF.avwx_plugin.base_url:
-            LOG.error("Config avwx_plugin.base_url not specified.  Disabling")
+            LOG.error('Config avwx_plugin.base_url not specified.  Disabling')
             return False
         elif not CONF.avwx_plugin.apiKey:
-            LOG.error("Config avwx_plugin.apiKey not specified. Disabling")
+            LOG.error('Config avwx_plugin.apiKey not specified. Disabling')
             return False
         else:
             return True
 
     def help(self):
         _help = [
-            "avwxweather: Send {} to get weather " "from your location".format(
+            'avwxweather: Send {} to get weather from your location'.format(
                 self.command_regex
             ),
-            "avwxweather: Send {} <callsign> to get " "weather from <callsign>".format(
+            'avwxweather: Send {} <callsign> to get weather from <callsign>'.format(
                 self.command_regex
             ),
         ]
@@ -338,11 +339,11 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
 
     @trace.trace
     def process(self, packet):
-        fromcall = packet.get("from")
-        message = packet.get("message_text", None)
+        fromcall = packet.get('from')
+        message = packet.get('message_text', None)
         # ack = packet.get("msgNo", "0")
         LOG.info(f"AVWXWeather Plugin '{message}'")
-        a = re.search(r"^.*\s+(.*)", message)
+        a = re.search(r'^.*\s+(.*)', message)
         if a is not None:
             searchcall = a.group(1)
             searchcall = searchcall.upper()
@@ -353,43 +354,43 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         try:
             aprs_data = plugin_utils.get_aprs_fi(api_key, searchcall)
         except Exception as ex:
-            LOG.error(f"Failed to fetch aprs.fi data {ex}")
-            return "Failed to fetch location"
+            LOG.error(f'Failed to fetch aprs.fi data {ex}')
+            return 'Failed to fetch location'
 
         # LOG.debug("LocationPlugin: aprs_data = {}".format(aprs_data))
-        if not len(aprs_data["entries"]):
-            LOG.error("Found no entries from aprs.fi!")
-            return "Failed to fetch location"
+        if not len(aprs_data['entries']):
+            LOG.error('Found no entries from aprs.fi!')
+            return 'Failed to fetch location'
 
-        lat = aprs_data["entries"][0]["lat"]
-        lon = aprs_data["entries"][0]["lng"]
+        lat = aprs_data['entries'][0]['lat']
+        lon = aprs_data['entries'][0]['lng']
 
         api_key = CONF.avwx_plugin.apiKey
         base_url = CONF.avwx_plugin.base_url
-        token = f"TOKEN {api_key}"
-        headers = {"Authorization": token}
+        token = f'TOKEN {api_key}'
+        headers = {'Authorization': token}
         try:
-            coord = f"{lat},{lon}"
+            coord = f'{lat},{lon}'
             url = (
-                "{}/api/station/near/{}?"
-                "n=1&airport=false&reporting=true&format=json".format(base_url, coord)
+                '{}/api/station/near/{}?'
+                'n=1&airport=false&reporting=true&format=json'.format(base_url, coord)
             )
 
             LOG.debug(f"Get stations near me '{url}'")
             response = requests.get(url, headers=headers)
         except Exception as ex:
             LOG.error(ex)
-            raise Exception(f"Failed to get the weather '{ex}'")
+            raise Exception(f"Failed to get the weather '{ex}'") from ex
         else:
             wx_data = json.loads(response.text)
 
         # LOG.debug(wx_data)
-        station = wx_data[0]["station"]["icao"]
+        station = wx_data[0]['station']['icao']
 
         try:
             url = (
-                "{}/api/metar/{}?options=info,translate,summary"
-                "&airport=true&reporting=true&format=json&onfail=cache".format(
+                '{}/api/metar/{}?options=info,translate,summary'
+                '&airport=true&reporting=true&format=json&onfail=cache'.format(
                     base_url,
                     station,
                 )
@@ -399,9 +400,9 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
             response = requests.get(url, headers=headers)
         except Exception as ex:
             LOG.error(ex)
-            raise Exception(f"Failed to get metar {ex}")
+            raise Exception(f'Failed to get metar {ex}') from ex
         else:
             metar_data = json.loads(response.text)
 
         # LOG.debug(metar_data)
-        return metar_data["raw"]
+        return metar_data['raw']
