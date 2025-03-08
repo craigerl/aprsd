@@ -66,8 +66,8 @@ def fetch_openweathermap(api_key, lat, lon, units='metric', exclude=None):
         exclude = 'minutely,hourly,daily,alerts'
     try:
         url = (
-            'https://api.openweathermap.org/data/2.5/onecall?'
-            'lat={}&lon={}&appid={}&units={}&exclude={}'.format(
+            "https://api.openweathermap.org/data/3.0/onecall?"
+            "lat={}&lon={}&appid={}&units={}&exclude={}".format(
                 lat,
                 lon,
                 api_key,
