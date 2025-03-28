@@ -61,6 +61,7 @@ def load_commands():
         listen,
         send_message,
         server,
+        test,
     )
 
 

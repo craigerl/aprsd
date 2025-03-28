@@ -12,7 +12,8 @@ import pluggy
 from oslo_config import cfg
 
 import aprsd
-from aprsd import client, packets, threads
+from aprsd import packets, threads
+from aprsd.client.client import APRSDClient
 from aprsd.packets import watch_list
 
 # setup the global logger
@@ -146,7 +147,7 @@ class APRSDWatchListPluginBase(APRSDPluginBase, metaclass=abc.ABCMeta):
             watch_list = CONF.watch_list.callsigns
             # make sure the timeout is set or this doesn't work
             if watch_list:
-                aprs_client = client.client_factory.create().client
+                aprs_client = APRSDClient()
                 filter_str = 'b/{}'.format('/'.join(watch_list))
                 aprs_client.set_filter(filter_str)
             else:

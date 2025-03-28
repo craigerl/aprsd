@@ -3,7 +3,7 @@ import threading
 import wrapt
 from oslo_config import cfg
 
-from aprsd import client
+from aprsd.client.client import APRSDClient
 from aprsd.utils import singleton
 
 CONF = cfg.CONF
@@ -15,4 +15,4 @@ class APRSClientStats:
 
     @wrapt.synchronized(lock)
     def stats(self, serializable=False):
-        return client.client_factory.create().stats(serializable=serializable)
+        return APRSDClient().stats(serializable=serializable)

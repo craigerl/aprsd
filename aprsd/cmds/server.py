@@ -8,7 +8,7 @@ from oslo_config import cfg
 import aprsd
 from aprsd import cli_helper, plugin, threads, utils
 from aprsd import main as aprsd_main
-from aprsd.client import client_factory
+from aprsd.client.client import APRSDClient
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import seen_list
@@ -47,24 +47,18 @@ def server(ctx, flush):
         LOG.info(msg)
     LOG.info(f'APRSD Started version: {aprsd.__version__}')
 
-    # Initialize the client factory and create
-    # The correct client object ready for use
-    if not client_factory.is_client_enabled():
-        LOG.error('No Clients are enabled in config.')
-        sys.exit(-1)
-
     # Make sure we have 1 client transport enabled
-    if not client_factory.is_client_enabled():
+    if not APRSDClient().is_enabled:
         LOG.error('No Clients are enabled in config.')
         sys.exit(-1)
 
-    if not client_factory.is_client_configured():
+    if not APRSDClient().is_configured:
         LOG.error('APRS client is not properly configured in config file.')
         sys.exit(-1)
 
     # Creates the client object
     LOG.info('Creating client connection')
-    aprs_client = client_factory.create()
+    aprs_client = APRSDClient()
     LOG.info(aprs_client)
     if not aprs_client.login_success:
         # We failed to login, will just quit!

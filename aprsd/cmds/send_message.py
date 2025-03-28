@@ -14,7 +14,7 @@ from aprsd import (
     conf,  # noqa : F401
     packets,
 )
-from aprsd.client import client_factory
+from aprsd.client.client import APRSDClient
 from aprsd.main import cli
 from aprsd.packets import collector
 from aprsd.packets import log as packet_log
@@ -103,7 +103,7 @@ def send_message(
 
     def rx_packet(packet):
         global got_ack, got_response
-        cl = client_factory.create()
+        cl = APRSDClient()
         packet = cl.decode_packet(packet)
         collector.PacketCollector().rx(packet)
         packet_log.log(packet, tx=False)
@@ -131,7 +131,7 @@ def send_message(
                 sys.exit(0)
 
     try:
-        client_factory.create().client  # noqa: B018
+        APRSDClient().client  # noqa: B018
     except LoginError:
         sys.exit(-1)
 
@@ -163,7 +163,7 @@ def send_message(
         # This will register a packet consumer with aprslib
         # When new packets come in the consumer will process
         # the packet
-        aprs_client = client_factory.create().client
+        aprs_client = APRSDClient()
         aprs_client.consumer(rx_packet, raw=False)
     except aprslib.exceptions.ConnectionDrop:
         LOG.error('Connection dropped, reconnecting')
