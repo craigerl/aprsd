@@ -11,12 +11,12 @@ from rush.stores import dictionary
 
 from aprsd import conf  # noqa
 from aprsd import threads as aprsd_threads
-from aprsd.client import client_factory
+from aprsd.client.client import APRSDClient
 from aprsd.packets import collector, core, tracker
 from aprsd.packets import log as packet_log
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 msg_t = throttle.Throttle(
     limiter=periodic.PeriodicLimiter(
@@ -54,7 +54,7 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
         if CONF.enable_sending_ack_packets:
             _send_ack(packet, direct=direct, aprs_client=aprs_client)
         else:
-            LOG.info("Sending ack packets is disabled. Not sending AckPacket.")
+            LOG.info('Sending ack packets is disabled. Not sending AckPacket.')
     else:
         _send_packet(packet, direct=direct, aprs_client=aprs_client)
 
@@ -81,14 +81,14 @@ def _send_direct(packet, aprs_client=None):
     if aprs_client:
         cl = aprs_client
     else:
-        cl = client_factory.create()
+        cl = APRSDClient()
 
     packet.update_timestamp()
     packet_log.log(packet, tx=True)
     try:
         cl.send(packet)
     except Exception as e:
-        LOG.error(f"Failed to send packet: {packet}")
+        LOG.error(f'Failed to send packet: {packet}')
         LOG.error(e)
         return False
     else:
@@ -100,7 +100,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
 
     def __init__(self, packet):
         self.packet = packet
-        super().__init__(f"TX-{packet.to_call}-{self.packet.msgNo}")
+        super().__init__(f'TX-{packet.to_call}-{self.packet.msgNo}')
 
     def loop(self):
         """Loop until a message is acked or it gets delayed.
@@ -119,9 +119,9 @@ class SendPacketThread(aprsd_threads.APRSDThread):
             # The message has been removed from the tracking queue
             # So it got acked and we are done.
             LOG.info(
-                f"{self.packet.__class__.__name__}"
-                f"({self.packet.msgNo}) "
-                "Message Send Complete via Ack.",
+                f'{self.packet.__class__.__name__}'
+                f'({self.packet.msgNo}) '
+                'Message Send Complete via Ack.',
             )
             return False
         else:
@@ -130,10 +130,10 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                 # we reached the send limit, don't send again
                 # TODO(hemna) - Need to put this in a delayed queue?
                 LOG.info(
-                    f"{packet.__class__.__name__} "
-                    f"({packet.msgNo}) "
-                    "Message Send Complete. Max attempts reached"
-                    f" {packet.retry_count}",
+                    f'{packet.__class__.__name__} '
+                    f'({packet.msgNo}) '
+                    'Message Send Complete. Max attempts reached'
+                    f' {packet.retry_count}',
                 )
                 pkt_tracker.remove(packet.msgNo)
                 return False
@@ -158,7 +158,7 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                 try:
                     sent = _send_direct(packet)
                 except Exception:
-                    LOG.error(f"Failed to send packet: {packet}")
+                    LOG.error(f'Failed to send packet: {packet}')
                 else:
                     # If an exception happens while sending
                     # we don't want this attempt to count
@@ -178,7 +178,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
 
     def __init__(self, packet):
         self.packet = packet
-        super().__init__(f"TXAck-{packet.to_call}-{self.packet.msgNo}")
+        super().__init__(f'TXAck-{packet.to_call}-{self.packet.msgNo}')
         self.max_retries = CONF.default_ack_send_count
 
     def loop(self):
@@ -188,10 +188,10 @@ class SendAckThread(aprsd_threads.APRSDThread):
             # we reached the send limit, don't send again
             # TODO(hemna) - Need to put this in a delayed queue?
             LOG.debug(
-                f"{self.packet.__class__.__name__}"
-                f"({self.packet.msgNo}) "
-                "Send Complete. Max attempts reached"
-                f" {self.max_retries}",
+                f'{self.packet.__class__.__name__}'
+                f'({self.packet.msgNo}) '
+                'Send Complete. Max attempts reached'
+                f' {self.max_retries}',
             )
             return False
 
@@ -207,7 +207,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
                 # It's time to try to send it again
                 send_now = True
             elif self.loop_count % 10 == 0:
-                LOG.debug(f"Still wating. {delta}")
+                LOG.debug(f'Still wating. {delta}')
         else:
             send_now = True
 
@@ -216,7 +216,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
             try:
                 sent = _send_direct(self.packet)
             except Exception:
-                LOG.error(f"Failed to send packet: {self.packet}")
+                LOG.error(f'Failed to send packet: {self.packet}')
             else:
                 # If an exception happens while sending
                 # we don't want this attempt to count
@@ -240,18 +240,18 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
     _loop_cnt: int = 1
 
     def __init__(self):
-        super().__init__("BeaconSendThread")
+        super().__init__('BeaconSendThread')
         self._loop_cnt = 1
         # Make sure Latitude and Longitude are set.
         if not CONF.latitude or not CONF.longitude:
             LOG.error(
-                "Latitude and Longitude are not set in the config file."
-                "Beacon will not be sent and thread is STOPPED.",
+                'Latitude and Longitude are not set in the config file.'
+                'Beacon will not be sent and thread is STOPPED.',
             )
             self.stop()
         LOG.info(
-            "Beacon thread is running and will send "
-            f"beacons every {CONF.beacon_interval} seconds.",
+            'Beacon thread is running and will send '
+            f'beacons every {CONF.beacon_interval} seconds.',
         )
 
     def loop(self):
@@ -259,10 +259,10 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
         if self._loop_cnt % CONF.beacon_interval == 0:
             pkt = core.BeaconPacket(
                 from_call=CONF.callsign,
-                to_call="APRS",
+                to_call='APRS',
                 latitude=float(CONF.latitude),
                 longitude=float(CONF.longitude),
-                comment="APRSD GPS Beacon",
+                comment='APRSD GPS Beacon',
                 symbol=CONF.beacon_symbol,
             )
             try:
@@ -270,8 +270,8 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
                 pkt.retry_count = 1
                 send(pkt, direct=True)
             except Exception as e:
-                LOG.error(f"Failed to send beacon: {e}")
-                client_factory.create().reset()
+                LOG.error(f'Failed to send beacon: {e}')
+                APRSDClient().reset()
                 time.sleep(5)
 
         self._loop_cnt += 1

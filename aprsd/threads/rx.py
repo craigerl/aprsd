@@ -7,7 +7,7 @@ import aprslib
 from oslo_config import cfg
 
 from aprsd import packets, plugin
-from aprsd.client import client_factory
+from aprsd.client.client import APRSDClient
 from aprsd.packets import collector, filter
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
@@ -39,16 +39,16 @@ class APRSDRXThread(APRSDThread):
     def stop(self):
         self.thread_stop = True
         if self._client:
-            self._client.stop()
+            self._client.close()
 
     def loop(self):
         if not self._client:
-            self._client = client_factory.create()
+            self._client = APRSDClient()
             time.sleep(1)
             return True
 
-        if not self._client.is_connected:
-            self._client = client_factory.create()
+        if not self._client.is_alive:
+            self._client = APRSDClient()
             time.sleep(1)
             return True
 
@@ -66,7 +66,6 @@ class APRSDRXThread(APRSDThread):
             self._client.consumer(
                 self.process_packet,
                 raw=False,
-                blocking=False,
             )
         except (
             aprslib.exceptions.ConnectionDrop,
@@ -78,8 +77,8 @@ class APRSDRXThread(APRSDThread):
             # is called
             self._client.reset()
             time.sleep(5)
-        except Exception:
-            # LOG.exception(ex)
+        except Exception as ex:
+            LOG.exception(ex)
             LOG.error('Resetting connection and trying again.')
             self._client.reset()
             time.sleep(5)
