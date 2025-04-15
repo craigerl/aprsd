@@ -29,6 +29,7 @@ class APRSDClient:
     _instance = None
     driver = None
     lock = threading.Lock()
+    filter = None
 
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
@@ -84,6 +85,7 @@ class APRSDClient:
         return self.driver.login_failure
 
     def set_filter(self, filter):
+        self.filter = filter
         if not self.driver:
             return
         self.driver.set_filter(filter)
@@ -108,6 +110,8 @@ class APRSDClient:
         if self.driver:
             self.driver.close()
             self.driver.setup_connection()
+            if self.filter:
+                self.driver.set_filter(self.filter)
         else:
             LOG.warning('Client not initialized, nothing to reset.')
 
