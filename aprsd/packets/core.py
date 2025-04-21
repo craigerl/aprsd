@@ -405,7 +405,7 @@ class MicEPacket(GPSPacket):
     messagecapable: bool = False
     mbits: Optional[str] = None
     mtype: Optional[str] = None
-    telemetry: Optional[dict] = field(default=None)
+    telemetry: Optional[dict] = field(default=None, hash=False)
     # in MPH
     speed: float = 0.00
     # 0 to 360
@@ -430,8 +430,8 @@ class TelemetryPacket(GPSPacket):
     mbits: Optional[str] = None
     mtype: Optional[str] = None
     telemetry: Optional[dict] = field(default=None)
-    tPARM: Optional[list[str]] = field(default=None)  # noqa: N815
-    tUNIT: Optional[list[str]] = field(default=None)  # noqa: N815
+    tPARM: Optional[list[str]] = field(default=None, hash=False)  # noqa: N815
+    tUNIT: Optional[list[str]] = field(default=None, hash=False)  # noqa: N815
     # in MPH
     speed: float = 0.00
     # 0 to 360

@@ -1,5 +1,5 @@
-        #
-    # Listen on amateur radio aprs-is network for messages and respond to them.
+#
+# Listen on amateur radio aprs-is network for messages and respond to them.
 # You must have an amateur radio callsign to use this software.  You must
 # create an ~/.aprsd/config.yml file with all of the required settings.  To
 # generate an example config.yml, just run aprsd, then copy the sample config
