@@ -1,14 +1,27 @@
-version: "3"
 services:
-  aprsd:
-    image: hemna6969/aprsd:latest
-    container_name: aprsd
-    ports:
-        - "8001:8001"
-    volumes:
-        - $HOME/.config/aprsd:/config
-    restart: unless-stopped
-    environment:
-        - TZ=America/New_York
-        - APRSD_PLUGINS=aprsd-slack-plugin>=1.0.2
-        - LOG_LEVEL=ERROR
+    aprsd:
+        image: hemna6969/aprsd:latest
+        container_name: aprsd-server
+        volumes:
+            - $HOME/.config/aprsd/:/config            # left side of the : is your directory where your config is
+                                                      # outside of your container.  Your normal filesystem.
+        restart: unless-stopped
+        environment:
+            - TZ=America/New_York
+            - APRSD_PLUGINS=aprsd-email-plugin,aprsd-borat-plugin
+            - LOG_LEVEL=ERROR
+
+    aprsd-admin:                                            # Admin interface
+        image: hemna6969/aprsd:latest
+        container_name: aprsd-admin
+        volumes:
+            - $HOME/.config/aprsd/:/config            # left side of the : is your directory where your config is
+                                                      # outside of your container.  Your normal filesystem.
+        restart: unless-stopped
+        ports:
+            - 8001:8001                              # left side of the : is your port on your host that you can access
+                                                     # the web interface for the admin interface.
+        entrypoint: /app/admin.sh
+        environment:
+            - TZ=America/New_York
+            - APRSD_EXTENSIONS=git+https://github.com/hemna/aprsd-admin-extension.git
