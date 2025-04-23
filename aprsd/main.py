@@ -23,7 +23,6 @@
 import datetime
 import importlib.metadata as imp
 import logging
-import signal
 import sys
 import time
 from importlib.metadata import version as metadata_version
@@ -41,7 +40,6 @@ from aprsd.stats import collector
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
-flask_enabled = False
 
 
 @click.group(cls=cli_helper.AliasedGroup, context_settings=CONTEXT_SETTINGS)
@@ -73,8 +71,6 @@ def main():
 
 
 def signal_handler(sig, frame):
-    global flask_enabled
-
     click.echo('signal_handler: called')
     threads.APRSDThreadList().stop_all()
     if 'subprocess' not in str(frame):
@@ -95,9 +91,6 @@ def signal_handler(sig, frame):
             sys.exit(0)
         # signal.signal(signal.SIGTERM, sys.exit(0))
         # sys.exit(0)
-
-    if flask_enabled:
-        signal.signal(signal.SIGTERM, sys.exit(0))
 
 
 @cli.command()
