@@ -323,8 +323,8 @@ class AVWXWeatherPlugin(plugin.APRSDRegexCommandPluginBase):
         elif not CONF.avwx_plugin.apiKey:
             LOG.error('Config avwx_plugin.apiKey not specified. Disabling')
             return False
-        else:
-            return True
+
+        self.enabled = True
 
     def help(self):
         _help = [
