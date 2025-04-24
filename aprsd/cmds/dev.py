@@ -11,7 +11,6 @@ from oslo_config import cfg
 from aprsd import cli_helper, conf, packets, plugin
 
 # local imports here
-from aprsd.client import base
 from aprsd.main import cli
 from aprsd.utils import trace
 
@@ -96,8 +95,6 @@ def test_plugin(
 
     if CONF.trace_enabled:
         trace.setup_tracing(['method', 'api'])
-
-    base.APRSClient()
 
     pm = plugin.PluginManager()
     if load_all:

@@ -3,7 +3,7 @@ from typing import Callable, Protocol, runtime_checkable
 
 from aprsd.utils import singleton
 
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 @runtime_checkable
@@ -33,7 +33,8 @@ class KeepAliveCollector:
             try:
                 cls.keepalive_check()
             except Exception as e:
-                LOG.error(f"Error in producer {name} (check): {e}")
+                LOG.error(f'Error in producer {name} (check): {e}')
+                raise e
 
     def log(self) -> None:
         """Log any relevant information during a KeepAlive check"""
@@ -42,14 +43,15 @@ class KeepAliveCollector:
             try:
                 cls.keepalive_log()
             except Exception as e:
-                LOG.error(f"Error in producer {name} (check): {e}")
+                LOG.error(f'Error in producer {name} (check): {e}')
+                raise e
 
     def register(self, producer_name: Callable):
         if not isinstance(producer_name, KeepAliveProducer):
-            raise TypeError(f"Producer {producer_name} is not a KeepAliveProducer")
+            raise TypeError(f'Producer {producer_name} is not a KeepAliveProducer')
         self.producers.append(producer_name)
 
     def unregister(self, producer_name: Callable):
         if not isinstance(producer_name, KeepAliveProducer):
-            raise TypeError(f"Producer {producer_name} is not a KeepAliveProducer")
+            raise TypeError(f'Producer {producer_name} is not a KeepAliveProducer')
         self.producers.remove(producer_name)

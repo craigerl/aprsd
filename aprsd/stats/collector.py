@@ -3,7 +3,7 @@ from typing import Callable, Protocol, runtime_checkable
 
 from aprsd.utils import singleton
 
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 @runtime_checkable
@@ -31,15 +31,16 @@ class Collector:
                     serializable=serializable
                 ).copy()
             except Exception as e:
-                LOG.error(f"Error in producer {name} (stats): {e}")
+                LOG.error(f'Error in producer {name} (stats): {e}')
+                raise e
         return stats
 
     def register_producer(self, producer_name: Callable):
         if not isinstance(producer_name, StatsProducer):
-            raise TypeError(f"Producer {producer_name} is not a StatsProducer")
+            raise TypeError(f'Producer {producer_name} is not a StatsProducer')
         self.producers.append(producer_name)
 
     def unregister_producer(self, producer_name: Callable):
         if not isinstance(producer_name, StatsProducer):
-            raise TypeError(f"Producer {producer_name} is not a StatsProducer")
+            raise TypeError(f'Producer {producer_name} is not a StatsProducer')
         self.producers.remove(producer_name)
