@@ -85,7 +85,7 @@ def setup_logging(loglevel=None, quiet=False, custom_handler=None):
         logging.getLogger(name).propagate = name not in disable_list
 
     handlers = []
-    if CONF.logging.enable_console_stdout:
+    if CONF.logging.enable_console_stdout and not quiet:
         handlers.append(
             {
                 'sink': sys.stdout,
