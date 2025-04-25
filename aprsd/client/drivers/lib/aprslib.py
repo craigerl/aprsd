@@ -242,7 +242,7 @@ class APRSLibClient(aprslib.IS):
 
         line = b''
 
-        while True and not self.thread_stop:
+        while not self.thread_stop:
             try:
                 for line in self._socket_readlines(blocking):
                     if line[0:1] != b'#':
@@ -285,7 +285,8 @@ class APRSLibClient(aprslib.IS):
             except StopIteration:
                 break
             except IOError:
-                self.logger.error('IOError')
+                if not self.thread_stop:
+                    self.logger.error('IOError')
                 break
             except Exception:
                 self.logger.error('APRS Packet: %s', line)
