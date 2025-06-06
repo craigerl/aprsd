@@ -32,6 +32,8 @@ class APRSDRXThread(APRSDThread):
     # getting blocked by the APRS server trying to send us packets.
     packet_queue = None
 
+    pkt_count = 0
+
     def __init__(self, packet_queue):
         super().__init__('RX_PKT')
         self.packet_queue = packet_queue
@@ -91,7 +93,8 @@ class APRSDRXThread(APRSDThread):
                 'No packet received from decode_packet.  Most likely a failure to parse'
             )
             return
-        packet_log.log(packet)
+        self.pkt_count += 1
+        packet_log.log(packet, packet_count=self.pkt_count)
         pkt_list = packets.PacketList()
 
         if isinstance(packet, packets.AckPacket):
@@ -215,7 +218,7 @@ class APRSDProcessPacketThread(APRSDFilterThread):
         our_call = CONF.callsign.lower()
 
         from_call = packet.from_call
-        if packet.addresse:
+        if hasattr(packet, 'addresse') and packet.addresse:
             to_call = packet.addresse
         else:
             to_call = packet.to_call

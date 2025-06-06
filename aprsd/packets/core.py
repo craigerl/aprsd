@@ -674,7 +674,7 @@ class ThirdPartyPacket(Packet, DataClassJsonMixin):
 
 @dataclass_json(undefined=Undefined.INCLUDE)
 @dataclass(unsafe_hash=True)
-class UnknownPacket:
+class UnknownPacket(Packet):
     """Catchall Packet for things we don't know about.
 
     All of the unknown attributes are stored in the unknown_fields
