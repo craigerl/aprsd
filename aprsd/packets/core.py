@@ -674,7 +674,7 @@ class ThirdPartyPacket(Packet, DataClassJsonMixin):
 
 @dataclass_json(undefined=Undefined.INCLUDE)
 @dataclass(unsafe_hash=True)
-class UnknownPacket(Packet):
+class UnknownPacket:
     """Catchall Packet for things we don't know about.
 
     All of the unknown attributes are stored in the unknown_fields
@@ -686,6 +686,7 @@ class UnknownPacket(Packet):
     to_call: Optional[str] = field(default=None)
     msgNo: str = field(default_factory=_init_msgNo)  # noqa: N815
     format: Optional[str] = field(default=None)
+    timestamp: float = field(default_factory=_init_timestamp, compare=False, hash=False)
     raw: Optional[str] = field(default=None)
     raw_dict: dict = field(
         repr=False, default_factory=lambda: {}, compare=False, hash=False
