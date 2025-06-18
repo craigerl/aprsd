@@ -157,8 +157,9 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                 sent = False
                 try:
                     sent = _send_direct(packet)
-                except Exception:
+                except Exception as ex:
                     LOG.error(f'Failed to send packet: {packet}')
+                    LOG.error(ex)
                 else:
                     # If an exception happens while sending
                     # we don't want this attempt to count
