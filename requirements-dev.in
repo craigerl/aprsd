@@ -2,7 +2,7 @@ build
 pip
 pip-tools
 pre-commit
-Sphinx
+Sphinx<=8.2
 tox
 wheel
 
