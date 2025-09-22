@@ -138,4 +138,9 @@ class APRSDClient:
         return self.driver.consumer(callback=callback, raw=raw)
 
     def decode_packet(self, *args, **kwargs) -> core.Packet:
-        return self.driver.decode_packet(*args, **kwargs)
+        try:
+            packet = self.driver.decode_packet(*args, **kwargs)
+        except Exception as e:
+            LOG.error(f'Error decoding packet: {e}')
+            return None
+        return packet
