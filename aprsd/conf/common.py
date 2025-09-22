@@ -137,6 +137,12 @@ aprsd_opts = [
         help='Set this to False, to disable sending of ack packets. This will entirely stop'
         'APRSD from sending ack packets.',
     ),
+    cfg.BoolOpt(
+        'is_digipi',
+        default=False,
+        help='Set this to True, if APRSD is running on a Digipi.'
+        'This is useful for changing the behavior of APRSD to work with Digipi.',
+    ),
 ]
 
 watch_list_opts = [
