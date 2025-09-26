@@ -248,7 +248,11 @@ class TCPKISSDriver:
         LOG.warning(f'FRAME: {str(frame)}')
         try:
             aprslib_frame = aprslib.parse(str(frame))
-            return core.factory(aprslib_frame)
+            packet = core.factory(aprslib_frame)
+            if isinstance(packet, core.ThirdPartyPacket):
+                return packet.subpacket
+            else:
+                return packet
         except Exception as e:
             LOG.error(f'Error decoding packet: {e}')
             return None
