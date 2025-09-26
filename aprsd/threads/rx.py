@@ -275,7 +275,7 @@ class APRSDProcessPacketThread(APRSDFilterThread):
     def process_other_packet(self, packet, for_us=False):
         """Process an APRS Packet that isn't a message or ack"""
         if not for_us:
-            LOG.info("Got a packet meant for someone else '{packet.to_call}'")
+            LOG.info(f"Got a packet meant for someone else '{packet.to_call}'")
         else:
             LOG.info('Got a non AckPacket/MessagePacket')
 
