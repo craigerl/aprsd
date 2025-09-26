@@ -271,8 +271,19 @@ class TCPKISSDriver:
         """
         if serializable:
             keepalive = self.keepalive.isoformat()
+            if self.last_packet_sent:
+                last_packet_sent = self.last_packet_sent.isoformat()
+            else:
+                last_packet_sent = 'None'
+            if self.last_packet_received:
+                last_packet_received = self.last_packet_received.isoformat()
+            else:
+                last_packet_received = 'None'
         else:
             keepalive = self.keepalive
+            last_packet_sent = self.last_packet_sent
+            last_packet_received = self.last_packet_received
+
         stats = {
             'client': self.__class__.__name__,
             'transport': self.transport,
@@ -280,8 +291,8 @@ class TCPKISSDriver:
             'path': self.path,
             'packets_sent': self.packets_sent,
             'packets_received': self.packets_received,
-            'last_packet_sent': self.last_packet_sent,
-            'last_packet_received': self.last_packet_received,
+            'last_packet_sent': last_packet_sent,
+            'last_packet_received': last_packet_received,
             'connection_keepalive': keepalive,
             'host': CONF.kiss_tcp.host,
             'port': CONF.kiss_tcp.port,

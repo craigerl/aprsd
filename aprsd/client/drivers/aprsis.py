@@ -180,7 +180,7 @@ class APRSISDriver:
             LOG.warning('client is None, might be resetting.')
             self.connected = False
 
-    def stats(self, serializable=False) -> dict:
+    def stats(self, serializable: bool = False) -> dict:
         stats = {}
         if self.is_configured():
             if self._client:
