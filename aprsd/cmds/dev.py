@@ -4,11 +4,13 @@
 #
 # python included libs
 import logging
+import sys
 
 import click
 from oslo_config import cfg
 
-from aprsd import cli_helper, conf, packets, plugin
+import aprsd
+from aprsd import cli_helper, conf, packets, plugin, utils
 
 # local imports here
 from aprsd.main import cli
@@ -71,6 +73,9 @@ def test_plugin(
 ):
     """Test an individual APRSD plugin given a python path."""
 
+    LOG.info(f'Python version: {sys.version}')
+    LOG.info(f'APRSD DEV Started version: {aprsd.__version__}')
+    utils.package.log_installed_extensions_and_plugins()
     CONF.log_opt_values(LOG, logging.DEBUG)
 
     if not aprs_login:

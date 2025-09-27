@@ -13,6 +13,7 @@ from aprsd import (
     cli_helper,
     conf,  # noqa : F401
     packets,
+    utils,
 )
 from aprsd.client.client import APRSDClient
 from aprsd.main import cli
@@ -89,7 +90,9 @@ def send_message(
         else:
             aprs_password = CONF.aprs_network.password
 
-    LOG.info(f'APRSD LISTEN Started version: {aprsd.__version__}')
+    LOG.info(f'Python version: {sys.version}')
+    LOG.info(f'APRSD SEND_MESSAGE Started version: {aprsd.__version__}')
+    utils.package.log_installed_extensions_and_plugins()
     if type(command) is tuple:
         command = ' '.join(command)
     if not quiet:

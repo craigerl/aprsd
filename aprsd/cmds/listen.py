@@ -221,7 +221,9 @@ def listen(
     # CONF.aprs_network.login = aprs_login
     # config["aprs"]["password"] = aprs_password
 
+    LOG.info(f'Python version: {sys.version}')
     LOG.info(f'APRSD Listen Started version: {aprsd.__version__}')
+    utils.package.log_installed_extensions_and_plugins()
 
     CONF.log_opt_values(LOG, logging.DEBUG)
     collector.Collector()

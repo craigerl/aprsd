@@ -1,119 +1,18 @@
-import fnmatch
-import importlib
 import inspect
 import logging
-import os
-import pkgutil
-import sys
-from traceback import print_tb
 
 import click
-import requests
 from rich.console import Console
 from rich.table import Table
 from rich.text import Text
-from thesmuggler import smuggle
 
 from aprsd import cli_helper
 from aprsd import plugin as aprsd_plugin
 from aprsd.main import cli
 from aprsd.plugins import fortune, notify, ping, time, version, weather
+from aprsd.utils import package as aprsd_package
 
 LOG = logging.getLogger('APRSD')
-PYPI_URL = 'https://pypi.org/search/'
-
-
-def onerror(name):
-    print(f'Error importing module {name}')
-    type, value, traceback = sys.exc_info()
-    print_tb(traceback)
-
-
-def is_plugin(obj):
-    for c in inspect.getmro(obj):
-        if issubclass(c, aprsd_plugin.APRSDPluginBase):
-            return True
-
-    return False
-
-
-def plugin_type(obj):
-    for c in inspect.getmro(obj):
-        if issubclass(c, aprsd_plugin.APRSDRegexCommandPluginBase):
-            return 'RegexCommand'
-        if issubclass(c, aprsd_plugin.APRSDWatchListPluginBase):
-            return 'WatchList'
-        if issubclass(c, aprsd_plugin.APRSDPluginBase):
-            return 'APRSDPluginBase'
-
-    return 'Unknown'
-
-
-def walk_package(package):
-    return pkgutil.walk_packages(
-        package.__path__,
-        package.__name__ + '.',
-        onerror=onerror,
-    )
-
-
-def get_module_info(package_name, module_name, module_path):
-    if not os.path.exists(module_path):
-        return None
-
-    dir_path = os.path.realpath(module_path)
-    pattern = '*.py'
-
-    obj_list = []
-
-    for path, _subdirs, files in os.walk(dir_path):
-        for name in files:
-            if fnmatch.fnmatch(name, pattern):
-                module = smuggle(f'{path}/{name}')
-                for mem_name, obj in inspect.getmembers(module):
-                    if inspect.isclass(obj) and is_plugin(obj):
-                        obj_list.append(
-                            {
-                                'package': package_name,
-                                'name': mem_name,
-                                'obj': obj,
-                                'version': obj.version,
-                                'path': f'{".".join([module_name, obj.__name__])}',
-                            },
-                        )
-
-    return obj_list
-
-
-def _get_installed_aprsd_items():
-    # installed plugins
-    plugins = {}
-    extensions = {}
-    for _finder, name, ispkg in pkgutil.iter_modules():
-        if ispkg and name.startswith('aprsd_'):
-            module = importlib.import_module(name)
-            pkgs = walk_package(module)
-            for pkg in pkgs:
-                pkg_info = get_module_info(
-                    module.__name__, pkg.name, module.__path__[0]
-                )
-                if 'plugin' in name:
-                    plugins[name] = pkg_info
-                elif 'extension' in name:
-                    extensions[name] = pkg_info
-    return plugins, extensions
-
-
-def get_installed_plugins():
-    # installed plugins
-    plugins, extensions = _get_installed_aprsd_items()
-    return plugins
-
-
-def get_installed_extensions():
-    # installed plugins
-    plugins, extensions = _get_installed_aprsd_items()
-    return extensions
 
 
 def show_built_in_plugins(console):
@@ -157,34 +56,8 @@ def show_built_in_plugins(console):
     console.print(table)
 
 
-def _get_pypi_packages():
-    if simple_r := requests.get(
-        'https://pypi.org/simple',
-        headers={'Accept': 'application/vnd.pypi.simple.v1+json'},
-    ):
-        simple_response = simple_r.json()
-    else:
-        simple_response = {}
-
-    key = 'aprsd'
-    matches = [
-        p['name'] for p in simple_response['projects'] if p['name'].startswith(key)
-    ]
-
-    packages = []
-    for pkg in matches:
-        # Get info for first match
-        if r := requests.get(
-            f'https://pypi.org/pypi/{pkg}/json',
-            headers={'Accept': 'application/json'},
-        ):
-            packages.append(r.json())
-
-    return packages
-
-
 def show_pypi_plugins(installed_plugins, console):
-    packages = _get_pypi_packages()
+    packages = aprsd_package.get_pypi_packages()
 
     title = Text.assemble(
         ('Pypi.org APRSD Installable Plugin Packages\n\n', 'bold magenta'),
@@ -225,7 +98,7 @@ def show_pypi_plugins(installed_plugins, console):
 
 
 def show_pypi_extensions(installed_extensions, console):
-    packages = _get_pypi_packages()
+    packages = aprsd_package.get_pypi_packages()
 
     title = Text.assemble(
         ('Pypi.org APRSD Installable Extension Packages\n\n', 'bold magenta'),
@@ -282,7 +155,7 @@ def show_installed_plugins(installed_plugins, console):
                 name.replace('_', '-'),
                 plugin['name'],
                 plugin['version'],
-                plugin_type(plugin['obj']),
+                aprsd_package.plugin_type(plugin['obj']),
                 plugin['path'],
             )
 
@@ -302,7 +175,7 @@ def list_plugins(ctx):
         show_built_in_plugins(console)
 
         status.update('Fetching pypi.org plugins')
-        installed_plugins = get_installed_plugins()
+        installed_plugins = aprsd_package.get_installed_plugins()
         show_pypi_plugins(installed_plugins, console)
 
         status.update('Looking for installed APRSD plugins')
@@ -321,5 +194,5 @@ def list_extensions(ctx):
         status.update('Fetching pypi.org APRSD Extensions')
 
         status.update('Looking for installed APRSD Extensions')
-        installed_extensions = get_installed_extensions()
+        installed_extensions = aprsd_package.get_installed_extensions()
         show_pypi_extensions(installed_extensions, console)

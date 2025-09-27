@@ -40,12 +40,14 @@ def server(ctx, flush):
 
     service_threads = service.ServiceThreads()
 
+    LOG.info(f'Python version: {sys.version}')
+    LOG.info(f'APRSD Started version: {aprsd.__version__}')
     level, msg = utils._check_version()
     if level:
         LOG.warning(msg)
     else:
         LOG.info(msg)
-    LOG.info(f'APRSD Started version: {aprsd.__version__}')
+    utils.package.log_installed_extensions_and_plugins()
 
     # Make sure we have 1 client transport enabled
     if not APRSDClient().is_enabled:

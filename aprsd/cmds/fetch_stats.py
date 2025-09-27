@@ -1,5 +1,6 @@
 # Fetch active stats from a remote running instance of aprsd admin web interface.
 import logging
+import sys
 
 import click
 import requests
@@ -38,6 +39,7 @@ CONF = cfg.CONF
 def fetch_stats(ctx, host, port):
     """Fetch stats from a APRSD admin web interface."""
     console = Console()
+    console.print(f'Python version: {sys.version}')
     console.print(f'APRSD Fetch-Stats started version: {aprsd.__version__}')
 
     CONF.log_opt_values(LOG, logging.DEBUG)
