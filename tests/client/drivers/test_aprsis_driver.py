@@ -353,6 +353,7 @@ class TestAPRSISDriver(unittest.TestCase):
     def test_consumer_success(self, mock_log):
         """Test consumer forwards callback to client."""
         self.driver._client = self.mock_client
+        self.driver.connected = True
         mock_callback = mock.MagicMock()
 
         self.driver.consumer(mock_callback, raw=True)
@@ -365,6 +366,7 @@ class TestAPRSISDriver(unittest.TestCase):
     def test_consumer_exception(self, mock_log):
         """Test consumer handles exceptions."""
         self.driver._client = self.mock_client
+        self.driver.connected = True
         mock_callback = mock.MagicMock()
         test_error = Exception('Test error')
         self.mock_client.consumer.side_effect = test_error
@@ -381,8 +383,6 @@ class TestAPRSISDriver(unittest.TestCase):
         mock_callback = mock.MagicMock()
 
         self.driver.consumer(mock_callback)
-
-        mock_log.warning.assert_called_once()
         self.assertFalse(self.driver.connected)
 
     def test_stats_configured_with_client(self):

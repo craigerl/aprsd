@@ -80,7 +80,7 @@ class TCPKISSDriver:
         return client.TRANSPORT_TCPKISS
 
     @staticmethod
-    def is_enabled(cls) -> bool:
+    def is_enabled() -> bool:
         """Check if KISS is enabled in configuration.
 
         Returns:
