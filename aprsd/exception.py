@@ -13,3 +13,10 @@ class ConfigOptionBogusDefaultException(Exception):
             f"Config file option '{config_option}' needs to be "
             f"changed from provided default of '{default_fail}'"
         )
+
+
+class APRSClientNotConfiguredException(Exception):
+    """APRS client is not configured."""
+
+    def __init__(self):
+        self.message = 'APRS client is not configured.'

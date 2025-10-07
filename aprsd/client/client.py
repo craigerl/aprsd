@@ -38,15 +38,16 @@ class APRSDClient:
             keepalive_collector.KeepAliveCollector().register(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, auto_connect: bool = True):
+        self.auto_connect = auto_connect
         self.connected = False
         self.login_status = {
             'success': False,
             'message': None,
         }
-        if not self.driver:
-            self.driver = DriverRegistry().get_driver()
-            self.driver.setup_connection()
+        self.driver = DriverRegistry().get_driver()
+        if self.auto_connect:
+            self.connect()
 
     def stats(self, serializable=False) -> dict:
         stats = {}
@@ -54,17 +55,20 @@ class APRSDClient:
             stats = self.driver.stats(serializable=serializable)
         return stats
 
-    @property
-    def is_enabled(self):
-        if not self.driver:
-            return False
-        return self.driver.is_enabled()
+    @staticmethod
+    def is_enabled():
+        for driver in DriverRegistry().drivers:
+            if driver.is_enabled():
+                return True
+        return False
 
-    @property
-    def is_configured(self):
-        if not self.driver:
-            return False
-        return self.driver.is_configured()
+    @staticmethod
+    def is_configured():
+        """Check if ANY driver is configured."""
+        for driver in DriverRegistry().drivers:
+            if driver.is_configured():
+                return True
+        return False
 
     # @property
     # def is_connected(self):
@@ -98,6 +102,11 @@ class APRSDClient:
     def is_alive(self):
         return self.driver.is_alive()
 
+    def connect(self):
+        if not self.driver:
+            self.driver = DriverRegistry().get_driver()
+        self.driver.setup_connection()
+
     def close(self):
         if not self.driver:
             return
@@ -109,7 +118,8 @@ class APRSDClient:
         LOG.info('Resetting client connection.')
         if self.driver:
             self.driver.close()
-            self.driver.setup_connection()
+            if not self.delay_connect:
+                self.driver.setup_connection()
             if self.filter:
                 self.driver.set_filter(self.filter)
         else:

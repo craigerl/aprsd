@@ -26,6 +26,7 @@ class APRSISDriver:
 
     _client = None
     _checks = False
+    connected = False
 
     def __init__(self):
         max_timeout = {'hours': 0.0, 'minutes': 2, 'seconds': 0}
@@ -164,7 +165,7 @@ class APRSISDriver:
         return core.factory(args[0])
 
     def consumer(self, callback: Callable, raw: bool = False):
-        if self._client:
+        if self._client and self.connected:
             try:
                 self._client.consumer(
                     callback,
@@ -177,7 +178,6 @@ class APRSISDriver:
                 LOG.info(e.__cause__)
                 raise e
         else:
-            LOG.warning('client is None, might be resetting.')
             self.connected = False
 
     def stats(self, serializable: bool = False) -> dict:

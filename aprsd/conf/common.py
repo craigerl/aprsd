@@ -19,7 +19,7 @@ registry_group = cfg.OptGroup(
 aprsd_opts = [
     cfg.StrOpt(
         'callsign',
-        required=True,
+        default='NOCALL',
         help='Callsign to use for messages sent by APRSD',
     ),
     cfg.BoolOpt(
