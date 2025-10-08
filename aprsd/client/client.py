@@ -118,7 +118,7 @@ class APRSDClient:
         LOG.info('Resetting client connection.')
         if self.driver:
             self.driver.close()
-            if not self.delay_connect:
+            if self.auto_connect:
                 self.driver.setup_connection()
             if self.filter:
                 self.driver.set_filter(self.filter)
