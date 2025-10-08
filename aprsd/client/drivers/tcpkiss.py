@@ -380,9 +380,7 @@ class TCPKISSDriver:
                 break
 
             try:
-                print('reading from socket')
                 short_buf = self.socket.recv(1024)
-                print(f'short_buf: {short_buf}')
                 # sock.recv returns empty if the connection drops
                 if not short_buf:
                     if not blocking:
