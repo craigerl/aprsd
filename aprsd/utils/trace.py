@@ -5,11 +5,11 @@ import logging
 import time
 import types
 
-VALID_TRACE_FLAGS = {"method", "api"}
+VALID_TRACE_FLAGS = {'method', 'api'}
 TRACE_API = False
 TRACE_METHOD = False
 TRACE_ENABLED = False
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 def trace(*dec_args, **dec_kwargs):
@@ -27,11 +27,12 @@ def trace(*dec_args, **dec_kwargs):
 
     def _decorator(f):
         func_name = f.__qualname__
-        func_file = "/".join(f.__code__.co_filename.split("/")[-4:])
+        func_file = '/'.join(f.__code__.co_filename.split('/')[-4:])
+        func_line_number = f.__code__.co_firstlineno
 
         @functools.wraps(f)
         def trace_logging_wrapper(*args, **kwargs):
-            filter_function = dec_kwargs.get("filter_function")
+            filter_function = dec_kwargs.get('filter_function')
             logger = LOG
 
             # NOTE(ameade): Don't bother going any further if DEBUG log level
@@ -40,16 +41,16 @@ def trace(*dec_args, **dec_kwargs):
                 return f(*args, **kwargs)
 
             all_args = inspect.getcallargs(f, *args, **kwargs)
-
             pass_filter = filter_function is None or filter_function(all_args)
 
             if pass_filter:
                 logger.debug(
-                    "==> %(func)s: call %(all_args)r file: %(file)s",
+                    '==> %(func)s: call %(all_args)r file: %(file)s:%(line_number)d',
                     {
-                        "func": func_name,
-                        "all_args": str(all_args),
-                        "file": func_file,
+                        'func': func_name,
+                        'all_args': str(all_args),
+                        'file': func_file,
+                        'line_number': func_line_number,
                     },
                 )
 
@@ -59,11 +60,11 @@ def trace(*dec_args, **dec_kwargs):
             except Exception as exc:
                 total_time = int(round(time.time() * 1000)) - start_time
                 logger.debug(
-                    "<== %(func)s: exception (%(time)dms) %(exc)r",
+                    '<== %(func)s: exception (%(time)dms) %(exc)r',
                     {
-                        "func": func_name,
-                        "time": total_time,
-                        "exc": exc,
+                        'func': func_name,
+                        'time': total_time,
+                        'exc': exc,
                     },
                 )
                 raise
@@ -78,11 +79,11 @@ def trace(*dec_args, **dec_kwargs):
 
             if pass_filter:
                 logger.debug(
-                    "<== %(func)s: return (%(time)dms) %(result)r",
+                    '<== %(func)s: return (%(time)dms) %(result)r',
                     {
-                        "func": func_name,
-                        "time": total_time,
-                        "result": mask_result,
+                        'func': func_name,
+                        'time': total_time,
+                        'result': mask_result,
                     },
                 )
             return result
@@ -174,7 +175,7 @@ def setup_tracing(trace_flags):
     except TypeError:  # Handle when trace_flags is None or a test mock
         trace_flags = []
     for invalid_flag in set(trace_flags) - VALID_TRACE_FLAGS:
-        LOG.warning("Invalid trace flag: %s", invalid_flag)
-    TRACE_METHOD = "method" in trace_flags
-    TRACE_API = "api" in trace_flags
+        LOG.warning('Invalid trace flag: %s', invalid_flag)
+    TRACE_METHOD = 'method' in trace_flags
+    TRACE_API = 'api' in trace_flags
     TRACE_ENABLED = True
