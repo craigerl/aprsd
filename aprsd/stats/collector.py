@@ -44,3 +44,9 @@ class Collector:
         if not isinstance(producer_name, StatsProducer):
             raise TypeError(f'Producer {producer_name} is not a StatsProducer')
         self.producers.remove(producer_name)
+
+    def stop_all(self):
+        """Stop and unregister all registered stats producers."""
+        for producer in self.producers[:]:
+            LOG.info(f'Stopping Stats producer {producer}')
+            self.unregister_producer(producer)
