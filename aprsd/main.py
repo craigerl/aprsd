@@ -72,6 +72,7 @@ def main():
 
 def signal_handler(sig, frame):
     click.echo('signal_handler: called')
+    collector.Collector().stop_all()
     threads.APRSDThreadList().stop_all()
     if 'subprocess' not in str(frame):
         LOG.info(
