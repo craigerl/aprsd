@@ -9,7 +9,6 @@ import datetime
 import logging
 import select
 import socket
-import time
 from typing import Any, Callable, Dict
 
 import aprslib
@@ -25,6 +24,7 @@ from aprsd import (  # noqa
     exception,
 )
 from aprsd.packets import core
+from aprsd.utils import trace
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
@@ -46,9 +46,11 @@ def handle_fend(buffer: bytes, strip_df_start: bool = True) -> bytes:
     return bytes(frame)
 
 
-# class TCPKISSDriver(metaclass=trace.TraceWrapperMetaclass):
-class TCPKISSDriver:
+class TCPKISSDriver(metaclass=trace.TraceWrapperMetaclass):
+    # class TCPKISSDriver:
     """APRSD client driver for TCP KISS connections."""
+
+    _instance = None
 
     # Class level attributes required by Client protocol
     packets_received = 0
@@ -62,6 +64,12 @@ class TCPKISSDriver:
     select_timeout = 1
     path = None
 
+    def __new__(cls, *args, **kwargs):
+        """This magic turns this into a singleton."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self):
         """Initialize the KISS client.
 
@@ -71,7 +79,6 @@ class TCPKISSDriver:
         super().__init__()
         self._connected = False
         self.keepalive = datetime.datetime.now()
-        self._running = False
         # This is initialized in setup_connection()
         self.socket = None
 
@@ -111,7 +118,15 @@ class TCPKISSDriver:
 
     def close(self):
         """Close the connection."""
-        self.stop()
+        self._connected = False
+        if self.socket:
+            try:
+                self.socket.close()
+            except Exception as e:
+                LOG.error(f'close: error closing socket: {e}')
+                pass
+        else:
+            LOG.warning('close: socket not initialized. no reason to close.')
 
     def send(self, packet: core.Packet):
         """Send an APRS packet.
@@ -161,6 +176,10 @@ class TCPKISSDriver:
         """Set up the KISS interface."""
         if not self.is_enabled():
             LOG.error('KISS is not enabled in configuration')
+            return
+
+        if self._connected:
+            LOG.warning('KISS interface already connected')
             return
 
         try:
@@ -217,22 +236,18 @@ class TCPKISSDriver:
         Raises:
             Exception: If not connected to KISS TNC
         """
-        self._running = True
-        while self._running:
-            # Ensure connection
-            if not self._connected:
-                if not self.connect():
-                    time.sleep(1)
-                    continue
+        # Ensure connection
+        if not self._connected:
+            return
 
-            # Read frame
-            frame = self.read_frame()
-            if frame:
-                LOG.warning(f'GOT FRAME: {frame} calling {callback}')
-                kwargs = {
-                    'frame': frame,
-                }
-                callback(**kwargs)
+        # Read frame
+        frame = self.read_frame()
+        if frame:
+            LOG.info(f'GOT FRAME: {frame} calling {callback}')
+            kwargs = {
+                'frame': frame,
+            }
+            callback(**kwargs)
 
     def decode_packet(self, *args, **kwargs) -> core.Packet:
         """Decode a packet from an AX.25 frame.
@@ -245,7 +260,6 @@ class TCPKISSDriver:
             LOG.warning('No frame received to decode?!?!')
             return None
 
-        LOG.warning(f'FRAME: {str(frame)}')
         try:
             aprslib_frame = aprslib.parse(str(frame))
             packet = core.factory(aprslib_frame)
@@ -256,16 +270,6 @@ class TCPKISSDriver:
         except Exception as e:
             LOG.error(f'Error decoding packet: {e}')
             return None
-
-    def stop(self):
-        """Stop the KISS interface."""
-        self._running = False
-        self._connected = False
-        if self.socket:
-            try:
-                self.socket.close()
-            except Exception:
-                pass
 
     def stats(self, serializable: bool = False) -> Dict[str, Any]:
         """Get client statistics.
@@ -353,13 +357,19 @@ class TCPKISSDriver:
         """
         Generator for complete lines, received from the server
         """
+        if not self.socket:
+            return None
+
+        if not self._connected:
+            return None
+
         try:
             self.socket.setblocking(0)
         except OSError as e:
             LOG.error(f'socket error when setblocking(0): {str(e)}')
             raise aprslib.ConnectionDrop('connection dropped') from e
 
-        while self._running:
+        while self._connected:
             short_buf = b''
 
             try:
@@ -375,6 +385,8 @@ class TCPKISSDriver:
                     else:
                         continue
             except Exception as e:
+                # No need to log if we are not running.
+                # this happens when the client is stopped/closed.
                 LOG.error(f'Error in read loop: {e}')
                 self._connected = False
                 break
