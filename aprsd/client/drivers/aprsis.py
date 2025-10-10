@@ -10,6 +10,7 @@ from oslo_config import cfg
 from aprsd import client, exception
 from aprsd.client.drivers.lib.aprslib import APRSLibClient
 from aprsd.packets import core
+from aprsd.utils import singleton
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
@@ -17,6 +18,7 @@ LOGU = logger
 
 
 # class APRSISDriver(metaclass=trace.TraceWrapperMetaclass):
+@singleton
 class APRSISDriver:
     """This is the APRS-IS driver for the APRSD client.
 
@@ -78,16 +80,18 @@ class APRSISDriver:
         if self._client:
             self._client.stop()
             self._client.close()
+        self.connected = False
 
     def send(self, packet: core.Packet) -> bool:
         return self._client.send(packet)
 
     def setup_connection(self):
+        if self.connected:
+            return
         user = CONF.aprs_network.login
         password = CONF.aprs_network.password
         host = CONF.aprs_network.host
         port = CONF.aprs_network.port
-        self.connected = False
         backoff = 1
         retries = 3
         retry_count = 0
@@ -97,7 +101,7 @@ class APRSISDriver:
                 break
             try:
                 LOG.info(
-                    f'Creating aprslib client({host}:{port}) and logging in {user}.'
+                    f'Creating aprslib client({host}:{port}) and logging in {user}. try #{retry_count}'
                 )
                 self._client = APRSLibClient(
                     user, passwd=password, host=host, port=port
@@ -152,7 +156,7 @@ class APRSISDriver:
     def _is_stale_connection(self):
         delta = datetime.datetime.now() - self._client.aprsd_keepalive
         if delta > self.max_delta:
-            LOG.error(f'Connection is stale, last heard {delta} ago.')
+            LOG.warning(f'Connection is stale, last heard {delta} ago.')
             return True
         return False
 
