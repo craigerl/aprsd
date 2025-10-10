@@ -10,14 +10,14 @@ from oslo_config import cfg
 from aprsd.client import drivers  # noqa - ensure drivers are registered
 from aprsd.client.drivers.registry import DriverRegistry
 from aprsd.packets import core
-from aprsd.utils import keepalive_collector
+from aprsd.utils import keepalive_collector, trace
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
 LOGU = logger
 
 
-class APRSDClient:
+class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
     """APRSD client class.
 
     This is a singleton class that provides a single instance of the APRSD client.
@@ -41,11 +41,13 @@ class APRSDClient:
     def __init__(self, auto_connect: bool = True):
         self.auto_connect = auto_connect
         self.connected = False
+        self.running = False
         self.login_status = {
             'success': False,
             'message': None,
         }
-        self.driver = DriverRegistry().get_driver()
+        if not self.driver:
+            self.driver = DriverRegistry().get_driver()
         if self.auto_connect:
             self.connect()
 
@@ -100,14 +102,20 @@ class APRSDClient:
         return self.driver.filter
 
     def is_alive(self):
-        return self.driver.is_alive()
+        return self.driver.is_alive
 
+    @wrapt.synchronized(lock)
     def connect(self):
         if not self.driver:
             self.driver = DriverRegistry().get_driver()
-        self.driver.setup_connection()
+        if not self.connected:
+            self.driver.setup_connection()
+            self.connected = self.driver.is_alive
+        self.running = True
 
     def close(self):
+        self.running = False
+        self.connected = False
         if not self.driver:
             return
         self.driver.close()
@@ -115,7 +123,7 @@ class APRSDClient:
     @wrapt.synchronized(lock)
     def reset(self):
         """Call this to force a rebuild/reconnect."""
-        LOG.info('Resetting client connection.')
+        LOG.warning('Resetting client connection.')
         if self.driver:
             self.driver.close()
             if self.auto_connect:
@@ -126,7 +134,11 @@ class APRSDClient:
             LOG.warning('Client not initialized, nothing to reset.')
 
     def send(self, packet: core.Packet) -> bool:
-        return self.driver.send(packet)
+        if self.running:
+            return self.driver.send(packet)
+        else:
+            LOG.error('Client not running, not sending packet.')
+            return False
 
     # For the keepalive collector
     def keepalive_check(self):
@@ -145,7 +157,8 @@ class APRSDClient:
         LOGU.opt(colors=True).info(f'<green>Client keepalive {keepalive}</green>')
 
     def consumer(self, callback: Callable, raw: bool = False):
-        return self.driver.consumer(callback=callback, raw=raw)
+        if self.running:
+            return self.driver.consumer(callback=callback, raw=raw)
 
     def decode_packet(self, *args, **kwargs) -> core.Packet:
         try:
