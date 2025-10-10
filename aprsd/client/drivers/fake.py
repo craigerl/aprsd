@@ -64,7 +64,7 @@ class APRSDFakeDriver(metaclass=trace.TraceWrapperMetaclass):
         return None
 
     @wrapt.synchronized(lock)
-    def send(self, packet: core.Packet):
+    def send(self, packet: core.Packet) -> bool:
         """Send an APRS Message object."""
         LOG.info(f'Sending packet: {packet}')
         payload = None
@@ -84,6 +84,7 @@ class APRSDFakeDriver(metaclass=trace.TraceWrapperMetaclass):
             f"FAKE::Send '{payload}' TO '{packet.to_call}' From "
             f'\'{packet.from_call}\' with PATH "{self.path}"',
         )
+        return True
 
     def consumer(self, callback: Callable, raw: bool = False):
         LOG.debug('Start non blocking FAKE consumer')
