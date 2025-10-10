@@ -20,6 +20,7 @@ class ClientDriver(Protocol):
     def is_configured(self) -> bool:
         pass
 
+    @property
     def is_alive(self) -> bool:
         pass
 
