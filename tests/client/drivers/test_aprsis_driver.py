@@ -33,10 +33,13 @@ class TestAPRSISDriver(unittest.TestCase):
 
         # Create an instance of the driver
         self.driver = APRSISDriver()
+        self.driver.connected = False
 
     def tearDown(self):
         self.conf_patcher.stop()
         self.aprslib_patcher.stop()
+        self.driver._client = None
+        self.driver = None
 
     def test_implements_client_driver_protocol(self):
         """Test that APRSISDriver implements the ClientDriver Protocol."""
@@ -324,7 +327,7 @@ class TestAPRSISDriver(unittest.TestCase):
         result = self.driver._is_stale_connection()
 
         self.assertTrue(result)
-        mock_log.error.assert_called_once()
+        mock_log.warning.assert_called_once()
 
     def test_is_stale_connection_false(self):
         """Test _is_stale_connection returns False when connection is not stale."""

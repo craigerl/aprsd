@@ -118,9 +118,10 @@ class TestTCPKISSDriver(unittest.TestCase):
 
     def test_close(self):
         """Test close method calls stop."""
-        with mock.patch.object(self.driver, 'stop') as mock_stop:
+        with mock.patch.object(self.driver, 'socket') as mock_socket:
             self.driver.close()
-            mock_stop.assert_called_once()
+            mock_socket.close.assert_called_once()
+            self.assertFalse(self.driver._connected)
 
     @mock.patch('aprsd.client.drivers.tcpkiss.LOG')
     def test_setup_connection_success(self, mock_log):
@@ -229,18 +230,6 @@ class TestTCPKISSDriver(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             self.driver.send(mock_packet)
         self.assertIn('KISS interface not initialized', str(context.exception))
-
-    def test_stop(self):
-        """Test stop method cleans up properly."""
-        self.driver._running = True
-        self.driver._connected = True
-        self.driver.socket = self.mock_socket
-
-        self.driver.stop()
-
-        self.assertFalse(self.driver._running)
-        self.assertFalse(self.driver._connected)
-        self.mock_socket.close.assert_called_once()
 
     def test_stats(self):
         """Test stats method returns correct data."""
@@ -402,41 +391,11 @@ class TestTCPKISSDriver(unittest.TestCase):
             mock_callback.assert_called_once_with(frame=mock_frame)
 
     @mock.patch('aprsd.client.drivers.tcpkiss.LOG')
-    def test_consumer_with_connect_reconnect(self, mock_log):
-        """Test consumer tries to reconnect when not connected."""
-        mock_callback = mock.MagicMock()
-
-        # Configure driver for test
-        self.driver._connected = False
-
-        # Setup to run once then stop
-        call_count = 0
-
-        def connect_side_effect():
-            nonlocal call_count
-            call_count += 1
-            # On second call, connect successfully
-            if call_count == 2:
-                self.driver._running = False
-                self.driver.socket = self.mock_socket
-                return True
-            return False
-
-        with mock.patch.object(
-            self.driver, 'connect', side_effect=connect_side_effect
-        ) as mock_connect:
-            with mock.patch('aprsd.client.drivers.tcpkiss.time.sleep') as mock_sleep:
-                self.driver.consumer(mock_callback)
-
-                self.assertEqual(mock_connect.call_count, 2)
-                mock_sleep.assert_called_once_with(1)
-
-    @mock.patch('aprsd.client.drivers.tcpkiss.LOG')
     def test_read_frame_success(self, mock_log):
         """Test read_frame successfully reads a frame."""
         # Set up driver
         self.driver.socket = self.mock_socket
-        self.driver._running = True
+        self.driver._connected = True
 
         # Mock socket recv to return data
         raw_data = b'\xc0\x00test_frame\xc0'
@@ -484,7 +443,7 @@ class TestTCPKISSDriver(unittest.TestCase):
         """Test read_frame handles socket error."""
         # Set up driver
         self.driver.socket = self.mock_socket
-        self.driver._running = True
+        self.driver._connected = True
 
         # Mock setblocking to raise OSError
         self.mock_socket.setblocking.side_effect = OSError('Test error')
