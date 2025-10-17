@@ -83,7 +83,6 @@ def _send_direct(packet, aprs_client=None):
     else:
         cl = APRSDClient()
 
-    packet.update_timestamp()
     packet_log.log(packet, tx=True)
     try:
         cl.send(packet)
