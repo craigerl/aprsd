@@ -207,7 +207,8 @@ class SendAckThread(aprsd_threads.APRSDThread):
                 # It's time to try to send it again
                 send_now = True
             elif self.loop_count % 10 == 0:
-                LOG.debug(f'Still wating. {delta}')
+                # LOG.debug(f'Still wating. {delta}')
+                pass
         else:
             send_now = True
 
