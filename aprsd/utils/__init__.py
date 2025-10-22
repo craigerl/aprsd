@@ -45,7 +45,7 @@ def env(*vars, **kwargs):
         value = os.environ.get(v, None)
         if value:
             return value
-    return kwargs.get("default", "")
+    return kwargs.get('default', '')
 
 
 def mkdir_p(path):
@@ -87,7 +87,7 @@ def rgb_from_name(name):
 
 def hextriplet(colortuple):
     """Convert a color tuple to a hex triplet."""
-    return "#" + "".join(f"{i:02X}" for i in colortuple)
+    return '#' + ''.join(f'{i:02X}' for i in colortuple)
 
 
 def hex_from_name(name):
@@ -98,20 +98,20 @@ def hex_from_name(name):
 def human_size(bytes, units=None):
     """Returns a human readable string representation of bytes"""
     if not units:
-        units = [" bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
+        units = [' bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB']
     return str(bytes) + units[0] if bytes < 1024 else human_size(bytes >> 10, units[1:])
 
 
-def strfdelta(tdelta, fmt="{hours:{width}}:{minutes:{width}}:{seconds:{width}}"):
+def strfdelta(tdelta, fmt='{hours:{width}}:{minutes:{width}}:{seconds:{width}}'):
     d = {
-        "days": tdelta.days,
-        "width": "02",
+        'days': tdelta.days,
+        'width': '02',
     }
     if tdelta.days > 0:
-        fmt = "{days} days " + fmt
+        fmt = '{days} days ' + fmt
 
-    d["hours"], rem = divmod(tdelta.seconds, 3600)
-    d["minutes"], d["seconds"] = divmod(rem, 60)
+    d['hours'], rem = divmod(tdelta.seconds, 3600)
+    d['minutes'], d['seconds'] = divmod(rem, 60)
     return fmt.format(**d)
 
 
@@ -119,12 +119,12 @@ def _check_version():
     # check for a newer version
     try:
         check = update_checker.UpdateChecker()
-        result = check.check("aprsd", aprsd.__version__)
+        result = check.check('aprsd', aprsd.__version__)
         if result:
             # Looks like there is an updated version.
             return 1, result
         else:
-            return 0, "APRSD is up to date"
+            return 0, 'APRSD is up to date'
     except Exception:
         # probably can't get in touch with pypi for some reason
         # Lets put up an error and move on.  We might not
@@ -132,7 +132,7 @@ def _check_version():
         return 1, "Couldn't check for new version of APRSD"
 
 
-def flatten_dict(d, parent_key="", sep="."):
+def flatten_dict(d, parent_key='', sep='.'):
     """Flatten a dict to key.key.key = value."""
     items = []
     for k, v in d.items():
@@ -145,13 +145,13 @@ def flatten_dict(d, parent_key="", sep="."):
 
 
 def parse_delta_str(s):
-    if "day" in s:
+    if 'day' in s:
         m = re.match(
-            r"(?P<days>[-\d]+) day[s]*, (?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)",
+            r'(?P<days>[-\d]+) day[s]*, (?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)',
             s,
         )
     else:
-        m = re.match(r"(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)", s)
+        m = re.match(r'(?P<hours>\d+):(?P<minutes>\d+):(?P<seconds>\d[\.\d+]*)', s)
 
     if m:
         return {key: float(val) for key, val in m.groupdict().items()}
@@ -173,7 +173,7 @@ def load_entry_points(group):
             ep.load()
         except Exception as e:
             print(
-                f"Extension {ep.name} of group {group} failed to load with {e}",
+                f'Extension {ep.name} of group {group} failed to load with {e}',
                 file=sys.stderr,
             )
             print(traceback.format_exc(), file=sys.stderr)
@@ -196,7 +196,7 @@ def calculate_initial_compass_bearing(point_a, point_b):
       float
     """
     if (type(point_a) != tuple) or (type(point_b) != tuple):  # noqa: E721
-        raise TypeError("Only tuples are supported as arguments")
+        raise TypeError('Only tuples are supported as arguments')
 
     lat1 = math.radians(float(point_a[0]))
     lat2 = math.radians(float(point_b[0]))
@@ -222,44 +222,56 @@ def calculate_initial_compass_bearing(point_a, point_b):
 def degrees_to_cardinal(bearing, full_string=False):
     if full_string:
         directions = [
-            "North",
-            "North-Northeast",
-            "Northeast",
-            "East-Northeast",
-            "East",
-            "East-Southeast",
-            "Southeast",
-            "South-Southeast",
-            "South",
-            "South-Southwest",
-            "Southwest",
-            "West-Southwest",
-            "West",
-            "West-Northwest",
-            "Northwest",
-            "North-Northwest",
-            "North",
+            'North',
+            'North-Northeast',
+            'Northeast',
+            'East-Northeast',
+            'East',
+            'East-Southeast',
+            'Southeast',
+            'South-Southeast',
+            'South',
+            'South-Southwest',
+            'Southwest',
+            'West-Southwest',
+            'West',
+            'West-Northwest',
+            'Northwest',
+            'North-Northwest',
+            'North',
         ]
     else:
         directions = [
-            "N",
-            "NNE",
-            "NE",
-            "ENE",
-            "E",
-            "ESE",
-            "SE",
-            "SSE",
-            "S",
-            "SSW",
-            "SW",
-            "WSW",
-            "W",
-            "WNW",
-            "NW",
-            "NNW",
-            "N",
+            'N',
+            'NNE',
+            'NE',
+            'ENE',
+            'E',
+            'ESE',
+            'SE',
+            'SSE',
+            'S',
+            'SSW',
+            'SW',
+            'WSW',
+            'W',
+            'WNW',
+            'NW',
+            'NNW',
+            'N',
         ]
 
     cardinal = directions[round(bearing / 22.5)]
     return cardinal
+
+
+def aprs_passcode(callsign: str) -> int:
+    callsign = callsign.upper().split('-')[0]  # Remove SSID if present
+    hash = 0x73E2
+
+    for i, char in enumerate(callsign):
+        if i % 2 == 0:
+            hash ^= ord(char) << 8
+        else:
+            hash ^= ord(char)
+    return hash & 0x7FFF  # 15-bit mask

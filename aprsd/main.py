@@ -163,5 +163,14 @@ def version(ctx):
     click.secho(f'{aprsd.__version__}', fg='yellow', bold=True)
 
 
+@cli.command()
+@click.argument('callsign', required=True)
+@click.pass_context
+def passcode(ctx, callsign):
+    """Generate an APRS passcode for a callsign."""
+    passcode = utils.aprs_passcode(callsign)
+    click.echo(f'APRS passcode for {callsign}: {passcode}')
+
+
 if __name__ == '__main__':
     main()
