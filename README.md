@@ -138,7 +138,15 @@ available to message on the APRS network.
 
 ### Installation
 
-To install `aprsd`, use Pip:
+**Install uv (recommended):**
+
+`uv` is a fast Python package installer and resolver. To install `uv`, visit [https://docs.astral.sh/uv/getting-started/installation/](https://docs.astral.sh/uv/getting-started/installation/)
+
+To install `aprsd`, use uv:
+
+`uv pip install aprsd`
+
+Or with the traditional pip:
 
 `pip install aprsd`
 
@@ -210,7 +218,7 @@ file
     └─> aprsd server
     Registering LogMonitorThread
     2025-01-06 16:27:12.398 | MainThread         | INFO     | APRSD is up to date | aprsd.cmds.server:server:82
-    2025-01-06 16:27:12.398 | MainThread         | INFO     | APRSD Started version: 3.5.1.dev0+g72d068c.d20250102 | aprsd.cmds.server:server:83
+    2025-01-06 16:27:12.398 | MainThread         | INFO     | APRSD Started version: 4.2.4 | aprsd.cmds.server:server:83
     2025-01-06 16:27:12.398 | MainThread         | INFO     | Creating client connection | aprsd.cmds.server:server:101
     2025-01-06 16:27:12.398 | MainThread         | INFO     | Creating aprslib client(noam.aprs2.net:14580) and logging in WB4BOR-1. | aprsd.client.aprsis:setup_connection:136
     2025-01-06 16:27:12.398 | MainThread         | INFO     | Attempting connection to noam.aprs2.net:14580 | aprslib.inet:_connect:226
@@ -245,7 +253,7 @@ file
                                                     Pypi.org APRSD Installable Plugin Packages
 
                                                     Install any of the following plugins with
-                                                        'pip install <Plugin Package Name>'
+                                                        'uv pip install <Plugin Package Name>'
     ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
     ┃ Plugin Package Name          ┃ Description                                                  ┃  Version   ┃      Released       ┃ Installed? ┃
     ┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
@@ -284,13 +292,15 @@ file
                                                     Pypi.org APRSD Installable Extension Packages
 
                                                 Install any of the following extensions by running
-                                                        'pip install <Plugin Package Name>'
+                                                        'uv pip install <Plugin Package Name>'
     ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
     ┃ Extension Package Name   ┃ Description                                                         ┃ Version ┃      Released       ┃ Installed? ┃
     ┡━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
     │ 📂 aprsd-admin-extension │ Administration extension for the Ham radio APRSD Server             │  1.0.1  │ 2025-01-06T21:57:24 │    Yes     │
     │ 📂 aprsd-irc-extension   │ An Extension to Ham radio APRSD Daemon to act like an irc server    │  0.0.5  │ 2024-04-09T11:28:47 │     No     │
     │                          │ for APRS                                                            │         │                     │            │
+    │ 📂 aprsd-webchat-extens  │ Web page for APRS Messaging                                          │  1.2.3  │ 2024-10-01T00:00:00 │     No     │
+    │     ion                  │                                                                      │         │                     │            │
     └──────────────────────────┴─────────────────────────────────────────────────────────────────────┴─────────┴─────────────────────┴────────────┘
 
 ### send-message
@@ -415,7 +425,7 @@ Plugins are called by APRSD when packe
 
 There are 2 versions of the container Dockerfile that can be used. The
 main Dockerfile, which is for building the official release container
-based off of the pip install version of aprsd and the Dockerfile-dev,
+based off of the uv/pip install version of aprsd and the Dockerfile-dev,
 which is used for building a container based off of a git branch of the
 repo.
 
