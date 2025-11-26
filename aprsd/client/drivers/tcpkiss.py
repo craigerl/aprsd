@@ -39,8 +39,6 @@ class TCPKISSDriver(KISSDriver):
     # Class level attributes required by Client protocol
     client_name = None
     socket = None
-    # timeout in seconds
-    select_timeout = 1
     path = None
 
     def __new__(cls, *args, **kwargs):

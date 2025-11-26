@@ -7,7 +7,8 @@ non-asyncio KISSInterface implementation.
 
 import datetime
 import logging
-import select
+
+# import select
 from typing import Any, Dict
 
 import serial
@@ -24,6 +25,7 @@ from aprsd import (  # noqa
 )
 from aprsd.client.drivers.kiss_common import KISSDriver
 from aprsd.packets import core
+from aprsd.utils import trace
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
@@ -80,6 +82,11 @@ class SerialKISSDriver(KISSDriver):
     def close(self):
         """Close the connection."""
         self._connected = False
+        if self.socket and self.socket.is_open:
+            try:
+                self.socket.close()
+            except Exception:
+                pass
 
     def setup_connection(self):
         """Set up the KISS interface."""
@@ -118,11 +125,26 @@ class SerialKISSDriver(KISSDriver):
             LOG.warning('KISS interface already connected')
             return
 
+        # Close existing socket if it exists
+        if self.socket and self.socket.is_open:
+            try:
+                self.socket.close()
+            except Exception:
+                pass
+
         try:
+            # serial.Serial() automatically opens the port, so we don't need to call open()
             self.socket = serial.Serial(
-                CONF.kiss_serial.device, CONF.kiss_serial.baudrate
+                CONF.kiss_serial.device,
+                timeout=1,
+                baudrate=CONF.kiss_serial.baudrate,
+                # bytesize=8,
+                # parity='N',
+                # stopbits=1,
+                # xonxoff=False,
+                # rtscts=False,
+                # dsrdtr=False,
             )
-            self.socket.open()
             self._connected = True
         except serial.SerialException as e:
             LOG.error(f'Failed to connect to KISS interface: {e}')
@@ -142,21 +164,21 @@ class SerialKISSDriver(KISSDriver):
             return None
 
         while self._connected:
-            try:
-                readable, _, _ = select.select(
-                    [self.socket],
-                    [],
-                    [],
-                    self.select_timeout,
-                )
-                if not readable:
-                    continue
-            except Exception as e:
-                # No need to log if we are not running.
-                # this happens when the client is stopped/closed.
-                LOG.error(f'Error in read loop: {e}')
-                self._connected = False
-                break
+            # try:
+            #    readable, _, _ = select.select(
+            #        [self.socket],
+            ##        [],
+            #        [],
+            #        self.select_timeout,
+            #    )
+            #    if not readable:
+            #        continue
+            # except Exception as e:
+            #    # No need to log if we are not running.
+            #    # this happens when the client is stopped/closed.
+            #    LOG.error(f'Error in read loop: {e}')
+            #    self._connected = False
+            #    break
 
             try:
                 short_buf = self.socket.read(1024)
@@ -208,12 +230,13 @@ class SerialKISSDriver(KISSDriver):
         frame_kiss = b''.join(
             [kiss_constants.FEND, command.value, frame_escaped, kiss_constants.FEND]
         )
-        self.socket.send(frame_kiss)
+        self.socket.write(frame_kiss)
         # Update last packet sent time
         self.last_packet_sent = datetime.datetime.now()
         # Increment packets sent counter
         self.packets_sent += 1
 
+    @trace.no_trace
     def stats(self, serializable: bool = False) -> Dict[str, Any]:
         """Get client statistics.
 

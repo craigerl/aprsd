@@ -27,6 +27,9 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
     last_packet_received = None
     keepalive = None
 
+    # timeout in seconds
+    select_timeout = 1
+
     def __init__(self):
         """Initialize the KISS client.
 
@@ -85,7 +88,6 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
         frame = kissutil.recover_special_codes(kissutil.strip_nmea(bytes(buffer)))
         if strip_df_start:
             frame = kissutil.strip_df_start(frame)
-        LOG.warning(f'handle_fend {" ".join(f"{b:02X}" for b in bytes(frame))}')
         return bytes(frame)
 
     def fix_raw_frame(self, raw_frame: bytes) -> bytes:
@@ -145,6 +147,7 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
         """
         raise NotImplementedError('read_frame is not implemented for KISS')
 
+    @trace.no_trace
     def stats(self, serializable: bool = False) -> Dict[str, Any]:
         """Get client statistics.
 

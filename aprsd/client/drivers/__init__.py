@@ -2,9 +2,11 @@
 from aprsd.client.drivers.aprsis import APRSISDriver
 from aprsd.client.drivers.fake import APRSDFakeDriver
 from aprsd.client.drivers.registry import DriverRegistry
+from aprsd.client.drivers.serialkiss import SerialKISSDriver
 from aprsd.client.drivers.tcpkiss import TCPKISSDriver
 
 driver_registry = DriverRegistry()
 driver_registry.register(APRSDFakeDriver)
 driver_registry.register(APRSISDriver)
 driver_registry.register(TCPKISSDriver)
+driver_registry.register(SerialKISSDriver)
