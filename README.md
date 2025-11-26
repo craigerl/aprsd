@@ -113,6 +113,7 @@ You can see the [available plugins/extensions on pypi here:](https://pypi.org/se
 
  - [aprsd-admin-extension](https://github.com/hemna/aprsd-admin-extension) - Web Administration page for APRSD
  - [aprsd-webchat-extension](https://github.com/hemna/aprsd-webchat-extension) - Web page for APRS Messaging
+ - [aprsd-rich-cli-extension](https://github.com/hemna/aprsd-rich-cli-extension) - Textual rich CLI versions of aprsd commands
  - [aprsd-irc-extension](https://github.com/hemna/aprsd-irc-extension) - an IRC like server command for APRS
 
 ### APRSD Overview Diagram
@@ -299,6 +300,8 @@ file
     │ 📂 aprsd-admin-extension │ Administration extension for the Ham radio APRSD Server             │  1.0.1  │ 2025-01-06T21:57:24 │    Yes     │
     │ 📂 aprsd-irc-extension   │ An Extension to Ham radio APRSD Daemon to act like an irc server    │  0.0.5  │ 2024-04-09T11:28:47 │     No     │
     │                          │ for APRS                                                            │         │                     │            │
+    │ 📂 aprsd-rich-cli-extens │ APRSD Extension to create textual rich CLI versions of aprsd        │  0.1.1  │ 2024-12-01T00:00:00 │     No     │
+    │     ion                  │ commands                                                            │         │                     │            │
     │ 📂 aprsd-webchat-extens  │ Web page for APRS Messaging                                          │  1.2.3  │ 2024-10-01T00:00:00 │     No     │
     │     ion                  │                                                                      │         │                     │            │
     └──────────────────────────┴─────────────────────────────────────────────────────────────────────┴─────────┴─────────────────────┴────────────┘

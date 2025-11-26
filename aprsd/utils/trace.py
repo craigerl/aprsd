@@ -143,7 +143,10 @@ class TraceWrapperMetaclass(type):
     def __new__(cls, classname, bases, class_dict):
         new_class_dict = {}
         for attribute_name, attribute in class_dict.items():
-            if isinstance(attribute, types.FunctionType):
+            if attribute_name == '__new__' or attribute_name == '__init__':
+                # Don't trace the __new__ or __init__ methods
+                pass
+            elif isinstance(attribute, types.FunctionType):
                 # replace it with a wrapped version
                 attribute = functools.update_wrapper(
                     trace_method(attribute),
