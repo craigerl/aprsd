@@ -130,6 +130,25 @@ def trace_method(f):
     return trace_method_logging_wrapper
 
 
+def no_trace(f):
+    """Decorator to exclude a method from TraceWrapperMetaclass wrapping.
+
+    Use this decorator on methods that should not be wrapped with trace_method
+    by the TraceWrapperMetaclass.
+
+    Example:
+        class MyClass(metaclass=TraceWrapperMetaclass):
+            def traced_method(self):
+                pass  # This will be wrapped
+
+            @no_trace
+            def not_traced_method(self):
+                pass  # This will NOT be wrapped
+    """
+    f.__no_trace__ = True
+    return f
+
+
 class TraceWrapperMetaclass(type):
     """Metaclass that wraps all methods of a class with trace_method.
 
@@ -146,12 +165,19 @@ class TraceWrapperMetaclass(type):
             if attribute_name == '__new__' or attribute_name == '__init__':
                 # Don't trace the __new__ or __init__ methods
                 pass
+            elif attribute_name == 'consumer':
+                pass
             elif isinstance(attribute, types.FunctionType):
-                # replace it with a wrapped version
-                attribute = functools.update_wrapper(
-                    trace_method(attribute),
-                    attribute,
-                )
+                # Check if method is marked with @no_trace decorator
+                if getattr(attribute, '__no_trace__', False):
+                    # Don't wrap methods marked with @no_trace
+                    pass
+                else:
+                    # replace it with a wrapped version
+                    attribute = functools.update_wrapper(
+                        trace_method(attribute),
+                        attribute,
+                    )
             new_class_dict[attribute_name] = attribute
 
         return type.__new__(cls, classname, bases, new_class_dict)
