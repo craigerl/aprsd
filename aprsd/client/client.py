@@ -30,6 +30,13 @@ class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
     driver = None
     lock = threading.Lock()
     filter = None
+    connected = False
+    running = False
+    auto_connect = True
+    login_status = {
+        'success': False,
+        'message': None,
+    }
 
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
@@ -40,12 +47,6 @@ class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
 
     def __init__(self, auto_connect: bool = True):
         self.auto_connect = auto_connect
-        self.connected = False
-        self.running = False
-        self.login_status = {
-            'success': False,
-            'message': None,
-        }
         if not self.driver:
             self.driver = DriverRegistry().get_driver()
         if self.auto_connect:
@@ -71,12 +72,6 @@ class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
             if driver.is_configured():
                 return True
         return False
-
-    # @property
-    # def is_connected(self):
-    #     if not self.driver:
-    #         return False
-    #     return self.driver.is_connected()
 
     @property
     def login_success(self):
@@ -106,6 +101,7 @@ class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
 
     @wrapt.synchronized(lock)
     def connect(self):
+        # log a stack trace here to find out who is calling us.
         if not self.driver:
             self.driver = DriverRegistry().get_driver()
         if not self.connected:
