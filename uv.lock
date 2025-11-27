@@ -84,6 +84,7 @@ dev = [
     { name = "mistune" },
     { name = "nodeenv" },
     { name = "packaging" },
+    { name = "pip" },
     { name = "pip-tools" },
     { name = "platformdirs" },
     { name = "pluggy" },
@@ -93,6 +94,7 @@ dev = [
     { name = "pyproject-hooks" },
     { name = "pyyaml" },
     { name = "requests" },
+    { name = "setuptools" },
     { name = "snowballstemmer" },
     { name = "sphinx" },
     { name = "sphinxcontrib-applehelp" },
@@ -155,6 +157,7 @@ requires-dist = [
     { name = "packaging", specifier = "==25.0" },
     { name = "packaging", marker = "extra == 'dev'", specifier = "==25.0" },
     { name = "pbr", specifier = "==6.1.1" },
+    { name = "pip", marker = "extra == 'dev'", specifier = "==25.2" },
     { name = "pip-tools", marker = "extra == 'dev'", specifier = "==7.5.0" },
     { name = "platformdirs", marker = "extra == 'dev'", specifier = "==4.3.8" },
     { name = "pluggy", specifier = "==1.6.0" },
@@ -175,6 +178,7 @@ requires-dist = [
     { name = "rich", specifier = "==14.1.0" },
     { name = "rush", specifier = "==2021.4.0" },
     { name = "setuptools", specifier = "==80.9.0" },
+    { name = "setuptools", marker = "extra == 'dev'", specifier = "==80.9.0" },
     { name = "snowballstemmer", marker = "extra == 'dev'", specifier = "==3.0.1" },
     { name = "sphinx", marker = "extra == 'dev'", specifier = "==8.1.3" },
     { name = "sphinxcontrib-applehelp", marker = "extra == 'dev'", specifier = "==2.0.0" },
@@ -768,11 +772,11 @@ wheels = [
 
 [[package]]
 name = "pip"
-version = "24.3.1"
+version = "25.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f4/b1/b422acd212ad7eedddaf7981eee6e5de085154ff726459cf2da7c5a184c1/pip-24.3.1.tar.gz", hash = "sha256:ebcb60557f2aefabc2e0f918751cd24ea0d56d8ec5445fe1807f1d2109660b99", size = 1931073, upload-time = "2024-10-27T18:35:56.354Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/20/16/650289cd3f43d5a2fadfd98c68bd1e1e7f2550a1a5326768cddfbcedb2c5/pip-25.2.tar.gz", hash = "sha256:578283f006390f85bb6282dffb876454593d637f5d1be494b5202ce4877e71f2", size = 1840021, upload-time = "2025-07-30T21:50:15.401Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ef/7d/500c9ad20238fcfcb4cb9243eede163594d7020ce87bd9610c9e02771876/pip-24.3.1-py3-none-any.whl", hash = "sha256:3790624780082365f47549d032f3770eeb2b1e8bd1f7b2e02dace1afa361b4ed", size = 1822182, upload-time = "2024-10-27T18:35:53.067Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/3f/945ef7ab14dc4f9d7f40288d2df998d1837ee0888ec3659c813487572faa/pip-25.2-py3-none-any.whl", hash = "sha256:6d67a2b4e7f14d8b31b8b52648866fa717f45a1eb70e83002f4331d07e953717", size = 1752557, upload-time = "2025-07-30T21:50:13.323Z" },
 ]
 
 [[package]]

@@ -167,7 +167,7 @@ class SerialKISSDriver(KISSDriver):
             # try:
             #    readable, _, _ = select.select(
             #        [self.socket],
-            ##        [],
+            #        [],
             #        [],
             #        self.select_timeout,
             #    )
