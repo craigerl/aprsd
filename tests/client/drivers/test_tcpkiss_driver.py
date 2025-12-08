@@ -316,7 +316,8 @@ class TestTCPKISSDriver(unittest.TestCase):
         """Test fix_raw_frame removes KISS markers and handles FEND."""
         # Create a test frame with KISS markers
         with mock.patch(
-            'aprsd.client.drivers.tcpkiss.handle_fend', return_value=b'fixed_frame'
+            'aprsd.client.drivers.kiss_common.KISSDriver._handle_fend',
+            return_value=b'fixed_frame',
         ) as mock_handle_fend:
             raw_frame = b'\xc0\x00some_frame_data\xc0'  # \xc0 is FEND
 
@@ -344,7 +345,7 @@ class TestTCPKISSDriver(unittest.TestCase):
                 mock_factory.assert_called_once_with(mock_aprs_data)
                 self.assertEqual(result, mock_packet)
 
-    @mock.patch('aprsd.client.drivers.tcpkiss.LOG')
+    @mock.patch('aprsd.client.drivers.kiss_common.LOG')
     def test_decode_packet_no_frame(self, mock_log):
         """Test decode_packet with no frame returns None."""
         result = self.driver.decode_packet()
@@ -352,13 +353,13 @@ class TestTCPKISSDriver(unittest.TestCase):
         self.assertIsNone(result)
         mock_log.warning.assert_called_once()
 
-    @mock.patch('aprsd.client.drivers.tcpkiss.LOG')
+    @mock.patch('aprsd.client.drivers.kiss_common.LOG')
     def test_decode_packet_exception(self, mock_log):
         """Test decode_packet handles exceptions."""
         mock_frame = 'invalid frame'
 
         with mock.patch(
-            'aprsd.client.drivers.tcpkiss.aprslib.parse',
+            'aprsd.client.drivers.kiss_common.aprslib.parse',
             side_effect=Exception('Test error'),
         ) as mock_parse:
             result = self.driver.decode_packet(frame=mock_frame)
