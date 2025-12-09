@@ -7,7 +7,7 @@ from typing import List
 
 import wrapt
 
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
@@ -27,6 +27,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         """see if we have a quit message from the global queue."""
         if self.thread_stop:
             return True
+        return False
 
     def pause(self):
         """Logically pause the processing of the main loop."""
@@ -51,7 +52,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
 
     def __str__(self):
         out = (
-            f"Thread <{self.__class__.__name__}({self.name}) Alive? {self.is_alive()}>"
+            f'Thread <{self.__class__.__name__}({self.name}) Alive? {self.is_alive()}>'
         )
         return out
 
@@ -60,7 +61,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         return datetime.datetime.now() - self._last_loop
 
     def run(self):
-        LOG.debug("Starting")
+        LOG.debug('Starting')
         while not self._should_quit():
             if self._pause:
                 time.sleep(1)
@@ -72,7 +73,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
                     self.stop()
         self._cleanup()
         APRSDThreadList().remove(self)
-        LOG.debug("Exiting")
+        LOG.debug('Exiting')
 
 
 class APRSDThreadList:
@@ -103,11 +104,11 @@ class APRSDThreadList:
             if serializable:
                 age = str(age)
             stats[th.name] = {
-                "name": th.name,
-                "class": th.__class__.__name__,
-                "alive": th.is_alive(),
-                "age": th.loop_age(),
-                "loop_count": th.loop_count,
+                'name': th.name,
+                'class': th.__class__.__name__,
+                'alive': th.is_alive(),
+                'age': th.loop_age(),
+                'loop_count': th.loop_count,
             }
         return stats
 
@@ -123,27 +124,27 @@ class APRSDThreadList:
     def stop_all(self):
         """Iterate over all threads and call stop on them."""
         for th in self.threads_list:
-            LOG.info(f"Stopping Thread {th.name}")
-            if hasattr(th, "packet"):
-                LOG.info(f"{th.name} packet {th.packet}")
+            LOG.info(f'Stopping Thread {th.name}')
+            if hasattr(th, 'packet'):
+                LOG.info(f'{th.name} packet {th.packet}')
             th.stop()
 
     @wrapt.synchronized
     def pause_all(self):
         """Iterate over all threads and pause them."""
         for th in self.threads_list:
-            LOG.info(f"Pausing Thread {th.name}")
-            if hasattr(th, "packet"):
-                LOG.info(f"{th.name} packet {th.packet}")
+            LOG.info(f'Pausing Thread {th.name}')
+            if hasattr(th, 'packet'):
+                LOG.info(f'{th.name} packet {th.packet}')
             th.pause()
 
     @wrapt.synchronized
     def unpause_all(self):
         """Iterate over all threads and resume them."""
         for th in self.threads_list:
-            LOG.info(f"Resuming Thread {th.name}")
-            if hasattr(th, "packet"):
-                LOG.info(f"{th.name} packet {th.packet}")
+            LOG.info(f'Resuming Thread {th.name}')
+            if hasattr(th, 'packet'):
+                LOG.info(f'{th.name} packet {th.packet}')
             th.unpause()
 
     @wrapt.synchronized(lock)
@@ -155,9 +156,9 @@ class APRSDThreadList:
             age = thread.loop_age()
             key = thread.__class__.__name__
             info[key] = {
-                "alive": True if alive else False,
-                "age": age,
-                "name": thread.name,
+                'alive': True if alive else False,
+                'age': age,
+                'name': thread.name,
             }
         return info
 
