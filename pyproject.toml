@@ -175,6 +175,8 @@ branch = true
 
 [tool.ruff]
 line-length = 88
+
+[tool.ruff.lint]
 select = [
     "F",  # pyflakes rules
     "E",  # pycodestyle error rules

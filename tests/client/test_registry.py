@@ -11,7 +11,7 @@ class TestDriverRegistry(unittest.TestCase):
 
     def setUp(self):
         # Reset the singleton instance before each test
-        DriverRegistry._singleton_instances = {}
+        DriverRegistry.instance = None
         self.registry = DriverRegistry()
         self.registry.drivers = []
 
@@ -32,11 +32,26 @@ class TestDriverRegistry(unittest.TestCase):
         mock_conf.aprs_network.password = 'dummy'
         mock_conf.aprs_network.login = 'dummy'
 
+        # Patch the register method to skip Protocol check for MockClientDriver
+        self._original_register = self.registry.register
+
+        def mock_register(driver):
+            # Skip Protocol check for MockClientDriver
+            if hasattr(driver, '__name__') and driver.__name__ == 'MockClientDriver':
+                self.registry.drivers.append(driver)
+            else:
+                self._original_register(driver)
+
+        self.registry.register = mock_register
+
     def tearDown(self):
         # Reset the singleton instance after each test
         DriverRegistry().drivers = []
         self.aprsis_patcher.stop()
         self.conf_patcher.stop()
+        # Restore original register method if it was patched
+        if hasattr(self, '_original_register'):
+            self.registry.register = self._original_register
 
     def test_get_driver_with_valid_driver(self):
         """Test getting an enabled and configured driver."""

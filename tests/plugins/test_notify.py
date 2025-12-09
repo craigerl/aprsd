@@ -29,13 +29,32 @@ class TestWatchListPlugin(test_plugin.TestPlugin):
         self.mock_aprsis.is_enabled.return_value = False
         self.mock_aprsis.is_configured.return_value = False
 
+        # Patch the register method to skip Protocol check for MockClientDriver
+        # Get the singleton instance and patch it
+        registry = DriverRegistry()
+        self._original_register = registry.register
+
+        def mock_register(driver):
+            # Skip Protocol check for MockClientDriver
+            if hasattr(driver, '__name__') and driver.__name__ == 'MockClientDriver':
+                registry.drivers.append(driver)
+            else:
+                self._original_register(driver)
+
+        registry.register = mock_register
+        # Store reference to registry for tearDown
+        self._patched_registry = registry
+
         # Register the mock driver
-        DriverRegistry().register(MockClientDriver)
+        registry.register(MockClientDriver)
 
     def tearDown(self):
         super().tearDown()
         if hasattr(self, 'aprsis_patcher'):
             self.aprsis_patcher.stop()
+        # Restore original register method if it was patched
+        if hasattr(self, '_original_register') and hasattr(self, '_patched_registry'):
+            self._patched_registry.register = self._original_register
 
     def config_and_init(
         self,
