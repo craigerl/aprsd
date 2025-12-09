@@ -36,7 +36,7 @@ class ServiceThreads:
         for thread in self.threads:
             thread.start()
 
-    def join(self):
+    def join(self, timeout=None):
         """Join all the threads in the list"""
         for thread in self.threads:
-            thread.join()
+            thread.join(timeout=timeout)
