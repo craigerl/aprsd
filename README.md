@@ -85,6 +85,7 @@ You can see the [available plugins/extensions on pypi here:](https://pypi.org/se
 
  * [See webchat extension here](https://github.com/hemna/aprsd-webchat-extension) <div id="webchat logo" align="left"><img src="https://raw.githubusercontent.com/hemna/aprsd-webchat-extension/master/screenshot.png" alt="Webchat" width="340"/></div>
 
+ * [See CLI chat extension here](https://github.com/hemna/aprsd-rich-cli-extension) <div id="rich_logo" align="left"><img src="https://github.com/hemna/aprsd-rich-cli-extension/blob/master/screenshot.png" alt="CLI Chat" width="340"></div>
 
 ### List of existing plugins - APRS Message processing/responders
 
