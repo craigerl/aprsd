@@ -36,14 +36,10 @@
 17. [Development](#development)
 18. [Release](#release)
 19. [Building your own APRSD plugins](#building-your-own-aprsd-plugins)
-20. [Overview](#overview)
-21. [Docker Container](#docker-container)
-22. [Building](#building)
-23. [Official Build](#official-build)
-24. [Development Build](#development-build)
-25. [Running the container](#running-the-container)
-26. [Activity](#activity)
-27. [Star History](#star-history)
+20. [Docker Container](#docker-container)
+21. [Running the container](#running-the-container)
+22. [Activity](#activity)
+23. [Star History](#star-history)
 
 ---
 
@@ -392,53 +388,11 @@ To do release to pypi:
 
 #### Building your own APRSD plugins
 
-APRSD plugins are the mechanism by which APRSD can respond to APRS
-Messages. The plugins are loaded at server startup and can also be
-loaded at listen startup. When a packet is received by APRSD, it is
-passed to each of the plugins in the order they were registered in the
-config file. The plugins can then decide what to do with the packet.
-When a plugin is called, it is passed a APRSD Packet object. The plugin
-can then do something with the packet and return a reply message if
-desired. If a plugin does not want to reply to the packet, it can just
-return None. When a plugin does return a reply message, APRSD will send
-the reply message to the appropriate destination.
-
-For example, when a \'ping\' message is received, the PingPlugin will
-return a reply message of \'pong\'. When APRSD receives the \'pong\'
-message, it will be sent back to the original caller of the ping
-message.
-
-APRSD plugins are simply python packages that can be installed from
-pypi.org. They are installed into the aprsd virtualenv and can be
-imported by APRSD at runtime. The plugins are registered in the config
-file and loaded at startup of the aprsd server command or the aprsd
-listen command.
-
-#### Overview
-
-You can build your own plugins by following the instructions in the
-[Building your own APRSD plugins](#building-your-own-aprsd-plugins)
-section.
-
-Plugins are called by APRSD when packe
+For information on building your own APRSD plugins, see the [Plugin Development documentation](https://aprsd.readthedocs.io/en/latest/plugin.html).
 
 ### Docker Container
 
-### Building
-
-There are 2 versions of the container Dockerfile that can be used. The
-main Dockerfile, which is for building the official release container
-based off of the uv/pip install version of aprsd and the Dockerfile-dev,
-which is used for building a container based off of a git branch of the
-repo.
-
-### Official Build
-
-`docker build -t hemna6969/aprsd:latest .`
-
-### Development Build
-
-`docker build -t hemna6969/aprsd:latest -f Dockerfile-dev .`
+For information on building Docker containers (official and development builds), see the [Docker Container documentation](https://aprsd.readthedocs.io/en/latest/readme.html#docker-container).
 
 ### Running the container
 

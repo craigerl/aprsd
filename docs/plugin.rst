@@ -1,6 +1,63 @@
 APRSD Command Plugin Development
 ================================
 
+Creating a Plugin Project
+-------------------------
+
+The recommended way to create a new APRSD plugin project is to use the `cookiecutter-aprsd-plugin`_ template. This template provides a complete project structure with all the necessary files, testing infrastructure, and documentation setup.
+
+Installation
+~~~~~~~~~~~~
+
+First, install cookiecutter if you haven't already::
+
+    pip install cookiecutter
+
+Creating a New Plugin Project
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Run cookiecutter with the APRSD plugin template::
+
+    cookiecutter gh:hemna/cookiecutter-aprsd-plugin
+
+Cookiecutter will prompt you for several pieces of information:
+
+* **plugin_name**: The name of your plugin (e.g., ``aprsd-my-plugin``)
+* **plugin_module_name**: The Python module name (e.g., ``aprsd_my_plugin``)
+* **author_name**: Your name or organization name
+* **author_email**: Your email address
+* **description**: A brief description of your plugin
+* **version**: Initial version (default: ``0.1.0``)
+
+Project Structure
+~~~~~~~~~~~~~~~~~
+
+The cookiecutter template creates a complete project structure including:
+
+* **Test automation** with Tox
+* **Linting** with pre-commit and Flake8
+* **Continuous integration** with GitHub Actions
+* **Documentation** with Sphinx and Read the Docs
+* **Automated uploads** to PyPI and TestPyPI
+* **Automated dependency updates** with Dependabot
+* **Code formatting** with Gray
+* **Testing** with pytest
+* **Code coverage** with Coverage.py
+* **Coverage reporting** with Codecov
+
+The generated project follows Python packaging best practices and includes:
+
+* Proper ``setup.py`` and ``pyproject.toml`` configuration
+* Entry point registration for APRSD plugin discovery
+* Test suite structure
+* Documentation templates
+* CI/CD pipeline configuration
+
+For more information about the cookiecutter template, visit the `cookiecutter-aprsd-plugin repository`_.
+
+.. _cookiecutter-aprsd-plugin: https://github.com/hemna/cookiecutter-aprsd-plugin
+.. _cookiecutter-aprsd-plugin repository: https://github.com/hemna/cookiecutter-aprsd-plugin
+
 APRSDPluginBase
 ------------------------
 

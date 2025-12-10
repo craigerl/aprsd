@@ -1,6 +1,14 @@
 aprsd.packets package
 =====================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   aprsd.packets.filters
+
 Submodules
 ----------
 
@@ -16,6 +24,14 @@ aprsd.packets.core module
 -------------------------
 
 .. automodule:: aprsd.packets.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.packets.filter module
+---------------------------
+
+.. automodule:: aprsd.packets.filter
    :members:
    :undoc-members:
    :show-inheritance:

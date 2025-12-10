@@ -44,6 +44,14 @@ aprsd.utils.objectstore module
    :undoc-members:
    :show-inheritance:
 
+aprsd.utils.package module
+--------------------------
+
+.. automodule:: aprsd.utils.package
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.utils.ring\_buffer module
 -------------------------------
 

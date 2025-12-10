@@ -136,7 +136,8 @@ def no_trace(f):
     Use this decorator on methods that should not be wrapped with trace_method
     by the TraceWrapperMetaclass.
 
-    Example:
+    Example::
+
         class MyClass(metaclass=TraceWrapperMetaclass):
             def traced_method(self):
                 pass  # This will be wrapped

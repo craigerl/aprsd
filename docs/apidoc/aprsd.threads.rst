@@ -36,6 +36,14 @@ aprsd.threads.rx module
    :undoc-members:
    :show-inheritance:
 
+aprsd.threads.service module
+----------------------------
+
+.. automodule:: aprsd.threads.service
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 aprsd.threads.stats module
 --------------------------
 

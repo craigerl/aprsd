@@ -17,7 +17,10 @@
    install
    configure
    server
+   listen
+   builtin_plugins
    plugin
+   extension
 
    apidoc/modules.rst
 

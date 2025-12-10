@@ -1,6 +1,14 @@
 aprsd.client.drivers package
 ============================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   aprsd.client.drivers.lib
+
 Submodules
 ----------
 
@@ -20,10 +28,34 @@ aprsd.client.drivers.fake module
    :undoc-members:
    :show-inheritance:
 
-aprsd.client.drivers.kiss module
---------------------------------
+aprsd.client.drivers.kiss\_common module
+----------------------------------------
 
-.. automodule:: aprsd.client.drivers.kiss
+.. automodule:: aprsd.client.drivers.kiss_common
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.client.drivers.registry module
+------------------------------------
+
+.. automodule:: aprsd.client.drivers.registry
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.client.drivers.serialkiss module
+--------------------------------------
+
+.. automodule:: aprsd.client.drivers.serialkiss
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+aprsd.client.drivers.tcpkiss module
+-----------------------------------
+
+.. automodule:: aprsd.client.drivers.tcpkiss
    :members:
    :undoc-members:
    :show-inheritance:

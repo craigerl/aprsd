@@ -36,14 +36,14 @@ Sample config file
     #
 
     # Callsign to use for messages sent by APRSD (string value)
-    #callsign = <None>
+    #callsign = NOCALL
 
     # Enable saving of watch list, packet tracker between restarts.
     # (boolean value)
     #enable_save = true
 
     # Save location for packet tracking files. (string value)
-    #save_location = ~/.config/aprsd
+    #save_location = /Users/I530566/.config/aprsd/
 
     # Enable code tracing (boolean value)
     #trace_enabled = false
@@ -51,34 +51,89 @@ Sample config file
     # Units for display, imperial or metric (string value)
     #units = imperial
 
+    # The wait period in seconds per Ack packet being sent.1 means 1 ack
+    # packet per second allowed.2 means 1 pack packet every 2 seconds
+    # allowed (integer value)
+    #ack_rate_limit_period = 1
+
+    # Wait period in seconds per non AckPacket being sent.2 means 1 packet
+    # every 2 seconds allowed.5 means 1 pack packet every 5 seconds
+    # allowed (integer value)
+    #msg_rate_limit_period = 2
+
+    # The number of seconds before a packet is not considered a duplicate.
+    # (integer value)
+    #packet_dupe_timeout = 300
+
+    # Enable sending of a GPS Beacon packet to locate this service.
+    # Requires latitude and longitude to be set. (boolean value)
+    #enable_beacon = false
+
+    # The number of seconds between beacon packets. (integer value)
+    #beacon_interval = 1800
+
+    # The symbol to use for the GPS Beacon packet. See:
+    # http://www.aprs.net/vm/DOS/SYMBOLS.HTM (string value)
+    #beacon_symbol = /
+
+    # Latitude for the GPS Beacon button.  If not set, the button will not
+    # be enabled. (string value)
+    #latitude = <None>
+
+    # Longitude for the GPS Beacon button.  If not set, the button will
+    # not be enabled. (string value)
+    #longitude = <None>
+
+    # When logging packets 'compact' will use a single line formatted for
+    # each packet.'multiline' will use multiple lines for each packet and
+    # is the traditional format.both will log both compact and multiline.
+    # (string value)
+    # Possible values:
+    # compact - <No description provided>
+    # multiline - <No description provided>
+    # both - <No description provided>
+    #log_packet_format = compact
+
+    # The number of times to send a non ack packet before giving up.
+    # (integer value)
+    #default_packet_send_count = 3
+
+    # The number of times to send an ack packet in response to recieving a
+    # packet. (integer value)
+    #default_ack_send_count = 3
+
+    # The maximum number of packets to store in the packet list. (integer
+    # value)
+    #packet_list_maxlen = 100
+
+    # The maximum number of packets to send in the stats dict for admin
+    # ui. -1 means no max. (integer value)
+    #packet_list_stats_maxlen = 20
+
+    # Enable the Callsign seen list tracking feature.  This allows aprsd
+    # to keep track of callsigns that have been seen and when they were
+    # last seen. (boolean value)
+    #enable_seen_list = true
+
+    # Set this to False, to disable logging of packets to the log file.
+    # (boolean value)
+    #enable_packet_logging = true
+
+    # Set this to False to disable the help plugin. (boolean value)
+    #load_help_plugin = true
+
+    # Set this to False, to disable sending of ack packets. This will
+    # entirely stopAPRSD from sending ack packets. (boolean value)
+    #enable_sending_ack_packets = true
+
+    # Set this to True, if APRSD is running on a Digipi.This is useful for
+    # changing the behavior of APRSD to work with Digipi. (boolean value)
+    #is_digipi = false
+
     # Comma separated list of enabled plugins for APRSD.To enable
     # installed external plugins add them here.The full python path to the
     # class name must be used (list value)
-    #enabled_plugins = aprsd.plugins.email.EmailPlugin,aprsd.plugins.fortune.FortunePlugin,aprsd.plugins.location.LocationPlugin,aprsd.plugins.ping.PingPlugin,aprsd.plugins.query.QueryPlugin,aprsd.plugins.time.TimePlugin,aprsd.plugins.weather.OWMWeatherPlugin,aprsd.plugins.version.VersionPlugin
-
-
-    [admin]
-
-    #
-    # From aprsd.conf
-    #
-
-    # Enable the Admin Web Interface (boolean value)
-    #web_enabled = false
-
-    # The ip address to listen on (IP address value)
-    #web_ip = 0.0.0.0
-
-    # The port to listen on (port value)
-    # Minimum value: 0
-    # Maximum value: 65535
-    #web_port = 8001
-
-    # The admin user for the admin web interface (string value)
-    #user = admin
-
-    # Admin interface password (string value)
-    #password = <None>
+    #enabled_plugins = aprsd.plugins.fortune.FortunePlugin,aprsd.plugins.location.LocationPlugin,aprsd.plugins.ping.PingPlugin,aprsd.plugins.time.TimePlugin,aprsd.plugins.weather.OWMWeatherPlugin,aprsd.plugins.version.VersionPlugin,aprsd.plugins.notify.NotifySeenPlugin
 
 
     [aprs_fi]
@@ -109,7 +164,7 @@ Sample config file
     # https://apps.magicbug.co.uk/passcode (string value)
     #password = <None>
 
-    # The APRS-IS hostname (hostname value)
+    # The APRS-IS hostname (host address value)
     #host = noam.aprs2.net
 
     # APRS-IS port (port value)
@@ -118,21 +173,35 @@ Sample config file
     #port = 14580
 
 
-    [aprsd_weewx_plugin]
+    [aprs_registry]
 
     #
-    # From aprsd_weewx_plugin.conf
+    # From aprsd.conf
     #
 
-    # Latitude of the station you want to report as (floating point value)
-    #latitude = <None>
-
-    # Longitude of the station you want to report as (floating point
+    # Enable sending aprs registry information.  This will let the APRS
+    # registry know about your service and it's uptime.  No personal
+    # information is sent, just the callsign, uptime and description. The
+    # service callsign is the callsign set in [DEFAULT] section. (boolean
     # value)
-    #longitude = <None>
+    #enabled = false
 
-    # How long (in seconds) in between weather reports (integer value)
-    #report_interval = 60
+    # Description of the service to send to the APRS registry. This is
+    # what will show up in the APRS registry.If not set, the description
+    # will be the same as the callsign. (string value)
+    #description = <None>
+
+    # The APRS registry domain name to send the information to. (string
+    # value)
+    #registry_url = https://aprs.hemna.com/api/v1/registry
+
+    # The website for your APRS service to send to the APRS registry.
+    # (string value)
+    #service_website = <None>
+
+    # The frequency in seconds to send the APRS registry information.
+    # (integer value)
+    #frequency_seconds = 3600
 
 
     [avwx_plugin]
@@ -152,61 +221,14 @@ Sample config file
     #base_url = https://avwx.rest
 
 
-    [email_plugin]
+    [fake_client]
 
     #
     # From aprsd.conf
     #
 
-    # (Required) Callsign to validate for doing email commands.Only this
-    # callsign can check email. This is also where the email notifications
-    # for new emails will be sent. (string value)
-    #callsign = <None>
-
-    # Enable the Email plugin? (boolean value)
+    # Enable fake client connection. (boolean value)
     #enabled = false
-
-    # Enable the Email plugin Debugging? (boolean value)
-    #debug = false
-
-    # Login username/email for IMAP server (string value)
-    #imap_login = <None>
-
-    # Login password for IMAP server (string value)
-    #imap_password = <None>
-
-    # Hostname/IP of the IMAP server (hostname value)
-    #imap_host = <None>
-
-    # Port to use for IMAP server (port value)
-    # Minimum value: 0
-    # Maximum value: 65535
-    #imap_port = 993
-
-    # Use SSL for connection to IMAP Server (boolean value)
-    #imap_use_ssl = true
-
-    # Login username/email for SMTP server (string value)
-    #smtp_login = <None>
-
-    # Login password for SMTP server (string value)
-    #smtp_password = <None>
-
-    # Hostname/IP of the SMTP server (hostname value)
-    #smtp_host = <None>
-
-    # Port to use for SMTP server (port value)
-    # Minimum value: 0
-    # Maximum value: 65535
-    #smtp_port = 465
-
-    # Use SSL for connection to SMTP Server (boolean value)
-    #smtp_use_ssl = true
-
-    # List of email shortcuts for checking/sending email For Exmaple:
-    # wb=walt@walt.com,cl=cl@cl.com
-    # Means use 'wb' to send an email to walt@walt.com (list value)
-    #email_shortcuts = <None>
 
 
     [kiss_serial]
@@ -224,6 +246,9 @@ Sample config file
     # The Serial device baud rate for communication (integer value)
     #baudrate = 9600
 
+    # The APRS path to use for wide area coverage. (list value)
+    #path = WIDE1-1,WIDE2-1
+
 
     [kiss_tcp]
 
@@ -234,13 +259,16 @@ Sample config file
     # Enable Serial KISS interface connection. (boolean value)
     #enabled = false
 
-    # The KISS TCP Host to connect to. (hostname value)
+    # The KISS TCP Host to connect to. (host address value)
     #host = <None>
 
     # The KISS TCP/IP network port (port value)
     # Minimum value: 0
     # Maximum value: 65535
     #port = 8001
+
+    # The APRS path to use for wide area coverage. (list value)
+    #path = WIDE1-1,WIDE2-1
 
 
     [logging]
@@ -249,17 +277,26 @@ Sample config file
     # From aprsd.conf
     #
 
-    # Date format for log entries (string value)
-    #date_format = %m/%d/%Y %I:%M:%S %p
-
-    # Enable Rich logging (boolean value)
-    #rich_logging = true
-
     # File to log to (string value)
     #logfile = <None>
 
     # Log file format, unless rich_logging enabled. (string value)
-    #logformat = [%(asctime)s] [%(threadName)-20.20s] [%(levelname)-5.5s] %(message)s - [%(pathname)s:%(lineno)d]
+    #logformat = <green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <yellow>{thread.name: <18}</yellow> | <level>{level: <8}</level> | <level>{message}</level> | <cyan>{name}</cyan>:<cyan>{function:}</cyan>:<magenta>{line:}</magenta>
+
+    # Log level for logging of events. (string value)
+    # Possible values:
+    # CRITICAL - <No description provided>
+    # ERROR - <No description provided>
+    # WARNING - <No description provided>
+    # INFO - <No description provided>
+    # DEBUG - <No description provided>
+    #log_level = INFO
+
+    # Enable ANSI color codes in logging (boolean value)
+    #enable_color = true
+
+    # Enable logging to the console/stdout. (boolean value)
+    #enable_console_stdout = true
 
 
     [owm_weather_plugin]
@@ -273,39 +310,6 @@ Sample config file
     # use this plugin you need to get an openweathermapaccount and
     # apikey.https://home.openweathermap.org/api_keys (string value)
     #apiKey = <None>
-
-
-    [query_plugin]
-
-    #
-    # From aprsd.conf
-    #
-
-    # The Ham callsign to allow access to the query plugin from RF.
-    # (string value)
-    #callsign = <None>
-
-
-    [rpc_settings]
-
-    #
-    # From aprsd.conf
-    #
-
-    # Enable RPC calls (boolean value)
-    #enabled = true
-
-    # The ip address to listen on (string value)
-    #ip = localhost
-
-    # The port to listen on (port value)
-    # Minimum value: 0
-    # Maximum value: 65535
-    #port = 18861
-
-    # Magic word to authenticate requests between client/server (string
-    # value)
-    #magic_word = CHANGEME!!!
 
 
     [watch_list]

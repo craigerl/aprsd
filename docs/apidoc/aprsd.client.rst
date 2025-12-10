@@ -12,42 +12,10 @@ Subpackages
 Submodules
 ----------
 
-aprsd.client.aprsis module
+aprsd.client.client module
 --------------------------
 
-.. automodule:: aprsd.client.aprsis
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.client.base module
-------------------------
-
-.. automodule:: aprsd.client.base
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.client.factory module
----------------------------
-
-.. automodule:: aprsd.client.factory
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.client.fake module
-------------------------
-
-.. automodule:: aprsd.client.fake
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-aprsd.client.kiss module
-------------------------
-
-.. automodule:: aprsd.client.kiss
+.. automodule:: aprsd.client.client
    :members:
    :undoc-members:
    :show-inheritance:
