@@ -120,7 +120,13 @@ Each of those commands can connect to the APRS-IS network if internet
 connectivity is available. If internet is not available, then APRS can
 be configured to talk to a TCP KISS TNC for radio connectivity directly.
 
-Please `read the docs <https://aprsd.readthedocs.io>`_ to learn more!
+Please `read the docs <https://aprsd.readthedocs.io>`_ to learn more!a
+
+
+.. image:: https://asciinema.org/a/etTzphsf26aEZWrK8iKvU5Ekp.svg
+   :target: https://asciinema.org/a/etTzphsf26aEZWrK8iKvU5Ekp
+   :alt: asciicast
+
 
 APRSD Plugins/Extensions
 ------------------------
