@@ -17,69 +17,69 @@ aprsd.packets.collector module
 
 .. automodule:: aprsd.packets.collector
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.packets.core module
 -------------------------
 
 .. automodule:: aprsd.packets.core
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.packets.filter module
 ---------------------------
 
 .. automodule:: aprsd.packets.filter
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.packets.log module
 ------------------------
 
 .. automodule:: aprsd.packets.log
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.packets.packet\_list module
 ---------------------------------
 
 .. automodule:: aprsd.packets.packet_list
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.packets.seen\_list module
 -------------------------------
 
 .. automodule:: aprsd.packets.seen_list
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.packets.tracker module
 ----------------------------
 
 .. automodule:: aprsd.packets.tracker
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.packets.watch\_list module
 --------------------------------
 
 .. automodule:: aprsd.packets.watch_list
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: aprsd.packets
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

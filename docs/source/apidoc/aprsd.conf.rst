@@ -9,45 +9,45 @@ aprsd.conf.client module
 
 .. automodule:: aprsd.conf.client
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.conf.common module
 ------------------------
 
 .. automodule:: aprsd.conf.common
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.conf.log module
 ---------------------
 
 .. automodule:: aprsd.conf.log
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.conf.opts module
 ----------------------
 
 .. automodule:: aprsd.conf.opts
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.conf.plugin\_common module
 --------------------------------
 
 .. automodule:: aprsd.conf.plugin_common
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: aprsd.conf
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

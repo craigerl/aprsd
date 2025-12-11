@@ -9,13 +9,13 @@ aprsd.log.log module
 
 .. automodule:: aprsd.log.log
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: aprsd.log
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

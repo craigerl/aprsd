@@ -25,45 +25,45 @@ aprsd.cli\_helper module
 
 .. automodule:: aprsd.cli_helper
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.exception module
 ----------------------
 
 .. automodule:: aprsd.exception
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.main module
 -----------------
 
 .. automodule:: aprsd.main
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.plugin module
 -------------------
 
 .. automodule:: aprsd.plugin
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.plugin\_utils module
 --------------------------
 
 .. automodule:: aprsd.plugin_utils
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: aprsd
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

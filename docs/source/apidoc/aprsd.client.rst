@@ -17,21 +17,21 @@ aprsd.client.client module
 
 .. automodule:: aprsd.client.client
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.client.stats module
 -------------------------
 
 .. automodule:: aprsd.client.stats
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: aprsd.client
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

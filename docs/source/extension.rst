@@ -154,8 +154,8 @@ command-line interface::
         # Implementation here
         pass
 
-Configuration Options
-^^^^^^^^^^^^^^^^^^^^^
+WebChat Configuration Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The extension adds configuration options through ``conf/opts.py``::
 
@@ -186,8 +186,8 @@ The configuration can then be used in the extension code::
     host = CONF.webchat.host
     port = CONF.webchat.port
 
-Project Structure
-^^^^^^^^^^^^^^^^^
+WebChat Project Structure
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The webchat extension has the following structure::
 

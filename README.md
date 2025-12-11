@@ -54,17 +54,22 @@
 APRSD is a python application for interacting with the APRS network and Ham radios with KISS interfaces and
 providing APRS services for HAM radio operators.
 
-APRSD currently has 4 main commands to use.
+APRSD currently has the following commands to use.
 
- -  server - Connect to APRS and listen/respond to APRS messages
- -  send-message - Send a message to a callsign via APRS_IS.
+ -  server - Start the aprsd server gateway process.
  -  listen - Listen to packets on the APRS-IS Network based on FILTER.
- -  check-version - check the version of aprsd
- -  sample-config - generate a sample config file
- -  dev - helpful for testing new aprsd plugins under development
- -  dump-stats - output the stats of a running aprsd server command
- -  list-plugins - list the built in plugins, available plugins on pypi.org and installed plugins
- -  list-extensions - list the available extensions on pypi.org and installed extensions
+ -  send-message - Send a message to a callsign via APRS_IS.
+ -  check-version - Check this version against the latest in pypi.org.
+ -  completion - Show the shell completion code
+ -  dev - Development type subcommands
+ -  dump-stats - Dump the current stats from the running APRSD instance.
+ -  fetch-stats - Fetch stats from a APRSD admin web interface.
+ -  healthcheck - Check the health of the running aprsd server.
+ -  list-extensions - List the built in extensions available to APRSD.
+ -  list-plugins - List the built in plugins available to APRSD.
+ -  passcode - Generate an APRS passcode for a callsign.
+ -  sample-config - Generate a sample Config file from aprsd and all...
+ -  version - Show the APRSD version.
 
 Each of those commands can connect to the APRS-IS network if internet
 connectivity is available. If internet is not available, then APRS can
@@ -85,7 +90,7 @@ You can see the [available plugins/extensions on pypi here:](https://pypi.org/se
 
  * [See webchat extension here](https://github.com/hemna/aprsd-webchat-extension) <div id="webchat logo" align="left"><img src="https://raw.githubusercontent.com/hemna/aprsd-webchat-extension/master/screenshot.png" alt="Webchat" width="340"/></div>
 
- * [See CLI chat extension here](https://github.com/hemna/aprsd-rich-cli-extension) <div id="rich_logo" align="left"><img src="https://github.com/hemna/aprsd-rich-cli-extension/blob/master/screenshot.png" alt="CLI Chat" width="340"></div>
+ * [See CLI chat extension here](https://github.com/hemna/aprsd-rich-cli-extension) <div id="rich_logo" align="left"><img src="https://raw.githubusercontent.com/hemna/aprsd-rich-cli-extension/refs/heads/master/screenshot.png" alt="CLI Chat" width="340"></div>
 
 ### List of existing plugins - APRS Message processing/responders
 

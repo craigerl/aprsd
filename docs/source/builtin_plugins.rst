@@ -13,7 +13,7 @@ These plugins respond to APRS messages sent to your APRSD callsign.
 PingPlugin
 ~~~~~~~~~~
 
-**Command:** ``ping``, ``p``, or ``p `` (p followed by space)
+**Command:** ``ping``, ``p``, or ``p`` followed by a space
 
 **Description:** Responds with "Pong!" and the current time.
 
@@ -33,7 +33,7 @@ PingPlugin
 FortunePlugin
 ~~~~~~~~~~~~~
 
-**Command:** ``fortune``, ``f``, or ``f `` (f followed by space)
+**Command:** ``fortune``, ``f``, or ``f`` followed by a space
 
 **Description:** Returns a random fortune cookie message using the system's ``fortune`` command.
 
@@ -56,7 +56,7 @@ will automatically search common installation paths and disable itself if not fo
 TimePlugin
 ~~~~~~~~~~
 
-**Command:** ``time``, ``t``, or ``t `` (t followed by space)
+**Command:** ``time``, ``t``, or ``t`` followed by a space
 
 **Description:** Returns the current local time of the APRSD server in a human-readable format
 with timezone information.
@@ -77,7 +77,7 @@ with timezone information.
 TimeOWMPlugin
 ~~~~~~~~~~~~~
 
-**Command:** ``time``, ``t``, or ``t `` (t followed by space)
+**Command:** ``time``, ``t``, or ``t`` followed by a space
 
 **Description:** Returns the current time based on the GPS beacon location of the calling
 callsign (or optionally a specified callsign). Uses OpenWeatherMap API to determine the
@@ -106,7 +106,7 @@ timezone for the location.
 VersionPlugin
 ~~~~~~~~~~~~~
 
-**Command:** ``version``, ``v``, or ``v `` (v followed by space)
+**Command:** ``version``, ``v``, or ``v`` followed by a space
 
 **Description:** Returns the APRSD version number and server uptime.
 
@@ -155,7 +155,7 @@ for aprs.fi to get the GPS location.
 USMetarPlugin
 ~~~~~~~~~~~~~
 
-**Command:** ``metar``, ``m``, ``M``, or ``m `` (m or M at start of message)
+**Command:** ``metar``, ``m``, ``M``, or ``m`` followed by a space (m or M at start of message)
 
 **Description:** Provides METAR (Meteorological Aerodrome Report) weather reports for
 stations within the United States only. Uses the forecast.weather.gov API.
@@ -214,7 +214,7 @@ direction, and humidity.
 AVWXWeatherPlugin
 ~~~~~~~~~~~~~~~~~
 
-**Command:** ``metar``, ``m``, ``m `` (m at start of message)
+**Command:** ``metar``, ``m``, or ``m`` followed by a space (m at start of message)
 
 **Description:** Provides METAR weather reports using the AVWX API service. Fetches METAR
 data from the nearest weather station to the GPS beacon location of the calling callsign

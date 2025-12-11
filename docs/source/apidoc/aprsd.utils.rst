@@ -9,69 +9,69 @@ aprsd.utils.counter module
 
 .. automodule:: aprsd.utils.counter
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.utils.fuzzyclock module
 -----------------------------
 
 .. automodule:: aprsd.utils.fuzzyclock
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.utils.json module
 -----------------------
 
 .. automodule:: aprsd.utils.json
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.utils.keepalive\_collector module
 ---------------------------------------
 
 .. automodule:: aprsd.utils.keepalive_collector
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.utils.objectstore module
 ------------------------------
 
 .. automodule:: aprsd.utils.objectstore
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.utils.package module
 --------------------------
 
 .. automodule:: aprsd.utils.package
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.utils.ring\_buffer module
 -------------------------------
 
 .. automodule:: aprsd.utils.ring_buffer
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.utils.trace module
 ------------------------
 
 .. automodule:: aprsd.utils.trace
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: aprsd.utils
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

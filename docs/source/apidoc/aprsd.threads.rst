@@ -9,61 +9,61 @@ aprsd.threads.aprsd module
 
 .. automodule:: aprsd.threads.aprsd
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.threads.keepalive module
 ------------------------------
 
 .. automodule:: aprsd.threads.keepalive
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.threads.registry module
 -----------------------------
 
 .. automodule:: aprsd.threads.registry
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.threads.rx module
 -----------------------
 
 .. automodule:: aprsd.threads.rx
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.threads.service module
 ----------------------------
 
 .. automodule:: aprsd.threads.service
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.threads.stats module
 --------------------------
 
 .. automodule:: aprsd.threads.stats
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 aprsd.threads.tx module
 -----------------------
 
 .. automodule:: aprsd.threads.tx
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: aprsd.threads
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
