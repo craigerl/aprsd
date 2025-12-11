@@ -18,6 +18,7 @@ from rich.console import Console
 import aprsd
 from aprsd import cli_helper, packets, plugin, threads, utils
 from aprsd.client.client import APRSDClient
+from aprsd.log import log
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import core, seen_list
@@ -116,6 +117,101 @@ class ListenStatsThread(APRSDThread):
         return True
 
 
+def process_listen_options(f):
+    """Custom decorator for listen command that modifies log format before setup_logging."""
+    import cProfile
+    import typing as t
+    from functools import update_wrapper
+
+    def new_func(*args, **kwargs):
+        ctx = args[0]
+        ctx.ensure_object(dict)
+        config_file_found = True
+
+        # Extract show_thread and show_level
+        show_thread = kwargs.get('show_thread', False)
+        show_level = kwargs.get('show_level', False)
+
+        if kwargs['config_file']:
+            default_config_files = [kwargs['config_file']]
+        else:
+            default_config_files = None
+
+        try:
+            CONF(
+                [],
+                project='aprsd',
+                version=aprsd.__version__,
+                default_config_files=default_config_files,
+            )
+        except cfg.ConfigFilesNotFoundError:
+            config_file_found = False
+
+        # NOW modify config AFTER CONF is initialized but BEFORE setup_logging
+        # Build custom log format for listen command
+        # By default, disable thread, level, and location for cleaner output
+        from aprsd.conf import log as conf_log
+
+        parts = []
+        # Timestamp is always included
+        parts.append(conf_log.DEFAULT_LOG_FORMAT_TIMESTAMP)
+
+        if show_thread:
+            parts.append(conf_log.DEFAULT_LOG_FORMAT_THREAD)
+
+        if show_level:
+            parts.append(conf_log.DEFAULT_LOG_FORMAT_LEVEL)
+
+        # Message is always included
+        parts.append(conf_log.DEFAULT_LOG_FORMAT_MESSAGE)
+
+        # Location is never included for listen command
+
+        # Set the custom log format
+        CONF.logging.logformat = ' | '.join(parts)
+
+        ctx.obj['loglevel'] = kwargs['loglevel']
+        ctx.obj['quiet'] = kwargs['quiet']
+
+        # Now call setup_logging with our modified config
+        log.setup_logging(ctx.obj['loglevel'], ctx.obj['quiet'])
+
+        if CONF.trace_enabled:
+            from aprsd.utils import trace
+
+            trace.setup_tracing(['method', 'api'])
+
+        if not config_file_found:
+            LOG = logging.getLogger('APRSD')  # noqa: N806
+            LOG.error("No config file found!! run 'aprsd sample-config'")
+
+        profile_output = kwargs.pop('profile_output', None)
+        del kwargs['loglevel']
+        del kwargs['config_file']
+        del kwargs['quiet']
+
+        # Enable profiling if requested
+        if profile_output is not None:
+            if not profile_output or profile_output == '':
+                profile_output = 'aprsd_profile.prof'
+            profiler = cProfile.Profile()
+            profiler.enable()
+            try:
+                result = f(*args, **kwargs)
+            finally:
+                profiler.disable()
+                profiler.dump_stats(profile_output)
+                LOG = logging.getLogger('APRSD')  # noqa: N806
+                LOG.info(f'Profile data saved to {profile_output}')
+                LOG.info(f'Analyze with: python -m pstats {profile_output}')
+                LOG.info(f'Or visualize with: snakeviz {profile_output}')
+            return result
+        else:
+            return f(*args, **kwargs)
+
+    return update_wrapper(t.cast(t.Callable, new_func), f)
+
+
 @cli.command()
 @cli_helper.add_options(cli_helper.common_options)
 @click.option(
@@ -180,8 +276,20 @@ class ListenStatsThread(APRSDThread):
     is_flag=True,
     help='Enable packet stats periodic logging.',
 )
+@click.option(
+    '--show-thread',
+    default=False,
+    is_flag=True,
+    help='Show thread name in log format (disabled by default for listen).',
+)
+@click.option(
+    '--show-level',
+    default=False,
+    is_flag=True,
+    help='Show log level in log format (disabled by default for listen).',
+)
 @click.pass_context
-@cli_helper.process_standard_options
+@process_listen_options
 def listen(
     ctx,
     aprs_login,
@@ -192,6 +300,8 @@ def listen(
     filter,
     log_packets,
     enable_packet_stats,
+    show_thread,
+    show_level,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
 

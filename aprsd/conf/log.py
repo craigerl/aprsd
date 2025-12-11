@@ -15,17 +15,23 @@ LOG_LEVELS = {
 }
 
 DEFAULT_DATE_FORMAT = '%m/%d/%Y %I:%M:%S %p'
-DEFAULT_LOG_FORMAT = (
-    '[%(asctime)s] [%(threadName)-20.20s] [%(levelname)-5.5s]'
-    ' %(message)s - [%(pathname)s:%(lineno)d]'
+
+# Default log format parts
+DEFAULT_LOG_FORMAT_TIMESTAMP = '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>'
+DEFAULT_LOG_FORMAT_THREAD = '<yellow>{thread.name: <18}</yellow>'
+DEFAULT_LOG_FORMAT_LEVEL = '<level>{level: <8}</level>'
+DEFAULT_LOG_FORMAT_MESSAGE = '<level>{message}</level>'
+DEFAULT_LOG_FORMAT_LOCATION = (
+    '<cyan>{name}</cyan>:<cyan>{function:}</cyan>:<magenta>{line:}</magenta>'
 )
 
+# Build default format from parts
 DEFAULT_LOG_FORMAT = (
-    '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | '
-    '<yellow>{thread.name: <18}</yellow> | '
-    '<level>{level: <8}</level> | '
-    '<level>{message}</level> | '
-    '<cyan>{name}</cyan>:<cyan>{function:}</cyan>:<magenta>{line:}</magenta>'
+    f'{DEFAULT_LOG_FORMAT_TIMESTAMP} | '
+    f'{DEFAULT_LOG_FORMAT_THREAD} | '
+    f'{DEFAULT_LOG_FORMAT_LEVEL} | '
+    f'{DEFAULT_LOG_FORMAT_MESSAGE} | '
+    f'{DEFAULT_LOG_FORMAT_LOCATION}'
 )
 
 logging_group = cfg.OptGroup(

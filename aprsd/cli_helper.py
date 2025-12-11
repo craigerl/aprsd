@@ -1,3 +1,4 @@
+import cProfile
 import logging
 import typing as t
 from functools import update_wrapper
@@ -45,6 +46,15 @@ common_options = [
         is_flag=True,
         default=False,
         help="Don't log to stdout",
+    ),
+    click.option(
+        '--profile',
+        'profile_output',
+        default=None,
+        required=False,
+        metavar='FILENAME',
+        help='Enable profiling and save results to FILENAME. '
+        'If FILENAME is not provided, defaults to aprsd_profile.prof',
     ),
 ]
 
@@ -129,10 +139,30 @@ def process_standard_options(f: F) -> F:
             LOG = logging.getLogger('APRSD')  # noqa: N806
             LOG.error("No config file found!! run 'aprsd sample-config'")
 
+        profile_output = kwargs.pop('profile_output', None)
         del kwargs['loglevel']
         del kwargs['config_file']
         del kwargs['quiet']
-        return f(*args, **kwargs)
+
+        # Enable profiling if requested
+        if profile_output is not None:
+            # If profile_output is empty string, use default filename
+            if not profile_output or profile_output == '':
+                profile_output = 'aprsd_profile.prof'
+            profiler = cProfile.Profile()
+            profiler.enable()
+            try:
+                result = f(*args, **kwargs)
+            finally:
+                profiler.disable()
+                profiler.dump_stats(profile_output)
+                LOG = logging.getLogger('APRSD')  # noqa: N806
+                LOG.info(f'Profile data saved to {profile_output}')
+                LOG.info(f'Analyze with: python -m pstats {profile_output}')
+                LOG.info(f'Or visualize with: snakeviz {profile_output}')
+            return result
+        else:
+            return f(*args, **kwargs)
 
     return update_wrapper(t.cast(F, new_func), f)
 
@@ -151,9 +181,29 @@ def process_standard_options_no_config(f: F) -> F:
             ctx.obj['quiet'],
         )
 
+        profile_output = kwargs.pop('profile_output', None)
         del kwargs['loglevel']
         del kwargs['config_file']
         del kwargs['quiet']
-        return f(*args, **kwargs)
+
+        # Enable profiling if requested
+        if profile_output is not None:
+            # If profile_output is empty string, use default filename
+            if not profile_output or profile_output == '':
+                profile_output = 'aprsd_profile.prof'
+            profiler = cProfile.Profile()
+            profiler.enable()
+            try:
+                result = f(*args, **kwargs)
+            finally:
+                profiler.disable()
+                profiler.dump_stats(profile_output)
+                LOG = logging.getLogger('APRSD')  # noqa: N806
+                LOG.info(f'Profile data saved to {profile_output}')
+                LOG.info(f'Analyze with: python -m pstats {profile_output}')
+                LOG.info(f'Or visualize with: snakeviz {profile_output}')
+            return result
+        else:
+            return f(*args, **kwargs)
 
     return update_wrapper(t.cast(F, new_func), f)

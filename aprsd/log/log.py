@@ -12,6 +12,16 @@ CONF = cfg.CONF
 LOG = logger
 
 
+def build_log_format():
+    """Build log format from configurable parts."""
+    # If logformat is explicitly set, use it
+    if CONF.logging.logformat:
+        return CONF.logging.logformat
+
+    # Otherwise, use the default format
+    return conf_log.DEFAULT_LOG_FORMAT
+
+
 class QueueLatest(queue.Queue):
     """Custom Queue to keep only the latest N items.
 
@@ -84,13 +94,16 @@ def setup_logging(loglevel=None, quiet=False, custom_handler=None):
         logging.getLogger(name).handlers = []
         logging.getLogger(name).propagate = name not in disable_list
 
+    # Build the log format from configurable parts
+    log_format = build_log_format()
+
     handlers = []
     if CONF.logging.enable_console_stdout and not quiet:
         handlers.append(
             {
                 'sink': sys.stdout,
                 'serialize': False,
-                'format': CONF.logging.logformat,
+                'format': log_format,
                 'colorize': CONF.logging.enable_color,
                 'level': log_level,
             },
@@ -101,13 +114,16 @@ def setup_logging(loglevel=None, quiet=False, custom_handler=None):
             {
                 'sink': CONF.logging.logfile,
                 'serialize': False,
-                'format': CONF.logging.logformat,
+                'format': log_format,
                 'colorize': False,
                 'level': log_level,
             },
         )
 
     if custom_handler:
+        # If custom_handler doesn't have a format set, use the built format
+        if 'format' not in custom_handler:
+            custom_handler['format'] = log_format
         handlers.append(custom_handler)
 
     # configure loguru
