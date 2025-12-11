@@ -38,6 +38,7 @@ readme = {file = "README.md", content-type = "text/markdown"}
 # https://packaging.python.org/en/latest/specifications/core-metadata/#license
 license = {file = "LICENSE"}
 
+
 # This should be your name or the name of the organization who originally
 # authored the project, and a valid email address corresponding to the name
 # listed.
@@ -128,6 +129,7 @@ optional-dependencies.dev = {file = ["./requirements-dev.txt"]}
 # what's used to render the link text on PyPI.
 [project.urls]
 "Homepage" = "https://github.com/craigerl/aprsd"
+"Documentation" = "https://aprsd.readthedocs.io/en/latest/"
 "Bug Reports" = "https://github.com/craigerl/aprsd/issues"
 "Source" = "https://github.com/craigerl/aprsd"
 
