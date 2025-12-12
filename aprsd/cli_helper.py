@@ -34,6 +34,12 @@ log_options = [
         is_flag=True,
         help='Show log level in log format (disabled by default for listen).',
     ),
+    click.option(
+        '--show-location',
+        default=False,
+        is_flag=True,
+        help='Show location in log format (disabled by default for listen).',
+    ),
 ]
 
 common_options = [
@@ -124,9 +130,9 @@ def add_options(options):
 def setup_logging_with_options(
     show_thread: bool,
     show_level: bool,
+    show_location: bool,
     loglevel: str,
     quiet: bool,
-    include_location: bool = True,
 ) -> None:
     """Setup logging with custom format based on show_thread and show_level options.
 
@@ -153,7 +159,7 @@ def setup_logging_with_options(
     # Message is always included
     parts.append(conf_log.DEFAULT_LOG_FORMAT_MESSAGE)
 
-    if include_location:
+    if show_location:
         parts.append(conf_log.DEFAULT_LOG_FORMAT_LOCATION)
 
     # Set the custom log format
@@ -172,6 +178,7 @@ def process_standard_options(f: F) -> F:
         # Extract show_thread and show_level
         show_thread = kwargs.get('show_thread', False)
         show_level = kwargs.get('show_level', False)
+        show_location = kwargs.get('show_location', False)
 
         if kwargs['config_file']:
             default_config_files = [kwargs['config_file']]
@@ -196,9 +203,9 @@ def process_standard_options(f: F) -> F:
         setup_logging_with_options(
             show_thread=show_thread,
             show_level=show_level,
+            show_location=show_location,
             loglevel=ctx.obj['loglevel'],
             quiet=ctx.obj['quiet'],
-            include_location=True,
         )
         if CONF.trace_enabled:
             trace.setup_tracing(['method', 'api'])
@@ -213,6 +220,7 @@ def process_standard_options(f: F) -> F:
         del kwargs['quiet']
         del kwargs['show_thread']
         del kwargs['show_level']
+        del kwargs['show_location']
 
         # Enable profiling if requested
         if profile_output is not None:
@@ -247,6 +255,7 @@ def process_standard_options_no_config(f: F) -> F:
         # Extract show_thread and show_level
         show_thread = kwargs.get('show_thread', False)
         show_level = kwargs.get('show_level', False)
+        show_location = kwargs.get('show_location', False)
 
         # Initialize CONF without config file for log format access
         try:
@@ -268,9 +277,9 @@ def process_standard_options_no_config(f: F) -> F:
         setup_logging_with_options(
             show_thread=show_thread,
             show_level=show_level,
+            show_location=show_location,
             loglevel=ctx.obj['loglevel'],
             quiet=ctx.obj['quiet'],
-            include_location=True,
         )
 
         profile_output = kwargs.pop('profile_output', None)
@@ -279,6 +288,7 @@ def process_standard_options_no_config(f: F) -> F:
         del kwargs['quiet']
         del kwargs['show_thread']
         del kwargs['show_level']
+        del kwargs['show_location']
 
         # Enable profiling if requested
         if profile_output is not None:

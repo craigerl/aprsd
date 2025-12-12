@@ -140,9 +140,7 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
         expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
-    @mock.patch('aprsd.packets.WatchList.is_old')
-    def test_callsign_in_watchlist_not_old(self, mock_is_old):
-        mock_is_old.return_value = False
+    def test_callsign_in_watchlist_not_old(self):
         self.config_and_init(
             watchlist_enabled=True,
             watchlist_callsigns=['WB4BOR'],
@@ -154,46 +152,77 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
             message='ping',
             msg_number=1,
         )
+        # Simulate WatchList.rx() being called first (with recent timestamp)
+        # This will set was_old_before_update to False since it's not old
+        packets.WatchList().rx(packet)
         actual = plugin.filter(packet)
         expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
-    @mock.patch('aprsd.packets.WatchList.is_old')
-    def test_callsign_in_watchlist_old_same_alert_callsign(self, mock_is_old):
-        mock_is_old.return_value = True
+    def test_callsign_in_watchlist_old_same_alert_callsign(self):
+        import datetime
+
         self.config_and_init(
             watchlist_enabled=True,
             watchlist_alert_callsign='WB4BOR',
             watchlist_callsigns=['WB4BOR'],
+            watchlist_alert_time_seconds=60,
         )
         plugin = notify_plugin.NotifySeenPlugin()
+
+        # Set up WatchList with an old timestamp
+        wl = packets.WatchList()
+        old_time = datetime.datetime.now() - datetime.timedelta(seconds=120)
+        with wl.lock:
+            wl.data['WB4BOR'] = {
+                'last': old_time,
+                'packet': None,
+                'was_old_before_update': False,
+            }
 
         packet = fake.fake_packet(
             fromcall='WB4BOR',
             message='ping',
             msg_number=1,
         )
+        # Simulate WatchList.rx() being called first
+        # This will set was_old_before_update to True since it was old
+        wl.rx(packet)
         actual = plugin.filter(packet)
         expected = packets.NULL_MESSAGE
         self.assertEqual(expected, actual)
 
-    @mock.patch('aprsd.packets.WatchList.is_old')
-    def test_callsign_in_watchlist_old_send_alert(self, mock_is_old):
-        mock_is_old.return_value = True
+    def test_callsign_in_watchlist_old_send_alert(self):
+        import datetime
+
         notify_callsign = fake.FAKE_TO_CALLSIGN
         fromcall = 'WB4BOR'
         self.config_and_init(
             watchlist_enabled=True,
             watchlist_alert_callsign=notify_callsign,
             watchlist_callsigns=['WB4BOR'],
+            watchlist_alert_time_seconds=60,
         )
         plugin = notify_plugin.NotifySeenPlugin()
+
+        # Set up WatchList with an old timestamp
+        wl = packets.WatchList()
+        old_time = datetime.datetime.now() - datetime.timedelta(seconds=120)
+        with wl.lock:
+            wl.data[fromcall] = {
+                'last': old_time,
+                'packet': None,
+                'was_old_before_update': False,
+            }
 
         packet = fake.fake_packet(
             fromcall=fromcall,
             message='ping',
             msg_number=1,
         )
+        # Simulate WatchList.rx() being called first
+        # This will set was_old_before_update to True since it was old
+        wl.rx(packet)
         packet_type = packet.__class__.__name__
         actual = plugin.filter(packet)
         msg = f"{fromcall} was just seen by type:'{packet_type}'"
@@ -202,3 +231,6 @@ class TestNotifySeenPlugin(TestWatchListPlugin):
         self.assertEqual(fake.FAKE_FROM_CALLSIGN, actual.from_call)
         self.assertEqual(notify_callsign, actual.to_call)
         self.assertEqual(msg, actual.message_text)
+        # Verify that mark_as_new was called to prevent duplicate notifications
+        # by checking that was_old_before_update is now False
+        self.assertFalse(wl.was_old_before_last_update(fromcall))

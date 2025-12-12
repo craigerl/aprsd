@@ -5,11 +5,10 @@ from oslo_config import cfg
 
 from aprsd import utils
 from aprsd.packets import core
-from aprsd.utils import objectstore
-
+from aprsd.utils import objectstore, trace
 
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class WatchList(objectstore.ObjectStoreMixin):
@@ -17,40 +16,47 @@ class WatchList(objectstore.ObjectStoreMixin):
 
     _instance = None
     data = {}
+    initialized = False
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
+    @trace.no_trace
     def __init__(self):
         super().__init__()
-        self._update_from_conf()
+        if not self.initialized:
+            self._update_from_conf()
+            self.initialized = True
 
     def _update_from_conf(self, config=None):
         with self.lock:
             if CONF.watch_list.enabled and CONF.watch_list.callsigns:
                 for callsign in CONF.watch_list.callsigns:
-                    call = callsign.replace("*", "")
+                    call = callsign.replace('*', '')
                     # FIXME(waboring) - we should fetch the last time we saw
                     # a beacon from a callsign or some other mechanism to find
                     # last time a message was seen by aprs-is.  For now this
                     # is all we can do.
                     if call not in self.data:
                         self.data[call] = {
-                            "last": None,
-                            "packet": None,
+                            'last': None,
+                            'packet': None,
+                            'was_old_before_update': False,
                         }
 
+    @trace.no_trace
     def stats(self, serializable=False) -> dict:
         stats = {}
+        return self.data
         with self.lock:
             for callsign in self.data:
                 stats[callsign] = {
-                    "last": self.data[callsign]["last"],
-                    "packet": self.data[callsign]["packet"],
-                    "age": self.age(callsign),
-                    "old": self.is_old(callsign),
+                    'last': self.data[callsign]['last'],
+                    'packet': self.data[callsign]['packet'],
+                    'age': self.age(callsign),
+                    'old': self.is_old(callsign),
                 }
         return stats
 
@@ -67,8 +73,25 @@ class WatchList(objectstore.ObjectStoreMixin):
 
         if self.callsign_in_watchlist(callsign):
             with self.lock:
-                self.data[callsign]["last"] = datetime.datetime.now()
-                self.data[callsign]["packet"] = packet
+                # Check if callsign was old BEFORE updating the timestamp
+                # This allows plugins to check if it was old before this update
+                # We check directly here to avoid nested locking
+                was_old = False
+                last_seen_time = self.data[callsign].get('last')
+                if last_seen_time:
+                    age_delta = datetime.datetime.now() - last_seen_time
+                    max_delta = self.max_delta()
+                    if age_delta > max_delta:
+                        was_old = True
+
+                # Now update the timestamp and packet
+                if last_seen_time:
+                    self.data[callsign]['age'] = str(
+                        datetime.datetime.now() - last_seen_time
+                    )
+                self.data[callsign]['last'] = datetime.datetime.now()
+                self.data[callsign]['packet'] = packet
+                self.data[callsign]['was_old_before_update'] = was_old
 
     def tx(self, packet: type[core.Packet]) -> None:
         """We don't care about TX packets."""
@@ -76,7 +99,7 @@ class WatchList(objectstore.ObjectStoreMixin):
     def last_seen(self, callsign):
         with self.lock:
             if self.callsign_in_watchlist(callsign):
-                return self.data[callsign]["last"]
+                return self.data[callsign]['last']
 
     def age(self, callsign):
         now = datetime.datetime.now()
@@ -89,8 +112,31 @@ class WatchList(objectstore.ObjectStoreMixin):
     def max_delta(self, seconds=None):
         if not seconds:
             seconds = CONF.watch_list.alert_time_seconds
-        max_timeout = {"seconds": seconds}
+        max_timeout = {'seconds': seconds}
         return datetime.timedelta(**max_timeout)
+
+    def was_old_before_last_update(self, callsign):
+        """Check if the callsign was old before the last rx() update.
+
+        This is useful for plugins that need to know if a callsign was
+        old before the current packet updated the timestamp. This allows
+        plugins to determine if they should notify about a callsign that
+        was previously old but is now being seen again.
+        """
+        with self.lock:
+            if not self.callsign_in_watchlist(callsign):
+                return False
+            return self.data[callsign].get('was_old_before_update', False)
+
+    def mark_as_new(self, callsign):
+        """Mark a callsign as new, resetting the was_old_before_update flag.
+
+        This is useful after sending a notification to prevent duplicate
+        notifications until the callsign becomes old again.
+        """
+        with self.lock:
+            if self.callsign_in_watchlist(callsign):
+                self.data[callsign]['was_old_before_update'] = False
 
     def is_old(self, callsign, seconds=None):
         """Watch list callsign last seen is old compared to now?
