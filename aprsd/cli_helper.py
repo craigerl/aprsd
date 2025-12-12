@@ -21,6 +21,21 @@ DEFAULT_CONFIG_FILE = f'{home}/.config/aprsd/aprsd.conf'
 
 F = t.TypeVar('F', bound=t.Callable[..., t.Any])
 
+log_options = [
+    click.option(
+        '--show-thread',
+        default=False,
+        is_flag=True,
+        help='Show thread name in log format (disabled by default for listen).',
+    ),
+    click.option(
+        '--show-level',
+        default=False,
+        is_flag=True,
+        help='Show log level in log format (disabled by default for listen).',
+    ),
+]
+
 common_options = [
     click.option(
         '--loglevel',
@@ -56,7 +71,7 @@ common_options = [
         help='Enable profiling and save results to FILENAME. '
         'If FILENAME is not provided, defaults to aprsd_profile.prof',
     ),
-]
+] + log_options
 
 
 class AliasedGroup(click.Group):
@@ -106,11 +121,58 @@ def add_options(options):
     return _add_options
 
 
+def setup_logging_with_options(
+    show_thread: bool,
+    show_level: bool,
+    loglevel: str,
+    quiet: bool,
+    include_location: bool = True,
+) -> None:
+    """Setup logging with custom format based on show_thread and show_level options.
+
+    Args:
+        show_thread: Whether to include thread name in log format
+        show_level: Whether to include log level in log format
+        loglevel: The log level to use
+        quiet: Whether to suppress stdout logging
+        include_location: Whether to include location info in log format (default True)
+    """
+    # Build custom log format based on show_thread and show_level options
+    from aprsd.conf import log as conf_log
+
+    parts = []
+    # Timestamp is always included
+    parts.append(conf_log.DEFAULT_LOG_FORMAT_TIMESTAMP)
+
+    if show_thread:
+        parts.append(conf_log.DEFAULT_LOG_FORMAT_THREAD)
+
+    if show_level:
+        parts.append(conf_log.DEFAULT_LOG_FORMAT_LEVEL)
+
+    # Message is always included
+    parts.append(conf_log.DEFAULT_LOG_FORMAT_MESSAGE)
+
+    if include_location:
+        parts.append(conf_log.DEFAULT_LOG_FORMAT_LOCATION)
+
+    # Set the custom log format
+    CONF.logging.logformat = ' | '.join(parts)
+
+    # Now call setup_logging with our modified config
+    log.setup_logging(loglevel, quiet)
+
+
 def process_standard_options(f: F) -> F:
     def new_func(*args, **kwargs):
         ctx = args[0]
         ctx.ensure_object(dict)
         config_file_found = True
+
+        # Extract show_thread and show_level
+        show_thread = kwargs.get('show_thread', False)
+        show_level = kwargs.get('show_level', False)
+
         if kwargs['config_file']:
             default_config_files = [kwargs['config_file']]
         else:
@@ -125,12 +187,18 @@ def process_standard_options(f: F) -> F:
             )
         except cfg.ConfigFilesNotFoundError:
             config_file_found = False
+
         ctx.obj['loglevel'] = kwargs['loglevel']
         # ctx.obj["config_file"] = kwargs["config_file"]
         ctx.obj['quiet'] = kwargs['quiet']
-        log.setup_logging(
-            ctx.obj['loglevel'],
-            ctx.obj['quiet'],
+
+        # NOW modify config AFTER CONF is initialized but BEFORE setup_logging
+        setup_logging_with_options(
+            show_thread=show_thread,
+            show_level=show_level,
+            loglevel=ctx.obj['loglevel'],
+            quiet=ctx.obj['quiet'],
+            include_location=True,
         )
         if CONF.trace_enabled:
             trace.setup_tracing(['method', 'api'])
@@ -143,6 +211,8 @@ def process_standard_options(f: F) -> F:
         del kwargs['loglevel']
         del kwargs['config_file']
         del kwargs['quiet']
+        del kwargs['show_thread']
+        del kwargs['show_level']
 
         # Enable profiling if requested
         if profile_output is not None:
@@ -173,18 +243,42 @@ def process_standard_options_no_config(f: F) -> F:
     def new_func(*args, **kwargs):
         ctx = args[0]
         ctx.ensure_object(dict)
+
+        # Extract show_thread and show_level
+        show_thread = kwargs.get('show_thread', False)
+        show_level = kwargs.get('show_level', False)
+
+        # Initialize CONF without config file for log format access
+        try:
+            CONF(
+                [],
+                project='aprsd',
+                version=aprsd.__version__,
+                default_config_files=None,
+            )
+        except cfg.ConfigFilesNotFoundError:
+            # Config file not needed for this function, so ignore error
+            pass
+
         ctx.obj['loglevel'] = kwargs['loglevel']
         ctx.obj['config_file'] = kwargs['config_file']
         ctx.obj['quiet'] = kwargs['quiet']
-        log.setup_logging(
-            ctx.obj['loglevel'],
-            ctx.obj['quiet'],
+
+        # NOW modify config AFTER CONF is initialized but BEFORE setup_logging
+        setup_logging_with_options(
+            show_thread=show_thread,
+            show_level=show_level,
+            loglevel=ctx.obj['loglevel'],
+            quiet=ctx.obj['quiet'],
+            include_location=True,
         )
 
         profile_output = kwargs.pop('profile_output', None)
         del kwargs['loglevel']
         del kwargs['config_file']
         del kwargs['quiet']
+        del kwargs['show_thread']
+        del kwargs['show_level']
 
         # Enable profiling if requested
         if profile_output is not None:

@@ -17,7 +17,7 @@ LOG_LEVELS = {
 DEFAULT_DATE_FORMAT = '%m/%d/%Y %I:%M:%S %p'
 
 # Default log format parts
-DEFAULT_LOG_FORMAT_TIMESTAMP = '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green>'
+DEFAULT_LOG_FORMAT_TIMESTAMP = '<fg #008329>{time:YYYY-MM-DD HH:mm:ss.SSS}</>'
 DEFAULT_LOG_FORMAT_THREAD = '<yellow>{thread.name: <18}</yellow>'
 DEFAULT_LOG_FORMAT_LEVEL = '<level>{level: <8}</level>'
 DEFAULT_LOG_FORMAT_MESSAGE = '<level>{message}</level>'
