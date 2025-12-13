@@ -1,4 +1,5 @@
 import logging
+import queue
 import signal
 import sys
 
@@ -17,6 +18,16 @@ from aprsd.threads import stats as stats_thread
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
+
+
+def _is_aprsd_gps_extension_installed():
+    """Check if aprsd-gps-extension is installed."""
+    try:
+        import aprsd_gps_extension  # noqa: F401
+
+        return True
+    except Exception:
+        return False
 
 
 # main() ###
@@ -119,8 +130,36 @@ def server(ctx, flush):
     )
 
     if CONF.enable_beacon:
-        LOG.info('Beacon Enabled.  Starting Beacon thread.')
-        service_threads.register(tx.BeaconSendThread())
+        # Check if aprsd-gps-extension is installed and enabled
+        if _is_aprsd_gps_extension_installed():
+            try:
+                if CONF.aprsd_gps_extension.enabled:
+                    LOG.info(
+                        'aprsd-gps-extension is installed and enabled. '
+                        'Starting GPSBeaconThread.'
+                    )
+                    from aprsd_gps_extension.threads.GPSBeaconThread import (
+                        GPSBeaconThread,
+                    )
+
+                    notify_queue = queue.Queue()
+                    service_threads.register(GPSBeaconThread(notify_queue))
+                else:
+                    LOG.info(
+                        'aprsd-gps-extension is installed but disabled. '
+                        'Starting standard Beacon thread.'
+                    )
+                    service_threads.register(tx.BeaconSendThread())
+            except AttributeError:
+                # Config group not registered, use standard beacon
+                LOG.info(
+                    'aprsd-gps-extension is installed but not configured. '
+                    'Starting standard Beacon thread.'
+                )
+                service_threads.register(tx.BeaconSendThread())
+        else:
+            LOG.info('Beacon Enabled.  Starting static Beacon thread.')
+            service_threads.register(tx.BeaconSendThread())
 
     if CONF.aprs_registry.enabled:
         LOG.info('Registry Enabled.  Starting Registry thread.')
