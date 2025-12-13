@@ -42,4 +42,4 @@ fi
 
 export COLUMNS=200
 python3 -m rich.diagnose
-exec aprsd server -c $APRSD_CONFIG --loglevel ${LOG_LEVEL}
+exec aprsd server -c $APRSD_CONFIG --loglevel ${LOG_LEVEL} --show-thread --show-level --show-location
