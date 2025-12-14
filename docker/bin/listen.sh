@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -x
 
+source /app/.venv/bin/activate
+
 if [ ! -z "${APRSD_PLUGINS}" ]; then
     OLDIFS=$IFS
     IFS=','
