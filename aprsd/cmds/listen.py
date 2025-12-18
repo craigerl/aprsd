@@ -84,6 +84,7 @@ class ListenStatsThread(APRSDThread):
         super().__init__('PacketStatsLog')
         self._last_total_rx = 0
         self.period = 31
+        self.start_time = time.time()
 
     def loop(self):
         if self.loop_count % self.period == 0:
@@ -95,6 +96,24 @@ class ListenStatsThread(APRSDThread):
             rx_delta = total_rx - self._last_total_rx
             rate = rx_delta / self.period
 
+            # Get unique callsigns count from packets' from_call field
+            unique_callsigns = set()
+            if 'packets' in stats and stats['packets']:
+                for packet in stats['packets']:
+                    # Handle both Packet objects and dicts (if serializable)
+                    if hasattr(packet, 'from_call'):
+                        if packet.from_call:
+                            unique_callsigns.add(packet.from_call)
+                    elif isinstance(packet, dict) and 'from_call' in packet:
+                        if packet['from_call']:
+                            unique_callsigns.add(packet['from_call'])
+            unique_callsigns_count = len(unique_callsigns)
+
+            # Calculate uptime
+            elapsed = time.time() - self.start_time
+            elapsed_minutes = elapsed / 60
+            elapsed_hours = elapsed / 3600
+
             # Log summary stats
             LOGU.opt(colors=True).info(
                 f'<green>RX Rate: {rate:.2f} pps</green>  '
@@ -102,14 +121,33 @@ class ListenStatsThread(APRSDThread):
                 f'<red>RX Last {self.period} secs: {rx_delta}</red> '
                 f'<white>Packets in PacketListStats: {packet_count}</white>',
             )
+            LOGU.opt(colors=True).info(
+                f'<cyan>Uptime: {elapsed:.0f}s ({elapsed_minutes:.1f}m / {elapsed_hours:.2f}h)</cyan>  '
+                f'<magenta>Unique Callsigns: {unique_callsigns_count}</magenta>',
+            )
             self._last_total_rx = total_rx
 
-            # Log individual type stats
-            for k, v in stats['types'].items():
-                thread_hex = f'fg {utils.hex_from_name(k)}'
+            # Log individual type stats, sorted by RX count (descending)
+            sorted_types = sorted(
+                stats['types'].items(), key=lambda x: x[1]['rx'], reverse=True
+            )
+            for k, v in sorted_types:
+                # Calculate percentage of this packet type compared to total RX
+                percentage = (v['rx'] / total_rx * 100) if total_rx > 0 else 0.0
+                # Format values first, then apply colors
+                packet_type_str = f'{k:<15}'
+                rx_count_str = f'{v["rx"]:6d}'
+                tx_count_str = f'{v["tx"]:6d}'
+                percentage_str = f'{percentage:5.1f}%'
+                # Use different colors for RX count based on threshold (matching mqtt_injest.py)
+                rx_color_tag = (
+                    'green' if v['rx'] > 100 else 'yellow' if v['rx'] > 10 else 'red'
+                )
                 LOGU.opt(colors=True).info(
-                    f'<{thread_hex}>{k:<15}</{thread_hex}> '
-                    f'<blue>RX: {v["rx"]}</blue> <red>TX: {v["tx"]}</red>',
+                    f'  <cyan>{packet_type_str}</cyan>: '
+                    f'<{rx_color_tag}>RX: {rx_count_str}</{rx_color_tag}> '
+                    f'<red>TX: {tx_count_str}</red> '
+                    f'<magenta>({percentage_str})</magenta>',
                 )
 
         time.sleep(1)
@@ -305,7 +343,10 @@ def listen(
     )
     LOG.debug('Start APRSDListenProcessThread')
     listen_thread.start()
+
+    LOG.debug(f'enable_packet_stats: {enable_packet_stats}')
     if enable_packet_stats:
+        LOG.debug('Start ListenStatsThread')
         listen_stats = ListenStatsThread()
         listen_stats.start()
 

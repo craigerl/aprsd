@@ -38,7 +38,6 @@ dependencies = [
     { name = "rfc3986" },
     { name = "rich" },
     { name = "rush" },
-    { name = "setuptools" },
     { name = "stevedore" },
     { name = "thesmuggler" },
     { name = "timeago" },
@@ -64,7 +63,6 @@ dev = [
     { name = "identify" },
     { name = "nodeenv" },
     { name = "packaging" },
-    { name = "pip" },
     { name = "pip-tools" },
     { name = "platformdirs" },
     { name = "pluggy" },
@@ -72,8 +70,9 @@ dev = [
     { name = "pyproject-api" },
     { name = "pyproject-hooks" },
     { name = "pyyaml" },
-    { name = "setuptools" },
+    { name = "tomli" },
     { name = "tox" },
+    { name = "typing-extensions" },
     { name = "virtualenv" },
     { name = "wheel" },
 ]
@@ -85,7 +84,7 @@ requires-dist = [
     { name = "ax253", specifier = "==0.1.5.post1" },
     { name = "bitarray", specifier = "==3.8.0" },
     { name = "build", marker = "extra == 'dev'", specifier = "==1.3.0" },
-    { name = "cachetools", marker = "extra == 'dev'", specifier = "==6.2.2" },
+    { name = "cachetools", marker = "extra == 'dev'", specifier = "==6.2.4" },
     { name = "certifi", specifier = "==2025.11.12" },
     { name = "cfgv", marker = "extra == 'dev'", specifier = "==3.5.0" },
     { name = "chardet", marker = "extra == 'dev'", specifier = "==5.2.0" },
@@ -113,7 +112,6 @@ requires-dist = [
     { name = "packaging", specifier = "==25.0" },
     { name = "packaging", marker = "extra == 'dev'", specifier = "==25.0" },
     { name = "pbr", specifier = "==7.0.3" },
-    { name = "pip", marker = "extra == 'dev'", specifier = "==25.3" },
     { name = "pip-tools", marker = "extra == 'dev'", specifier = "==7.5.2" },
     { name = "platformdirs", marker = "extra == 'dev'", specifier = "==4.5.1" },
     { name = "pluggy", specifier = "==1.6.0" },
@@ -131,17 +129,17 @@ requires-dist = [
     { name = "rfc3986", specifier = "==2.0.0" },
     { name = "rich", specifier = "==14.2.0" },
     { name = "rush", specifier = "==2021.4.0" },
-    { name = "setuptools", specifier = "==80.9.0" },
-    { name = "setuptools", marker = "extra == 'dev'", specifier = "==80.9.0" },
     { name = "stevedore", specifier = "==5.6.0" },
     { name = "thesmuggler", specifier = "==1.0.1" },
     { name = "timeago", specifier = "==1.0.16" },
+    { name = "tomli", marker = "extra == 'dev'", specifier = "==2.3.0" },
     { name = "tox", marker = "extra == 'dev'", specifier = "==4.32.0" },
     { name = "typing-extensions", specifier = "==4.15.0" },
+    { name = "typing-extensions", marker = "extra == 'dev'", specifier = "==4.15.0" },
     { name = "typing-inspect", specifier = "==0.9.0" },
     { name = "tzlocal", specifier = "==5.3.1" },
     { name = "update-checker", specifier = "==0.18.0" },
-    { name = "urllib3", specifier = "==2.6.1" },
+    { name = "urllib3", specifier = "==2.6.2" },
     { name = "virtualenv", marker = "extra == 'dev'", specifier = "==20.35.4" },
     { name = "wheel", marker = "extra == 'dev'", specifier = "==0.45.1" },
     { name = "wrapt", specifier = "==2.0.1" },
@@ -285,11 +283,11 @@ wheels = [
 
 [[package]]
 name = "cachetools"
-version = "6.2.2"
+version = "6.2.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fb/44/ca1675be2a83aeee1886ab745b28cda92093066590233cc501890eb8417a/cachetools-6.2.2.tar.gz", hash = "sha256:8e6d266b25e539df852251cfd6f990b4bc3a141db73b939058d809ebd2590fc6", size = 31571, upload-time = "2025-11-13T17:42:51.465Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/bc/1d/ede8680603f6016887c062a2cf4fc8fdba905866a3ab8831aa8aa651320c/cachetools-6.2.4.tar.gz", hash = "sha256:82c5c05585e70b6ba2d3ae09ea60b79548872185d2f24ae1f2709d37299fd607", size = 31731, upload-time = "2025-12-15T18:24:53.744Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e6/46/eb6eca305c77a4489affe1c5d8f4cae82f285d9addd8de4ec084a7184221/cachetools-6.2.2-py3-none-any.whl", hash = "sha256:6c09c98183bf58560c97b2abfcedcbaf6a896a490f534b031b661d3723b45ace", size = 11503, upload-time = "2025-11-13T17:42:50.232Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/fc/1d7b80d0eb7b714984ce40efc78859c022cd930e402f599d8ca9e39c78a4/cachetools-6.2.4-py3-none-any.whl", hash = "sha256:69a7a52634fed8b8bf6e24a050fb60bff1c9bd8f6d24572b99c32d4e71e62a51", size = 11551, upload-time = "2025-12-15T18:24:52.332Z" },
 ]
 
 [[package]]
@@ -1036,11 +1034,11 @@ wheels = [
 
 [[package]]
 name = "urllib3"
-version = "2.6.1"
+version = "2.6.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5e/1d/0f3a93cca1ac5e8287842ed4eebbd0f7a991315089b1a0b01c7788aa7b63/urllib3-2.6.1.tar.gz", hash = "sha256:5379eb6e1aba4088bae84f8242960017ec8d8e3decf30480b3a1abdaa9671a3f", size = 432678, upload-time = "2025-12-08T15:25:26.773Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/24/a2a2ed9addd907787d7aa0355ba36a6cadf1768b934c652ea78acbd59dcd/urllib3-2.6.2.tar.gz", hash = "sha256:016f9c98bb7e98085cb2b4b17b87d2c702975664e4f060c6532e64d1c1a5e797", size = 432930, upload-time = "2025-12-11T15:56:40.252Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bc/56/190ceb8cb10511b730b564fb1e0293fa468363dbad26145c34928a60cb0c/urllib3-2.6.1-py3-none-any.whl", hash = "sha256:e67d06fe947c36a7ca39f4994b08d73922d40e6cca949907be05efa6fd75110b", size = 131138, upload-time = "2025-12-08T15:25:25.51Z" },
+    { url = "https://files.pythonhosted.org/packages/6d/b9/4095b668ea3678bf6a0af005527f39de12fb026516fb3df17495a733b7f8/urllib3-2.6.2-py3-none-any.whl", hash = "sha256:ec21cddfe7724fc7cb4ba4bea7aa8e2ef36f607a4bab81aa6ce42a13dc3f03dd", size = 131182, upload-time = "2025-12-11T15:56:38.584Z" },
 ]
 
 [[package]]
