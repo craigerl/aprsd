@@ -19,6 +19,8 @@ class DupePacketFilter:
     If the packet has been processed already within the allowed
     timeframe, then it's a dupe.
     """
+    def __init__(self):
+        self.pl = packets.PacketList()
 
     def filter(self, packet: type[core.Packet]) -> Union[type[core.Packet], None]:
         # LOG.debug(f"{self.__class__.__name__}.filter called for packet {packet}")
@@ -32,12 +34,11 @@ class DupePacketFilter:
             # Make sure we aren't re-processing the same packet
             # For RF based APRS Clients we can get duplicate packets
             # So we need to track them and not process the dupes.
-            pkt_list = packets.PacketList()
             found = False
             try:
                 # Find the packet in the list of already seen packets
                 # Based on the packet.key
-                found = pkt_list.find(packet)
+                found = self.pl.find(packet)
                 if not packet.msgNo:
                     # If the packet doesn't have a message id
                     # then there is no reliable way to detect
