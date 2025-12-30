@@ -87,6 +87,10 @@ class APRSDRXThread(APRSDThread):
         return True
 
     def process_packet(self, *args, **kwargs):
+        """Convert the raw packet into a Packet object and put it on the queue.
+
+           The processing of the packet will happen in a separate thread.
+        """
         packet = self._client.decode_packet(*args, **kwargs)
         if not packet:
             LOG.error(
@@ -95,47 +99,7 @@ class APRSDRXThread(APRSDThread):
             return
         self.pkt_count += 1
         packet_log.log(packet, packet_count=self.pkt_count)
-        pkt_list = packets.PacketList()
-
-        if isinstance(packet, packets.AckPacket):
-            # We don't need to drop AckPackets, those should be
-            # processed.
-            self.packet_queue.put(packet)
-        else:
-            # Make sure we aren't re-processing the same packet
-            # For RF based APRS Clients we can get duplicate packets
-            # So we need to track them and not process the dupes.
-            found = False
-            try:
-                # Find the packet in the list of already seen packets
-                # Based on the packet.key
-                found = pkt_list.find(packet)
-                if not packet.msgNo:
-                    # If the packet doesn't have a message id
-                    # then there is no reliable way to detect
-                    # if it's a dupe, so we just pass it on.
-                    # it shouldn't get acked either.
-                    found = False
-            except KeyError:
-                found = False
-
-            if not found:
-                # We haven't seen this packet before, so we process it.
-                collector.PacketCollector().rx(packet)
-                self.packet_queue.put(packet)
-            elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
-                # If the packet came in within N seconds of the
-                # Last time seeing the packet, then we drop it as a dupe.
-                LOG.warning(
-                    f'Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.'
-                )
-            else:
-                LOG.warning(
-                    f'Packet {packet.from_call}:{packet.msgNo} already tracked '
-                    f'but older than {CONF.packet_dupe_timeout} seconds. processing.',
-                )
-                collector.PacketCollector().rx(packet)
-                self.packet_queue.put(packet)
+        self.packet_queue.put(packet)
 
 
 class APRSDFilterThread(APRSDThread):
@@ -164,6 +128,9 @@ class APRSDFilterThread(APRSDThread):
             self.print_packet(packet)
             if packet:
                 if self.filter_packet(packet):
+                    # The packet has passed all filters, so we collect it.
+                    # and process it.
+                    collector.PacketCollector().rx(packet)
                     self.process_packet(packet)
         except queue.Empty:
             pass

@@ -1,5 +1,6 @@
 import datetime
 import logging
+import threading
 
 from oslo_config import cfg
 
@@ -21,6 +22,7 @@ class WatchList(objectstore.ObjectStoreMixin):
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls._instance.lock = threading.RLock()
         return cls._instance
 
     @trace.no_trace

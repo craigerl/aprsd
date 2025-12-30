@@ -1,5 +1,6 @@
 import datetime
 import logging
+import threading
 
 from oslo_config import cfg
 
@@ -33,6 +34,7 @@ class PacketTrack(objectstore.ObjectStoreMixin):
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls._instance.lock = threading.RLock()
             cls._instance._start_time = datetime.datetime.now()
             cls._instance._init_store()
         return cls._instance
