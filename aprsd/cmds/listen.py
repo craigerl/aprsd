@@ -22,6 +22,7 @@ from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
 from aprsd.packets import core, seen_list
 from aprsd.packets import log as packet_log
+from aprsd.packets import packet_list
 from aprsd.packets.filter import PacketFilter
 from aprsd.packets.filters import dupe_filter, packet_type
 from aprsd.stats import collector
@@ -68,7 +69,7 @@ class APRSDListenProcessThread(rx.APRSDFilterThread):
 
     def print_packet(self, packet):
         if self.log_packets:
-            packet_log.log(packet)
+            packet_log.log(packet, force_log=True)
 
     def process_packet(self, packet: type[core.Packet]):
         if self.plugin_manager:
@@ -83,7 +84,7 @@ class ListenStatsThread(APRSDThread):
     def __init__(self):
         super().__init__('PacketStatsLog')
         self._last_total_rx = 0
-        self.period = 31
+        self.period = 10
         self.start_time = time.time()
 
     def loop(self):
@@ -96,18 +97,14 @@ class ListenStatsThread(APRSDThread):
             rx_delta = total_rx - self._last_total_rx
             rate = rx_delta / self.period
 
-            # Get unique callsigns count from packets' from_call field
-            unique_callsigns = set()
-            if 'packets' in stats and stats['packets']:
-                for packet in stats['packets']:
-                    # Handle both Packet objects and dicts (if serializable)
-                    if hasattr(packet, 'from_call'):
-                        if packet.from_call:
-                            unique_callsigns.add(packet.from_call)
-                    elif isinstance(packet, dict) and 'from_call' in packet:
-                        if packet['from_call']:
-                            unique_callsigns.add(packet['from_call'])
-            unique_callsigns_count = len(unique_callsigns)
+            # Get unique callsigns count from SeenList stats
+            seen_list_instance = seen_list.SeenList()
+            seen_list_stats = seen_list_instance.stats()
+            seen_list_instance.save()
+            # we have to copy the seen_list_stats to avoid the lock being held too long
+            with seen_list_instance.lock:
+                seen_list_stats = seen_list_stats.copy()
+            unique_callsigns_count = len(seen_list_stats)
 
             # Calculate uptime
             elapsed = time.time() - self.start_time
@@ -119,7 +116,6 @@ class ListenStatsThread(APRSDThread):
                 f'<green>RX Rate: {rate:.2f} pps</green>  '
                 f'<yellow>Total RX: {total_rx}</yellow> '
                 f'<red>RX Last {self.period} secs: {rx_delta}</red> '
-                f'<white>Packets in PacketListStats: {packet_count}</white>',
             )
             LOGU.opt(colors=True).info(
                 f'<cyan>Uptime: {elapsed:.0f}s ({elapsed_minutes:.1f}m / {elapsed_hours:.2f}h)</cyan>  '
@@ -149,6 +145,38 @@ class ListenStatsThread(APRSDThread):
                     f'<red>TX: {tx_count_str}</red> '
                     f'<magenta>({percentage_str})</magenta>',
                 )
+
+            # Extract callsign counts from seen_list stats
+            callsign_counts = {}
+            for callsign, data in seen_list_stats.items():
+                if isinstance(data, dict) and 'count' in data:
+                    callsign_counts[callsign] = data['count']
+
+            # Sort callsigns by packet count (descending) and get top 10
+            sorted_callsigns = sorted(
+                callsign_counts.items(), key=lambda x: x[1], reverse=True
+            )[:10]
+
+            # Log top 10 callsigns
+            if sorted_callsigns:
+                LOGU.opt(colors=True).info(
+                    '<cyan>Top 10 Callsigns by Packet Count:</cyan>'
+                )
+                total_ranks = len(sorted_callsigns)
+                for rank, (callsign, count) in enumerate(sorted_callsigns, 1):
+                    # Use different colors based on rank: most packets (rank 1) = red,
+                    # least packets (last rank) = green, middle = yellow
+                    if rank == 1:
+                        count_color_tag = 'red'
+                    elif rank == total_ranks:
+                        count_color_tag = 'green'
+                    else:
+                        count_color_tag = 'yellow'
+                    LOGU.opt(colors=True).info(
+                        f'  <cyan>{rank:2d}.</cyan> '
+                        f'<white>{callsign:<12}</white>: '
+                        f'<{count_color_tag}>{count:6d} packets</{count_color_tag}>',
+                    )
 
         time.sleep(1)
         return True
@@ -292,10 +320,6 @@ def listen(
 
     keepalive_thread = keepalive.KeepAliveThread()
 
-    if not CONF.enable_seen_list:
-        # just deregister the class from the packet collector
-        packet_collector.PacketCollector().unregister(seen_list.SeenList)
-
     # we don't want the dupe filter to run here.
     PacketFilter().unregister(dupe_filter.DupePacketFilter)
     if packet_filter:
@@ -325,6 +349,11 @@ def listen(
     if pm:
         for p in pm.get_plugins():
             LOG.info('Loaded plugin %s', p.__class__.__name__)
+
+    if log_packets:
+        LOG.info('Packet Logging is enabled')
+    else:
+        LOG.info('Packet Logging is disabled')
 
     stats = stats_thread.APRSDStatsStoreThread()
     stats.start()

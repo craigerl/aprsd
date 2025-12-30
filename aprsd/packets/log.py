@@ -90,8 +90,9 @@ def log(
     tx: Optional[bool] = False,
     header: Optional[bool] = True,
     packet_count: Optional[int] = None,
+    force_log: Optional[bool] = False,
 ) -> None:
-    if not CONF.enable_packet_logging:
+    if not CONF.enable_packet_logging and not force_log:
         return
     if CONF.log_packet_format == 'multiline':
         log_multiline(packet, tx, header)
