@@ -19,10 +19,8 @@ import aprsd
 from aprsd import cli_helper, packets, plugin, threads, utils
 from aprsd.client.client import APRSDClient
 from aprsd.main import cli
-from aprsd.packets import collector as packet_collector
 from aprsd.packets import core, seen_list
 from aprsd.packets import log as packet_log
-from aprsd.packets import packet_list
 from aprsd.packets.filter import PacketFilter
 from aprsd.packets.filters import dupe_filter, packet_type
 from aprsd.stats import collector
@@ -93,7 +91,6 @@ class ListenStatsThread(APRSDThread):
             stats_json = collector.Collector().collect()
             stats = stats_json['PacketList']
             total_rx = stats['rx']
-            packet_count = len(stats['packets'])
             rx_delta = total_rx - self._last_total_rx
             rate = rx_delta / self.period
 

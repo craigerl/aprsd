@@ -2,7 +2,6 @@ import logging
 import os
 import pathlib
 import pickle
-import threading
 
 from oslo_config import cfg
 
