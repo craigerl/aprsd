@@ -55,12 +55,13 @@ class DupePacketFilter:
             if not packet.processed:
                 # We haven't processed this packet through the plugins.
                 return packet
-            elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
+            elif abs(packet.timestamp - found.timestamp) < CONF.packet_dupe_timeout:
                 # If the packet came in within N seconds of the
                 # Last time seeing the packet, then we drop it as a dupe.
                 LOG.warning(
                     f'Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.'
                 )
+                return None
             else:
                 LOG.warning(
                     f'Packet {packet.from_call}:{packet.msgNo} already tracked '

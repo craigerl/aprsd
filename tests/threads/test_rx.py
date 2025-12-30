@@ -186,32 +186,27 @@ class TestAPRSDRXThread(unittest.TestCase):
             self.assertFalse(self.packet_queue.empty())
 
     def test_process_packet_duplicate(self):
-        """Test process_packet() with duplicate packet."""
-        from oslo_config import cfg
+        """Test process_packet() with duplicate packet.
 
-        CONF = cfg.CONF
-        CONF.packet_dupe_timeout = 60
-
+        Note: The rx thread's process_packet() doesn't filter duplicates.
+        It puts all packets on the queue. Duplicate filtering happens
+        later in the filter thread.
+        """
         mock_client = MockClientDriver()
         packet = fake.fake_packet(msg_number='123')
+        packet.processed = True
         packet.timestamp = 1000
         mock_client._decode_packet_return = packet
         self.rx_thread._client = mock_client
         self.rx_thread.pkt_count = 0
 
         with mock.patch('aprsd.threads.rx.packet_log'):
-            with mock.patch('aprsd.threads.rx.packets.PacketList') as mock_pkt_list:
-                mock_list_instance = mock.MagicMock()
-                found_packet = fake.fake_packet(msg_number='123')
-                found_packet.timestamp = 1050  # Within timeout
-                mock_list_instance.find.return_value = found_packet
-                mock_pkt_list.return_value = mock_list_instance
-
-                with mock.patch('aprsd.threads.rx.LOG') as mock_log:
-                    self.rx_thread.process_packet()
-                    mock_log.warning.assert_called()
-                    # Should not add to queue
-                    self.assertTrue(self.packet_queue.empty())
+            self.rx_thread.process_packet()
+            # The rx thread puts all packets on the queue regardless of duplicates
+            # Duplicate filtering happens in the filter thread
+            self.assertFalse(self.packet_queue.empty())
+            queued_packet = self.packet_queue.get()
+            self.assertEqual(queued_packet, packet)
 
 
 class TestAPRSDFilterThread(unittest.TestCase):

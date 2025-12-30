@@ -80,19 +80,16 @@ class TestDupePacketFilter(unittest.TestCase):
         packet.processed = True
         packet.timestamp = 1000
 
-        with mock.patch(
-            'aprsd.packets.filters.dupe_filter.packets.PacketList'
-        ) as mock_list:
-            mock_list_instance = mock.MagicMock()
-            found_packet = fake.fake_packet(msg_number='123')
-            found_packet.timestamp = 1050  # Within 60 second timeout
-            mock_list_instance.find.return_value = found_packet
-            mock_list.return_value = mock_list_instance
+        mock_list_instance = mock.MagicMock()
+        found_packet = fake.fake_packet(msg_number='123')
+        found_packet.timestamp = 1050  # Within 60 second timeout
+        mock_list_instance.find.return_value = found_packet
+        self.filter.pl = mock_list_instance
 
-            with mock.patch('aprsd.packets.filters.dupe_filter.LOG') as mock_log:
-                result = self.filter.filter(packet)
-                self.assertIsNone(result)  # Should be dropped
-                mock_log.warning.assert_called()
+        with mock.patch('aprsd.packets.filters.dupe_filter.LOG') as mock_log:
+            result = self.filter.filter(packet)
+            self.assertIsNone(result)  # Should be dropped
+            mock_log.warning.assert_called()
 
     def test_filter_duplicate_after_timeout(self):
         """Test filter() with duplicate after timeout."""
@@ -105,16 +102,13 @@ class TestDupePacketFilter(unittest.TestCase):
         packet.processed = True
         packet.timestamp = 2000
 
-        with mock.patch(
-            'aprsd.packets.filters.dupe_filter.packets.PacketList'
-        ) as mock_list:
-            mock_list_instance = mock.MagicMock()
-            found_packet = fake.fake_packet(msg_number='123')
-            found_packet.timestamp = 1000  # More than 60 seconds ago
-            mock_list_instance.find.return_value = found_packet
-            mock_list.return_value = mock_list_instance
+        mock_list_instance = mock.MagicMock()
+        found_packet = fake.fake_packet(msg_number='123')
+        found_packet.timestamp = 1000  # More than 60 seconds ago
+        mock_list_instance.find.return_value = found_packet
+        self.filter.pl = mock_list_instance
 
-            with mock.patch('aprsd.packets.filters.dupe_filter.LOG') as mock_log:
-                result = self.filter.filter(packet)
-                self.assertEqual(result, packet)  # Should pass
-                mock_log.warning.assert_called()
+        with mock.patch('aprsd.packets.filters.dupe_filter.LOG') as mock_log:
+            result = self.filter.filter(packet)
+            self.assertEqual(result, packet)  # Should pass
+            mock_log.warning.assert_called()

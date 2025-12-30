@@ -2,6 +2,7 @@ import os
 import pickle
 import shutil
 import tempfile
+import threading
 import unittest
 from unittest import mock
 
@@ -17,6 +18,7 @@ class TestObjectStore(objectstore.ObjectStoreMixin):
 
     def __init__(self):
         super().__init__()
+        self.lock = threading.RLock()
         self.data = {}
 
 

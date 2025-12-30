@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 from oslo_config import cfg
 
+from aprsd import conf  # noqa: F401
 from aprsd.packets import core
 from aprsd.utils import objectstore
 

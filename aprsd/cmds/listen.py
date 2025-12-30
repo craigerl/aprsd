@@ -96,11 +96,11 @@ class ListenStatsThread(APRSDThread):
 
             # Get unique callsigns count from SeenList stats
             seen_list_instance = seen_list.SeenList()
+            # stats() returns data while holding lock internally, so copy it immediately
             seen_list_stats = seen_list_instance.stats()
             seen_list_instance.save()
-            # we have to copy the seen_list_stats to avoid the lock being held too long
-            with seen_list_instance.lock:
-                seen_list_stats = seen_list_stats.copy()
+            # Copy the stats to avoid holding references to locked data
+            seen_list_stats = seen_list_stats.copy()
             unique_callsigns_count = len(seen_list_stats)
 
             # Calculate uptime
