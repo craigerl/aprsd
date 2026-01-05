@@ -2,7 +2,6 @@ from oslo_config import cfg
 
 from aprsd.conf import client, common, log, plugin_common
 
-
 CONF = cfg.CONF
 
 log.register_opts(CONF)
@@ -37,19 +36,19 @@ def conf_to_dict():
 
     def _sanitize(opt, value):
         """Obfuscate values of options declared secret."""
-        return value if not opt.secret else "*" * 4
+        return value if not opt.secret else '*' * 4
 
     for opt_name in sorted(CONF._opts):
-        opt = CONF._get_opt_info(opt_name)["opt"]
+        opt = CONF._get_opt_info(opt_name)['opt']
         val = str(_sanitize(opt, getattr(CONF, opt_name)))
         entries[str(opt)] = val
 
     for group_name in list(CONF._groups):
         group_attr = CONF.GroupAttr(CONF, CONF._get_group(group_name))
         for opt_name in sorted(CONF._groups[group_name]._opts):
-            opt = CONF._get_opt_info(opt_name, group_name)["opt"]
+            opt = CONF._get_opt_info(opt_name, group_name)['opt']
             val = str(_sanitize(opt, getattr(group_attr, opt_name)))
-            gname_opt_name = f"{group_name}.{opt_name}"
+            gname_opt_name = f'{group_name}.{opt_name}'
             entries[gname_opt_name] = val
 
     return entries

@@ -26,42 +26,42 @@ def fuzzy(hour, minute, degree=1):
     When degree = 2, time is in quantum of 15 minutes."""
 
     if degree <= 0 or degree > 2:
-        print("Please use a degree of 1 or 2. Using fuzziness degree=1")
+        print('Please use a degree of 1 or 2. Using fuzziness degree=1')
         degree = 1
 
     begin = "It's "
 
-    f0 = "almost "
-    f1 = "exactly "
-    f2 = "around "
+    f0 = 'almost '
+    f1 = 'exactly '
+    f2 = 'around '
 
-    b0 = " past "
-    b1 = " to "
+    b0 = ' past '
+    b1 = ' to '
 
     hourlist = (
-        "One",
-        "Two",
-        "Three",
-        "Four",
-        "Five",
-        "Six",
-        "Seven",
-        "Eight",
-        "Nine",
-        "Ten",
-        "Eleven",
-        "Twelve",
+        'One',
+        'Two',
+        'Three',
+        'Four',
+        'Five',
+        'Six',
+        'Seven',
+        'Eight',
+        'Nine',
+        'Ten',
+        'Eleven',
+        'Twelve',
     )
 
-    s1 = s2 = s3 = s4 = ""
+    s1 = s2 = s3 = s4 = ''
     base = 5
 
     if degree == 1:
         base = 5
-        val = ("Five", "Ten", "Quarter", "Twenty", "Twenty-Five", "Half")
+        val = ('Five', 'Ten', 'Quarter', 'Twenty', 'Twenty-Five', 'Half')
     elif degree == 2:
         base = 15
-        val = ("Quarter", "Half")
+        val = ('Quarter', 'Half')
 
     # to find whether we have to use 'almost', 'exactly' or 'around'
     dmin = minute % base
@@ -86,11 +86,11 @@ def fuzzy(hour, minute, degree=1):
 
     if minute <= base / 2:
         # Case like "It's around/exactly Ten"
-        s2 = s3 = ""
+        s2 = s3 = ''
         s4 = hourlist[hour - 12 - 1]
     elif minute >= 60 - base / 2:
         # Case like "It's almost Ten"
-        s2 = s3 = ""
+        s2 = s3 = ''
         s4 = hourlist[hour - 12]
     else:
         # Other cases with all words, like "It's around Quarter past One"
@@ -114,22 +114,22 @@ def main():
         try:
             deg = int(sys.argv[1])
         except Exception:
-            print("Please use a degree of 1 or 2. Using fuzziness degree=1")
+            print('Please use a degree of 1 or 2. Using fuzziness degree=1')
 
         if len(sys.argv) >= 3:
-            tm = sys.argv[2].split(":")
+            tm = sys.argv[2].split(':')
             try:
                 h = int(tm[0])
                 m = int(tm[1])
                 if h < 0 or h > 23 or m < 0 or m > 59:
                     raise Exception
             except Exception:
-                print("Bad time entered. Using the system time.")
+                print('Bad time entered. Using the system time.')
                 h = stm.tm_hour
                 m = stm.tm_min
                 print(fuzzy(h, m, deg))
             return
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

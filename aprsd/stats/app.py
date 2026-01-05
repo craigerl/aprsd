@@ -7,7 +7,6 @@ import aprsd
 from aprsd import utils
 from aprsd.log import log as aprsd_log
 
-
 CONF = cfg.CONF
 
 
@@ -37,13 +36,13 @@ class APRSDStats:
         if serializable:
             uptime = str(uptime)
         stats = {
-            "version": aprsd.__version__,
-            "uptime": uptime,
-            "callsign": CONF.callsign,
-            "memory_current": int(current),
-            "memory_current_str": utils.human_size(current),
-            "memory_peak": int(peak),
-            "memory_peak_str": utils.human_size(peak),
-            "loging_queue": qsize,
+            'version': aprsd.__version__,
+            'uptime': uptime,
+            'callsign': CONF.callsign,
+            'memory_current': int(current),
+            'memory_current_str': utils.human_size(current),
+            'memory_peak': int(peak),
+            'memory_peak_str': utils.human_size(peak),
+            'loging_queue': qsize,
         }
         return stats

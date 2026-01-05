@@ -7,9 +7,8 @@ from oslo_config import cfg
 from aprsd.packets import core
 from aprsd.utils import objectstore
 
-
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class SeenList(objectstore.ObjectStoreMixin):
@@ -41,11 +40,11 @@ class SeenList(objectstore.ObjectStoreMixin):
                 return
             if callsign not in self.data:
                 self.data[callsign] = {
-                    "last": None,
-                    "count": 0,
+                    'last': None,
+                    'count': 0,
                 }
-            self.data[callsign]["last"] = datetime.datetime.now()
-            self.data[callsign]["count"] += 1
+            self.data[callsign]['last'] = datetime.datetime.now()
+            self.data[callsign]['count'] += 1
 
     def tx(self, packet: type[core.Packet]):
         """We don't care about TX packets."""

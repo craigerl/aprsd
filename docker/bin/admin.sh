@@ -45,4 +45,4 @@ export COLUMNS=200
 #exec uwsgi --http :8000 --gevent 1000 --http-websockets --master -w aprsd.wsgi --callable app
 #exec aprsd listen -c $APRSD_CONFIG --loglevel ${LOG_LEVEL} ${APRSD_LOAD_PLUGINS} ${APRSD_LISTEN_FILTER}
 #
-uv run aprsd admin web -c $APRSD_CONFIG --loglevel ${LOG_LEVEL} 
+uv run aprsd admin web -c $APRSD_CONFIG --loglevel ${LOG_LEVEL}

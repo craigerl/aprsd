@@ -19,6 +19,7 @@ class DupePacketFilter:
     If the packet has been processed already within the allowed
     timeframe, then it's a dupe.
     """
+
     def __init__(self):
         self.pl = packets.PacketList()
 

@@ -89,7 +89,7 @@ class APRSDRXThread(APRSDThread):
     def process_packet(self, *args, **kwargs):
         """Convert the raw packet into a Packet object and put it on the queue.
 
-           The processing of the packet will happen in a separate thread.
+        The processing of the packet will happen in a separate thread.
         """
         packet = self._client.decode_packet(*args, **kwargs)
         if not packet:

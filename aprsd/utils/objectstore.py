@@ -23,6 +23,7 @@ class ObjectStoreMixin:
     When APRSD Starts, it calls load()
     aprsd server -f (flush) will wipe all saved objects.
     """
+
     # Child class must create the lock.
     lock = None
 
