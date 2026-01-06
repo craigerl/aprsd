@@ -98,7 +98,6 @@ class APRSDRXThread(APRSDThread):
             )
             return
         self.pkt_count += 1
-        packet_log.log(packet, packet_count=self.pkt_count)
         self.packet_queue.put(packet)
 
 
@@ -106,6 +105,7 @@ class APRSDFilterThread(APRSDThread):
     def __init__(self, thread_name, packet_queue):
         super().__init__(thread_name)
         self.packet_queue = packet_queue
+        self.packet_count = 0
 
     def filter_packet(self, packet):
         # Do any packet filtering prior to processing
@@ -120,11 +120,12 @@ class APRSDFilterThread(APRSDThread):
         doesn't want to log packets.
 
         """
-        packet_log.log(packet)
+        packet_log.log(packet, packet_count=self.packet_count)
 
     def loop(self):
         try:
             packet = self.packet_queue.get(timeout=1)
+            self.packet_count += 1
             self.print_packet(packet)
             if packet:
                 if self.filter_packet(packet):

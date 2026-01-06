@@ -22,10 +22,15 @@ DEGREES_COLOR = 'fg #FFA900'
 
 
 def log_multiline(
-    packet, tx: Optional[bool] = False, header: Optional[bool] = True
+    packet,
+    tx: Optional[bool] = False,
+    header: Optional[bool] = True,
+    force_log: Optional[bool] = False,
 ) -> None:
     """LOG a packet to the logfile."""
-    if not CONF.enable_packet_logging:
+    # If logging is disabled and we're not forcing log, return early
+    # However, if we're forcing log, we still proceed
+    if not CONF.enable_packet_logging and not force_log:
         return
     if CONF.log_packet_format == 'compact':
         return
@@ -77,12 +82,15 @@ def log_multiline(
     if hasattr(packet, 'comment') and packet.comment:
         logit.append(f'  Comment : {packet.comment}')
 
-    raw = packet.raw.replace('<', '\\<')
+    raw = packet.raw
+    if raw:
+        raw = raw.replace('<', '\\<')
+    else:
+        raw = ''
     logit.append(f'  Raw     : <fg #828282>{raw}</fg #828282>')
     logit.append(f'{header_str}________(<{PACKET_COLOR}>{name}</{PACKET_COLOR}>)')
 
     LOGU.opt(colors=True).info('\n'.join(logit))
-    LOG.debug(repr(packet))
 
 
 def log(
@@ -92,12 +100,17 @@ def log(
     packet_count: Optional[int] = None,
     force_log: Optional[bool] = False,
 ) -> None:
+    # If logging is disabled and we're not forcing log, return early
     if not CONF.enable_packet_logging and not force_log:
         return
+
+    # Handle multiline format
     if CONF.log_packet_format == 'multiline':
-        log_multiline(packet, tx, header)
+        log_multiline(packet, tx, header, force_log)
         return
 
+    # Handle compact format - this is the default case
+    # This is the compact format logging logic (which was unreachable before)
     if not packet_count:
         packet_count = ''
     else:
@@ -169,4 +182,6 @@ def log(
         )
 
     LOGU.opt(colors=True).info(' '.join(logit))
-    log_multiline(packet, tx, header)
+    # Note: We don't call log_multiline again here for compact format since it's already handled above
+    if CONF.log_packet_format == 'both':
+        log_multiline(packet, tx, header, force_log)

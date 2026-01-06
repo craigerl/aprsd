@@ -30,7 +30,25 @@ def fake_packet(
     if response:
         packet_dict['response'] = response
 
-    return core.factory(packet_dict)
+    packet = core.factory(packet_dict)
+    # Call prepare to build the raw data
+    packet.prepare()
+    return packet
+
+
+def fake_gps_packet():
+    """Create a properly prepared GPSPacket for testing."""
+    packet = core.GPSPacket(
+        from_call=FAKE_FROM_CALLSIGN,
+        to_call=FAKE_TO_CALLSIGN,
+        latitude=37.7749,
+        longitude=-122.4194,
+        symbol='>',
+        comment='Test GPS comment',
+    )
+    # Call prepare to build the raw data
+    packet.prepare()
+    return packet
 
 
 def fake_ack_packet():

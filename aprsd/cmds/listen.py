@@ -67,7 +67,11 @@ class APRSDListenProcessThread(rx.APRSDFilterThread):
 
     def print_packet(self, packet):
         if self.log_packets:
-            packet_log.log(packet, force_log=True)
+            packet_log.log(
+                packet,
+                packet_count=self.packet_count,
+                force_log=True,
+            )
 
     def process_packet(self, packet: type[core.Packet]):
         if self.plugin_manager:

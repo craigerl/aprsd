@@ -261,10 +261,11 @@ class TestAPRSDFilterThread(unittest.TestCase):
     def test_print_packet(self):
         """Test print_packet() method."""
         packet = fake.fake_packet()
+        self.filter_thread.packet_count = 5  # Set a packet count
 
         with mock.patch('aprsd.threads.rx.packet_log') as mock_log:
             self.filter_thread.print_packet(packet)
-            mock_log.log.assert_called_with(packet)
+            mock_log.log.assert_called_with(packet, packet_count=5)
 
     def test_loop_with_packet(self):
         """Test loop() with packet in queue."""

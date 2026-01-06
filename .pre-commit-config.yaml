@@ -18,18 +18,19 @@ repos:
     - id: setup-cfg-fmt
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.9.0
+  rev: v0.14.10
   hooks:
-    - id: ruff
     ###### Relevant part below ######
-    - id: ruff
+    - id: ruff-check
+      types_or: [python, pyi]
       args: ["check", "--select", "I", "--fix"]
     ###### Relevant part above ######
     - id: ruff-format
+      types_or: [python, pyi]
 
 - repo: https://github.com/astral-sh/uv-pre-commit
   # uv version.
-  rev: 0.5.16
+  rev: 0.9.22
   hooks:
     # Compile requirements
     - id: pip-compile
