@@ -66,6 +66,8 @@ class PacketTrack(objectstore.ObjectStoreMixin):
             pkts = {}
             for key in self.data:
                 last_send_time = self.data[key].last_send_time
+                if serializable and isinstance(last_send_time, datetime.datetime):
+                    last_send_time = last_send_time.isoformat()
                 pkts[key] = {
                     'last_send_time': last_send_time,
                     'send_count': self.data[key].send_count,

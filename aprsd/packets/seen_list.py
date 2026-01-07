@@ -27,7 +27,20 @@ class SeenList(objectstore.ObjectStoreMixin):
     def stats(self, serializable=False):
         """Return the stats for the PacketTrack class."""
         with self.lock:
-            return self.data
+            if serializable:
+                # Convert datetime objects to strings for JSON serialization
+                serializable_data = {}
+                for callsign, data in self.data.items():
+                    serializable_data[callsign] = data.copy()
+                    if 'last' in serializable_data[callsign] and isinstance(
+                        serializable_data[callsign]['last'], datetime.datetime
+                    ):
+                        serializable_data[callsign]['last'] = serializable_data[
+                            callsign
+                        ]['last'].isoformat()
+                return serializable_data
+            else:
+                return self.data
 
     def rx(self, packet: type[core.Packet]):
         """When we get a packet from the network, update the seen list."""
