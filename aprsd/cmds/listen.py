@@ -10,6 +10,7 @@ import sys
 import time
 
 import click
+import requests
 from loguru import logger
 from oslo_config import cfg
 from rich.console import Console
@@ -92,7 +93,7 @@ class ListenStatsThread(APRSDThread):
     def loop(self):
         if self.loop_count % self.period == 0:
             # log the stats every 10 seconds
-            stats_json = collector.Collector().collect()
+            stats_json = collector.Collector().collect(serializable=True)
             stats = stats_json['PacketList']
             total_rx = stats['rx']
             rx_delta = total_rx - self._last_total_rx
@@ -183,6 +184,51 @@ class ListenStatsThread(APRSDThread):
         return True
 
 
+class StatsExportThread(APRSDThread):
+    """Export stats to remote aprsd-exporter API."""
+
+    def __init__(self, exporter_url):
+        super().__init__('StatsExport')
+        self.exporter_url = exporter_url
+        self.period = 10  # Export stats every 60 seconds
+
+    def loop(self):
+        if self.loop_count % self.period == 0:
+            try:
+                # Collect all stats
+                stats_json = collector.Collector().collect(serializable=True)
+                # Remove the PacketList section to reduce payload size
+                if 'PacketList' in stats_json:
+                    del stats_json['PacketList']['packets']
+
+                now = datetime.datetime.now()
+                time_format = '%m-%d-%Y %H:%M:%S'
+                stats = {
+                    'time': now.strftime(time_format),
+                    'stats': stats_json,
+                }
+
+                # Send stats to exporter API
+                url = f'{self.exporter_url}/stats'
+                headers = {'Content-Type': 'application/json'}
+                response = requests.post(url, json=stats, headers=headers, timeout=10)
+
+                if response.status_code == 200:
+                    LOGU.info(f'Successfully exported stats to {self.exporter_url}')
+                else:
+                    LOGU.warning(
+                        f'Failed to export stats to {self.exporter_url}: HTTP {response.status_code}'
+                    )
+
+            except requests.exceptions.RequestException as e:
+                LOGU.error(f'Error exporting stats to {self.exporter_url}: {e}')
+            except Exception as e:
+                LOGU.error(f'Unexpected error in stats export: {e}')
+
+        time.sleep(1)
+        return True
+
+
 @cli.command()
 @cli_helper.add_options(cli_helper.common_options)
 @click.option(
@@ -247,6 +293,17 @@ class ListenStatsThread(APRSDThread):
     is_flag=True,
     help='Enable packet stats periodic logging.',
 )
+@click.option(
+    '--export-stats',
+    default=False,
+    is_flag=True,
+    help='Export stats to remote aprsd-exporter API.',
+)
+@click.option(
+    '--exporter-url',
+    default='http://localhost:8081',
+    help='URL of the aprsd-exporter API to send stats to.',
+)
 @click.pass_context
 @cli_helper.process_standard_options
 def listen(
@@ -259,6 +316,8 @@ def listen(
     filter,
     log_packets,
     enable_packet_stats,
+    export_stats,
+    exporter_url,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
 
@@ -380,9 +439,18 @@ def listen(
         listen_stats = ListenStatsThread()
         listen_stats.start()
 
+    LOG.debug(f'export_stats: {export_stats}')
+    stats_export = None
+    if export_stats:
+        LOG.debug('Start StatsExportThread')
+        stats_export = StatsExportThread(exporter_url)
+        stats_export.start()
+
     keepalive_thread.start()
     LOG.debug('keepalive Join')
     keepalive_thread.join()
     rx_thread.join()
     listen_thread.join()
     stats.join()
+    if stats_export:
+        stats_export.join()
