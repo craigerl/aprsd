@@ -5,6 +5,8 @@ import time
 from loguru import logger
 from oslo_config import cfg
 
+from aprsd.packets import seen_list
+from aprsd.stats import collector
 from aprsd.threads import APRSDThread
 from aprsd.utils import objectstore
 
@@ -35,9 +37,6 @@ class APRSDStatsStoreThread(APRSDThread):
 
     def loop(self):
         if self.loop_count % self.save_interval == 0:
-            # Lazy import to avoid circular dependency
-            from aprsd.stats import collector
-
             stats = collector.Collector().collect()
             ss = StatsStore()
             ss.add(stats)
@@ -58,10 +57,6 @@ class StatsLogThread(APRSDThread):
 
     def loop(self):
         if self.loop_count % self.period == 0:
-            # Lazy imports to avoid circular dependency
-            from aprsd.packets import seen_list
-            from aprsd.stats import collector
-
             # log the stats every 10 seconds
             stats_json = collector.Collector().collect(serializable=True)
             stats = stats_json['PacketList']
