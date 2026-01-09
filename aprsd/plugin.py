@@ -514,12 +514,17 @@ class PluginManager:
 
     def run(self, packet: packets.MessagePacket):
         """Execute all the plugins run method."""
-        with self.lock:
-            return self._pluggy_pm.hook.filter(packet=packet)
+        # No lock needed here - plugins are loaded at startup and not modified
+        # during runtime in listen command. Pluggy's hook execution is thread-safe
+        # for read operations. This prevents lock contention when plugins are slow
+        # (e.g., MQTT publish queue full scenarios).
+        return self._pluggy_pm.hook.filter(packet=packet)
 
     def run_watchlist(self, packet: packets.Packet):
-        with self.lock:
-            return self._watchlist_pm.hook.filter(packet=packet)
+        # No lock needed here - plugins are loaded at startup and not modified
+        # during runtime in listen command. Pluggy's hook execution is thread-safe
+        # for read operations.
+        return self._watchlist_pm.hook.filter(packet=packet)
 
     def stop(self):
         """Stop all threads created by all plugins."""
