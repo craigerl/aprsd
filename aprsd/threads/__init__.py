@@ -7,5 +7,6 @@ from .rx import (  # noqa: F401
     APRSDProcessPacketThread,
     APRSDRXThread,
 )
+from .stats import APRSDStatsStoreThread, StatsLogThread  # noqa: F401
 
 packet_queue = queue.Queue(maxsize=500)

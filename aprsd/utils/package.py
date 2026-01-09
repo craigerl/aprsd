@@ -60,18 +60,27 @@ def get_module_info(package_name, module_name, module_path):
     for path, _subdirs, files in os.walk(dir_path):
         for name in files:
             if fnmatch.fnmatch(name, pattern):
-                module = smuggle(f'{path}/{name}')
-                for mem_name, obj in inspect.getmembers(module):
-                    if inspect.isclass(obj) and is_plugin(obj):
-                        obj_list.append(
-                            {
-                                'package': package_name,
-                                'name': mem_name,
-                                'obj': obj,
-                                'version': obj.version,
-                                'path': f'{".".join([module_name, obj.__name__])}',
-                            },
-                        )
+                # Skip __init__.py files as they often have relative imports
+                # that don't work when imported directly via smuggle
+                if name == '__init__.py':
+                    continue
+                try:
+                    module = smuggle(f'{path}/{name}')
+                    for mem_name, obj in inspect.getmembers(module):
+                        if inspect.isclass(obj) and is_plugin(obj):
+                            obj_list.append(
+                                {
+                                    'package': package_name,
+                                    'name': mem_name,
+                                    'obj': obj,
+                                    'version': obj.version,
+                                    'path': f'{".".join([module_name, obj.__name__])}',
+                                },
+                            )
+                except (ImportError, SyntaxError, AttributeError) as e:
+                    # Skip files that can't be imported (relative imports, syntax errors, etc.)
+                    LOG.debug(f'Could not import {path}/{name}: {e}')
+                    continue
 
     return obj_list
 
