@@ -339,7 +339,7 @@ class TestTCPKISSDriver(unittest.TestCase):
             with mock.patch(
                 'aprsd.client.drivers.tcpkiss.core.factory', return_value=mock_packet
             ) as mock_factory:
-                result = self.driver.decode_packet(frame=mock_frame)
+                result = self.driver.decode_packet(mock_frame)
 
                 mock_parse.assert_called_once_with(str(mock_frame))
                 mock_factory.assert_called_once_with(mock_aprs_data)
@@ -362,7 +362,7 @@ class TestTCPKISSDriver(unittest.TestCase):
             'aprsd.client.drivers.kiss_common.aprslib.parse',
             side_effect=Exception('Test error'),
         ) as mock_parse:
-            result = self.driver.decode_packet(frame=mock_frame)
+            result = self.driver.decode_packet(mock_frame)
 
             mock_parse.assert_called_once()
             self.assertIsNone(result)
@@ -389,7 +389,7 @@ class TestTCPKISSDriver(unittest.TestCase):
             self.driver.consumer(mock_callback)
 
             mock_read_frame.assert_called_once()
-            mock_callback.assert_called_once_with(frame=mock_frame)
+            mock_callback.assert_called_once_with(mock_frame)
 
     @mock.patch('aprsd.client.drivers.tcpkiss.LOG')
     def test_read_frame_success(self, mock_log):

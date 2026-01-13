@@ -101,10 +101,11 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
         Args:
             frame: Received AX.25 frame
         """
-        frame = kwargs.get('frame')
-        if not frame:
+        if not args:
             LOG.warning('No frame received to decode?!?!')
             return None
+
+        frame = args[0]
 
         try:
             aprslib_frame = aprslib.parse(str(frame))
@@ -134,10 +135,7 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
         frame = self.read_frame()
         if frame:
             LOG.info(f'GOT FRAME: {frame} calling {callback}')
-            kwargs = {
-                'frame': frame,
-            }
-            callback(**kwargs)
+            callback(frame)
 
     def read_frame(self):
         """Read a frame from the KISS interface.

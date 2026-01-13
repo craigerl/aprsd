@@ -133,6 +133,7 @@ class APRSISDriver:
                 continue
 
     def set_filter(self, filter):
+        LOG.info(f'Setting filter to {filter}')
         self._client.set_filter(filter)
 
     def login_success(self) -> bool:
