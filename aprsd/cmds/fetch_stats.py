@@ -205,7 +205,8 @@ def dump_stats(ctx, raw, show_section):
                     console.print(stats[section])
                 return
 
-        t = Table(title='APRSD Stats')
+        aprsd_stats_count = len(stats['APRSDStats'])
+        t = Table(title=f'APRSD Stats ({aprsd_stats_count})')
         t.add_column('Key')
         t.add_column('Value')
         for key, value in stats['APRSDStats'].items():
@@ -215,7 +216,8 @@ def dump_stats(ctx, raw, show_section):
             console.print(t)
 
         # Show the thread list
-        t = Table(title='Thread List')
+        thread_list_count = len(stats['APRSDThreadList'])
+        t = Table(title=f'Thread List ({thread_list_count})')
         t.add_column('Name')
         t.add_column('Class')
         t.add_column('Alive?')
@@ -234,7 +236,8 @@ def dump_stats(ctx, raw, show_section):
             console.print(t)
 
         # Show the plugins
-        t = Table(title='Plugin List')
+        plugin_count = len(stats['PluginManager'])
+        t = Table(title=f'Plugin List ({plugin_count})')
         t.add_column('Name')
         t.add_column('Enabled')
         t.add_column('Version')
@@ -253,7 +256,8 @@ def dump_stats(ctx, raw, show_section):
             console.print(t)
 
         # Now show the client stats
-        t = Table(title='Client Stats')
+        client_stats_count = len(stats['APRSClientStats'])
+        t = Table(title=f'Client Stats ({client_stats_count})')
         t.add_column('Key')
         t.add_column('Value')
         for key, value in stats['APRSClientStats'].items():
@@ -264,7 +268,12 @@ def dump_stats(ctx, raw, show_section):
 
         # now show the packet list
         packet_list = stats.get('PacketList')
-        t = Table(title='Packet List')
+        # Count packet types if 'packets' key exists, otherwise count top-level keys
+        if 'packets' in packet_list:
+            packet_count = len(packet_list['packets'])
+        else:
+            packet_count = len(packet_list)
+        t = Table(title=f'Packet List ({packet_count})')
         t.add_column('Key')
         t.add_column('Value')
         t.add_row('Total Received', str(packet_list['rx']))
@@ -275,10 +284,15 @@ def dump_stats(ctx, raw, show_section):
 
         # now show the seen list
         seen_list = stats.get('SeenList')
-        sorted_seen_list = sorted(
-            seen_list.items(),
+        seen_list_count = len(seen_list) if seen_list else 0
+        sorted_seen_list = (
+            sorted(
+                seen_list.items(),
+            )
+            if seen_list
+            else []
         )
-        t = Table(title='Seen List')
+        t = Table(title=f'Seen List ({seen_list_count})')
         t.add_column('Callsign')
         t.add_column('Message Count')
         t.add_column('Last Heard')
@@ -294,10 +308,15 @@ def dump_stats(ctx, raw, show_section):
 
         # now show the watch list
         watch_list = stats.get('WatchList')
-        sorted_watch_list = sorted(
-            watch_list.items(),
+        watch_list_count = len(watch_list) if watch_list else 0
+        sorted_watch_list = (
+            sorted(
+                watch_list.items(),
+            )
+            if watch_list
+            else []
         )
-        t = Table(title='Watch List')
+        t = Table(title=f'Watch List ({watch_list_count})')
         t.add_column('Callsign')
         t.add_column('Last Heard')
         for key, value in sorted_watch_list:
