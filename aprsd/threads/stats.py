@@ -131,6 +131,8 @@ class StatsLogThread(APRSDThread):
                 )
                 total_ranks = len(sorted_callsigns)
                 for rank, (callsign, count) in enumerate(sorted_callsigns, 1):
+                    # Calculate percentage of this callsign compared to total RX
+                    percentage = (count / total_rx * 100) if total_rx > 0 else 0.0
                     # Use different colors based on rank: most packets (rank 1) = red,
                     # least packets (last rank) = green, middle = yellow
                     if rank == 1:
@@ -142,7 +144,8 @@ class StatsLogThread(APRSDThread):
                     LOGU.opt(colors=True).info(
                         f'  <cyan>{rank:2d}.</cyan> '
                         f'<white>{callsign:<12}</white>: '
-                        f'<{count_color_tag}>{count:6d} packets</{count_color_tag}>',
+                        f'<{count_color_tag}>{count:6d} packets</{count_color_tag}> '
+                        f'<magenta>({percentage:5.1f}%)</magenta>',
                     )
 
         time.sleep(1)

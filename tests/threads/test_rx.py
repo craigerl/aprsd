@@ -154,21 +154,26 @@ class TestAPRSDRXThread(unittest.TestCase):
                 mock_list_instance.find.side_effect = KeyError('Not found')
                 mock_pkt_list.return_value = mock_list_instance
 
-                self.rx_thread.process_packet()
+                # Pass raw packet string as args[0]
+                self.rx_thread.process_packet(packet.raw)
 
                 self.assertEqual(self.rx_thread.pkt_count, 1)
                 self.assertFalse(self.packet_queue.empty())
+                # Verify the raw string is on the queue
+                queued_raw = self.packet_queue.get()
+                self.assertEqual(queued_raw, packet.raw)
 
     def test_process_packet_no_packet(self):
-        """Test process_packet() when decode returns None."""
+        """Test process_packet() when no frame is received."""
         mock_client = MockClientDriver()
         mock_client._decode_packet_return = None
         self.rx_thread._client = mock_client
         self.rx_thread.pkt_count = 0
 
         with mock.patch('aprsd.threads.rx.LOG') as mock_log:
+            # Call without args to trigger warning
             self.rx_thread.process_packet()
-            mock_log.error.assert_called()
+            mock_log.warning.assert_called()
             self.assertEqual(self.rx_thread.pkt_count, 0)
 
     def test_process_packet_ack_packet(self):
@@ -180,10 +185,14 @@ class TestAPRSDRXThread(unittest.TestCase):
         self.rx_thread.pkt_count = 0
 
         with mock.patch('aprsd.threads.rx.packet_log'):
-            self.rx_thread.process_packet()
+            # Pass raw packet string as args[0]
+            self.rx_thread.process_packet(packet.raw)
 
             self.assertEqual(self.rx_thread.pkt_count, 1)
             self.assertFalse(self.packet_queue.empty())
+            # Verify the raw string is on the queue
+            queued_raw = self.packet_queue.get()
+            self.assertEqual(queued_raw, packet.raw)
 
     def test_process_packet_duplicate(self):
         """Test process_packet() with duplicate packet.
@@ -201,12 +210,14 @@ class TestAPRSDRXThread(unittest.TestCase):
         self.rx_thread.pkt_count = 0
 
         with mock.patch('aprsd.threads.rx.packet_log'):
-            self.rx_thread.process_packet()
+            # Pass raw packet string as args[0]
+            self.rx_thread.process_packet(packet.raw)
             # The rx thread puts all packets on the queue regardless of duplicates
             # Duplicate filtering happens in the filter thread
             self.assertFalse(self.packet_queue.empty())
-            queued_packet = self.packet_queue.get()
-            self.assertEqual(queued_packet, packet)
+            queued_raw = self.packet_queue.get()
+            # Verify the raw string is on the queue
+            self.assertEqual(queued_raw, packet.raw)
 
 
 class TestAPRSDFilterThread(unittest.TestCase):

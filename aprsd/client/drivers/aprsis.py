@@ -3,6 +3,7 @@ import logging
 import time
 from typing import Callable
 
+import aprslib
 from aprslib.exceptions import LoginError
 from loguru import logger
 from oslo_config import cfg
@@ -167,7 +168,13 @@ class APRSISDriver:
 
     def decode_packet(self, *args, **kwargs):
         """APRS lib already decodes this."""
-        return core.factory(args[0])
+        if not args:
+            LOG.warning('No frame received to decode?!?!')
+            return None
+        # If args[0] is already a dict (already parsed), pass it directly to factory
+        if isinstance(args[0], dict):
+            return core.factory(args[0])
+        return core.factory(aprslib.parse(args[0]))
 
     def consumer(self, callback: Callable, raw: bool = False):
         if self._client and self.connected:
