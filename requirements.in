@@ -1,4 +1,5 @@
-aprslib>=0.7.0
+#aprslib>=0.7.0
+git+https://github.com/hemna/aprs-python.git@telemetry
 click
 dataclasses-json
 haversine
