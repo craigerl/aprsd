@@ -145,7 +145,10 @@ class APRSDFilterThread(APRSDThread):
             # driver may need to decode the packet differently.
             packet = self._client.decode_packet(pkt)
             if not packet:
-                LOG.error(f'Packet failed to parse. "{pkt}"')
+                # We mark this as debug, since there are so many
+                # packets that are on the APRS network, and we don't
+                # want to spam the logs with this.
+                LOG.debug(f'Packet failed to parse. "{pkt}"')
                 return True
             self.print_packet(packet)
             if packet:
