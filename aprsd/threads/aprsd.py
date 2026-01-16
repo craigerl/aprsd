@@ -118,7 +118,9 @@ class APRSDThreadList:
 
     @wrapt.synchronized(lock)
     def remove(self, thread_obj):
-        self.threads_list.remove(thread_obj)
+        """Remove a thread from the list if it exists."""
+        if thread_obj in self.threads_list:
+            self.threads_list.remove(thread_obj)
 
     @wrapt.synchronized(lock)
     def stop_all(self):
