@@ -20,7 +20,7 @@ pyproject-api==1.10.0     # via tox
 pyproject-hooks==1.2.0    # via build, pip-tools
 pyyaml==6.0.3             # via pre-commit
 setuptools==80.9.0        # via pip-tools
-tomli==2.3.0              # via build, pip-tools, pyproject-api, tox
+tomli==2.4.0              # via build, pip-tools, pyproject-api, tox
 tox==4.32.0               # via -r requirements-dev.in
 typing-extensions==4.15.0  # via tox, virtualenv
 virtualenv==20.35.4       # via pre-commit, tox

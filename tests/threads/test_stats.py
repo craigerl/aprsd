@@ -131,14 +131,14 @@ class TestAPRSDStatsStoreThread(unittest.TestCase):
         # Mock the collector to raise an exception
         with mock.patch('aprsd.stats.collector.Collector') as mock_collector_class:
             mock_collector_instance = mock.Mock()
-            mock_collector_instance.collect.side_effect = Exception('Test exception')
+            mock_collector_instance.collect.side_effect = RuntimeError('Test exception')
             mock_collector_class.return_value = mock_collector_instance
 
             # Set loop_count to match save interval
             thread.loop_count = 10
 
             # Should raise the exception
-            with self.assertRaises(Exception):
+            with self.assertRaises(RuntimeError):
                 thread.loop()
 
     # Removed test_loop_count_increment as it's not meaningful to test in isolation
