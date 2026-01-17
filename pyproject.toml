@@ -105,6 +105,8 @@ classifiers = [
 [tool.setuptools.dynamic]
 dependencies = {file = ["./requirements.txt"]}
 optional-dependencies.dev = {file = ["./requirements-dev.txt"]}
+optional-dependencies.tests = {file = ["./requirements-tests.txt"]}
+optional-dependencies.type = {file = ["./requirements-type.txt"]}
 
 # List additional groups of dependencies here (e.g. development
 # dependencies). Users will be able to install these using the "extras"
