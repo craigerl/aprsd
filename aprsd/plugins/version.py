@@ -1,7 +1,7 @@
 import logging
 
 import aprsd
-from aprsd import plugin
+from aprsd import conf, plugin
 from aprsd.stats import collector
 
 LOG = logging.getLogger('APRSD')
@@ -24,7 +24,9 @@ class VersionPlugin(plugin.APRSDRegexCommandPluginBase):
         # message = packet.get("message_text", None)
         # ack = packet.get("msgNo", "0")
         s = collector.Collector().collect()
-        return 'APRSD ver:{} uptime:{}'.format(
+        owner = conf.CONF.owner_callsign or '-'
+        return 'APRSD ver:{} uptime:{} owner:{}'.format(
             aprsd.__version__,
             s['APRSDStats']['uptime'],
+            owner,
         )
