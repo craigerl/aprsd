@@ -9,12 +9,7 @@ from oslo_config import cfg
 
 import aprsd
 import aprsd.packets  # noqa : F401
-from aprsd import (
-    cli_helper,
-    conf,  # noqa : F401
-    packets,
-    utils,
-)
+from aprsd import cli_helper, packets, utils
 from aprsd.client.client import APRSDClient
 from aprsd.main import cli
 from aprsd.packets import collector
@@ -75,12 +70,13 @@ def send_message(
     quiet = ctx.obj['quiet']
 
     if not aprs_login:
-        if CONF.aprs_network.login == conf.client.DEFAULT_LOGIN:
-            click.echo('Must set --aprs_login or APRS_LOGIN')
+        if CONF.callsign == 'NOCALL':
+            click.echo(
+                'Must set --aprs_login or APRS_LOGIN, or set callsign in config ([DEFAULT])'
+            )
             ctx.exit(-1)
             return
-        else:
-            aprs_login = CONF.aprs_network.login
+        aprs_login = CONF.callsign
 
     if not aprs_password:
         if not CONF.aprs_network.password:

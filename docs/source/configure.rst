@@ -157,10 +157,9 @@ Sample config file
     # useful for a direwolf KISS aprs connection only. (boolean value)
     #enabled = true
 
-    # APRS Username (string value)
-    #login = NOCALL
+    # The callsign in [DEFAULT] is used as the APRS-IS login.
 
-    # APRS Password Get the passcode for your callsign here:
+    # APRS Password for the callsign in [DEFAULT]. Get the passcode here:
     # https://apps.magicbug.co.uk/passcode (string value)
     #password = <None>
 

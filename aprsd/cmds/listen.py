@@ -81,6 +81,8 @@ class APRSDListenProcessThread(rx.APRSDFilterThread):
         if self.plugin_manager:
             # Don't do anything with the reply.
             # This is the listen only command.
+            # PluginManager.run() executes all plugins in parallel
+            # Results may be in a different order than plugin registration
             self.plugin_manager.run(packet)
 
 
@@ -257,9 +259,6 @@ def listen(
         click.echo('')
         ctx.fail('Must set --aprs-password or APRS_PASSWORD')
         ctx.exit()
-
-    # CONF.aprs_network.login = aprs_login
-    # config["aprs"]["password"] = aprs_password
 
     LOG.info(f'Python version: {sys.version}')
     LOG.info(f'APRSD Listen Started version: {aprsd.__version__}')

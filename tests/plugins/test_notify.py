@@ -65,7 +65,6 @@ class TestWatchListPlugin(test_plugin.TestPlugin):
         watchlist_callsigns=DEFAULT_WATCHLIST_CALLSIGNS,
     ):
         CONF.callsign = self.fromcall
-        CONF.aprs_network.login = self.fromcall
         CONF.aprs_fi.apiKey = 'something'
         # Add mock password
         CONF.aprs_network.password = '12345'

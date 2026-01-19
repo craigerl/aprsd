@@ -5,7 +5,6 @@ from unittest import mock
 from click.testing import CliRunner
 from oslo_config import cfg
 
-from aprsd import conf  # noqa : F401
 from aprsd.cmds import send_message  # noqa
 from aprsd.main import cli
 
@@ -21,7 +20,7 @@ class TestSendMessageCommand(unittest.TestCase):
         CONF.trace_enabled = False
         CONF.watch_list.packet_keep_count = 1
         if login:
-            CONF.aprs_network.login = login
+            CONF.callsign = login
         if password:
             CONF.aprs_network.password = password
 

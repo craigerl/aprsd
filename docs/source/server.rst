@@ -126,7 +126,6 @@ on creating your own plugins.
     2025-12-10 14:30:05.259 | MainThread         | DEBUG    | aprs_registry.service_website  = None | oslo_config.cfg:log_opt_values:2824
     2025-12-10 14:30:05.259 | MainThread         | DEBUG    | aprs_network.enabled           = True | oslo_config.cfg:log_opt_values:2824
     2025-12-10 14:30:05.260 | MainThread         | DEBUG    | aprs_network.host              = 155.138.131.1 | oslo_config.cfg:log_opt_values:2824
-    2025-12-10 14:30:05.260 | MainThread         | DEBUG    | aprs_network.login             = WB4BOR-1 | oslo_config.cfg:log_opt_values:2824
     2025-12-10 14:30:05.260 | MainThread         | DEBUG    | aprs_network.password          = **** | oslo_config.cfg:log_opt_values:2824
     2025-12-10 14:30:05.260 | MainThread         | DEBUG    | aprs_network.port              = 14580 | oslo_config.cfg:log_opt_values:2824
     2025-12-10 14:30:05.260 | MainThread         | DEBUG    | kiss_serial.baudrate           = 9600 | oslo_config.cfg:log_opt_values:2824
