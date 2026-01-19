@@ -317,12 +317,16 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
 
         pm = plugin.PluginManager()
         try:
-            results = pm.run(packet)
-            replied = False
+            results, handled = pm.run(packet)
+            # Check if any plugin replied (results may be unordered due to parallel execution)
+            replied = any(
+                result and result is not packets.NULL_MESSAGE for result in results
+            )
+            LOG.debug(f'Replied: {replied}, Handled: {handled}')
             for reply in results:
+                LOG.debug(f'Reply: {reply}')
                 if isinstance(reply, list):
                     # one of the plugins wants to send multiple messages
-                    replied = True
                     for subreply in reply:
                         LOG.debug(f"Sending '{subreply}'")
                         if isinstance(subreply, packets.Packet):
@@ -338,13 +342,13 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                 elif isinstance(reply, packets.Packet):
                     # We have a message based object.
                     tx.send(reply)
-                    replied = True
                 else:
-                    replied = True
                     # A plugin can return a null message flag which signals
                     # us that they processed the message correctly, but have
                     # nothing to reply with, so we avoid replying with a
                     # usage string
+                    # Note: NULL_MESSAGE results are already filtered out
+                    # in PluginManager.run(), so we can safely send this
                     if reply is not packets.NULL_MESSAGE:
                         LOG.debug(f"Sending '{reply}'")
                         tx.send(
@@ -357,7 +361,9 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
 
             # If the message was for us and we didn't have a
             # response, then we send a usage statement.
-            if to_call == CONF.callsign and not replied:
+            # Only send "Unknown command!" if no plugin handled the message.
+            # If a plugin returned NULL_MESSAGE, it handled it and we shouldn't reply.
+            if to_call == CONF.callsign and not replied and not handled:
                 # Tailor the messages accordingly
                 if CONF.load_help_plugin:
                     LOG.warning('Sending help!')
