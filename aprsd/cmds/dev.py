@@ -10,7 +10,7 @@ import click
 from oslo_config import cfg
 
 import aprsd
-from aprsd import cli_helper, conf, packets, plugin, utils
+from aprsd import cli_helper, packets, plugin, utils
 
 # local imports here
 from aprsd.main import cli
@@ -79,12 +79,13 @@ def test_plugin(
     CONF.log_opt_values(LOG, logging.DEBUG)
 
     if not aprs_login:
-        if CONF.aprs_network.login == conf.client.DEFAULT_LOGIN:
-            click.echo('Must set --aprs_login or APRS_LOGIN')
+        if CONF.callsign == 'NOCALL':
+            click.echo(
+                'Must set --aprs_login or APRS_LOGIN, or set callsign in config ([DEFAULT])'
+            )
             ctx.exit(-1)
             return
-        else:
-            fromcall = CONF.aprs_network.login
+        fromcall = CONF.callsign
     else:
         fromcall = aprs_login
 
@@ -129,6 +130,9 @@ def test_plugin(
     LOG.info(f"P'{plugin_path}'  F'{fromcall}'   C'{message}'")
 
     for _ in range(number):
+        # PluginManager.run() executes all plugins in parallel
+        # Results may be in a different order than plugin registration
+        # NULL_MESSAGE results are already filtered out
         replies = pm.run(packet)
         # Plugin might have threads, so lets stop them so we can exit.
         # obj.stop_threads()
@@ -149,12 +153,15 @@ def test_plugin(
             elif isinstance(reply, packets.Packet):
                 # We have a message based object.
                 LOG.info(reply)
-            elif reply is not packets.NULL_MESSAGE:
-                LOG.info(
-                    packets.MessagePacket(
-                        from_call=CONF.callsign,
-                        to_call=fromcall,
-                        message_text=reply,
-                    ),
-                )
+            else:
+                # Note: NULL_MESSAGE results are already filtered out
+                # in PluginManager.run(), but keeping this check for safety
+                if reply is not packets.NULL_MESSAGE:
+                    LOG.info(
+                        packets.MessagePacket(
+                            from_call=CONF.callsign,
+                            to_call=fromcall,
+                            message_text=reply,
+                        ),
+                    )
     pm.stop()

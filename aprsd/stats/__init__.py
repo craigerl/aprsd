@@ -4,7 +4,6 @@ from aprsd.packets import packet_list, seen_list, tracker, watch_list
 from aprsd.stats import app, collector
 from aprsd.threads import aprsd
 
-
 # Create the collector and register all the objects
 # that APRSD has that implement the stats protocol
 stats_collector = collector.Collector()

@@ -26,11 +26,11 @@ class TestDriverRegistry(unittest.TestCase):
         mock_instance.is_enabled.return_value = False
         mock_instance.is_configured.return_value = False
 
-        # Mock CONF to prevent password check
+        # Mock CONF to prevent password/callsign check
         self.conf_patcher = mock.patch('aprsd.client.drivers.aprsis.CONF')
         mock_conf = self.conf_patcher.start()
         mock_conf.aprs_network.password = 'dummy'
-        mock_conf.aprs_network.login = 'dummy'
+        mock_conf.callsign = 'dummy'
 
         # Patch the register method to skip Protocol check for MockClientDriver
         self._original_register = self.registry.register

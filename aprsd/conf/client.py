@@ -4,107 +4,100 @@ The options for log setup
 
 from oslo_config import cfg
 
-DEFAULT_LOGIN = "NOCALL"
-
 aprs_group = cfg.OptGroup(
-    name="aprs_network",
-    title="APRS-IS Network settings",
+    name='aprs_network',
+    title='APRS-IS Network settings',
 )
 
 kiss_serial_group = cfg.OptGroup(
-    name="kiss_serial",
-    title="KISS Serial device connection",
+    name='kiss_serial',
+    title='KISS Serial device connection',
 )
 
 kiss_tcp_group = cfg.OptGroup(
-    name="kiss_tcp",
-    title="KISS TCP/IP Device connection",
+    name='kiss_tcp',
+    title='KISS TCP/IP Device connection',
 )
 
 fake_client_group = cfg.OptGroup(
-    name="fake_client",
-    title="Fake Client settings",
+    name='fake_client',
+    title='Fake Client settings',
 )
 aprs_opts = [
     cfg.BoolOpt(
-        "enabled",
+        'enabled',
         default=True,
-        help="Set enabled to False if there is no internet connectivity."
-        "This is useful for a direwolf KISS aprs connection only.",
+        help='Set enabled to False if there is no internet connectivity.'
+        'This is useful for a direwolf KISS aprs connection only.',
     ),
     cfg.StrOpt(
-        "login",
-        default=DEFAULT_LOGIN,
-        help="APRS Username",
-    ),
-    cfg.StrOpt(
-        "password",
+        'password',
         secret=True,
-        help="APRS Password "
-        "Get the passcode for your callsign here: "
-        "https://apps.magicbug.co.uk/passcode",
+        help='APRS Password for the callsign in [DEFAULT]. '
+        'Get the passcode for your callsign here: '
+        'https://apps.magicbug.co.uk/passcode',
     ),
     cfg.HostAddressOpt(
-        "host",
-        default="noam.aprs2.net",
-        help="The APRS-IS hostname",
+        'host',
+        default='noam.aprs2.net',
+        help='The APRS-IS hostname',
     ),
     cfg.PortOpt(
-        "port",
+        'port',
         default=14580,
-        help="APRS-IS port",
+        help='APRS-IS port',
     ),
 ]
 
 kiss_serial_opts = [
     cfg.BoolOpt(
-        "enabled",
+        'enabled',
         default=False,
-        help="Enable Serial KISS interface connection.",
+        help='Enable Serial KISS interface connection.',
     ),
     cfg.StrOpt(
-        "device",
-        help="Serial Device file to use.  /dev/ttyS0",
+        'device',
+        help='Serial Device file to use.  /dev/ttyS0',
     ),
     cfg.IntOpt(
-        "baudrate",
+        'baudrate',
         default=9600,
-        help="The Serial device baud rate for communication",
+        help='The Serial device baud rate for communication',
     ),
     cfg.ListOpt(
-        "path",
-        default=["WIDE1-1", "WIDE2-1"],
-        help="The APRS path to use for wide area coverage.",
+        'path',
+        default=['WIDE1-1', 'WIDE2-1'],
+        help='The APRS path to use for wide area coverage.',
     ),
 ]
 
 kiss_tcp_opts = [
     cfg.BoolOpt(
-        "enabled",
+        'enabled',
         default=False,
-        help="Enable Serial KISS interface connection.",
+        help='Enable Serial KISS interface connection.',
     ),
     cfg.HostAddressOpt(
-        "host",
-        help="The KISS TCP Host to connect to.",
+        'host',
+        help='The KISS TCP Host to connect to.',
     ),
     cfg.PortOpt(
-        "port",
+        'port',
         default=8001,
-        help="The KISS TCP/IP network port",
+        help='The KISS TCP/IP network port',
     ),
     cfg.ListOpt(
-        "path",
-        default=["WIDE1-1", "WIDE2-1"],
-        help="The APRS path to use for wide area coverage.",
+        'path',
+        default=['WIDE1-1', 'WIDE2-1'],
+        help='The APRS path to use for wide area coverage.',
     ),
 ]
 
 fake_client_opts = [
     cfg.BoolOpt(
-        "enabled",
+        'enabled',
         default=False,
-        help="Enable fake client connection.",
+        help='Enable fake client connection.',
     ),
 ]
 

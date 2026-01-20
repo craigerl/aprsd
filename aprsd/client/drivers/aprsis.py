@@ -3,6 +3,7 @@ import logging
 import time
 from typing import Callable
 
+import aprslib
 from aprslib.exceptions import LoginError
 from loguru import logger
 from oslo_config import cfg
@@ -49,11 +50,12 @@ class APRSISDriver:
     @staticmethod
     def is_configured():
         if APRSISDriver.is_enabled():
-            # Ensure that the config vars are correctly set
-            if not CONF.aprs_network.login:
-                LOG.error('Config aprs_network.login not set.')
+            # Ensure that the config vars are correctly set.
+            # The callsign in [DEFAULT] is used as the APRS-IS login.
+            if not CONF.callsign or CONF.callsign == 'NOCALL':
+                LOG.error('Config callsign (in [DEFAULT]) not set or is NOCALL.')
                 raise exception.MissingConfigOptionException(
-                    'aprs_network.login is not set.',
+                    'callsign (in [DEFAULT]) is not set or is NOCALL.',
                 )
             if not CONF.aprs_network.password:
                 LOG.error('Config aprs_network.password not set.')
@@ -88,7 +90,7 @@ class APRSISDriver:
     def setup_connection(self):
         if self.connected:
             return
-        user = CONF.aprs_network.login
+        user = CONF.callsign
         password = CONF.aprs_network.password
         host = CONF.aprs_network.host
         port = CONF.aprs_network.port
@@ -133,6 +135,7 @@ class APRSISDriver:
                 continue
 
     def set_filter(self, filter):
+        LOG.info(f'Setting filter to {filter}')
         self._client.set_filter(filter)
 
     def login_success(self) -> bool:
@@ -166,7 +169,13 @@ class APRSISDriver:
 
     def decode_packet(self, *args, **kwargs):
         """APRS lib already decodes this."""
-        return core.factory(args[0])
+        if not args:
+            LOG.warning('No frame received to decode?!?!')
+            return None
+        # If args[0] is already a dict (already parsed), pass it directly to factory
+        if isinstance(args[0], dict):
+            return core.factory(args[0])
+        return core.factory(aprslib.parse(args[0]))
 
     def consumer(self, callback: Callable, raw: bool = False):
         if self._client and self.connected:

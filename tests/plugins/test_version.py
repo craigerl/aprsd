@@ -40,8 +40,9 @@ class TestVersionPlugin(test_plugin.TestPlugin):
             }
         }
 
-        expected = f'APRSD ver:{aprsd.__version__} uptime:00:00:00'
         CONF.callsign = fake.FAKE_TO_CALLSIGN
+        CONF.owner_callsign = None
+        expected = f'APRSD ver:{aprsd.__version__} uptime:00:00:00 owner:-'
         version = version_plugin.VersionPlugin()
         version.enabled = True
 
@@ -62,3 +63,22 @@ class TestVersionPlugin(test_plugin.TestPlugin):
 
         # Verify the mock was called exactly once
         mock_collector_instance.collect.assert_called_once()
+
+    @mock.patch('aprsd.stats.collector.Collector')
+    def test_version_shows_owner_callsign_when_set(self, mock_collector_class):
+        mock_collector_instance = mock_collector_class.return_value
+        mock_collector_instance.collect.return_value = {
+            'APRSDStats': {'uptime': '01:23:45'},
+        }
+
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        CONF.owner_callsign = 'K0WN3R'
+        version = version_plugin.VersionPlugin()
+        version.enabled = True
+
+        packet = fake.fake_packet(message='version', msg_number=1)
+        actual = version.filter(packet)
+        self.assertEqual(
+            actual,
+            f'APRSD ver:{aprsd.__version__} uptime:01:23:45 owner:K0WN3R',
+        )

@@ -15,6 +15,7 @@ from aprsd.packets import collector as packet_collector
 from aprsd.packets import seen_list
 from aprsd.threads import keepalive, registry, rx, service, tx
 from aprsd.threads import stats as stats_thread
+from aprsd.threads.stats import StatsLogThread
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
@@ -42,9 +43,15 @@ def _is_aprsd_gps_extension_installed():
     default=False,
     help='Flush out all old aged messages on disk.',
 )
+@click.option(
+    '--enable-packet-stats',
+    default=False,
+    is_flag=True,
+    help='Enable packet stats periodic logging.',
+)
 @click.pass_context
 @cli_helper.process_standard_options
-def server(ctx, flush):
+def server(ctx, flush, enable_packet_stats):
     """Start the aprsd server gateway process."""
     signal.signal(signal.SIGINT, aprsd_main.signal_handler)
     signal.signal(signal.SIGTERM, aprsd_main.signal_handler)
@@ -164,6 +171,11 @@ def server(ctx, flush):
     if CONF.aprs_registry.enabled:
         LOG.info('Registry Enabled.  Starting Registry thread.')
         service_threads.register(registry.APRSRegistryThread())
+
+    if enable_packet_stats:
+        LOG.debug('Start StatsLogThread')
+        listen_stats = StatsLogThread()
+        listen_stats.start()
 
     service_threads.start()
     service_threads.join()

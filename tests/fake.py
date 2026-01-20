@@ -1,9 +1,9 @@
 from aprsd import plugin, threads
 from aprsd.packets import core
 
-FAKE_MESSAGE_TEXT = "fake MeSSage"
-FAKE_FROM_CALLSIGN = "KFAKE"
-FAKE_TO_CALLSIGN = "KMINE"
+FAKE_MESSAGE_TEXT = 'fake MeSSage'
+FAKE_FROM_CALLSIGN = 'KFAKE'
+FAKE_TO_CALLSIGN = 'KMINE'
 
 
 def fake_packet(
@@ -15,22 +15,40 @@ def fake_packet(
     response=None,
 ):
     packet_dict = {
-        "from": fromcall,
-        "addresse": tocall,
-        "to": tocall,
-        "format": message_format,
-        "raw": "",
+        'from': fromcall,
+        'addresse': tocall,
+        'to': tocall,
+        'format': message_format,
+        'raw': '',
     }
     if message:
-        packet_dict["message_text"] = message
+        packet_dict['message_text'] = message
 
     if msg_number:
-        packet_dict["msgNo"] = str(msg_number)
+        packet_dict['msgNo'] = str(msg_number)
 
     if response:
-        packet_dict["response"] = response
+        packet_dict['response'] = response
 
-    return core.factory(packet_dict)
+    packet = core.factory(packet_dict)
+    # Call prepare to build the raw data
+    packet.prepare()
+    return packet
+
+
+def fake_gps_packet():
+    """Create a properly prepared GPSPacket for testing."""
+    packet = core.GPSPacket(
+        from_call=FAKE_FROM_CALLSIGN,
+        to_call=FAKE_TO_CALLSIGN,
+        latitude=37.7749,
+        longitude=-122.4194,
+        symbol='>',
+        comment='Test GPS comment',
+    )
+    # Call prepare to build the raw data
+    packet.prepare()
+    return packet
 
 
 def fake_ack_packet():
@@ -41,7 +59,7 @@ def fake_ack_packet():
 
 
 class FakeBaseNoThreadsPlugin(plugin.APRSDPluginBase):
-    version = "1.0"
+    version = '1.0'
 
     def setup(self):
         self.enabled = True
@@ -50,19 +68,19 @@ class FakeBaseNoThreadsPlugin(plugin.APRSDPluginBase):
         return None
 
     def process(self, packet):
-        return "process"
+        return 'process'
 
 
 class FakeThread(threads.APRSDThread):
     def __init__(self):
-        super().__init__("FakeThread")
+        super().__init__('FakeThread')
 
     def loop(self):
         return False
 
 
 class FakeBaseThreadsPlugin(plugin.APRSDPluginBase):
-    version = "1.0"
+    version = '1.0'
 
     def setup(self):
         self.enabled = True
@@ -71,16 +89,16 @@ class FakeBaseThreadsPlugin(plugin.APRSDPluginBase):
         return None
 
     def process(self, packet):
-        return "process"
+        return 'process'
 
     def create_threads(self):
         return FakeThread()
 
 
 class FakeRegexCommandPlugin(plugin.APRSDRegexCommandPluginBase):
-    version = "1.0"
-    command_regex = "^[fF]"
-    command_name = "fake"
+    version = '1.0'
+    command_regex = '^[fF]'
+    command_name = 'fake'
 
     def process(self, packet):
         return FAKE_MESSAGE_TEXT

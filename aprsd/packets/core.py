@@ -514,8 +514,13 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
     speed: Optional[float] = field(default=None)
 
     def _translate(self, raw: dict) -> dict:
-        for key in raw['weather']:
-            raw[key] = raw['weather'][key]
+        # aprslib returns the weather data in a 'weather' key
+        # We need to move the data out of the 'weather' key
+        # and into the root of the dictionary
+        if 'weather' in raw:
+            for key in raw['weather']:
+                raw[key] = raw['weather'][key]
+            del raw['weather']
 
         # If we have the broken aprslib, then we need to
         # Convert the course and speed to wind_speed and wind_direction
@@ -531,28 +536,27 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
             wind_speed = raw.get('speed')
             if wind_speed:
                 raw['wind_speed'] = round(wind_speed / 1.852, 3)
-                raw['weather']['wind_speed'] = raw['wind_speed']
+                # raw['weather']['wind_speed'] = raw['wind_speed']
             if 'speed' in raw:
                 del raw['speed']
             # Let's adjust the rain numbers as well, since it's wrong
             raw['rain_1h'] = round((raw.get('rain_1h', 0) / 0.254) * 0.01, 3)
-            raw['weather']['rain_1h'] = raw['rain_1h']
+            # raw['weather']['rain_1h'] = raw['rain_1h']
             raw['rain_24h'] = round((raw.get('rain_24h', 0) / 0.254) * 0.01, 3)
-            raw['weather']['rain_24h'] = raw['rain_24h']
+            # raw['weather']['rain_24h'] = raw['rain_24h']
             raw['rain_since_midnight'] = round(
                 (raw.get('rain_since_midnight', 0) / 0.254) * 0.01, 3
             )
-            raw['weather']['rain_since_midnight'] = raw['rain_since_midnight']
+            # raw['weather']['rain_since_midnight'] = raw['rain_since_midnight']
 
         if 'wind_direction' not in raw:
             wind_direction = raw.get('course')
             if wind_direction:
                 raw['wind_direction'] = wind_direction
-                raw['weather']['wind_direction'] = raw['wind_direction']
+                # raw['weather']['wind_direction'] = raw['wind_direction']
             if 'course' in raw:
                 del raw['course']
 
-        del raw['weather']
         return raw
 
     @classmethod

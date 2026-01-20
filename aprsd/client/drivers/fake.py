@@ -103,16 +103,20 @@ class APRSDFakeDriver(metaclass=trace.TraceWrapperMetaclass):
 
     def decode_packet(self, *args, **kwargs):
         """APRS lib already decodes this."""
-        if not kwargs:
+        # If packet is provided in kwargs, return it directly
+        if 'packet' in kwargs:
+            return kwargs['packet']
+        # If raw is provided in kwargs, use it
+        if 'raw' in kwargs:
+            return core.factory(aprslib.parse(kwargs['raw']))
+        # Otherwise, use args[0] if available
+        if not args:
+            LOG.warning('No frame received to decode?!?!')
             return None
-
-        if kwargs.get('packet'):
-            return kwargs.get('packet')
-
-        if kwargs.get('raw'):
-            pkt_raw = aprslib.parse(kwargs.get('raw'))
-            pkt = core.factory(pkt_raw)
-            return pkt
+        # If args[0] is already a dict (already parsed), pass it directly to factory
+        if isinstance(args[0], dict):
+            return core.factory(args[0])
+        return core.factory(aprslib.parse(args[0]))
 
     def stats(self, serializable: bool = False) -> dict:
         return {

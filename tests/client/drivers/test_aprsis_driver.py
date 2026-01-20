@@ -18,9 +18,9 @@ class TestAPRSISDriver(unittest.TestCase):
         self.conf_patcher = mock.patch('aprsd.client.drivers.aprsis.CONF')
         self.mock_conf = self.conf_patcher.start()
 
-        # Configure APRS-IS settings
+        # Configure APRS-IS settings. callsign in [DEFAULT] is used as APRS-IS login.
         self.mock_conf.aprs_network.enabled = True
-        self.mock_conf.aprs_network.login = 'TEST'
+        self.mock_conf.callsign = 'TEST'
         self.mock_conf.aprs_network.password = '12345'
         self.mock_conf.aprs_network.host = 'rotate.aprs.net'
         self.mock_conf.aprs_network.port = 14580
@@ -97,16 +97,26 @@ class TestAPRSISDriver(unittest.TestCase):
     def test_is_configured_true(self):
         """Test is_configured returns True when properly configured."""
         with mock.patch.object(APRSISDriver, 'is_enabled', return_value=True):
-            self.mock_conf.aprs_network.login = 'TEST'
+            self.mock_conf.callsign = 'TEST'
             self.mock_conf.aprs_network.password = '12345'
             self.mock_conf.aprs_network.host = 'rotate.aprs.net'
 
             self.assertTrue(APRSISDriver.is_configured())
 
-    def test_is_configured_no_login(self):
-        """Test is_configured raises exception when login not set."""
+    def test_is_configured_no_callsign(self):
+        """Test is_configured raises exception when callsign not set or NOCALL."""
         with mock.patch.object(APRSISDriver, 'is_enabled', return_value=True):
-            self.mock_conf.aprs_network.login = None
+            self.mock_conf.callsign = None
+
+            with self.assertRaises(exception.MissingConfigOptionException):
+                APRSISDriver.is_configured()
+
+    def test_is_configured_callsign_nocall(self):
+        """Test is_configured raises exception when callsign is NOCALL."""
+        with mock.patch.object(APRSISDriver, 'is_enabled', return_value=True):
+            self.mock_conf.callsign = 'NOCALL'
+            self.mock_conf.aprs_network.password = '12345'
+            self.mock_conf.aprs_network.host = 'rotate.aprs.net'
 
             with self.assertRaises(exception.MissingConfigOptionException):
                 APRSISDriver.is_configured()
@@ -114,7 +124,7 @@ class TestAPRSISDriver(unittest.TestCase):
     def test_is_configured_no_password(self):
         """Test is_configured raises exception when password not set."""
         with mock.patch.object(APRSISDriver, 'is_enabled', return_value=True):
-            self.mock_conf.aprs_network.login = 'TEST'
+            self.mock_conf.callsign = 'TEST'
             self.mock_conf.aprs_network.password = None
 
             with self.assertRaises(exception.MissingConfigOptionException):
@@ -123,7 +133,7 @@ class TestAPRSISDriver(unittest.TestCase):
     def test_is_configured_no_host(self):
         """Test is_configured raises exception when host not set."""
         with mock.patch.object(APRSISDriver, 'is_enabled', return_value=True):
-            self.mock_conf.aprs_network.login = 'TEST'
+            self.mock_conf.callsign = 'TEST'
             self.mock_conf.aprs_network.password = '12345'
             self.mock_conf.aprs_network.host = None
 
@@ -197,9 +207,9 @@ class TestAPRSISDriver(unittest.TestCase):
 
         self.driver.setup_connection()
 
-        # Check client created with correct parameters
+        # Check client created with correct parameters (callsign is APRS-IS login)
         self.mock_aprslib.assert_called_once_with(
-            self.mock_conf.aprs_network.login,
+            self.mock_conf.callsign,
             passwd=self.mock_conf.aprs_network.password,
             host=self.mock_conf.aprs_network.host,
             port=self.mock_conf.aprs_network.port,

@@ -2,7 +2,6 @@ import logging
 import os
 import pathlib
 import pickle
-import threading
 
 from oslo_config import cfg
 
@@ -25,8 +24,8 @@ class ObjectStoreMixin:
     aprsd server -f (flush) will wipe all saved objects.
     """
 
-    def __init__(self):
-        self.lock = threading.RLock()
+    # Child class must create the lock.
+    lock = None
 
     def __len__(self):
         with self.lock:
@@ -94,29 +93,31 @@ class ObjectStoreMixin:
     def load(self):
         if not CONF.enable_save:
             return
-        if os.path.exists(self._save_filename()):
-            try:
-                with open(self._save_filename(), 'rb') as fp:
-                    raw = pickle.load(fp)
-                    if raw:
-                        self.data = raw
-                        LOG.debug(
-                            f'{self.__class__.__name__}::Loaded {len(self)} entries from disk.',
-                        )
-                    else:
-                        LOG.debug(f'{self.__class__.__name__}::No data to load.')
-            except (pickle.UnpicklingError, Exception) as ex:
-                LOG.error(f'Failed to UnPickle {self._save_filename()}')
-                LOG.error(ex)
-                self.data = {}
-        else:
-            LOG.debug(f'{self.__class__.__name__}::No save file found.')
+        with self.lock:
+            if os.path.exists(self._save_filename()):
+                try:
+                    with open(self._save_filename(), 'rb') as fp:
+                        raw = pickle.load(fp)
+                        if raw:
+                            self.data = raw
+                            LOG.debug(
+                                f'{self.__class__.__name__}::Loaded {len(self)} entries from disk.',
+                            )
+                        else:
+                            LOG.debug(f'{self.__class__.__name__}::No data to load.')
+                except (pickle.UnpicklingError, Exception) as ex:
+                    LOG.error(f'Failed to UnPickle {self._save_filename()}')
+                    LOG.error(ex)
+                    self.data = {}
+            else:
+                LOG.debug(f'{self.__class__.__name__}::No save file found.')
 
     def flush(self):
         """Nuke the old pickle file that stored the old results from last aprsd run."""
         if not CONF.enable_save:
             return
-        if os.path.exists(self._save_filename()):
-            pathlib.Path(self._save_filename()).unlink()
         with self.lock:
-            self.data = {}
+            if os.path.exists(self._save_filename()):
+                pathlib.Path(self._save_filename()).unlink()
+            with self.lock:
+                self.data = {}

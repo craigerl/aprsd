@@ -8,7 +8,7 @@ from oslo_config import cfg
 
 from aprsd import packets, plugin
 from aprsd.client.client import APRSDClient
-from aprsd.packets import collector, filter
+from aprsd.packets import collector, core, filter
 from aprsd.packets import log as packet_log
 from aprsd.threads import APRSDThread, tx
 
@@ -17,12 +17,11 @@ LOG = logging.getLogger('APRSD')
 
 
 class APRSDRXThread(APRSDThread):
-    """Main Class to connect to an APRS Client and recieve packets.
+    """
+    Thread to receive packets from the APRS Client and put them on the packet queue.
 
-    A packet is received in the main loop and then sent to the
-    process_packet method, which sends the packet through the collector
-    to track the packet for stats, and then put into the packet queue
-    for processing in a separate thread.
+    Args:
+        packet_queue: The queue to put the packets in.
     """
 
     _client = None
@@ -34,7 +33,12 @@ class APRSDRXThread(APRSDThread):
 
     pkt_count = 0
 
-    def __init__(self, packet_queue):
+    def __init__(self, packet_queue: queue.Queue):
+        """Initialize the APRSDRXThread.
+
+        Args:
+            packet_queue: The queue to put the packets in.
+        """
         super().__init__('RX_PKT')
         self.packet_queue = packet_queue
 
@@ -67,7 +71,7 @@ class APRSDRXThread(APRSDThread):
             # https://github.com/rossengeorgiev/aprs-python/pull/56
             self._client.consumer(
                 self.process_packet,
-                raw=False,
+                raw=True,
             )
         except (
             aprslib.exceptions.ConnectionDrop,
@@ -87,63 +91,38 @@ class APRSDRXThread(APRSDThread):
         return True
 
     def process_packet(self, *args, **kwargs):
-        packet = self._client.decode_packet(*args, **kwargs)
-        if not packet:
-            LOG.error(
-                'No packet received from decode_packet.  Most likely a failure to parse'
-            )
+        """Put the raw packet on the queue.
+
+        The processing of the packet will happen in a separate thread.
+        """
+        if not args:
+            LOG.warning('No frame received to process?!?!')
             return
         self.pkt_count += 1
-        packet_log.log(packet, packet_count=self.pkt_count)
-        pkt_list = packets.PacketList()
-
-        if isinstance(packet, packets.AckPacket):
-            # We don't need to drop AckPackets, those should be
-            # processed.
-            self.packet_queue.put(packet)
-        else:
-            # Make sure we aren't re-processing the same packet
-            # For RF based APRS Clients we can get duplicate packets
-            # So we need to track them and not process the dupes.
-            found = False
-            try:
-                # Find the packet in the list of already seen packets
-                # Based on the packet.key
-                found = pkt_list.find(packet)
-                if not packet.msgNo:
-                    # If the packet doesn't have a message id
-                    # then there is no reliable way to detect
-                    # if it's a dupe, so we just pass it on.
-                    # it shouldn't get acked either.
-                    found = False
-            except KeyError:
-                found = False
-
-            if not found:
-                # We haven't seen this packet before, so we process it.
-                collector.PacketCollector().rx(packet)
-                self.packet_queue.put(packet)
-            elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
-                # If the packet came in within N seconds of the
-                # Last time seeing the packet, then we drop it as a dupe.
-                LOG.warning(
-                    f'Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.'
-                )
-            else:
-                LOG.warning(
-                    f'Packet {packet.from_call}:{packet.msgNo} already tracked '
-                    f'but older than {CONF.packet_dupe_timeout} seconds. processing.',
-                )
-                collector.PacketCollector().rx(packet)
-                self.packet_queue.put(packet)
+        self.packet_queue.put(args[0])
 
 
 class APRSDFilterThread(APRSDThread):
-    def __init__(self, thread_name, packet_queue):
+    """
+    Thread to filter packets on the packet queue.
+    Args:
+        thread_name: The name of the thread.
+        packet_queue: The queue to get the packets from.
+    """
+
+    def __init__(self, thread_name: str, packet_queue: queue.Queue):
+        """Initialize the APRSDFilterThread.
+
+        Args:
+            thread_name: The name of the thread.
+            packet_queue: The queue to get the packets from.
+        """
         super().__init__(thread_name)
         self.packet_queue = packet_queue
+        self.packet_count = 0
+        self._client = APRSDClient()
 
-    def filter_packet(self, packet):
+    def filter_packet(self, packet: type[core.Packet]) -> type[core.Packet] | None:
         # Do any packet filtering prior to processing
         if not filter.PacketFilter().filter(packet):
             return None
@@ -156,14 +135,27 @@ class APRSDFilterThread(APRSDThread):
         doesn't want to log packets.
 
         """
-        packet_log.log(packet)
+        packet_log.log(packet, packet_count=self.packet_count)
 
     def loop(self):
         try:
-            packet = self.packet_queue.get(timeout=1)
+            pkt = self.packet_queue.get(timeout=1)
+            self.packet_count += 1
+            # We use the client here, because the specific
+            # driver may need to decode the packet differently.
+            packet = self._client.decode_packet(pkt)
+            if not packet:
+                # We mark this as debug, since there are so many
+                # packets that are on the APRS network, and we don't
+                # want to spam the logs with this.
+                LOG.debug(f'Packet failed to parse. "{pkt}"')
+                return True
             self.print_packet(packet)
             if packet:
                 if self.filter_packet(packet):
+                    # The packet has passed all filters, so we collect it.
+                    # and process it.
+                    collector.PacketCollector().rx(packet)
                     self.process_packet(packet)
         except queue.Empty:
             pass
@@ -182,7 +174,7 @@ class APRSDProcessPacketThread(APRSDFilterThread):
     will ack a message before sending the packet to the subclass
     for processing."""
 
-    def __init__(self, packet_queue):
+    def __init__(self, packet_queue: queue.Queue):
         super().__init__('ProcessPKT', packet_queue=packet_queue)
         if not CONF.enable_sending_ack_packets:
             LOG.warning(
@@ -283,7 +275,10 @@ class APRSDProcessPacketThread(APRSDFilterThread):
 class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
     """Process the packet through the plugin manager.
 
-    This is the main aprsd server plugin processing thread."""
+    This is the main aprsd server plugin processing thread.
+    Args:
+        packet_queue: The queue to get the packets from.
+    """
 
     def process_other_packet(self, packet, for_us=False):
         pm = plugin.PluginManager()
@@ -322,12 +317,16 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
 
         pm = plugin.PluginManager()
         try:
-            results = pm.run(packet)
-            replied = False
+            results, handled = pm.run(packet)
+            # Check if any plugin replied (results may be unordered due to parallel execution)
+            replied = any(
+                result and result is not packets.NULL_MESSAGE for result in results
+            )
+            LOG.debug(f'Replied: {replied}, Handled: {handled}')
             for reply in results:
+                LOG.debug(f'Reply: {reply}')
                 if isinstance(reply, list):
                     # one of the plugins wants to send multiple messages
-                    replied = True
                     for subreply in reply:
                         LOG.debug(f"Sending '{subreply}'")
                         if isinstance(subreply, packets.Packet):
@@ -343,13 +342,13 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                 elif isinstance(reply, packets.Packet):
                     # We have a message based object.
                     tx.send(reply)
-                    replied = True
                 else:
-                    replied = True
                     # A plugin can return a null message flag which signals
                     # us that they processed the message correctly, but have
                     # nothing to reply with, so we avoid replying with a
                     # usage string
+                    # Note: NULL_MESSAGE results are already filtered out
+                    # in PluginManager.run(), so we can safely send this
                     if reply is not packets.NULL_MESSAGE:
                         LOG.debug(f"Sending '{reply}'")
                         tx.send(
@@ -362,7 +361,9 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
 
             # If the message was for us and we didn't have a
             # response, then we send a usage statement.
-            if to_call == CONF.callsign and not replied:
+            # Only send "Unknown command!" if no plugin handled the message.
+            # If a plugin returned NULL_MESSAGE, it handled it and we shouldn't reply.
+            if to_call == CONF.callsign and not replied and not handled:
                 # Tailor the messages accordingly
                 if CONF.load_help_plugin:
                     LOG.warning('Sending help!')

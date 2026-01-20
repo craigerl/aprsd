@@ -112,7 +112,7 @@ class TestKISSDriver(unittest.TestCase):
                 mock_parse.return_value = mock_aprs_data
                 mock_factory.return_value = mock_packet
 
-                result = self.driver.decode_packet(frame=frame)
+                result = self.driver.decode_packet(frame)
                 self.assertEqual(result, mock_packet)
                 mock_parse.assert_called_with(str(frame))
 
@@ -131,7 +131,7 @@ class TestKISSDriver(unittest.TestCase):
             mock_parse.side_effect = Exception('Parse error')
 
             with mock.patch('aprsd.client.drivers.kiss_common.LOG') as mock_log:
-                result = self.driver.decode_packet(frame=frame)
+                result = self.driver.decode_packet(frame)
                 self.assertIsNone(result)
                 mock_log.error.assert_called()
 
@@ -154,7 +154,7 @@ class TestKISSDriver(unittest.TestCase):
                 mock_parse.return_value = mock_aprs_data
                 mock_factory.return_value = third_party
 
-                result = self.driver.decode_packet(frame=frame)
+                result = self.driver.decode_packet(frame)
                 self.assertEqual(result, third_party.subpacket)
 
     def test_consumer_not_connected(self):

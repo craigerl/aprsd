@@ -7,6 +7,7 @@ import logging
 import re
 import textwrap
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pluggy
 from oslo_config import cfg
@@ -49,6 +50,7 @@ class APRSDPluginSpec:
 class APRSDPluginBase(metaclass=abc.ABCMeta):
     """The base class for all APRSD Plugins."""
 
+    _counter_lock = threading.Lock()
     config = None
     rx_count = 0
     tx_count = 0
@@ -106,10 +108,12 @@ class APRSDPluginBase(metaclass=abc.ABCMeta):
         return []
 
     def rx_inc(self):
-        self.rx_count += 1
+        with self._counter_lock:
+            self.rx_count += 1
 
     def tx_inc(self):
-        self.tx_count += 1
+        with self._counter_lock:
+            self.tx_count += 1
 
     def stop_threads(self):
         """Stop any threads this plugin might have created."""
@@ -513,13 +517,90 @@ class PluginManager:
         LOG.info('Completed Plugin Loading.')
 
     def run(self, packet: packets.MessagePacket):
-        """Execute all the plugins run method."""
-        with self.lock:
-            return self._pluggy_pm.hook.filter(packet=packet)
+        """Execute all plugins in parallel.
+
+        Plugins are executed concurrently using ThreadPoolExecutor to improve
+        performance, especially when plugins perform I/O operations (API calls,
+        subprocess calls, etc.). Each plugin's filter() method is called in
+        parallel, and results are collected as they complete.
+
+        Returns:
+            tuple: (results, handled) where:
+                - results: list of non-NULL plugin results
+                - handled: bool indicating if any plugin processed the message
+                          (even if it returned NULL_MESSAGE)
+        """
+        plugins = list(self._pluggy_pm.get_plugins())
+        if not plugins:
+            return ([], False)
+
+        results = []
+        handled = False
+
+        # Execute all plugins in parallel
+        with ThreadPoolExecutor(max_workers=len(plugins)) as executor:
+            future_to_plugin = {
+                executor.submit(plugin.filter, packet=packet): plugin
+                for plugin in plugins
+            }
+
+            for future in as_completed(future_to_plugin):
+                plugin = future_to_plugin[future]
+                try:
+                    result = future.result()
+                    # Track if any plugin processed the message (even if NULL_MESSAGE)
+                    if result is not None:
+                        handled = True
+                    # Only include non-NULL results
+                    if result and result is not packets.NULL_MESSAGE:
+                        results.append(result)
+                except Exception as ex:
+                    LOG.error(
+                        'Plugin {} failed to process packet: {}'.format(
+                            plugin.__class__.__name__,
+                            ex,
+                        ),
+                    )
+                    LOG.exception(ex)
+
+        return (results, handled)
 
     def run_watchlist(self, packet: packets.Packet):
-        with self.lock:
-            return self._watchlist_pm.hook.filter(packet=packet)
+        """Execute all watchlist plugins in parallel.
+
+        Watchlist plugins are executed concurrently using ThreadPoolExecutor
+        to improve performance when multiple watchlist plugins are registered.
+        """
+        plugins = list(self._watchlist_pm.get_plugins())
+        if not plugins:
+            return []
+
+        results = []
+
+        # Execute all plugins in parallel
+        with ThreadPoolExecutor(max_workers=len(plugins)) as executor:
+            future_to_plugin = {
+                executor.submit(plugin.filter, packet=packet): plugin
+                for plugin in plugins
+            }
+
+            for future in as_completed(future_to_plugin):
+                plugin = future_to_plugin[future]
+                try:
+                    result = future.result()
+                    # Only include non-NULL results
+                    if result and result is not packets.NULL_MESSAGE:
+                        results.append(result)
+                except Exception as ex:
+                    LOG.error(
+                        'Watchlist plugin {} failed to process packet: {}'.format(
+                            plugin.__class__.__name__,
+                            ex,
+                        ),
+                    )
+                    LOG.exception(ex)
+
+        return results
 
     def stop(self):
         """Stop all threads created by all plugins."""

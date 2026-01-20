@@ -20,6 +20,9 @@ class DupePacketFilter:
     timeframe, then it's a dupe.
     """
 
+    def __init__(self):
+        self.pl = packets.PacketList()
+
     def filter(self, packet: type[core.Packet]) -> Union[type[core.Packet], None]:
         # LOG.debug(f"{self.__class__.__name__}.filter called for packet {packet}")
         """Filter a packet out if it's already been seen and processed."""
@@ -32,12 +35,11 @@ class DupePacketFilter:
             # Make sure we aren't re-processing the same packet
             # For RF based APRS Clients we can get duplicate packets
             # So we need to track them and not process the dupes.
-            pkt_list = packets.PacketList()
             found = False
             try:
                 # Find the packet in the list of already seen packets
                 # Based on the packet.key
-                found = pkt_list.find(packet)
+                found = self.pl.find(packet)
                 if not packet.msgNo:
                     # If the packet doesn't have a message id
                     # then there is no reliable way to detect
@@ -54,12 +56,13 @@ class DupePacketFilter:
             if not packet.processed:
                 # We haven't processed this packet through the plugins.
                 return packet
-            elif packet.timestamp - found.timestamp < CONF.packet_dupe_timeout:
+            elif abs(packet.timestamp - found.timestamp) < CONF.packet_dupe_timeout:
                 # If the packet came in within N seconds of the
                 # Last time seeing the packet, then we drop it as a dupe.
                 LOG.warning(
                     f'Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.'
                 )
+                return None
             else:
                 LOG.warning(
                     f'Packet {packet.from_call}:{packet.msgNo} already tracked '

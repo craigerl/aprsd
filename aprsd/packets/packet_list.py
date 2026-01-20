@@ -1,8 +1,10 @@
 import logging
+import threading
 from collections import OrderedDict
 
 from oslo_config import cfg
 
+from aprsd import conf  # noqa: F401
 from aprsd.packets import core
 from aprsd.utils import objectstore
 
@@ -21,6 +23,7 @@ class PacketList(objectstore.ObjectStoreMixin):
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls.lock = threading.RLock()
             cls._instance.maxlen = CONF.packet_list_maxlen
             cls._instance._init_data()
         return cls._instance

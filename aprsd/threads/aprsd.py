@@ -107,7 +107,7 @@ class APRSDThreadList:
                 'name': th.name,
                 'class': th.__class__.__name__,
                 'alive': th.is_alive(),
-                'age': th.loop_age(),
+                'age': age,
                 'loop_count': th.loop_count,
             }
         return stats
@@ -118,7 +118,9 @@ class APRSDThreadList:
 
     @wrapt.synchronized(lock)
     def remove(self, thread_obj):
-        self.threads_list.remove(thread_obj)
+        """Remove a thread from the list if it exists."""
+        if thread_obj in self.threads_list:
+            self.threads_list.remove(thread_obj)
 
     @wrapt.synchronized(lock)
     def stop_all(self):

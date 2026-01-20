@@ -1,14 +1,14 @@
 import datetime
 import logging
+import threading
 
 from oslo_config import cfg
 
 from aprsd.packets import core
 from aprsd.utils import objectstore
 
-
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 
 
 class SeenList(objectstore.ObjectStoreMixin):
@@ -20,13 +20,27 @@ class SeenList(objectstore.ObjectStoreMixin):
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls._instance.lock = threading.RLock()
             cls._instance.data = {}
         return cls._instance
 
     def stats(self, serializable=False):
         """Return the stats for the PacketTrack class."""
         with self.lock:
-            return self.data
+            if serializable:
+                # Convert datetime objects to strings for JSON serialization
+                serializable_data = {}
+                for callsign, data in self.data.items():
+                    serializable_data[callsign] = data.copy()
+                    if 'last' in serializable_data[callsign] and isinstance(
+                        serializable_data[callsign]['last'], datetime.datetime
+                    ):
+                        serializable_data[callsign]['last'] = serializable_data[
+                            callsign
+                        ]['last'].isoformat()
+                return serializable_data
+            else:
+                return self.data
 
     def rx(self, packet: type[core.Packet]):
         """When we get a packet from the network, update the seen list."""
@@ -39,11 +53,11 @@ class SeenList(objectstore.ObjectStoreMixin):
                 return
             if callsign not in self.data:
                 self.data[callsign] = {
-                    "last": None,
-                    "count": 0,
+                    'last': None,
+                    'count': 0,
                 }
-            self.data[callsign]["last"] = datetime.datetime.now()
-            self.data[callsign]["count"] += 1
+            self.data[callsign]['last'] = datetime.datetime.now()
+            self.data[callsign]['count'] += 1
 
     def tx(self, packet: type[core.Packet]):
         """We don't care about TX packets."""

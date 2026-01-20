@@ -25,23 +25,23 @@ from aprsd.threads import stats as stats_threads
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
 CONF = cfg.CONF
-LOG = logging.getLogger("APRSD")
+LOG = logging.getLogger('APRSD')
 console = Console()
 
 
 @cli.command()
 @cli_helper.add_options(cli_helper.common_options)
 @click.option(
-    "--timeout",
+    '--timeout',
     show_default=True,
     default=3,
-    help="How long to wait for healtcheck url to come back",
+    help='How long to wait for healtcheck url to come back',
 )
 @click.pass_context
 @cli_helper.process_standard_options
 def healthcheck(ctx, timeout):
     """Check the health of the running aprsd server."""
-    ver_str = f"APRSD HealthCheck version: {aprsd.__version__}"
+    ver_str = f'APRSD HealthCheck version: {aprsd.__version__}'
     console.log(ver_str)
 
     with console.status(ver_str):
@@ -56,33 +56,33 @@ def healthcheck(ctx, timeout):
         else:
             now = datetime.datetime.now()
             if not stats:
-                console.log("No stats from aprsd")
+                console.log('No stats from aprsd')
                 sys.exit(-1)
 
-            email_stats = stats.get("EmailStats")
+            email_stats = stats.get('EmailStats')
             if email_stats:
-                email_thread_last_update = email_stats["last_check_time"]
+                email_thread_last_update = email_stats['last_check_time']
 
-                if email_thread_last_update != "never":
+                if email_thread_last_update != 'never':
                     d = now - email_thread_last_update
-                    max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 30}
+                    max_timeout = {'hours': 0.0, 'minutes': 5, 'seconds': 30}
                     max_delta = datetime.timedelta(**max_timeout)
                     if d > max_delta:
-                        console.log(f"Email thread is very old! {d}")
+                        console.log(f'Email thread is very old! {d}')
                         sys.exit(-1)
 
-            client_stats = stats.get("APRSClientStats")
+            client_stats = stats.get('APRSClientStats')
             if not client_stats:
-                console.log("No APRSClientStats")
+                console.log('No APRSClientStats')
                 sys.exit(-1)
             else:
-                aprsis_last_update = client_stats["connection_keepalive"]
+                aprsis_last_update = client_stats['connection_keepalive']
                 d = now - aprsis_last_update
-                max_timeout = {"hours": 0.0, "minutes": 5, "seconds": 0}
+                max_timeout = {'hours': 0.0, 'minutes': 5, 'seconds': 0}
                 max_delta = datetime.timedelta(**max_timeout)
                 if d > max_delta:
-                    LOG.error(f"APRS-IS last update is very old! {d}")
+                    LOG.error(f'APRS-IS last update is very old! {d}')
                     sys.exit(-1)
 
-            console.log("OK")
+            console.log('OK')
             sys.exit(0)

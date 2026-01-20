@@ -31,7 +31,7 @@ import importlib
 import os
 import pkgutil
 
-LIST_OPTS_FUNC_NAME = "list_opts"
+LIST_OPTS_FUNC_NAME = 'list_opts'
 
 
 def _tupleize(dct):
@@ -51,7 +51,7 @@ def _list_module_names():
     module_names = []
     package_path = os.path.dirname(os.path.abspath(__file__))
     for _, modname, ispkg in pkgutil.iter_modules(path=[package_path]):
-        if modname == "opts" or ispkg:
+        if modname == 'opts' or ispkg:
             continue
         else:
             module_names.append(modname)
@@ -61,11 +61,11 @@ def _list_module_names():
 def _import_modules(module_names):
     imported_modules = []
     for modname in module_names:
-        mod = importlib.import_module("aprsd.conf." + modname)
+        mod = importlib.import_module('aprsd.conf.' + modname)
         if not hasattr(mod, LIST_OPTS_FUNC_NAME):
             msg = (
                 "The module 'aprsd.conf.%s' should have a '%s' "
-                "function which returns the config options."
+                'function which returns the config options.'
                 % (modname, LIST_OPTS_FUNC_NAME)
             )
             raise Exception(msg)

@@ -38,7 +38,6 @@ class TestPluginManager(unittest.TestCase):
 
     def config_and_init(self):
         CONF.callsign = self.fromcall
-        CONF.aprs_network.login = fake.FAKE_TO_CALLSIGN
         CONF.aprs_fi.apiKey = 'something'
         CONF.enabled_plugins = 'aprsd.plugins.ping.PingPlugin'
         CONF.enable_save = False
@@ -115,7 +114,6 @@ class TestPlugin(unittest.TestCase):
 
     def config_and_init(self):
         CONF.callsign = self.fromcall
-        CONF.aprs_network.login = fake.FAKE_TO_CALLSIGN
         CONF.aprs_fi.apiKey = 'something'
         CONF.enabled_plugins = 'aprsd.plugins.ping.PingPlugin'
         CONF.enable_save = False

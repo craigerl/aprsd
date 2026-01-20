@@ -3,13 +3,16 @@
 #
 
 # python included libs
+import cProfile
 import datetime
 import logging
+import pstats
 import signal
 import sys
 import time
 
 import click
+import requests
 from loguru import logger
 from oslo_config import cfg
 from rich.console import Console
@@ -19,8 +22,7 @@ import aprsd
 from aprsd import cli_helper, packets, plugin, threads, utils
 from aprsd.client.client import APRSDClient
 from aprsd.main import cli
-from aprsd.packets import collector as packet_collector
-from aprsd.packets import core, seen_list
+from aprsd.packets import core
 from aprsd.packets import log as packet_log
 from aprsd.packets.filter import PacketFilter
 from aprsd.packets.filters import dupe_filter, packet_type
@@ -28,6 +30,7 @@ from aprsd.stats import collector
 from aprsd.threads import keepalive, rx
 from aprsd.threads import stats as stats_thread
 from aprsd.threads.aprsd import APRSDThread
+from aprsd.threads.stats import StatsLogThread
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
@@ -68,87 +71,61 @@ class APRSDListenProcessThread(rx.APRSDFilterThread):
 
     def print_packet(self, packet):
         if self.log_packets:
-            packet_log.log(packet)
+            packet_log.log(
+                packet,
+                packet_count=self.packet_count,
+                force_log=True,
+            )
 
     def process_packet(self, packet: type[core.Packet]):
         if self.plugin_manager:
             # Don't do anything with the reply.
             # This is the listen only command.
+            # PluginManager.run() executes all plugins in parallel
+            # Results may be in a different order than plugin registration
             self.plugin_manager.run(packet)
 
 
-class ListenStatsThread(APRSDThread):
-    """Log the stats from the PacketList."""
+class StatsExportThread(APRSDThread):
+    """Export stats to remote aprsd-exporter API."""
 
-    def __init__(self):
-        super().__init__('PacketStatsLog')
-        self._last_total_rx = 0
-        self.period = 31
-        self.start_time = time.time()
+    def __init__(self, exporter_url):
+        super().__init__('StatsExport')
+        self.exporter_url = exporter_url
+        self.period = 10  # Export stats every 60 seconds
 
     def loop(self):
         if self.loop_count % self.period == 0:
-            # log the stats every 10 seconds
-            stats_json = collector.Collector().collect()
-            stats = stats_json['PacketList']
-            total_rx = stats['rx']
-            packet_count = len(stats['packets'])
-            rx_delta = total_rx - self._last_total_rx
-            rate = rx_delta / self.period
+            try:
+                # Collect all stats
+                stats_json = collector.Collector().collect(serializable=True)
+                # Remove the PacketList section to reduce payload size
+                if 'PacketList' in stats_json:
+                    del stats_json['PacketList']['packets']
 
-            # Get unique callsigns count from packets' from_call field
-            unique_callsigns = set()
-            if 'packets' in stats and stats['packets']:
-                for packet in stats['packets']:
-                    # Handle both Packet objects and dicts (if serializable)
-                    if hasattr(packet, 'from_call'):
-                        if packet.from_call:
-                            unique_callsigns.add(packet.from_call)
-                    elif isinstance(packet, dict) and 'from_call' in packet:
-                        if packet['from_call']:
-                            unique_callsigns.add(packet['from_call'])
-            unique_callsigns_count = len(unique_callsigns)
+                now = datetime.datetime.now()
+                time_format = '%m-%d-%Y %H:%M:%S'
+                stats = {
+                    'time': now.strftime(time_format),
+                    'stats': stats_json,
+                }
 
-            # Calculate uptime
-            elapsed = time.time() - self.start_time
-            elapsed_minutes = elapsed / 60
-            elapsed_hours = elapsed / 3600
+                # Send stats to exporter API
+                url = f'{self.exporter_url}/stats'
+                headers = {'Content-Type': 'application/json'}
+                response = requests.post(url, json=stats, headers=headers, timeout=10)
 
-            # Log summary stats
-            LOGU.opt(colors=True).info(
-                f'<green>RX Rate: {rate:.2f} pps</green>  '
-                f'<yellow>Total RX: {total_rx}</yellow> '
-                f'<red>RX Last {self.period} secs: {rx_delta}</red> '
-                f'<white>Packets in PacketListStats: {packet_count}</white>',
-            )
-            LOGU.opt(colors=True).info(
-                f'<cyan>Uptime: {elapsed:.0f}s ({elapsed_minutes:.1f}m / {elapsed_hours:.2f}h)</cyan>  '
-                f'<magenta>Unique Callsigns: {unique_callsigns_count}</magenta>',
-            )
-            self._last_total_rx = total_rx
+                if response.status_code == 200:
+                    LOGU.info(f'Successfully exported stats to {self.exporter_url}')
+                else:
+                    LOGU.warning(
+                        f'Failed to export stats to {self.exporter_url}: HTTP {response.status_code}'
+                    )
 
-            # Log individual type stats, sorted by RX count (descending)
-            sorted_types = sorted(
-                stats['types'].items(), key=lambda x: x[1]['rx'], reverse=True
-            )
-            for k, v in sorted_types:
-                # Calculate percentage of this packet type compared to total RX
-                percentage = (v['rx'] / total_rx * 100) if total_rx > 0 else 0.0
-                # Format values first, then apply colors
-                packet_type_str = f'{k:<15}'
-                rx_count_str = f'{v["rx"]:6d}'
-                tx_count_str = f'{v["tx"]:6d}'
-                percentage_str = f'{percentage:5.1f}%'
-                # Use different colors for RX count based on threshold (matching mqtt_injest.py)
-                rx_color_tag = (
-                    'green' if v['rx'] > 100 else 'yellow' if v['rx'] > 10 else 'red'
-                )
-                LOGU.opt(colors=True).info(
-                    f'  <cyan>{packet_type_str}</cyan>: '
-                    f'<{rx_color_tag}>RX: {rx_count_str}</{rx_color_tag}> '
-                    f'<red>TX: {tx_count_str}</red> '
-                    f'<magenta>({percentage_str})</magenta>',
-                )
+            except requests.exceptions.RequestException as e:
+                LOGU.error(f'Error exporting stats to {self.exporter_url}: {e}')
+            except Exception as e:
+                LOGU.error(f'Unexpected error in stats export: {e}')
 
         time.sleep(1)
         return True
@@ -218,6 +195,23 @@ class ListenStatsThread(APRSDThread):
     is_flag=True,
     help='Enable packet stats periodic logging.',
 )
+@click.option(
+    '--export-stats',
+    default=False,
+    is_flag=True,
+    help='Export stats to remote aprsd-exporter API.',
+)
+@click.option(
+    '--exporter-url',
+    default='http://localhost:8081',
+    help='URL of the aprsd-exporter API to send stats to.',
+)
+@click.option(
+    '--profile',
+    default=False,
+    is_flag=True,
+    help='Enable Python cProfile profiling to identify performance bottlenecks.',
+)
 @click.pass_context
 @cli_helper.process_standard_options
 def listen(
@@ -230,6 +224,9 @@ def listen(
     filter,
     log_packets,
     enable_packet_stats,
+    export_stats,
+    exporter_url,
+    profile,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
 
@@ -241,6 +238,13 @@ def listen(
     o/obj1/obj2... - Object Filter Pass all objects with the exact name of obj1, obj2, ... (* wild card allowed)\n
 
     """
+    # Initialize profiler if enabled
+    profiler = None
+    if profile:
+        LOG.info('Starting Python cProfile profiling')
+        profiler = cProfile.Profile()
+        profiler.enable()
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
@@ -255,9 +259,6 @@ def listen(
         click.echo('')
         ctx.fail('Must set --aprs-password or APRS_PASSWORD')
         ctx.exit()
-
-    # CONF.aprs_network.login = aprs_login
-    # config["aprs"]["password"] = aprs_password
 
     LOG.info(f'Python version: {sys.version}')
     LOG.info(f'APRSD Listen Started version: {aprsd.__version__}')
@@ -292,10 +293,6 @@ def listen(
 
     keepalive_thread = keepalive.KeepAliveThread()
 
-    if not CONF.enable_seen_list:
-        # just deregister the class from the packet collector
-        packet_collector.PacketCollector().unregister(seen_list.SeenList)
-
     # we don't want the dupe filter to run here.
     PacketFilter().unregister(dupe_filter.DupePacketFilter)
     if packet_filter:
@@ -326,6 +323,11 @@ def listen(
         for p in pm.get_plugins():
             LOG.info('Loaded plugin %s', p.__class__.__name__)
 
+    if log_packets:
+        LOG.info('Packet Logging is enabled')
+    else:
+        LOG.info('Packet Logging is disabled')
+
     stats = stats_thread.APRSDStatsStoreThread()
     stats.start()
 
@@ -346,9 +348,16 @@ def listen(
 
     LOG.debug(f'enable_packet_stats: {enable_packet_stats}')
     if enable_packet_stats:
-        LOG.debug('Start ListenStatsThread')
-        listen_stats = ListenStatsThread()
+        LOG.debug('Start StatsLogThread')
+        listen_stats = StatsLogThread()
         listen_stats.start()
+
+    LOG.debug(f'export_stats: {export_stats}')
+    stats_export = None
+    if export_stats:
+        LOG.debug('Start StatsExportThread')
+        stats_export = StatsExportThread(exporter_url)
+        stats_export.start()
 
     keepalive_thread.start()
     LOG.debug('keepalive Join')
@@ -356,3 +365,27 @@ def listen(
     rx_thread.join()
     listen_thread.join()
     stats.join()
+    if stats_export:
+        stats_export.join()
+
+    # Save profiling results if enabled
+    if profiler:
+        profiler.disable()
+        profile_file = 'aprsd_listen_profile.prof'
+        profiler.dump_stats(profile_file)
+        LOG.info(f'Profile saved to {profile_file}')
+
+        # Print profiling summary
+        LOG.info('Profile Summary (top 50 functions by cumulative time):')
+        stats = pstats.Stats(profiler)
+        stats.sort_stats('cumulative')
+
+        # Log the top functions
+        LOG.info('-' * 80)
+        for item in stats.get_stats().items()[:50]:
+            func_info, stats_tuple = item
+            cumulative = stats_tuple[3]
+            total_calls = stats_tuple[0]
+            LOG.info(
+                f'{func_info} - Calls: {total_calls}, Cumulative: {cumulative:.4f}s'
+            )
