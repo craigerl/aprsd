@@ -3,6 +3,10 @@ name: Manual Build docker container
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: 'Tag or branch to build (e.g. 4.2.4, v4.2.4, master). Empty = use "Use workflow from" selection.'
+        required: false
+        type: string
       logLevel:
         description: 'Log level'
         required: true
@@ -18,16 +22,31 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Get Branch Name
-      id: branch-name
-      uses: tj-actions/branch-names@v8
-    - name: Extract Branch
-      id: extract_branch
+    - name: Resolve ref
+      id: ref
       run: |
-        echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-    - name: What is the selected branch?
-      run: |
-        echo "Selected Branch '${{ steps.extract_branch.outputs.branch }}'"
+        #!/bin/bash
+        input_ref='${{ inputs.ref }}'
+        github_ref='${{ github.ref }}'
+
+        # Decide which ref to use
+        if [ -n "$input_ref" ]; then
+          ref_to_use="$input_ref"
+          echo "Using input ref: $input_ref"
+        else
+          ref_to_use="$github_ref"
+          echo "Using github.ref: $github_ref"
+        fi
+
+        # Strip refs/tags/ or refs/heads/ if present
+        clean_ref="${ref_to_use##refs/tags/}"
+        clean_ref="${clean_ref##refs/heads/}"
+
+        echo "After stripping: $clean_ref"
+        echo "name=${clean_ref}" >> "$GITHUB_OUTPUT"
+        echo "Wrote output: name=${clean_ref}"
+    - name: Build ref
+      run: echo "Building '${{ steps.ref.outputs.name }}'"
     - name: Setup QEMU
       uses: docker/setup-qemu-action@v3
     - name: Setup Docker Buildx
@@ -40,13 +59,13 @@ jobs:
     - name: Build the Docker image
       uses: docker/build-push-action@v6
       with:
-        context: "{{defaultContext}}:docker"
+        context: ./docker
         platforms: linux/amd64,linux/arm64
-        file: ./Dockerfile
+        file: ./docker/Dockerfile
         build-args: |
             INSTALL_TYPE=github
-            BRANCH=${{ steps.extract_branch.outputs.branch }}
+            BRANCH=${{ steps.ref.outputs.name }}
             BUILDX_QEMU_ENV=true
         push: true
         tags: |
-          hemna6969/aprsd:${{ steps.extract_branch.outputs.branch }}
+          hemna6969/aprsd:${{ steps.ref.outputs.name }}
