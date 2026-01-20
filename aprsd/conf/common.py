@@ -20,11 +20,13 @@ aprsd_opts = [
     cfg.StrOpt(
         'callsign',
         default='NOCALL',
+        required=True,
         help='Callsign to use for messages sent by APRSD',
     ),
     cfg.StrOpt(
         'owner_callsign',
         default=None,
+        required=True,
         help='The ham radio license callsign that owns this APRSD instance.',
     ),
     cfg.BoolOpt(

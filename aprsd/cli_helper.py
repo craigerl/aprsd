@@ -194,6 +194,20 @@ def process_standard_options(f: F) -> F:
             )
         except cfg.ConfigFilesNotFoundError:
             config_file_found = False
+        except cfg.RequiredOptError as roe:
+            import sys
+
+            LOG = logging.getLogger('APRSD')  # noqa: N806
+            LOG.error(f'A Required option is missing in the config file : {roe}')
+            # If the missing option is callsign or owner_callsign, give specific message
+            if 'owner_callsign' in str(roe):
+                LOG.error(
+                    'The "owner_callsign" option is required. '
+                    'It is used to identify the licensed ham radio operator '
+                    'responsible for this APRSD instance, which may be different than '
+                    'the "callsign" used by APRSD for messaging.',
+                )
+            sys.exit(-1)
 
         ctx.obj['loglevel'] = kwargs['loglevel']
         # ctx.obj["config_file"] = kwargs["config_file"]

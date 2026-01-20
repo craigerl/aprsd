@@ -38,6 +38,7 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
         if self._loop_cnt % CONF.aprs_registry.frequency_seconds == 0:
             info = {
                 'callsign': CONF.callsign,
+                'owner_callsign': CONF.owner_callsign,
                 'description': CONF.aprs_registry.description,
                 'service_website': CONF.aprs_registry.service_website,
                 'software': f'APRSD version {aprsd.__version__} '
