@@ -282,7 +282,7 @@ def process_standard_options_no_config(f: F) -> F:
         except cfg.ConfigFilesNotFoundError:
             # Config file not needed for this function, so ignore error
             pass
-        except cfg.RequiredOptError as roe:
+        except cfg.RequiredOptError:
             # They are missing a required option from the config,
             # but we don't care, because they aren't loading a config
             pass
