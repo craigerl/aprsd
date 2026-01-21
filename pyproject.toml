@@ -20,7 +20,7 @@ description = "APRSd is a APRS-IS server that can be used to connect to APRS-IS 
 # https://packaging.python.org/guides/distributing-packages-using-setuptools/#python-requires
 requires-python = ">=3.11"
 
-dynamic = ["version", "dependencies", "optional-dependencies"]
+dynamic = ["version", "dependencies"]
 
 # This is an optional longer description of your project that represents
 # the body of text which users will see when they visit PyPI.
@@ -103,9 +103,6 @@ classifiers = [
 # https://packaging.python.org/discussions/install-requires-vs-requirements/
 [tool.setuptools.dynamic]
 dependencies = {file = ["./requirements.txt"]}
-optional-dependencies.dev = {file = ["./requirements-dev.txt"]}
-optional-dependencies.tests = {file = ["./requirements-tests.txt"]}
-optional-dependencies.type = {file = ["./requirements-type.txt"]}
 
 # List additional groups of dependencies here (e.g. development
 # dependencies). Users will be able to install these using the "extras"
@@ -116,7 +113,34 @@ optional-dependencies.type = {file = ["./requirements-type.txt"]}
 # Optional dependencies the project provides. These are commonly
 # referred to as "extras". For a more extensive definition see:
 # https://packaging.python.org/en/latest/specifications/dependency-specifiers/#extras
-# [project.optional-dependencies]
+[project.optional-dependencies]
+dev = [
+    "build",
+    "pip",
+    "pip-tools",
+    "pre-commit",
+    "pre-commit-uv>=4.1.1",
+    "tox",
+    "tox-uv",
+    "wheel",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "types-pytz",
+    "types-requests",
+    "types-tzlocal",
+]
+tests = [
+    "pytest",
+    "pytest-cov",
+]
+type = [
+    "mypy",
+    "types-pytz",
+    "types-requests",
+    "types-tzlocal",
+]
 
 # List URLs that are relevant to your project
 #
