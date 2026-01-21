@@ -34,6 +34,7 @@ from oslo_config import cfg, generator
 import aprsd
 from aprsd import cli_helper, packets, threads, utils
 from aprsd.stats import collector
+from aprsd.utils import config_converter
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
@@ -108,8 +109,14 @@ def check_version(ctx):
 
 
 @cli.command()
+@click.option(
+    '--output-json',
+    default=False,
+    is_flag=True,
+    help='Output the sample config in JSON format instead of INI.',
+)
 @click.pass_context
-def sample_config(ctx):
+def sample_config(ctx, output_json):
     """Generate a sample Config file from aprsd and all installed plugins."""
 
     def _get_selected_entry_points():
@@ -151,8 +158,34 @@ def sample_config(ctx):
         if not sys.argv[1:]:
             raise SystemExit from ex
         raise
-    generator.generate(conf)
-    return
+
+    if not output_json:
+        generator.generate(conf)
+        return
+
+    import io
+    import json
+    from contextlib import redirect_stdout
+
+    from rich.console import Console
+
+    f = io.StringIO()
+    with redirect_stdout(f):
+        conf.format_ = 'json'
+        generator.generate(conf)
+
+    s = f.getvalue()
+    c = Console()
+    c.print_json(data=json.loads(s))
+
+
+@cli.command()
+@cli_helper.add_options(cli_helper.common_options)
+@click.pass_context
+@cli_helper.process_standard_options
+def json_config(ctx):
+    """Output the current loaded configuration in JSON format."""
+    click.echo(config_converter.conf_to_json(CONF))
 
 
 @cli.command()
