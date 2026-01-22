@@ -411,7 +411,7 @@ Twitter Plugin
 * **Description:** Make tweets from your Ham Radio via APRS messages.
 
 Time OpenCage Plugin
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 * **PyPI:** https://pypi.org/project/aprsd-timeopencage-plugin/
 * **GitHub:** https://github.com/hemna/aprsd-timeopencage-plugin

@@ -81,14 +81,14 @@ def dict_to_conf(
 ) -> cfg.CONF:
     """Convert a flat dictionary back to an oslo_cfg CONF object.
 
-    Takes a flat dictionary (with keys like 'group_name.option_name' for grouped
+    Takes a flat dictionary (with keys like ``group_name.option_name`` for grouped
     options) and applies those values to a CONF object. Only updates options that
     exist in the CONF object.
 
     Args:
         config_dict: The configuration dictionary to convert
         conf: The oslo_cfg CONF object to update (uses cfg.CONF if None)
-        mask_secrets: If True, skips options with masked values ('****')
+        mask_secrets: If True, skips options with masked values (four asterisks)
 
     Returns:
         The updated CONF object
@@ -101,7 +101,7 @@ def dict_to_conf(
         'W5XYZ'
 
     Note:
-        - Options with secret masks ('****') are skipped to avoid overwriting
+        - Options with secret masks (four asterisks) are skipped to avoid overwriting
           with placeholder values
         - Only recognized options in the CONF schema are updated
         - Invalid group/option names are silently skipped
@@ -149,7 +149,7 @@ def json_to_conf(
     Args:
         json_str: The JSON string to parse
         conf: The oslo_cfg CONF object to update (uses cfg.CONF if None)
-        mask_secrets: If True, skips options with masked values ('****')
+        mask_secrets: If True, skips options with masked values (four asterisks)
 
     Returns:
         The updated CONF object

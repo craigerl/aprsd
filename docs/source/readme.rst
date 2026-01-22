@@ -327,9 +327,12 @@ Current list plugins
    ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
    ┃ Plugin Name       ┃ Info                                                       ┃ Type         ┃ Plugin Path                             ┃
    ┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+   │ AVWXWeatherPlugin │ AVWX weather of GPS Beacon location                        │ RegexCommand │ aprsd.plugins.weather.AVWXWeatherPlugin │
    │ FortunePlugin     │ Give me a fortune                                          │ RegexCommand │ aprsd.plugins.fortune.FortunePlugin     │
    │ NotifySeenPlugin  │ Notify me when a CALLSIGN is recently seen on APRS-IS      │ WatchList    │ aprsd.plugins.notify.NotifySeenPlugin   │
+   │ OWMWeatherPlugin  │ OpenWeatherMap weather of GPS Beacon location              │ RegexCommand │ aprsd.plugins.weather.OWMWeatherPlugin  │
    │ PingPlugin        │ reply with a Pong!                                         │ RegexCommand │ aprsd.plugins.ping.PingPlugin           │
+   │ TimeOWMPlugin     │ Current time of GPS beacon's timezone. Uses OpenWeatherMap │ RegexCommand │ aprsd.plugins.time.TimeOWMPlugin        │
    │ TimePlugin        │ What is the current local time.                            │ RegexCommand │ aprsd.plugins.time.TimePlugin           │
    │ USMetarPlugin     │ USA only METAR of GPS Beacon location                      │ RegexCommand │ aprsd.plugins.weather.USMetarPlugin     │
    │ USWeatherPlugin   │ Provide USA only weather of GPS Beacon location            │ RegexCommand │ aprsd.plugins.weather.USWeatherPlugin   │

@@ -4,6 +4,14 @@ aprsd.utils package
 Submodules
 ----------
 
+aprsd.utils.config\_converter module
+------------------------------------
+
+.. automodule:: aprsd.utils.config_converter
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 aprsd.utils.counter module
 --------------------------
 
