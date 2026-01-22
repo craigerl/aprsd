@@ -74,7 +74,7 @@ on creating your own plugins.
     2025-12-10 14:30:05.256 | MainThread         | INFO     | <aprsd.client.client.APRSDClient object at 0x1096ac460> | aprsd.cmds.server:server:64
     2025-12-10 14:30:05.256 | MainThread         | INFO     | Loading Plugin Manager and registering plugins | aprsd.cmds.server:server:78
     2025-12-10 14:30:05.257 | MainThread         | INFO     | Loading APRSD Plugins | aprsd.plugin:setup_plugins:493
-    2025-12-10 14:30:05.257 | MainThread         | INFO     | Registering Regex plugin 'aprsd.plugins.weather.AVWXWeatherPlugin'(4.2.5.dev8+g9c0695794) -- ^([m]|[m]|[m]\s|metar) | aprsd.plugin:_load_plugin:452
+    2025-12-10 14:30:05.257 | MainThread         | INFO     | Registering Regex plugin 'aprsd.plugins.weather.USWeatherPlugin'(4.2.5.dev8+g9c0695794) -- ^[wW] | aprsd.plugin:_load_plugin:452
     2025-12-10 14:30:05.257 | MainThread         | INFO     | Completed Plugin Loading. | aprsd.plugin:setup_plugins:513
     2025-12-10 14:30:05.257 | MainThread         | DEBUG    | ******************************************************************************** | oslo_config.cfg:log_opt_values:2804
     2025-12-10 14:30:05.257 | MainThread         | DEBUG    | Configuration options gathered from: | oslo_config.cfg:log_opt_values:2805
@@ -95,7 +95,7 @@ on creating your own plugins.
     2025-12-10 14:30:05.258 | MainThread         | DEBUG    | enable_save                    = True | oslo_config.cfg:log_opt_values:2817
     2025-12-10 14:30:05.258 | MainThread         | DEBUG    | enable_seen_list               = True | oslo_config.cfg:log_opt_values:2817
     2025-12-10 14:30:05.258 | MainThread         | DEBUG    | enable_sending_ack_packets     = True | oslo_config.cfg:log_opt_values:2817
-    2025-12-10 14:30:05.258 | MainThread         | DEBUG    | enabled_plugins                = ['aprsd.plugins.weather.AVWXWeatherPlugin'] | oslo_config.cfg:log_opt_values:2817
+    2025-12-10 14:30:05.258 | MainThread         | DEBUG    | enabled_plugins                = ['aprsd.plugins.weather.USWeatherPlugin'] | oslo_config.cfg:log_opt_values:2817
     2025-12-10 14:30:05.258 | MainThread         | DEBUG    | is_digipi                      = False | oslo_config.cfg:log_opt_values:2817
     2025-12-10 14:30:05.258 | MainThread         | DEBUG    | latitude                       = 37.3443862 | oslo_config.cfg:log_opt_values:2817
     2025-12-10 14:30:05.258 | MainThread         | DEBUG    | load_help_plugin               = True | oslo_config.cfg:log_opt_values:2817
@@ -143,7 +143,7 @@ on creating your own plugins.
     2025-12-10 14:30:05.260 | MainThread         | DEBUG    | avwx_plugin.base_url            = https://avwx.rest | oslo_config.cfg:log_opt_values:2824
     2025-12-10 14:30:05.260 | MainThread         | DEBUG    | ******************************************************************************** | oslo_config.cfg:log_opt_values:2828
     2025-12-10 14:30:05.260 | MainThread         | INFO     | Message Plugins enabled and running: | aprsd.cmds.server:server:86
-    2025-12-10 14:30:05.260 | MainThread         | INFO     | <aprsd.plugins.weather.AVWXWeatherPlugin object at 0x109a74c40> | aprsd.cmds.server:server:88
+    2025-12-10 14:30:05.260 | MainThread         | INFO     | <aprsd.plugins.weather.USWeatherPlugin object at 0x109a74c40> | aprsd.cmds.server:server:88
     2025-12-10 14:30:05.260 | MainThread         | INFO     | <aprsd.plugin.HelpPlugin object at 0x109a74ac0> | aprsd.cmds.server:server:88
     2025-12-10 14:30:05.260 | MainThread         | INFO     | Watchlist Plugins enabled and running: | aprsd.cmds.server:server:89
     2025-12-10 14:30:05.260 | MainThread         | DEBUG    | Loading saved packet tracking data. | aprsd.cmds.server:server:103

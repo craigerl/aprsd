@@ -59,7 +59,7 @@ TimePlugin
 **Command:** ``time``, ``t``, or ``t`` followed by a space
 
 **Description:** Returns the current local time of the APRSD server in a human-readable format
-with timezone information.
+(fuzzy time) with timezone information.
 
 **Usage:** Send a message containing "time" to your APRSD callsign.
 
@@ -72,35 +72,6 @@ with timezone information.
 **Configuration:** No configuration required. Uses the system's local timezone.
 
 **Plugin Path:** ``aprsd.plugins.time.TimePlugin``
-
-
-TimeOWMPlugin
-~~~~~~~~~~~~~
-
-**Command:** ``time``, ``t``, or ``t`` followed by a space
-
-**Description:** Returns the current time based on the GPS beacon location of the calling
-callsign (or optionally a specified callsign). Uses OpenWeatherMap API to determine the
-timezone for the location.
-
-**Usage:**
-   ::
-
-      You: time
-      APRSD: quarter to three (14:45 EST)
-
-      You: time WB4BOR
-      APRSD: half past two (14:30 PDT)
-
-**Requirements:**
-   - Requires an ``aprs_fi.apiKey`` configuration option
-   - Requires an ``owm_weather_plugin.apiKey`` configuration option
-
-**Configuration:**
-   - ``aprs_fi.apiKey`` - API key from aprs.fi account
-   - ``owm_weather_plugin.apiKey`` - OpenWeatherMap API key
-
-**Plugin Path:** ``aprsd.plugins.time.TimeOWMPlugin``
 
 
 VersionPlugin
@@ -181,71 +152,6 @@ aprs.fi API key is not required.
 **Plugin Path:** ``aprsd.plugins.weather.USMetarPlugin``
 
 
-OWMWeatherPlugin
-~~~~~~~~~~~~~~~~
-
-**Command:** ``weather``, ``w``, or ``W`` (w or W at start of message)
-
-**Description:** Provides weather information using the OpenWeatherMap API. Works worldwide
-and provides current weather conditions including temperature, dew point, wind speed and
-direction, and humidity.
-
-**Usage:**
-   ::
-
-      You: weather
-      APRSD: clear sky 72.1F/65.2F Wind 5@270 45%
-
-      You: weather WB4BOR
-      APRSD: partly cloudy 68.5F/62.1F Wind 8@180G12 52%
-
-**Requirements:**
-   - Requires an ``aprs_fi.apiKey`` configuration option
-   - Requires an ``owm_weather_plugin.apiKey`` configuration option
-
-**Configuration:**
-   - ``aprs_fi.apiKey`` - API key from aprs.fi account
-   - ``owm_weather_plugin.apiKey`` - OpenWeatherMap API key (get one at https://home.openweathermap.org/api_keys)
-   - ``units`` - Set to "imperial" or "metric" (default: "imperial")
-
-**Plugin Path:** ``aprsd.plugins.weather.OWMWeatherPlugin``
-
-
-AVWXWeatherPlugin
-~~~~~~~~~~~~~~~~~
-
-**Command:** ``metar``, ``m``, or ``m`` followed by a space (m at start of message)
-
-**Description:** Provides METAR weather reports using the AVWX API service. Fetches METAR
-data from the nearest weather station to the GPS beacon location of the calling callsign
-(or optionally a specified callsign).
-
-**Usage:**
-   ::
-
-      You: metar
-      APRSD: KORD 101451Z 28010KT 10SM FEW250 22/12 A3001 RMK AO2 SLP168 T02220122
-
-      You: metar WB4BOR
-      APRSD: KSFO 101500Z 25015KT 10SM FEW030 18/14 A2998 RMK AO2
-
-**Requirements:**
-   - Requires an ``aprs_fi.apiKey`` configuration option
-   - Requires an ``avwx_plugin.apiKey`` configuration option
-   - Requires an ``avwx_plugin.base_url`` configuration option
-
-**Configuration:**
-   - ``aprs_fi.apiKey`` - API key from aprs.fi account
-   - ``avwx_plugin.apiKey`` - API key for AVWX service
-   - ``avwx_plugin.base_url`` - Base URL for AVWX API (default: https://avwx.rest)
-
-**Note:** AVWX is an open-source project. You can use the hosted service at https://avwx.rest/
-or host your own instance. See the plugin code comments for instructions on running your
-own AVWX API server.
-
-**Plugin Path:** ``aprsd.plugins.weather.AVWXWeatherPlugin``
-
-
 HelpPlugin
 ~~~~~~~~~~
 
@@ -314,7 +220,7 @@ APRSD configuration file. List the full Python path to each plugin class you wan
    ::
 
       [DEFAULT]
-      enabled_plugins = aprsd.plugins.fortune.FortunePlugin,aprsd.plugins.ping.PingPlugin,aprsd.plugins.time.TimePlugin,aprsd.plugins.weather.OWMWeatherPlugin,aprsd.plugins.version.VersionPlugin,aprsd.plugins.notify.NotifySeenPlugin
+      enabled_plugins = aprsd.plugins.fortune.FortunePlugin,aprsd.plugins.ping.PingPlugin,aprsd.plugins.time.TimePlugin,aprsd.plugins.weather.USWeatherPlugin,aprsd.plugins.version.VersionPlugin,aprsd.plugins.notify.NotifySeenPlugin
 
 **Note:** The HelpPlugin is enabled by default and does not need to be listed in
 ``enabled_plugins``. It can be disabled by setting ``load_help_plugin = false``.
@@ -322,10 +228,9 @@ APRSD configuration file. List the full Python path to each plugin class you wan
 **Note:** Some plugins may require additional configuration (API keys, etc.) and will
 automatically disable themselves if required configuration is missing.
 
-**Note:** Weather plugins (USWeatherPlugin, OWMWeatherPlugin, AVWXWeatherPlugin) all use
-the same command pattern (``w`` or ``W`` at the start). Only one should be enabled at a time
-to avoid conflicts. Similarly, METAR plugins (USMetarPlugin, AVWXWeatherPlugin) use the
-same pattern (``m`` or ``M`` at the start).
+**Note:** Weather plugins may use the same command patterns. Only one weather plugin should
+be enabled at a time to avoid conflicts. Similarly, only one METAR plugin should be enabled
+at a time.
 
 
 Listing Available Plugins
@@ -342,5 +247,220 @@ This command will show:
    - Built-in plugins included with APRSD
    - Available plugins on PyPI that can be installed
    - Currently installed third-party plugins
+
+
+Finding External Plugins and Extensions
+=========================================
+
+APRSD supports external plugins and extensions that extend the functionality beyond the
+built-in plugins. These are distributed as separate Python packages that follow a specific
+naming convention.
+
+Naming Convention
+-----------------
+
+All external APRSD plugins and extensions follow a consistent naming scheme:
+
+* **Plugins:** ``aprsd-<name>-plugin``
+* **Extensions:** ``aprsd-<name>-extension``
+
+For example:
+* ``aprsd-email-plugin`` - A plugin for email functionality
+* ``aprsd-admin-extension`` - An extension for web administration
+
+Finding Plugins and Extensions
+-------------------------------
+
+PyPI (Python Package Index)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can find all available APRSD plugins and extensions on PyPI:
+
+* **Search for plugins:** https://pypi.org/search/?q=aprsd+-plugin
+* **Search for extensions:** https://pypi.org/search/?q=aprsd+-extension
+* **General APRSD search:** https://pypi.org/search/?q=aprsd
+
+The ``aprsd list-plugins`` command also shows available plugins and extensions from PyPI
+along with installation status.
+
+GitHub
+~~~~~~
+
+Many APRSD plugins and extensions are hosted on GitHub under the `hemna organization`_:
+
+* **Organization:** https://github.com/hemna/
+* **Search for plugins:** https://github.com/orgs/hemna/repositories?q=aprsd-plugin
+* **Search for extensions:** https://github.com/orgs/hemna/repositories?q=aprsd-extension
+
+Installing External Plugins and Extensions
+-------------------------------------------
+
+To install an external plugin or extension, use pip:
+
+.. code-block:: shell
+
+   pip install aprsd-<name>-plugin
+   # or
+   pip install aprsd-<name>-extension
+
+After installation, the plugin or extension will be automatically discovered by APRSD.
+You may need to add it to your ``enabled_plugins`` configuration or configure it according
+to its documentation.
+
+Available External Plugins
+---------------------------
+
+The following external plugins are available:
+
+Email Plugin
+~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-email-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-email-plugin
+* **Description:** Send and receive email via APRS messages.
+
+Location Plugin
+~~~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-location-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-location-plugin
+* **Description:** Get the latest GPS location of a callsign.
+
+Location Data Plugin
+~~~~~~~~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-locationdata-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-locationdata-plugin
+* **Description:** Get detailed GPS location data for a callsign.
+
+DigiPi Plugin
+~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-digipi-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-digipi-plugin
+* **Description:** Look for DigiPi beacon packets and provide DigiPi-specific functionality.
+
+W3W Plugin
+~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-w3w-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-w3w-plugin
+* **Description:** Get What3Words (w3w) coordinates for a location.
+
+MQTT Plugin
+~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-mqtt-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-mqtt-plugin
+* **Description:** Send APRS packets to an MQTT topic for integration with IoT systems.
+
+Telegram Plugin
+~~~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-telegram-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-telegram-plugin
+* **Description:** Send and receive messages via Telegram.
+
+Borat Plugin
+~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-borat-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-borat-plugin
+* **Description:** Get random Borat quotes via APRS messages.
+
+WXNow Plugin
+~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-wxnow-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-wxnow-plugin
+* **Description:** Get weather reports from the closest N weather stations.
+
+WeeWX Plugin
+~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-weewx-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-weewx-plugin
+* **Description:** Get weather data from your WeeWX weather station.
+
+Slack Plugin
+~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-slack-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-slack-plugin
+* **Description:** Send and receive messages to/from a Slack channel.
+
+Sentry Plugin
+~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-sentry-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-sentry-plugin
+* **Description:** Integration with Sentry for error tracking and monitoring.
+
+Repeat Plugins
+~~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-repeat-plugins/
+* **GitHub:** https://github.com/hemna/aprsd-repeat-plugins
+* **Description:** Plugins for the REPEAT service - get nearest Ham radio repeaters.
+
+Twitter Plugin
+~~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-twitter-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-twitter-plugin
+* **Description:** Make tweets from your Ham Radio via APRS messages.
+
+Time OpenCage Plugin
+~~~~~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-timeopencage-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-timeopencage-plugin
+* **Description:** Get local time for a callsign using OpenCage geocoding.
+
+Stock Plugin
+~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-stock-plugin/
+* **GitHub:** https://github.com/hemna/aprsd-stock-plugin
+* **Description:** Get stock quotes from your Ham radio via APRS messages.
+
+Available External Extensions
+-----------------------------
+
+The following external extensions are available:
+
+Admin Extension
+~~~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-admin-extension/
+* **GitHub:** https://github.com/hemna/aprsd-admin-extension
+* **Description:** Web-based administration interface for APRSD with real-time status,
+  configuration management, and monitoring capabilities.
+
+WebChat Extension
+~~~~~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-webchat-extension/
+* **GitHub:** https://github.com/hemna/aprsd-webchat-extension
+* **Description:** Web-based APRS messaging interface that allows you to send and receive
+  APRS messages through a browser.
+
+Rich CLI Extension
+~~~~~~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-rich-cli-extension/
+* **GitHub:** https://github.com/hemna/aprsd-rich-cli-extension
+* **Description:** Enhanced Textual-based rich CLI versions of APRSD commands with improved
+  user interface and interactivity.
+
+IRC Extension
+~~~~~~~~~~~~~
+
+* **PyPI:** https://pypi.org/project/aprsd-irc-extension/
+* **GitHub:** https://github.com/hemna/aprsd-irc-extension
+* **Description:** IRC-like server command for APRS, providing an IRC-style interface to
+  the APRS network.
+
+.. _hemna organization: https://github.com/hemna
 
 .. include:: links.rst

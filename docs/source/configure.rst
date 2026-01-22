@@ -133,7 +133,7 @@ Sample config file
     # Comma separated list of enabled plugins for APRSD.To enable
     # installed external plugins add them here.The full python path to the
     # class name must be used (list value)
-    #enabled_plugins = aprsd.plugins.fortune.FortunePlugin,aprsd.plugins.location.LocationPlugin,aprsd.plugins.ping.PingPlugin,aprsd.plugins.time.TimePlugin,aprsd.plugins.weather.OWMWeatherPlugin,aprsd.plugins.version.VersionPlugin,aprsd.plugins.notify.NotifySeenPlugin
+    #enabled_plugins = aprsd.plugins.fortune.FortunePlugin,aprsd.plugins.ping.PingPlugin,aprsd.plugins.time.TimePlugin,aprsd.plugins.weather.USWeatherPlugin,aprsd.plugins.version.VersionPlugin,aprsd.plugins.notify.NotifySeenPlugin
 
 
     [aprs_fi]
@@ -208,6 +208,9 @@ Sample config file
     #
     # From aprsd.conf
     #
+    # Note: AVWXWeatherPlugin is an external plugin. Install it with:
+    # pip install aprsd-avwx-weather-plugin
+    # See the builtin_plugins documentation for information about external plugins.
 
     # avwx-api is an opensource project that hasa hosted service here:
     # https://avwx.rest/You can launch your own avwx-api in a containerby
@@ -303,6 +306,9 @@ Sample config file
     #
     # From aprsd.conf
     #
+    # Note: OWMWeatherPlugin is an external plugin. Install it with:
+    # pip install aprsd-owm-weather-plugin
+    # See the builtin_plugins documentation for information about external plugins.
 
     # OWMWeatherPlugin api key to OpenWeatherMap's API.This plugin uses
     # the openweathermap API to fetchlocation and weather information.To
