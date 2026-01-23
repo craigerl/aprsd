@@ -179,7 +179,7 @@ packages = ["aprsd"]
 
 [build-system]
 requires = [
-    "setuptools>=69.5.0",
+    "setuptools>=80.10.0",
     "setuptools_scm>=0",
     "wheel",
 ]
