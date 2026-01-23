@@ -1,3 +1,4 @@
+import datetime
 from typing import Callable, Protocol, runtime_checkable
 
 from aprsd.packets import core
@@ -13,15 +14,27 @@ class ClientDriver(Protocol):
     """
 
     @staticmethod
-    def is_enabled(self) -> bool:
+    def is_enabled() -> bool:
         pass
 
     @staticmethod
-    def is_configured(self) -> bool:
+    def is_configured() -> bool:
         pass
 
     @property
     def is_alive(self) -> bool:
+        pass
+
+    @property
+    def filter(self) -> str:
+        pass
+
+    @staticmethod
+    def transport() -> str:
+        pass
+
+    @property
+    def keepalive(self) -> datetime.datetime:
         pass
 
     def close(self) -> None:

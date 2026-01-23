@@ -149,31 +149,31 @@ class TestAPRSDClient(unittest.TestCase):
             self.registry_patcher.start()
 
     def test_login_success_property(self):
-        """Test login_success property."""
+        """Test login_success method."""
         client = APRSDClient(auto_connect=False)
         self.mock_driver.login_status['success'] = True
-        self.assertTrue(client.login_success)
+        self.assertTrue(client.login_success())
 
         self.mock_driver.login_status['success'] = False
-        self.assertFalse(client.login_success)
+        self.assertFalse(client.login_success())
 
     def test_login_success_no_driver(self):
-        """Test login_success property when driver is None."""
+        """Test login_success method when driver is None."""
         client = APRSDClient(auto_connect=False)
         client.driver = None
-        self.assertFalse(client.login_success)
+        self.assertFalse(client.login_success())
 
     def test_login_failure_property(self):
-        """Test login_failure property."""
+        """Test login_failure method."""
         client = APRSDClient(auto_connect=False)
         self.mock_driver.login_status['message'] = 'Test failure'
-        self.assertEqual(client.login_failure, 'Test failure')
+        self.assertEqual(client.login_failure(), 'Test failure')
 
     def test_login_failure_no_driver(self):
-        """Test login_failure property when driver is None."""
+        """Test login_failure method when driver is None."""
         client = APRSDClient(auto_connect=False)
         client.driver = None
-        self.assertIsNone(client.login_failure)
+        self.assertIsNone(client.login_failure())
 
     def test_set_filter(self):
         """Test set_filter() method."""

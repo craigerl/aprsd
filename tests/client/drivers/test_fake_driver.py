@@ -40,10 +40,10 @@ class TestAPRSDFakeDriver(unittest.TestCase):
     def test_is_alive(self):
         """Test is_alive returns True when thread_stop is False."""
         self.driver.thread_stop = False
-        self.assertTrue(self.driver.is_alive())
+        self.assertTrue(self.driver.is_alive)
 
         self.driver.thread_stop = True
-        self.assertFalse(self.driver.is_alive())
+        self.assertFalse(self.driver.is_alive)
 
     def test_close(self):
         """Test close sets thread_stop to True."""

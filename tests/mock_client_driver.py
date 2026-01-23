@@ -61,14 +61,12 @@ class MockClientDriver:
             stats['path'] = self.path
         return stats
 
-    @property
     def login_success(self):
-        """Property to get login success status."""
+        """Method to get login success status."""
         return self.login_status['success']
 
-    @property
     def login_failure(self):
-        """Property to get login failure message."""
+        """Method to get login failure message."""
         return self.login_status['message']
 
     def _decode_packet(self, *args, **kwargs):

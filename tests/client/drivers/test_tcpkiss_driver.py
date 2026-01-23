@@ -77,8 +77,8 @@ class TestTCPKISSDriver(unittest.TestCase):
         self.assertFalse(self.driver._running)
 
     def test_transport_property(self):
-        """Test transport property returns correct value."""
-        self.assertEqual(self.driver.transport, 'tcpkiss')
+        """Test transport method returns correct value."""
+        self.assertEqual(self.driver.transport(), 'tcpkiss')
 
     def test_is_enabled_true(self):
         """Test is_enabled returns True when KISS TCP is enabled."""

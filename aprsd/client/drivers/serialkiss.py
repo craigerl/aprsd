@@ -54,8 +54,8 @@ class SerialKISSDriver(KISSDriver):
         # This is initialized in setup_connection()
         self.socket = None
 
-    @property
-    def transport(self) -> str:
+    @staticmethod
+    def transport() -> str:
         return client.TRANSPORT_SERIALKISS
 
     @staticmethod
@@ -235,6 +235,7 @@ class SerialKISSDriver(KISSDriver):
         self.last_packet_sent = datetime.datetime.now()
         # Increment packets sent counter
         self.packets_sent += 1
+        return True
 
     @trace.no_trace
     def stats(self, serializable: bool = False) -> Dict[str, Any]:

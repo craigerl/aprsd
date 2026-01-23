@@ -146,14 +146,20 @@ class APRSISDriver:
 
     @property
     def filter(self):
+        if not self._client:
+            return ''
         return self._client.filter
 
     @property
     def server_string(self):
+        if not self._client:
+            return None
         return self._client.server_string
 
     @property
     def keepalive(self):
+        if not self._client:
+            return datetime.datetime.now()
         return self._client.aprsd_keepalive
 
     def _is_stale_connection(self):

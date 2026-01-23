@@ -73,17 +73,15 @@ class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
                 return True
         return False
 
-    @property
     def login_success(self):
         if not self.driver:
             return False
-        return self.driver.login_success
+        return self.driver.login_success()
 
-    @property
     def login_failure(self):
         if not self.driver:
             return None
-        return self.driver.login_failure
+        return self.driver.login_failure()
 
     def set_filter(self, filter):
         self.filter = filter

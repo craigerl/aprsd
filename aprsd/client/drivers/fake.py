@@ -34,17 +34,28 @@ class APRSDFakeDriver(metaclass=trace.TraceWrapperMetaclass):
 
     @staticmethod
     def is_enabled():
-        if CONF.fake_client.enabled:
-            return True
-        return False
+        return CONF.fake_client.enabled
 
     @staticmethod
     def is_configured():
-        return APRSDFakeDriver.is_enabled
+        return CONF.fake_client.enabled
 
+    @property
     def is_alive(self):
         """If the connection is alive or not."""
         return not self.thread_stop
+
+    @property
+    def filter(self) -> str:
+        return 'FAKE'
+
+    @staticmethod
+    def transport() -> str:
+        return 'FAKE'
+
+    @property
+    def keepalive(self) -> datetime.datetime:
+        return datetime.datetime.now()
 
     def close(self):
         self.thread_stop = True
@@ -121,6 +132,6 @@ class APRSDFakeDriver(metaclass=trace.TraceWrapperMetaclass):
     def stats(self, serializable: bool = False) -> dict:
         return {
             'driver': self.__class__.__name__,
-            'is_alive': self.is_alive(),
+            'is_alive': self.is_alive,
             'transport': 'fake',
         }

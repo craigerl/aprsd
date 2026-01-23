@@ -11,8 +11,12 @@ class ConcreteKISSDriver(KISSDriver):
 
     def __init__(self):
         super().__init__()
-        self.transport = 'test'
         self.path = '/dev/test'
+
+    @staticmethod
+    def transport() -> str:
+        """Return transport type."""
+        return 'test'
 
     def read_frame(self):
         """Implementation of abstract method."""

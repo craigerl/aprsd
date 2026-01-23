@@ -169,7 +169,7 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
 
         stats = {
             'client': self.__class__.__name__,
-            'transport': self.transport,
+            'transport': self.transport(),
             'connected': self._connected,
             'path': self.path,
             'packets_sent': self.packets_sent,
