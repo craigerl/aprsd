@@ -5,7 +5,7 @@ from oslo_config import cfg
 from tzlocal import get_localzone
 
 from aprsd import packets, plugin
-from aprsd.utils import fuzzy, trace
+from aprsd.utils import fuzzy
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
@@ -43,9 +43,8 @@ class TimePlugin(plugin.APRSDRegexCommandPluginBase):
 
         return reply
 
-    @trace.trace
-    def process(self, packet: packets.Packet):
-        LOG.info('TIME COMMAND')
+    def process(self, packet: packets.MessagePacket) -> str:
+        LOG.info('TimePlugin')
         # So we can mock this in unit tests
         localzone = self._get_local_tz()
         return self.build_date_str(localzone)

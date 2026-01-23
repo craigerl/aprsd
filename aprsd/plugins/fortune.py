@@ -3,7 +3,6 @@ import shutil
 import subprocess
 
 from aprsd import packets, plugin
-from aprsd.utils import trace
 
 LOG = logging.getLogger('APRSD')
 
@@ -34,16 +33,9 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
         else:
             self.enabled = True
 
-    @trace.trace
-    def process(self, packet: packets.MessagePacket):
+    def process(self, packet: packets.MessagePacket) -> str:
         LOG.info('FortunePlugin')
-
-        # fromcall = packet.get("from")
-        # message = packet.get("message_text", None)
-        # ack = packet.get("msgNo", "0")
-
-        reply = None
-
+        reply = packets.NULL_MESSAGE
         try:
             cmnd = [self.fortune_path, '-s', '-n 60']
             command = ' '.join(cmnd)

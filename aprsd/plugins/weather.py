@@ -4,8 +4,7 @@ import re
 
 from oslo_config import cfg
 
-from aprsd import plugin, plugin_utils
-from aprsd.utils import trace
+from aprsd import packets, plugin, plugin_utils
 
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
@@ -24,7 +23,6 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
     "weather" - returns weather near the calling callsign
     """
 
-    # command_regex = r"^([w][x]|[w][x]\s|weather)"
     command_regex = r'^[wW]'
 
     command_name = 'USWeather'
@@ -33,13 +31,10 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
     def setup(self):
         self.ensure_aprs_fi_key()
 
-    @trace.trace
-    def process(self, packet):
-        LOG.info('Weather Plugin')
+    def process(self, packet: packets.MessagePacket) -> str:
+        LOG.info('USWeatherPlugin')
         fromcall = packet.from_call
-        message = packet.get('message_text', None)
-        # message = packet.get("message_text", None)
-        # ack = packet.get("msgNo", "0")
+        message = packet.message_text
         a = re.search(r'^.*\s+(.*)', message)
         if a is not None:
             searchcall = a.group(1)
@@ -67,7 +62,7 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
             LOG.error(f"Couldn't fetch forecast.weather.gov '{ex}'")
             return 'Unable to get weather'
 
-        LOG.info(f'WX data {wx_data}')
+        LOG.debug(f'WX data {wx_data}')
 
         reply = (
             '%sF(%sF/%sF) %s. %s, %s.'
@@ -106,12 +101,10 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
     def setup(self):
         self.ensure_aprs_fi_key()
 
-    @trace.trace
-    def process(self, packet):
-        fromcall = packet.get('from')
-        message = packet.get('message_text', None)
-        # ack = packet.get("msgNo", "0")
-        LOG.info(f"WX Plugin '{message}'")
+    def process(self, packet: packets.MessagePacket) -> str:
+        LOG.info('USMetarPlugin')
+        fromcall = packet.from_call
+        message = packet.message_text
         a = re.search(r'^.*\s+(.*)', message)
         if a is not None:
             searchcall = a.group(1)

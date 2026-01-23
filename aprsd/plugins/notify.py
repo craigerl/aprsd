@@ -19,7 +19,7 @@ class NotifySeenPlugin(plugin.APRSDWatchListPluginBase):
 
     short_description = 'Notify me when a CALLSIGN is recently seen on APRS-IS'
 
-    def process(self, packet: packets.MessagePacket):
+    def process(self, packet: packets.MessagePacket) -> packets.MessagePacket:
         LOG.info('NotifySeenPlugin')
 
         notify_callsign = CONF.watch_list.alert_callsign

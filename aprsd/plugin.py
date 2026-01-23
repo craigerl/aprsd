@@ -22,9 +22,7 @@ CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
 
 CORE_MESSAGE_PLUGINS = [
-    'aprsd.plugins.email.EmailPlugin',
     'aprsd.plugins.fortune.FortunePlugin',
-    'aprsd.plugins.location.LocationPlugin',
     'aprsd.plugins.ping.PingPlugin',
     'aprsd.plugins.time.TimePlugin',
     'aprsd.plugins.weather.USWeatherPlugin',
