@@ -43,8 +43,8 @@ license = {file = "LICENSE"}
 # authored the project, and a valid email address corresponding to the name
 # listed.
 authors = [
-    {name = "Craig Lamparter", email = "craig@craiger.org"},
     {name = "Walter A. Boring IV", email = "waboring@hemna.com"},
+    {name = "Craig Lamparter", email = "craig@craiger.org"},
     {name = "Emre Saglam", email = "emresaglam@gmail.com"},
     {name = "Jason Martin", email= "jhmartin@toger.us"},
     {name = "John", email="johng42@users.noreply.github.com"},
@@ -57,8 +57,8 @@ authors = [
 # maintains the project, and a valid email address corresponding to the name
 # listed.
 maintainers = [
-    {name = "Craig Lamparter", email = "craig@craiger.org"},
     {name = "Walter A. Boring IV", email = "waboring@hemna.com"},
+    {name = "Craig Lamparter", email = "craig@craiger.org"},
 ]
 
 # This field adds keywords for your project which will appear on the
@@ -154,7 +154,7 @@ type = [
 # what's used to render the link text on PyPI.
 [project.urls]
 "Homepage" = "https://github.com/craigerl/aprsd"
-"Documentation" = "https://aprsd.readthedocs.io/en/latest/"
+"Documentation" = "https://aprsd.readthedocs.io"
 "Bug Reports" = "https://github.com/craigerl/aprsd/issues"
 "Source" = "https://github.com/craigerl/aprsd"
 
