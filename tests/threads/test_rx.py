@@ -15,12 +15,17 @@ class TestAPRSDRXThread(unittest.TestCase):
         self.packet_queue = queue.Queue()
         self.rx_thread = rx.APRSDRXThread(self.packet_queue)
         self.rx_thread.pkt_count = 0  # Reset packet count
+        # Mock time.sleep to speed up tests
+        self.sleep_patcher = mock.patch('aprsd.threads.rx.time.sleep')
+        self.mock_sleep = self.sleep_patcher.start()
 
     def tearDown(self):
         """Clean up after tests."""
         self.rx_thread.stop()
         if self.rx_thread.is_alive():
             self.rx_thread.join(timeout=1)
+        # Stop the sleep patcher
+        self.sleep_patcher.stop()
 
     def test_init(self):
         """Test initialization."""
@@ -233,12 +238,17 @@ class TestAPRSDFilterThread(unittest.TestCase):
                 pass
 
         self.filter_thread = TestFilterThread('TestFilterThread', self.packet_queue)
+        # Mock time.sleep to speed up tests
+        self.sleep_patcher = mock.patch('aprsd.threads.rx.time.sleep')
+        self.mock_sleep = self.sleep_patcher.start()
 
     def tearDown(self):
         """Clean up after tests."""
         self.filter_thread.stop()
         if self.filter_thread.is_alive():
             self.filter_thread.join(timeout=1)
+        # Stop the sleep patcher
+        self.sleep_patcher.stop()
 
     def test_init(self):
         """Test initialization."""
@@ -321,12 +331,17 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
                 pass
 
         self.process_thread = ConcreteProcessThread(self.packet_queue)
+        # Mock time.sleep to speed up tests
+        self.sleep_patcher = mock.patch('aprsd.threads.rx.time.sleep')
+        self.mock_sleep = self.sleep_patcher.start()
 
     def tearDown(self):
         """Clean up after tests."""
         self.process_thread.stop()
         if self.process_thread.is_alive():
             self.process_thread.join(timeout=1)
+        # Stop the sleep patcher
+        self.sleep_patcher.stop()
 
     def test_init(self):
         """Test initialization."""

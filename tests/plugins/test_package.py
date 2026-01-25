@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest import mock
 
 from aprsd import plugin
 from aprsd.utils import package
@@ -74,8 +75,43 @@ class TestPackage(unittest.TestCase):
         self.assertIsNotNone(extensions)
 
     def test_get_pypi_packages(self):
-        packages = package.get_pypi_packages()
-        self.assertIsNotNone(packages)
+        # Mock PyPI API responses
+        mock_simple_response = mock.MagicMock()
+        mock_simple_response.json.return_value = {
+            'projects': [
+                {'name': 'aprsd-plugin-test'},
+                {'name': 'aprsd-extension-test'},
+                {'name': 'other-package'},
+            ]
+        }
+
+        # Create mock responses for each package
+        def create_package_response(pkg_name):
+            mock_response = mock.MagicMock()
+            mock_response.json.return_value = {
+                'info': {
+                    'name': pkg_name,
+                    'version': '1.0.0',
+                    'summary': f'Test {pkg_name}',
+                    'package_url': f'https://pypi.org/project/{pkg_name}/',
+                },
+                'releases': {'1.0.0': [{'upload_time': '2024-01-01T00:00:00'}]},
+            }
+            return mock_response
+
+        with mock.patch('aprsd.utils.package.requests.get') as mock_get:
+            # First call returns simple response, subsequent calls return package info
+            mock_get.side_effect = [
+                mock_simple_response,
+                create_package_response('aprsd-plugin-test'),
+                create_package_response('aprsd-extension-test'),
+            ]
+            packages = package.get_pypi_packages()
+            self.assertIsNotNone(packages)
+            # Verify requests.get was called (at least once for simple API)
+            self.assertTrue(mock_get.called)
+            # Should have called for simple API + 2 packages
+            self.assertGreaterEqual(mock_get.call_count, 1)
 
     def test_log_installed_extensions_and_plugins(self):
         package.log_installed_extensions_and_plugins()
