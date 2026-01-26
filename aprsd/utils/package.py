@@ -12,6 +12,13 @@ from thesmuggler import smuggle
 
 from aprsd import plugin as aprsd_plugin
 
+# Handle importlib.metadata compatibility
+try:
+    import importlib_metadata
+except ImportError:
+    # For python 3.10 and later
+    import importlib.metadata as importlib_metadata
+
 LOG = logging.getLogger()
 
 
@@ -48,6 +55,34 @@ def walk_package(package):
     )
 
 
+def _get_package_version(package_name):
+    """Get the version of an installed package.
+
+    Tries multiple methods to get the package version:
+    1. importlib.metadata.version() - from package metadata
+    2. Module __version__ attribute - from the package module
+    3. Returns None if not found
+    """
+    # Try to get version from package metadata
+    try:
+        return importlib_metadata.version(package_name)
+    except importlib_metadata.PackageNotFoundError:
+        pass
+    except Exception:
+        # Handle other potential errors (e.g., AttributeError on older Python)
+        pass
+
+    # Try to get version from the module's __version__ attribute
+    try:
+        module = importlib.import_module(package_name)
+        if hasattr(module, '__version__'):
+            return module.__version__
+    except (ImportError, AttributeError):
+        pass
+
+    return None
+
+
 def get_module_info(package_name, module_name, module_path):
     if not os.path.exists(module_path):
         return None
@@ -56,6 +91,9 @@ def get_module_info(package_name, module_name, module_path):
     pattern = '*.py'
 
     obj_list = []
+
+    # Get the package version once for all plugins in this package
+    package_version = _get_package_version(package_name)
 
     for path, _subdirs, files in os.walk(dir_path):
         for name in files:
@@ -68,13 +106,37 @@ def get_module_info(package_name, module_name, module_path):
                     module = smuggle(f'{path}/{name}')
                     for mem_name, obj in inspect.getmembers(module):
                         if inspect.isclass(obj) and is_plugin(obj):
+                            # Use the actual module path from the class object
+                            # This ensures we get the correct path even when using smuggle
+                            obj_module = getattr(obj, '__module__', None)
+
+                            # If __module__ is not set or looks incorrect (contains path separators),
+                            # try to construct it from the module_name parameter
+                            if (
+                                not obj_module
+                                or '/' in obj_module
+                                or '\\' in obj_module
+                            ):
+                                # Fallback: use module_name from the walk
+                                class_path = f'{module_name}.{obj.__qualname__}'
+                            else:
+                                # Use the actual module path from the class
+                                class_path = f'{obj_module}.{obj.__qualname__}'
+
+                            # Use package version if available, otherwise fall back to class version
+                            version = (
+                                package_version
+                                if package_version
+                                else getattr(obj, 'version', None)
+                            )
+
                             obj_list.append(
                                 {
                                     'package': package_name,
                                     'name': mem_name,
                                     'obj': obj,
-                                    'version': obj.version,
-                                    'path': f'{".".join([module_name, obj.__name__])}',
+                                    'version': version,
+                                    'path': class_path,
                                 },
                             )
                 except (ImportError, SyntaxError, AttributeError) as e:
