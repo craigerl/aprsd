@@ -54,6 +54,7 @@ def load_commands():
     from .cmds import (  # noqa
         completion,
         dev,
+        export_config,
         export_plugins,
         fetch_stats,
         healthcheck,
