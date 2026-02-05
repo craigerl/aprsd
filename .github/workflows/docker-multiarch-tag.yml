@@ -49,7 +49,8 @@ jobs:
           file: ./docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           build-args: |
-            INSTALL_TYPE=pypi
+            INSTALL_TYPE=github
+            BRANCH=${{ steps.version.outputs.tag }}
             VERSION=${{ steps.version.outputs.version }}
             BUILDX_QEMU_ENV=true
           push: true
