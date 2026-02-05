@@ -531,8 +531,8 @@ class TestAckSendSchedulerThread(unittest.TestCase):
         ack_packet2 = fake.fake_ack_packet()
         ack_packet2.send_count = 0
         mock_tracker.keys.return_value = ['123', '456']
-        mock_tracker.get.side_effect = (
-            lambda x: ack_packet1 if x == '123' else ack_packet2
+        mock_tracker.get.side_effect = lambda x: (
+            ack_packet1 if x == '123' else ack_packet2
         )
         mock_tracker_class.return_value = mock_tracker
 
