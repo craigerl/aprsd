@@ -10,6 +10,7 @@ import click
 from oslo_config import cfg
 
 import aprsd
+import aprsd.packets.log as packet_log
 from aprsd import cli_helper, packets, plugin, utils
 
 # local imports here
@@ -128,15 +129,17 @@ def test_plugin(
         message_text=message,
     )
     LOG.info(f"P'{plugin_path}'  F'{fromcall}'   C'{message}'")
+    packet_log.log(packet)
 
     for _ in range(number):
         # PluginManager.run() executes all plugins in parallel
         # Results may be in a different order than plugin registration
         # NULL_MESSAGE results are already filtered out
-        replies = pm.run(packet)
+        results, handled = pm.run(packet)
+        LOG.debug(f'Replies: {results}')
         # Plugin might have threads, so lets stop them so we can exit.
         # obj.stop_threads()
-        for reply in replies:
+        for reply in results:
             if isinstance(reply, list):
                 # one of the plugins wants to send multiple messages
                 for subreply in reply:
@@ -157,6 +160,7 @@ def test_plugin(
                 # Note: NULL_MESSAGE results are already filtered out
                 # in PluginManager.run(), but keeping this check for safety
                 if reply is not packets.NULL_MESSAGE:
+                    LOG.debug(f'Reply: {reply}')
                     LOG.info(
                         packets.MessagePacket(
                             from_call=CONF.callsign,
