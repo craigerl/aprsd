@@ -1,7 +1,9 @@
+import datetime
 import logging
 import threading
 import time
 
+import requests
 from loguru import logger
 from oslo_config import cfg
 
@@ -41,6 +43,58 @@ class APRSDStatsStoreThread(APRSDThread):
             ss = StatsStore()
             ss.add(stats)
             ss.save()
+
+        time.sleep(1)
+        return True
+
+
+class APRSDPushStatsThread(APRSDThread):
+    """Push the local stats to a remote API."""
+
+    def __init__(
+        self, push_url=None, frequency_seconds=None, send_packetlist: bool = False
+    ):
+        super().__init__('PushStats')
+        self.push_url = push_url if push_url else CONF.push_stats.push_url
+        self.period = (
+            frequency_seconds
+            if frequency_seconds
+            else CONF.push_stats.frequency_seconds
+        )
+        self.send_packetlist = send_packetlist
+
+    def loop(self):
+        if self.loop_count % self.period == 0:
+            stats_json = collector.Collector().collect(serializable=True)
+            url = f'{self.push_url}/stats'
+            headers = {'Content-Type': 'application/json'}
+            # Remove the PacketList section to reduce payload size
+            if not self.send_packetlist:
+                if 'PacketList' in stats_json:
+                    del stats_json['PacketList']['packets']
+
+            now = datetime.datetime.now()
+            time_format = '%m-%d-%Y %H:%M:%S'
+            stats = {
+                'time': now.strftime(time_format),
+                'stats': stats_json,
+            }
+
+            try:
+                response = requests.post(url, json=stats, headers=headers, timeout=5)
+                response.raise_for_status()
+
+                if response.status_code == 200:
+                    LOGU.info(f'Successfully pushed stats to {self.push_url}')
+                else:
+                    LOGU.warning(
+                        f'Failed to push stats to {self.push_url}: HTTP {response.status_code}'
+                    )
+
+            except requests.exceptions.RequestException as e:
+                LOGU.error(f'Error pushing stats to {self.push_url}: {e}')
+            except Exception as e:
+                LOGU.error(f'Unexpected error in stats push: {e}')
 
         time.sleep(1)
         return True

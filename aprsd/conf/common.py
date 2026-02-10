@@ -16,6 +16,11 @@ registry_group = cfg.OptGroup(
     title='APRS Registry settings',
 )
 
+push_stats_group = cfg.OptGroup(
+    name='push_stats',
+    title='Push local stats to a remote API',
+)
+
 aprsd_opts = [
     cfg.StrOpt(
         'callsign',
@@ -180,6 +185,24 @@ watch_list_opts = [
     ),
 ]
 
+push_stats_opts = [
+    cfg.BoolOpt(
+        'enabled',
+        default=False,
+        help='Enable pushing local stats to a remote API.',
+    ),
+    cfg.StrOpt(
+        'push_url',
+        default=None,
+        help='The URL of the remote API to push the stats to.  This should be the base URL of the API.'
+        'APRSD Will make a POST request to this url endpoint.',
+    ),
+    cfg.IntOpt(
+        'frequency_seconds',
+        default=15,
+        help='The frequency in seconds to push the stats to the remote API.',
+    ),
+]
 
 enabled_plugins_opts = [
     cfg.ListOpt(
@@ -240,6 +263,8 @@ def register_opts(config):
     config.register_opts(watch_list_opts, group=watch_list_group)
     config.register_group(registry_group)
     config.register_opts(registry_opts, group=registry_group)
+    config.register_group(push_stats_group)
+    config.register_opts(push_stats_opts, group=push_stats_group)
 
 
 def list_opts():
@@ -247,4 +272,5 @@ def list_opts():
         'DEFAULT': (aprsd_opts + enabled_plugins_opts),
         watch_list_group.name: watch_list_opts,
         registry_group.name: registry_opts,
+        push_stats_group.name: push_stats_opts,
     }

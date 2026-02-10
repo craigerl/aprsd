@@ -12,7 +12,6 @@ import sys
 import time
 
 import click
-import requests
 from loguru import logger
 from oslo_config import cfg
 from rich.console import Console
@@ -29,8 +28,7 @@ from aprsd.packets.filters import dupe_filter, packet_type
 from aprsd.stats import collector
 from aprsd.threads import keepalive, rx
 from aprsd.threads import stats as stats_thread
-from aprsd.threads.aprsd import APRSDThread
-from aprsd.threads.stats import StatsLogThread
+from aprsd.threads.stats import APRSDPushStatsThread, StatsLogThread
 
 # setup the global logger
 # log.basicConfig(level=log.DEBUG) # level=10
@@ -84,51 +82,6 @@ class APRSDListenProcessThread(rx.APRSDFilterThread):
             # PluginManager.run() executes all plugins in parallel
             # Results may be in a different order than plugin registration
             self.plugin_manager.run(packet)
-
-
-class StatsExportThread(APRSDThread):
-    """Export stats to remote aprsd-exporter API."""
-
-    def __init__(self, exporter_url):
-        super().__init__('StatsExport')
-        self.exporter_url = exporter_url
-        self.period = 10  # Export stats every 60 seconds
-
-    def loop(self):
-        if self.loop_count % self.period == 0:
-            try:
-                # Collect all stats
-                stats_json = collector.Collector().collect(serializable=True)
-                # Remove the PacketList section to reduce payload size
-                if 'PacketList' in stats_json:
-                    del stats_json['PacketList']['packets']
-
-                now = datetime.datetime.now()
-                time_format = '%m-%d-%Y %H:%M:%S'
-                stats = {
-                    'time': now.strftime(time_format),
-                    'stats': stats_json,
-                }
-
-                # Send stats to exporter API
-                url = f'{self.exporter_url}/stats'
-                headers = {'Content-Type': 'application/json'}
-                response = requests.post(url, json=stats, headers=headers, timeout=10)
-
-                if response.status_code == 200:
-                    LOGU.info(f'Successfully exported stats to {self.exporter_url}')
-                else:
-                    LOGU.warning(
-                        f'Failed to export stats to {self.exporter_url}: HTTP {response.status_code}'
-                    )
-
-            except requests.exceptions.RequestException as e:
-                LOGU.error(f'Error exporting stats to {self.exporter_url}: {e}')
-            except Exception as e:
-                LOGU.error(f'Unexpected error in stats export: {e}')
-
-        time.sleep(1)
-        return True
 
 
 @cli.command()
@@ -356,7 +309,7 @@ def listen(
     stats_export = None
     if export_stats:
         LOG.debug('Start StatsExportThread')
-        stats_export = StatsExportThread(exporter_url)
+        stats_export = APRSDPushStatsThread(push_url=exporter_url)
         stats_export.start()
 
     keepalive_thread.start()

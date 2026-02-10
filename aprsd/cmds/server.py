@@ -168,6 +168,10 @@ def server(ctx, flush, enable_packet_stats):
             LOG.info('Beacon Enabled.  Starting static Beacon thread.')
             service_threads.register(tx.BeaconSendThread())
 
+    if CONF.push_stats.enabled:
+        LOG.info('Push Stats Enabled.  Starting Push Stats thread.')
+        service_threads.register(stats_thread.APRSDPushStatsThread())
+
     if CONF.aprs_registry.enabled:
         LOG.info('Registry Enabled.  Starting Registry thread.')
         service_threads.register(registry.APRSRegistryThread())
