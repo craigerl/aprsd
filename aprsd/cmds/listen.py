@@ -1,8 +1,3 @@
-#
-# License GPLv2
-#
-
-# python included libs
 import cProfile
 import datetime
 import logging
