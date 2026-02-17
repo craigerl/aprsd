@@ -83,3 +83,49 @@ class EnhancedJSONDecoder(json.JSONDecoder):
             o = getattr(o, e)
         args, kwargs = d.get('args', ()), d.get('kwargs', {})
         return o(*args, **kwargs)
+
+
+class PacketJSONDecoder(json.JSONDecoder):
+    """Custom JSON decoder for reconstructing Packet objects from dicts.
+
+    This decoder is used by ObjectStoreMixin to reconstruct Packet objects
+    when loading from JSON files. It handles:
+    - Packet objects and their subclasses (AckPacket, MessagePacket, etc.)
+    - Datetime objects stored as ISO format strings
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            *args,
+            object_hook=self.object_hook,
+            **kwargs,
+        )
+
+    def object_hook(self, obj):
+        """Reconstruct objects from their dict representation."""
+        if not isinstance(obj, dict):
+            return obj
+
+        # Check if this looks like a Packet object
+        # Packets have _type, from_call, and to_call fields
+        if '_type' in obj and 'from_call' in obj and 'to_call' in obj:
+            try:
+                # Use the factory function to reconstruct the correct packet type
+                return core.factory(obj)
+            except Exception:
+                # If reconstruction fails, return as dict
+                # This prevents data loss if packet format changes
+                return obj
+
+        # Handle datetime strings (ISO format)
+        # Check for common datetime field names
+        for key in ['last', 'timestamp', 'last_send_time']:
+            if key in obj and isinstance(obj[key], str):
+                try:
+                    # Try to parse as datetime
+                    obj[key] = datetime.datetime.fromisoformat(obj[key])
+                except (ValueError, TypeError, AttributeError):
+                    # Not a datetime, leave as string
+                    pass
+
+        return obj

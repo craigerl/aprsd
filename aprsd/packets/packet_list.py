@@ -34,6 +34,15 @@ class PacketList(objectstore.ObjectStoreMixin):
             'packets': OrderedDict(),
         }
 
+    def _restore_ordereddict(self):
+        """Restore OrderedDict for packets after loading from JSON.
+
+        JSON doesn't preserve OrderedDict type, but Python 3.7+ dicts
+        maintain insertion order, so we can safely convert back.
+        """
+        if 'packets' in self.data and not isinstance(self.data['packets'], OrderedDict):
+            self.data['packets'] = OrderedDict(self.data['packets'])
+
     def rx(self, packet: type[core.Packet]):
         """Add a packet that was received."""
         with self.lock:
