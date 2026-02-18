@@ -35,6 +35,8 @@ jobs:
     needs: tox
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
     - name: Get Branch Name
       id: branch-name
       uses: tj-actions/branch-names@v8
