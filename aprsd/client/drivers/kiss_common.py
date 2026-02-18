@@ -131,10 +131,19 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
         """Start consuming frames with the given callback.
 
         Args:
-            callback: Function to call with received packets
+            callback: Function to call with received packets.
+                     Called with frame=<frame> keyword argument to match
+                     the signature used by other drivers (packet=<packet>).
+            raw: If True, callback receives raw frame data.
+                 If False, callback receives decoded packet.
 
         Raises:
             Exception: If not connected to KISS TNC
+
+        Note:
+            The callback signature should accept keyword arguments:
+            - For raw frames: callback(frame=frame_obj)
+            - For decoded packets: callback(packet=packet_obj)
         """
         # Ensure connection
         if not self._connected:
@@ -144,7 +153,14 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
         frame = self.read_frame()
         if frame:
             LOG.info(f'GOT FRAME: {frame} calling {callback}')
-            callback(frame)
+            if raw:
+                # Pass raw frame with keyword argument for consistency
+                callback(frame=frame)
+            else:
+                # Decode frame to packet and pass with keyword argument
+                packet = self.decode_packet(frame)
+                if packet:
+                    callback(packet=packet)
 
     def read_frame(self):
         """Read a frame from the KISS interface.

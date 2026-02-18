@@ -145,7 +145,16 @@ class TCPKISSDriver(KISSDriver):
         return True
 
     def setup_connection(self):
-        """Set up the KISS interface."""
+        """Set up the KISS interface.
+
+        This is the Protocol-defined method that initializes the connection.
+        It internally calls connect() to establish the actual TCP connection.
+
+        Note:
+            This method follows the ClientDriver Protocol. Use this method
+            for standard connection setup. The connect() method is an internal
+            KISS-specific helper for establishing the TCP socket connection.
+        """
         if not self.is_enabled():
             LOG.error('KISS is not enabled in configuration')
             return
@@ -185,6 +194,14 @@ class TCPKISSDriver(KISSDriver):
 
     def connect(self) -> bool:
         """Establish TCP connection to the KISS host.
+
+        This is a KISS-specific internal method that handles the low-level
+        socket connection. It is called by setup_connection().
+
+        Note:
+            This method is NOT part of the ClientDriver Protocol. It is specific
+            to KISS drivers and handles TCP socket establishment and configuration.
+            External code should use setup_connection() instead.
 
         Returns:
             bool: True if connection successful, False otherwise

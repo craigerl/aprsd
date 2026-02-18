@@ -373,6 +373,7 @@ class TestTCPKISSDriver(unittest.TestCase):
         """Test consumer processes frames and calls callback."""
         mock_callback = mock.MagicMock()
         mock_frame = mock.MagicMock()
+        mock_packet = mock.MagicMock()
 
         # Configure driver for test
         self.driver._connected = True
@@ -386,10 +387,13 @@ class TestTCPKISSDriver(unittest.TestCase):
         with mock.patch.object(
             self.driver, 'read_frame', side_effect=side_effect
         ) as mock_read_frame:
-            self.driver.consumer(mock_callback)
+            with mock.patch.object(
+                self.driver, 'decode_packet', return_value=mock_packet
+            ):
+                self.driver.consumer(mock_callback)
 
-            mock_read_frame.assert_called_once()
-            mock_callback.assert_called_once_with(mock_frame)
+                mock_read_frame.assert_called_once()
+                mock_callback.assert_called_once_with(packet=mock_packet)
 
     @mock.patch('aprsd.client.drivers.tcpkiss.LOG')
     def test_read_frame_success(self, mock_log):

@@ -89,7 +89,16 @@ class SerialKISSDriver(KISSDriver):
                 pass
 
     def setup_connection(self):
-        """Set up the KISS interface."""
+        """Set up the KISS interface.
+
+        This is the Protocol-defined method that initializes the connection.
+        It internally calls connect() to establish the actual serial connection.
+
+        Note:
+            This method follows the ClientDriver Protocol. Use this method
+            for standard connection setup. The connect() method is an internal
+            KISS-specific helper for establishing the serial port connection.
+        """
         if not self.is_enabled():
             LOG.error('KISS is not enabled in configuration')
             return
@@ -99,7 +108,7 @@ class SerialKISSDriver(KISSDriver):
             return
 
         try:
-            # Configure for TCP KISS
+            # Configure for Serial KISS
             if self.is_enabled():
                 LOG.info(
                     f'Serial KISS Connection to {CONF.kiss_serial.device}:{CONF.kiss_serial.baudrate}'
@@ -116,7 +125,16 @@ class SerialKISSDriver(KISSDriver):
             self._connected = False
 
     def connect(self):
-        """Connect to the KISS interface."""
+        """Establish serial connection to the KISS device.
+
+        This is a KISS-specific internal method that handles the low-level
+        serial port connection. It is called by setup_connection().
+
+        Note:
+            This method is NOT part of the ClientDriver Protocol. It is specific
+            to KISS drivers and handles serial port establishment and configuration.
+            External code should use setup_connection() instead.
+        """
         if not self.is_enabled():
             LOG.error('KISS is not enabled in configuration')
             return

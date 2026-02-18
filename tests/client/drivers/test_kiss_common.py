@@ -175,11 +175,15 @@ class TestKISSDriver(unittest.TestCase):
         self.driver._connected = True
         callback = mock.MagicMock()
         mock_frame = b'test_frame'
+        mock_packet = mock.MagicMock()
 
         with mock.patch.object(self.driver, 'read_frame', return_value=mock_frame):
-            with mock.patch('aprsd.client.drivers.kiss_common.LOG'):
-                self.driver.consumer(callback)
-                callback.assert_called()
+            with mock.patch.object(
+                self.driver, 'decode_packet', return_value=mock_packet
+            ):
+                with mock.patch('aprsd.client.drivers.kiss_common.LOG'):
+                    self.driver.consumer(callback)
+                    callback.assert_called_once_with(packet=mock_packet)
 
     def test_read_frame_not_implemented(self):
         """Test read_frame() raises NotImplementedError."""

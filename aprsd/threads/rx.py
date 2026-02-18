@@ -94,12 +94,26 @@ class APRSDRXThread(APRSDThread):
         """Put the raw packet on the queue.
 
         The processing of the packet will happen in a separate thread.
+
+        Accepts packets/frames as either:
+        - Positional arg: process_packet(frame)
+        - Keyword args: process_packet(raw=frame), process_packet(frame=frame), or process_packet(packet=pkt)
         """
-        if not args:
+        # Extract the packet/frame from either args or kwargs
+        if args:
+            data = args[0]
+        elif 'raw' in kwargs:
+            data = kwargs['raw']
+        elif 'frame' in kwargs:
+            data = kwargs['frame']
+        elif 'packet' in kwargs:
+            data = kwargs['packet']
+        else:
             LOG.warning('No frame received to process?!?!')
             return
+
         self.pkt_count += 1
-        self.packet_queue.put(args[0])
+        self.packet_queue.put(data)
 
 
 class APRSDFilterThread(APRSDThread):
