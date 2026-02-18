@@ -9,7 +9,7 @@ import datetime
 import logging
 import select
 import socket
-from typing import Any, Dict
+from typing import Any
 
 import aprslib
 from ax253 import frame as ax25frame
@@ -84,17 +84,15 @@ class TCPKISSDriver(KISSDriver):
             return True
         return False
 
-    def close(self):
-        """Close the connection."""
+    def close(self) -> None:
+        """Close the TCP KISS connection."""
         self._connected = False
         if self.socket:
             try:
                 self.socket.close()
+                LOG.info('Closing TCPKISSDriver')
             except Exception as e:
-                LOG.error(f'close: error closing socket: {e}')
-                pass
-        else:
-            LOG.warning('close: socket not initialized. no reason to close.')
+                LOG.error(f'Error closing TCP KISS socket: {e}')
 
     def send(self, packet: core.Packet) -> bool:
         """Send an APRS packet.
@@ -181,7 +179,7 @@ class TCPKISSDriver(KISSDriver):
             LOG.exception(ex)
             self._connected = False
 
-    def stats(self, serializable: bool = False) -> Dict[str, Any]:
+    def stats(self, serializable: bool = False) -> dict[str, Any]:
         """Get client statistics.
 
         Returns:

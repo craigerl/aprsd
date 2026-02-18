@@ -1,5 +1,5 @@
 import datetime
-from typing import Callable, Protocol, runtime_checkable
+from typing import Any, Callable, Protocol, runtime_checkable
 
 from aprsd.packets import core
 from aprsd.utils import singleton, trace
@@ -61,7 +61,7 @@ class ClientDriver(Protocol):
     def decode_packet(self, *args, **kwargs) -> core.Packet:
         pass
 
-    def stats(self, serializable: bool = False) -> dict:
+    def stats(self, serializable: bool = False) -> dict[str, Any]:
         pass
 
 

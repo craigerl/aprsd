@@ -9,7 +9,7 @@ import datetime
 import logging
 
 # import select
-from typing import Any, Dict
+from typing import Any
 
 import serial
 from ax253 import frame as ax25frame
@@ -79,14 +79,15 @@ class SerialKISSDriver(KISSDriver):
             return True
         return False
 
-    def close(self):
-        """Close the connection."""
+    def close(self) -> None:
+        """Close the serial KISS connection."""
         self._connected = False
         if self.socket and self.socket.is_open:
             try:
                 self.socket.close()
-            except Exception:
-                pass
+                LOG.info('Closing SerialKISSDriver')
+            except Exception as e:
+                LOG.error(f'Error closing serial KISS port: {e}')
 
     def setup_connection(self):
         """Set up the KISS interface.
@@ -259,7 +260,7 @@ class SerialKISSDriver(KISSDriver):
         return True
 
     @trace.no_trace
-    def stats(self, serializable: bool = False) -> Dict[str, Any]:
+    def stats(self, serializable: bool = False) -> dict[str, Any]:
         """Get client statistics.
 
         Returns:

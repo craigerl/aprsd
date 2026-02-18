@@ -1,7 +1,7 @@
 import datetime
 import logging
 import time
-from typing import Callable
+from typing import Any, Callable
 
 import aprslib
 from aprslib.exceptions import LoginError
@@ -78,10 +78,15 @@ class APRSISDriver:
             return False
         return self._client.is_alive() and not self._is_stale_connection()
 
-    def close(self):
+    def close(self) -> None:
+        """Close the APRS-IS connection."""
         if self._client:
-            self._client.stop()
-            self._client.close()
+            try:
+                self._client.stop()
+                self._client.close()
+                LOG.info('Closing APRSISDriver')
+            except Exception as e:
+                LOG.error(f'Error closing APRS-IS connection: {e}')
         self.connected = False
 
     def send(self, packet: core.Packet) -> bool:
@@ -134,7 +139,7 @@ class APRSISDriver:
                     backoff += 1
                 continue
 
-    def set_filter(self, filter):
+    def set_filter(self, filter: str) -> None:
         LOG.info(f'Setting filter to {filter}')
         self._client.set_filter(filter)
 
@@ -204,7 +209,7 @@ class APRSISDriver:
         else:
             self.connected = False
 
-    def stats(self, serializable: bool = False) -> dict:
+    def stats(self, serializable: bool = False) -> dict[str, Any]:
         stats = {}
         if self.is_configured():
             if self._client:

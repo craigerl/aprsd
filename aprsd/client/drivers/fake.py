@@ -2,7 +2,7 @@ import datetime
 import logging
 import threading
 import time
-from typing import Callable
+from typing import Any, Callable
 
 import aprslib
 import wrapt
@@ -57,9 +57,9 @@ class APRSDFakeDriver(metaclass=trace.TraceWrapperMetaclass):
     def keepalive(self) -> datetime.datetime:
         return datetime.datetime.now()
 
-    def close(self):
+    def close(self) -> None:
         self.thread_stop = True
-        LOG.info('Shutdown APRSDFakeDriver driver.')
+        LOG.info('Closing APRSDFakeDriver')
 
     def setup_connection(self):
         # It's fake....
@@ -129,7 +129,7 @@ class APRSDFakeDriver(metaclass=trace.TraceWrapperMetaclass):
             return core.factory(args[0])
         return core.factory(aprslib.parse(args[0]))
 
-    def stats(self, serializable: bool = False) -> dict:
+    def stats(self, serializable: bool = False) -> dict[str, Any]:
         return {
             'driver': self.__class__.__name__,
             'is_alive': self.is_alive,

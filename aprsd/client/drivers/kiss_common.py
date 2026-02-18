@@ -7,7 +7,7 @@ non-asyncio KISSInterface implementation.
 
 import datetime
 import logging
-from typing import Any, Callable, Dict
+from typing import Any, Callable
 
 import aprslib
 from kiss import util as kissutil
@@ -59,11 +59,11 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
         """There is no login for KISS."""
         return 'Login successful'
 
-    def set_filter(self, filter_text: str):
+    def set_filter(self, filter: str) -> None:
         """Set packet filter (not implemented for KISS).
 
         Args:
-            filter_text: Filter specification (ignored for KISS)
+            filter: Filter specification (ignored for KISS)
         """
         # KISS doesn't support filtering at the TNC level
         pass
@@ -171,7 +171,7 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
         raise NotImplementedError('read_frame is not implemented for KISS')
 
     @trace.no_trace
-    def stats(self, serializable: bool = False) -> Dict[str, Any]:
+    def stats(self, serializable: bool = False) -> dict[str, Any]:
         """Get client statistics.
 
         Returns:
