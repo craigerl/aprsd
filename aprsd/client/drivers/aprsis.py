@@ -157,7 +157,12 @@ class APRSISDriver:
         return self._client.server_string
 
     @property
-    def keepalive(self):
+    def keepalive(self) -> datetime.datetime:
+        """Get the keepalive timestamp.
+
+        Returns:
+            datetime.datetime: Last keepalive timestamp
+        """
         if not self._client:
             return datetime.datetime.now()
         return self._client.aprsd_keepalive

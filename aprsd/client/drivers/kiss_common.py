@@ -25,7 +25,7 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
     packets_sent = 0
     last_packet_sent = None
     last_packet_received = None
-    keepalive = None
+    _keepalive = None
 
     # timeout in seconds
     select_timeout = 1
@@ -38,7 +38,16 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
         """
         super().__init__()
         self._connected = False
-        self.keepalive = datetime.datetime.now()
+        self._keepalive = datetime.datetime.now()
+
+    @property
+    def keepalive(self) -> datetime.datetime:
+        """Get the keepalive timestamp.
+
+        Returns:
+            datetime.datetime: Last keepalive timestamp
+        """
+        return self._keepalive
 
     def login_success(self) -> bool:
         """There is no login for KISS."""
@@ -153,7 +162,7 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
             Dict containing client statistics
         """
         if serializable:
-            keepalive = self.keepalive.isoformat()
+            keepalive = self._keepalive.isoformat() if self._keepalive else 'None'
             if self.last_packet_sent:
                 last_packet_sent = self.last_packet_sent.isoformat()
             else:
@@ -163,7 +172,7 @@ class KISSDriver(metaclass=trace.TraceWrapperMetaclass):
             else:
                 last_packet_received = 'None'
         else:
-            keepalive = self.keepalive
+            keepalive = self._keepalive
             last_packet_sent = self.last_packet_sent
             last_packet_received = self.last_packet_received
 

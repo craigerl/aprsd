@@ -55,7 +55,7 @@ class TCPKISSDriver(KISSDriver):
         """
         super().__init__()
         self._connected = False
-        self.keepalive = datetime.datetime.now()
+        # keepalive is set in parent KISSDriver.__init__()
         # This is initialized in setup_connection()
         self.socket = None
 

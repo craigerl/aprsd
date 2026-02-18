@@ -270,7 +270,7 @@ class TestTCPKISSDriver(unittest.TestCase):
 
     def test_stats_serializable(self):
         """Test stats with serializable=True converts datetime to ISO format."""
-        self.driver.keepalive = datetime.datetime.now()
+        self.driver._keepalive = datetime.datetime.now()
 
         stats = self.driver.stats(serializable=True)
 
