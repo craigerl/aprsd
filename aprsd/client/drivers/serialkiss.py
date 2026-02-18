@@ -192,11 +192,14 @@ class SerialKISSDriver(KISSDriver):
                 self._connected = False
                 break
 
-    def send(self, packet: core.Packet):
+    def send(self, packet: core.Packet) -> bool:
         """Send an APRS packet.
 
         Args:
             packet: APRS packet to send (Packet or Message object)
+
+        Returns:
+            bool: True if packet was sent successfully
 
         Raises:
             Exception: If not connected or send fails
