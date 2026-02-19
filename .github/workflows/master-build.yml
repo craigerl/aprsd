@@ -43,7 +43,7 @@ jobs:
     - name: Resolve Docker Tag
       id: docker-tag
       env:
-        BRANCH_NAME: ${​{ steps.branch-name.outputs.current_branch }}
+        BRANCH_NAME: ${{ steps.branch-name.outputs.current_branch }}
       run: |
         #!/bin/bash
         branch="${BRANCH_NAME}"
