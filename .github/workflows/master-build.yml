@@ -40,6 +40,26 @@ jobs:
     - name: Get Branch Name
       id: branch-name
       uses: tj-actions/branch-names@v8
+    - name: Resolve Docker Tag
+      id: docker-tag
+      env:
+        BRANCH_NAME: ${​{ steps.branch-name.outputs.current_branch }}
+      run: |
+        #!/bin/bash
+        branch="${BRANCH_NAME}"
+
+        # If branch is empty, use 'master' as fallback
+        if [ -z "$branch" ]; then
+          echo "Branch is empty, using 'master'"
+          tag="master"
+        else
+          # Sanitize branch name for Docker tag (replace / with -)
+          tag="${branch//\//-}"
+          echo "Using sanitized branch: $tag"
+        fi
+
+        echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+        echo "Docker tag will be: ${tag}"
     - name: Setup QEMU
       uses: docker/setup-qemu-action@v3
     - name: Setup Docker Buildx
@@ -57,8 +77,8 @@ jobs:
         file: ./Dockerfile
         build-args: |
             INSTALL_TYPE=github
-            BRANCH=${{ steps.branch-name.outputs.current_branch }}
+            BRANCH=${{ steps.docker-tag.outputs.tag }}
             BUILDX_QEMU_ENV=true
         push: true
         tags: |
-          hemna6969/aprsd:${{ steps.branch-name.outputs.current_branch }}
+          hemna6969/aprsd:${{ steps.docker-tag.outputs.tag }}
