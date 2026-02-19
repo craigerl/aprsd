@@ -64,6 +64,18 @@ def healthcheck(ctx, timeout):
                 email_thread_last_update = email_stats['last_check_time']
 
                 if email_thread_last_update != 'never':
+                    # Parse ISO format string back to datetime if needed
+                    if isinstance(email_thread_last_update, str):
+                        try:
+                            email_thread_last_update = datetime.datetime.fromisoformat(
+                                email_thread_last_update
+                            )
+                        except (ValueError, TypeError):
+                            console.log(
+                                f'Invalid email thread last update time: '
+                                f'{email_thread_last_update}'
+                            )
+                            sys.exit(-1)
                     d = now - email_thread_last_update
                     max_timeout = {'hours': 0.0, 'minutes': 5, 'seconds': 30}
                     max_delta = datetime.timedelta(**max_timeout)
@@ -77,6 +89,22 @@ def healthcheck(ctx, timeout):
                 sys.exit(-1)
             else:
                 aprsis_last_update = client_stats['connection_keepalive']
+                # Handle None or 'None' string values
+                if aprsis_last_update in (None, 'None'):
+                    console.log('APRS-IS connection keepalive is None')
+                    sys.exit(-1)
+                # Parse ISO format string back to datetime if needed
+                if isinstance(aprsis_last_update, str):
+                    try:
+                        aprsis_last_update = datetime.datetime.fromisoformat(
+                            aprsis_last_update
+                        )
+                    except (ValueError, TypeError):
+                        console.log(
+                            f'Invalid APRS-IS connection keepalive time: '
+                            f'{aprsis_last_update}'
+                        )
+                        sys.exit(-1)
                 d = now - aprsis_last_update
                 max_timeout = {'hours': 0.0, 'minutes': 5, 'seconds': 0}
                 max_delta = datetime.timedelta(**max_timeout)
