@@ -7,51 +7,9 @@ import click
 from aprsd import cli_helper
 from aprsd import plugin as aprsd_plugin
 from aprsd.main import cli
-from aprsd.plugins import fortune, notify, ping, time, version, weather
 from aprsd.utils import package as aprsd_package
 
 LOG = logging.getLogger('APRSD')
-
-
-def get_built_in_plugins():
-    """Discover all built-in APRSD plugins."""
-    modules = [fortune, notify, ping, time, version, weather]
-    plugins = []
-
-    for module in modules:
-        entries = inspect.getmembers(module, inspect.isclass)
-        for entry in entries:
-            cls = entry[1]
-            if issubclass(cls, aprsd_plugin.APRSDPluginBase):
-                plugin_info = {
-                    'package': 'aprsd',
-                    'class_name': cls.__qualname__,
-                    'path': f'{cls.__module__}.{cls.__qualname__}',
-                    'version': cls.version,
-                    'base_class_type': aprsd_package.plugin_type(cls),
-                }
-
-                # If it's a regex command plugin, include the command_regex
-                if issubclass(cls, aprsd_plugin.APRSDRegexCommandPluginBase):
-                    # Try to get command_regex from the class
-                    # It's typically defined as a class attribute in plugin implementations
-                    try:
-                        # Check the MRO to find where command_regex is actually defined
-                        cmd_regex = None
-                        for base_cls in inspect.getmro(cls):
-                            if 'command_regex' in base_cls.__dict__:
-                                attr = base_cls.__dict__['command_regex']
-                                # If it's not a property descriptor, use it
-                                if not isinstance(attr, property):
-                                    cmd_regex = attr
-                                    break
-                        plugin_info['command_regex'] = cmd_regex
-                    except Exception:
-                        plugin_info['command_regex'] = None
-
-                plugins.append(plugin_info)
-
-    return plugins
 
 
 def get_installed_plugin_classes():
@@ -117,7 +75,7 @@ def export_plugins(ctx):
     }
 
     # Get built-in plugins
-    built_in = get_built_in_plugins()
+    built_in = aprsd_package.get_built_in_plugins()
     output['built_in_plugins'] = built_in
 
     # Get installed 3rd party plugins (grouped by package)

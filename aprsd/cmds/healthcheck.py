@@ -85,7 +85,7 @@ def healthcheck(ctx, timeout):
 
             client_stats = stats.get('APRSClientStats')
             if not client_stats:
-                console.log('No APRSClientStats')
+                console.log('No APRSClientStats - Is the aprsd server running?')
                 sys.exit(-1)
             else:
                 aprsis_last_update = client_stats['connection_keepalive']

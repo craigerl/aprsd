@@ -1,16 +1,19 @@
 import click
 import click.shell_completion
 
+from aprsd import cli_helper
 from aprsd.main import cli
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
 @cli.command()
+@cli_helper.add_options(cli_helper.common_options)
 @click.argument(
     'shell', type=click.Choice(list(click.shell_completion._available_shells))
 )
-def completion(shell):
+@cli_helper.process_standard_options_no_config
+def completion(ctx, shell):
     """Show the shell completion code"""
     from click.utils import _detect_program_name
 

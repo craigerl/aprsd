@@ -11,6 +11,7 @@ import requests
 from thesmuggler import smuggle
 
 from aprsd import plugin as aprsd_plugin
+from aprsd.plugins import fortune, notify, ping, time, version, weather
 
 # Handle importlib.metadata compatibility
 try:
@@ -245,3 +246,39 @@ def log_installed_extensions_and_plugins():
 
     for plugin in plugins:
         LOG.info(f'Plugin: {plugin} version: {plugins[plugin][0]["version"]}')
+
+
+def get_built_in_plugins():
+    """Discover all built-in APRSD plugins."""
+    modules = [fortune, notify, ping, time, version, weather]
+    plugins = []
+
+    for module in modules:
+        entries = inspect.getmembers(module, inspect.isclass)
+        for entry in entries:
+            cls = entry[1]
+            if issubclass(cls, aprsd_plugin.APRSDPluginBase):
+                plugin_info = {
+                    'package': 'aprsd',
+                    'class_name': cls.__qualname__,
+                    'path': f'{cls.__module__}.{cls.__qualname__}',
+                    'version': cls.version,
+                    'base_class_type': plugin_type(cls),
+                }
+
+                if issubclass(cls, aprsd_plugin.APRSDRegexCommandPluginBase):
+                    try:
+                        cmd_regex = None
+                        for base_cls in inspect.getmro(cls):
+                            if 'command_regex' in base_cls.__dict__:
+                                attr = base_cls.__dict__['command_regex']
+                                if not isinstance(attr, property):
+                                    cmd_regex = attr
+                                    break
+                        plugin_info['command_regex'] = cmd_regex
+                    except Exception:
+                        plugin_info['command_regex'] = None
+
+                plugins.append(plugin_info)
+
+    return plugins

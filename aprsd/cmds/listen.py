@@ -1,10 +1,6 @@
-import cProfile
-import datetime
 import logging
-import pstats
 import signal
 import sys
-import time
 
 import click
 from loguru import logger
@@ -34,16 +30,9 @@ console = Console()
 
 
 def signal_handler(sig, frame):
-    threads.APRSDThreadList().stop_all()
-    if 'subprocess' not in str(frame):
-        LOG.info(
-            'Ctrl+C, Sending all threads exit! Can take up to 10 seconds {}'.format(
-                datetime.datetime.now(),
-            ),
-        )
-        time.sleep(5)
-        # Last save to disk
-        collector.Collector().collect()
+    from aprsd import main as aprsd_main
+
+    aprsd_main.signal_handler(sig, frame)
 
 
 class APRSDListenProcessThread(rx.APRSDFilterThread):
@@ -154,12 +143,6 @@ class APRSDListenProcessThread(rx.APRSDFilterThread):
     default='http://localhost:8081',
     help='URL of the aprsd-exporter API to send stats to.',
 )
-@click.option(
-    '--profile',
-    default=False,
-    is_flag=True,
-    help='Enable Python cProfile profiling to identify performance bottlenecks.',
-)
 @click.pass_context
 @cli_helper.process_standard_options
 def listen(
@@ -174,7 +157,6 @@ def listen(
     enable_packet_stats,
     export_stats,
     exporter_url,
-    profile,
 ):
     """Listen to packets on the APRS-IS Network based on FILTER.
 
@@ -186,12 +168,6 @@ def listen(
     o/obj1/obj2... - Object Filter Pass all objects with the exact name of obj1, obj2, ... (* wild card allowed)\n
 
     """
-    # Initialize profiler if enabled
-    profiler = None
-    if profile:
-        LOG.info('Starting Python cProfile profiling')
-        profiler = cProfile.Profile()
-        profiler.enable()
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
@@ -315,25 +291,3 @@ def listen(
     stats.join()
     if stats_export:
         stats_export.join()
-
-    # Save profiling results if enabled
-    if profiler:
-        profiler.disable()
-        profile_file = 'aprsd_listen_profile.prof'
-        profiler.dump_stats(profile_file)
-        LOG.info(f'Profile saved to {profile_file}')
-
-        # Print profiling summary
-        LOG.info('Profile Summary (top 50 functions by cumulative time):')
-        stats = pstats.Stats(profiler)
-        stats.sort_stats('cumulative')
-
-        # Log the top functions
-        LOG.info('-' * 80)
-        for item in stats.get_stats().items()[:50]:
-            func_info, stats_tuple = item
-            cumulative = stats_tuple[3]
-            total_calls = stats_tuple[0]
-            LOG.info(
-                f'{func_info} - Calls: {total_calls}, Cumulative: {cumulative:.4f}s'
-            )
