@@ -2,6 +2,7 @@ import datetime
 import decimal
 import json
 import sys
+from dataclasses import asdict, is_dataclass
 
 from aprsd.packets import core
 
@@ -63,6 +64,8 @@ class SimpleJSONEncoder(json.JSONEncoder):
             return str(obj)
         elif isinstance(obj, core.Packet):
             return obj.to_dict()
+        elif is_dataclass(obj):
+            return asdict(obj)
         else:
             return super().default(obj)
 
