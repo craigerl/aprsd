@@ -1,4 +1,3 @@
-import inspect
 import logging
 
 import click
@@ -7,39 +6,33 @@ from rich.table import Table
 from rich.text import Text
 
 from aprsd import cli_helper
-from aprsd import plugin as aprsd_plugin
 from aprsd.main import cli
-from aprsd.plugins import fortune, notify, ping, time, version, weather
 from aprsd.utils import package as aprsd_package
 
 LOG = logging.getLogger('APRSD')
 
 
 def show_built_in_plugins(console):
-    modules = [fortune, notify, ping, time, version, weather]
+    built_in = aprsd_package.get_built_in_plugins()
     plugins = []
 
-    for module in modules:
-        entries = inspect.getmembers(module, inspect.isclass)
-        for entry in entries:
-            cls = entry[1]
-            if issubclass(cls, aprsd_plugin.APRSDPluginBase):
-                info = {
-                    'name': cls.__qualname__,
-                    'path': f'{cls.__module__}.{cls.__qualname__}',
-                    'version': cls.version,
-                    'docstring': cls.__doc__,
-                    'short_desc': cls.short_description,
-                }
+    for plugin in built_in:
+        info = {
+            'name': plugin['class_name'],
+            'path': plugin['path'],
+            'version': plugin['version'],
+            'short_desc': '',
+        }
 
-                if issubclass(cls, aprsd_plugin.APRSDRegexCommandPluginBase):
-                    info['command_regex'] = cls.command_regex
-                    info['type'] = 'RegexCommand'
+        if plugin.get('command_regex'):
+            info['command_regex'] = plugin['command_regex']
+            info['type'] = 'RegexCommand'
+        elif plugin['base_class_type'] == 'WatchList':
+            info['type'] = 'WatchList'
+        else:
+            info['type'] = plugin['base_class_type']
 
-                if issubclass(cls, aprsd_plugin.APRSDWatchListPluginBase):
-                    info['type'] = 'WatchList'
-
-                plugins.append(info)
+        plugins.append(info)
 
     plugins = sorted(plugins, key=lambda i: i['name'])
 
