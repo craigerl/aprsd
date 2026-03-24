@@ -38,7 +38,6 @@ dependencies = [
     { name = "rfc3986" },
     { name = "rich" },
     { name = "rush" },
-    { name = "setuptools" },
     { name = "stevedore" },
     { name = "thesmuggler" },
     { name = "timeago" },
@@ -82,7 +81,7 @@ type = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aprslib", git = "https://github.com/hemna/aprs-python.git?rev=09cd7a2829a2e9d28ee1566881c843cc4769e590" },
+    { name = "aprslib", git = "https://github.com/hemna/aprs-python.git?rev=telemetry" },
     { name = "attrs", specifier = "==25.4.0" },
     { name = "ax253", specifier = "==0.1.5.post1" },
     { name = "bitarray", specifier = "==3.8.0" },
@@ -97,7 +96,7 @@ requires-dist = [
     { name = "kiss3", specifier = "==8.0.0" },
     { name = "loguru", specifier = "==0.7.3" },
     { name = "markdown-it-py", specifier = "==4.0.0" },
-    { name = "marshmallow", specifier = "==3.26.1" },
+    { name = "marshmallow", specifier = "==3.26.2" },
     { name = "mdurl", specifier = "==0.1.2" },
     { name = "mypy", marker = "extra == 'dev'" },
     { name = "mypy", marker = "extra == 'type'" },
@@ -126,7 +125,6 @@ requires-dist = [
     { name = "rich", specifier = "==14.2.0" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "rush", specifier = "==2021.4.0" },
-    { name = "setuptools", specifier = "==80.9.0" },
     { name = "stevedore", specifier = "==5.6.0" },
     { name = "thesmuggler", specifier = "==1.0.1" },
     { name = "timeago", specifier = "==1.0.16" },
@@ -152,7 +150,7 @@ provides-extras = ["dev", "tests", "type"]
 [[package]]
 name = "aprslib"
 version = "0.7.2"
-source = { git = "https://github.com/hemna/aprs-python.git?rev=09cd7a2829a2e9d28ee1566881c843cc4769e590#09cd7a2829a2e9d28ee1566881c843cc4769e590" }
+source = { git = "https://github.com/hemna/aprs-python.git?rev=telemetry#09cd7a2829a2e9d28ee1566881c843cc4769e590" }
 
 [[package]]
 name = "attrs"
@@ -510,11 +508,11 @@ wheels = [
 
 [[package]]
 name = "filelock"
-version = "3.20.0"
+version = "3.25.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/58/46/0028a82567109b5ef6e4d2a1f04a583fb513e6cf9527fcdd09afd817deeb/filelock-3.20.0.tar.gz", hash = "sha256:711e943b4ec6be42e1d4e6690b48dc175c822967466bb31c0c293f34334c13f4", size = 18922, upload-time = "2025-10-08T18:03:50.056Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/b8/00651a0f559862f3bb7d6f7477b192afe3f583cc5e26403b44e59a55ab34/filelock-3.25.2.tar.gz", hash = "sha256:b64ece2b38f4ca29dd3e810287aa8c48182bbecd1ae6e9ae126c9b35f1382694", size = 40480, upload-time = "2026-03-11T20:45:38.487Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/91/7216b27286936c16f5b4d0c530087e4a54eead683e6b0b73dd0c64844af6/filelock-3.20.0-py3-none-any.whl", hash = "sha256:339b4732ffda5cd79b13f4e2711a31b0365ce445d95d243bb996273d072546a2", size = 16054, upload-time = "2025-10-08T18:03:48.35Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/a5/842ae8f0c08b61d6484b52f99a03510a3a72d23141942d216ebe81fefbce/filelock-3.25.2-py3-none-any.whl", hash = "sha256:ca8afb0da15f229774c9ad1b455ed96e85a81373065fb10446672f64444ddf70", size = 26759, upload-time = "2026-03-11T20:45:37.437Z" },
 ]
 
 [[package]]
@@ -671,14 +669,14 @@ wheels = [
 
 [[package]]
 name = "marshmallow"
-version = "3.26.1"
+version = "3.26.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "packaging" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ab/5e/5e53d26b42ab75491cda89b871dab9e97c840bf12c63ec58a1919710cd06/marshmallow-3.26.1.tar.gz", hash = "sha256:e6d8affb6cb61d39d26402096dc0aee12d5a26d490a121f118d2e81dc0719dc6", size = 221825, upload-time = "2025-02-03T15:32:25.093Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/55/79/de6c16cc902f4fc372236926b0ce2ab7845268dcc30fb2fbb7f71b418631/marshmallow-3.26.2.tar.gz", hash = "sha256:bbe2adb5a03e6e3571b573f42527c6fe926e17467833660bebd11593ab8dfd57", size = 222095, upload-time = "2025-12-22T06:53:53.309Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/34/75/51952c7b2d3873b44a0028b1bd26a25078c18f92f256608e8d1dc61b39fd/marshmallow-3.26.1-py3-none-any.whl", hash = "sha256:3350409f20a70a7e4e11a27661187b77cdcaeb20abca41c1454fe33636bea09c", size = 50878, upload-time = "2025-02-03T15:32:22.295Z" },
+    { url = "https://files.pythonhosted.org/packages/be/2f/5108cb3ee4ba6501748c4908b908e55f42a5b66245b4cfe0c99326e1ef6e/marshmallow-3.26.2-py3-none-any.whl", hash = "sha256:013fa8a3c4c276c24d26d84ce934dc964e2aa794345a0f8c7e5a7191482c8a73", size = 50964, upload-time = "2025-12-22T06:53:51.801Z" },
 ]
 
 [[package]]
@@ -1351,16 +1349,16 @@ wheels = [
 
 [[package]]
 name = "virtualenv"
-version = "20.35.4"
+version = "20.36.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "distlib" },
     { name = "filelock" },
     { name = "platformdirs" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/20/28/e6f1a6f655d620846bd9df527390ecc26b3805a0c5989048c210e22c5ca9/virtualenv-20.35.4.tar.gz", hash = "sha256:643d3914d73d3eeb0c552cbb12d7e82adf0e504dbf86a3182f8771a153a1971c", size = 6028799, upload-time = "2025-10-29T06:57:40.511Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/a3/4d310fa5f00863544e1d0f4de93bddec248499ccf97d4791bc3122c9d4f3/virtualenv-20.36.1.tar.gz", hash = "sha256:8befb5c81842c641f8ee658481e42641c68b5eab3521d8e092d18320902466ba", size = 6032239, upload-time = "2026-01-09T18:21:01.296Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/79/0c/c05523fa3181fdf0c9c52a6ba91a23fbf3246cc095f26f6516f9c60e6771/virtualenv-20.35.4-py3-none-any.whl", hash = "sha256:c21c9cede36c9753eeade68ba7d523529f228a403463376cf821eaae2b650f1b", size = 6005095, upload-time = "2025-10-29T06:57:37.598Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/2a/dc2228b2888f51192c7dc766106cd475f1b768c10caaf9727659726f7391/virtualenv-20.36.1-py3-none-any.whl", hash = "sha256:575a8d6b124ef88f6f51d56d656132389f961062a9177016a50e4f507bbcc19f", size = 6008258, upload-time = "2026-01-09T18:20:59.425Z" },
 ]
 
 [[package]]
