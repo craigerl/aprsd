@@ -110,7 +110,7 @@ class TestAPRSDStatsStoreThread(unittest.TestCase):
         # Mock the collector and save methods
         with (
             mock.patch('aprsd.stats.collector.Collector') as mock_collector_class,
-            mock.patch('aprsd.utils.objectstore.ObjectStoreMixin.save') as mock_save,
+            mock.patch('aprsd.utils.objectstore.ObjectStoreMixin.save'),
             mock.patch.object(thread, 'wait') as mock_wait,
         ):
             # Setup mock collector to return some stats
