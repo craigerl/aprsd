@@ -404,3 +404,51 @@ class TestAPRSDThreadList(unittest.TestCase):
 
         # Should handle concurrent access without errors
         self.assertGreaterEqual(len(thread_list), 0)
+
+    def test_join_non_daemon(self):
+        """Test join_non_daemon() waits for non-daemon threads."""
+
+        class NonDaemonTestThread(APRSDThread):
+            daemon = False
+
+            def __init__(self, name):
+                super().__init__(name)
+                self.finished = False
+
+            def loop(self):
+                time.sleep(0.2)
+                self.finished = True
+                return False
+
+        thread_list = APRSDThreadList()
+        thread = NonDaemonTestThread('NonDaemonJoinTest')
+        thread_list.add(thread)
+        thread.start()
+
+        # Stop triggers the event, thread should finish its loop then exit
+        thread.stop()
+        thread_list.join_non_daemon(timeout=5.0)
+
+        self.assertTrue(thread.finished or not thread.is_alive())
+
+    def test_join_non_daemon_skips_daemon_threads(self):
+        """Test join_non_daemon() does not wait for daemon threads."""
+        thread_list = APRSDThreadList()
+        # Clear existing threads
+        thread_list.threads_list = []
+
+        # Create a daemon thread that loops forever
+        thread = TestThread('DaemonSkipTest', should_loop=True)
+        thread_list.add(thread)
+        thread.start()
+
+        # This should return quickly since it's a daemon thread
+        start = time.time()
+        thread_list.join_non_daemon(timeout=0.1)
+        elapsed = time.time() - start
+
+        self.assertLess(elapsed, 0.5)  # Should not wait for daemon
+
+        # Cleanup
+        thread.stop()
+        thread.join(timeout=1)

@@ -184,3 +184,15 @@ class APRSDThreadList:
     @wrapt.synchronized(lock)
     def __len__(self):
         return len(self.threads_list)
+
+    @wrapt.synchronized(lock)
+    def join_non_daemon(self, timeout: float = 5.0):
+        """Wait for non-daemon threads to complete gracefully.
+
+        Args:
+            timeout: Maximum seconds to wait per thread.
+        """
+        for th in self.threads_list:
+            if not th.daemon and th.is_alive():
+                LOG.info(f'Waiting for non-daemon thread {th.name} to finish')
+                th.join(timeout=timeout)
