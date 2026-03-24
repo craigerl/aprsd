@@ -596,9 +596,13 @@ class TestSendPacketThread(unittest.TestCase):
         tracker.PacketTrack._instance = None
         self.packet = fake.fake_packet(msg_number='123')
         self.thread = tx.SendPacketThread(self.packet)
+        # Mock wait to speed up tests
+        self.wait_patcher = mock.patch.object(self.thread, 'wait', return_value=False)
+        self.mock_wait = self.wait_patcher.start()
 
     def tearDown(self):
         """Clean up after tests."""
+        self.wait_patcher.stop()
         self.thread.stop()
         if self.thread.is_alive():
             self.thread.join(timeout=1)
@@ -608,7 +612,8 @@ class TestSendPacketThread(unittest.TestCase):
         """Test initialization."""
         self.assertEqual(self.thread.packet, self.packet)
         self.assertIn('TX-', self.thread.name)
-        self.assertEqual(self.thread.loop_count, 1)
+        # loop_count starts at 0 from base class, incremented in run()
+        self.assertEqual(self.thread.loop_count, 0)
 
     @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
     def test_loop_packet_acked(self, mock_tracker_class):
@@ -761,7 +766,8 @@ class TestBeaconSendThread(unittest.TestCase):
         """Test initialization."""
         thread = tx.BeaconSendThread()
         self.assertEqual(thread.name, 'BeaconSendThread')
-        self.assertEqual(thread._loop_cnt, 1)
+        self.assertEqual(thread.period, 10)  # Uses CONF.beacon_interval
+        thread.stop()
 
     def test_init_no_coordinates(self):
         """Test initialization without coordinates."""
@@ -772,39 +778,27 @@ class TestBeaconSendThread(unittest.TestCase):
         CONF.longitude = None
 
         thread = tx.BeaconSendThread()
-        self.assertTrue(thread.thread_stop)
+        self.assertTrue(thread._shutdown_event.is_set())
+        thread.stop()
 
     @mock.patch('aprsd.threads.tx.send')
     def test_loop_send_beacon(self, mock_send):
-        """Test loop() sends beacon at interval."""
+        """Test loop() sends beacon."""
         from oslo_config import cfg
 
         CONF = cfg.CONF
         CONF.beacon_interval = 1
+        CONF.latitude = 40.7128
+        CONF.longitude = -74.0060
 
         thread = tx.BeaconSendThread()
-        thread._loop_cnt = 1
+        # Mock wait to return False (no shutdown)
+        with mock.patch.object(thread, 'wait', return_value=False):
+            result = thread.loop()
 
-        result = thread.loop()
-
-        self.assertTrue(result)
-        mock_send.assert_called()
-
-    @mock.patch('aprsd.threads.tx.send')
-    def test_loop_not_time(self, mock_send):
-        """Test loop() doesn't send before interval."""
-        from oslo_config import cfg
-
-        CONF = cfg.CONF
-        CONF.beacon_interval = 10
-
-        thread = tx.BeaconSendThread()
-        thread._loop_cnt = 5
-
-        result = thread.loop()
-
-        self.assertTrue(result)
-        mock_send.assert_not_called()
+            self.assertTrue(result)
+            mock_send.assert_called()
+        thread.stop()
 
     @mock.patch('aprsd.threads.tx.send')
     @mock.patch('aprsd.threads.tx.APRSDClient')
@@ -814,13 +808,17 @@ class TestBeaconSendThread(unittest.TestCase):
 
         CONF = cfg.CONF
         CONF.beacon_interval = 1
+        CONF.latitude = 40.7128
+        CONF.longitude = -74.0060
 
         thread = tx.BeaconSendThread()
-        thread._loop_cnt = 1
         mock_send.side_effect = Exception('Send error')
 
         with mock.patch('aprsd.threads.tx.LOG') as mock_log:
-            result = thread.loop()
-            self.assertTrue(result)
-            mock_log.error.assert_called()
-            mock_client_class.return_value.reset.assert_called()
+            # Mock wait to return False (no shutdown signaled during error wait)
+            with mock.patch.object(thread, 'wait', return_value=False):
+                result = thread.loop()
+                self.assertTrue(result)
+                mock_log.error.assert_called()
+                mock_client_class.return_value.reset.assert_called()
+        thread.stop()

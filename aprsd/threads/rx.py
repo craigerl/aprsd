@@ -1,7 +1,6 @@
 import abc
 import logging
 import queue
-import time
 
 import aprslib
 from oslo_config import cfg
@@ -43,19 +42,19 @@ class APRSDRXThread(APRSDThread):
         self.packet_queue = packet_queue
 
     def stop(self):
-        self.thread_stop = True
+        self._shutdown_event.set()
         if self._client:
             self._client.close()
 
     def loop(self):
         if not self._client:
             self._client = APRSDClient()
-            time.sleep(1)
+            self.wait(timeout=1)
             return True
 
         if not self._client.is_alive:
             self._client = APRSDClient()
-            time.sleep(1)
+            self.wait(timeout=1)
             return True
 
         # setup the consumer of messages and block until a messages
@@ -82,12 +81,14 @@ class APRSDRXThread(APRSDThread):
             # This will cause a reconnect, next time client.get_client()
             # is called
             self._client.reset()
-            time.sleep(5)
+            if self.wait(timeout=5):
+                return False
         except Exception as ex:
             LOG.exception(ex)
             LOG.error('Resetting connection and trying again.')
             self._client.reset()
-            time.sleep(5)
+            if self.wait(timeout=5):
+                return False
         return True
 
     def process_packet(self, *args, **kwargs):
@@ -153,7 +154,7 @@ class APRSDFilterThread(APRSDThread):
 
     def loop(self):
         try:
-            pkt = self.packet_queue.get(timeout=1)
+            pkt = self.packet_queue.get(timeout=self.period)
             self.packet_count += 1
             # We use the client here, because the specific
             # driver may need to decode the packet differently.

@@ -24,7 +24,6 @@ import datetime
 import importlib.metadata as imp
 import logging
 import sys
-import time
 from importlib.metadata import version as metadata_version
 
 import click
@@ -76,14 +75,17 @@ def main():
 def signal_handler(sig, frame):
     click.echo('signal_handler: called')
     collector.Collector().stop_all()
-    threads.APRSDThreadList().stop_all()
+    thread_list = threads.APRSDThreadList()
+    thread_list.stop_all()
+
     if 'subprocess' not in str(frame):
         LOG.info(
-            'Ctrl+C, Sending all threads exit! Can take up to 10 seconds {}'.format(
+            'Ctrl+C, Sending all threads exit! {}'.format(
                 datetime.datetime.now(),
             ),
         )
-        time.sleep(1.5)
+        # Wait for non-daemon threads to finish gracefully
+        thread_list.join_non_daemon(timeout=5.0)
         try:
             packets.PacketTrack().save()
             packets.WatchList().save()
@@ -93,8 +95,6 @@ def signal_handler(sig, frame):
         except Exception as e:
             LOG.error(f'Failed to save data: {e}')
             sys.exit(0)
-        # signal.signal(signal.SIGTERM, sys.exit(0))
-        # sys.exit(0)
 
 
 @cli.command()

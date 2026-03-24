@@ -74,25 +74,24 @@ class TestAPRSDStatsStoreThread(unittest.TestCase):
         """Test APRSDStatsStoreThread initialization."""
         thread = APRSDStatsStoreThread()
         self.assertEqual(thread.name, 'StatsStore')
-        self.assertEqual(thread.save_interval, 10)
+        self.assertEqual(thread.period, 10)
+        self.assertFalse(thread.daemon)
         self.assertTrue(hasattr(thread, 'loop_count'))
 
     def test_loop_with_save(self):
-        """Test loop method when save interval is reached."""
+        """Test loop method saves stats every call."""
         thread = APRSDStatsStoreThread()
 
         # Mock the collector and save methods
         with (
             mock.patch('aprsd.stats.collector.Collector') as mock_collector_class,
             mock.patch('aprsd.utils.objectstore.ObjectStoreMixin.save') as mock_save,
+            mock.patch.object(thread, 'wait'),
         ):
             # Setup mock collector to return some stats
             mock_collector_instance = mock.Mock()
             mock_collector_instance.collect.return_value = {'test': 'data'}
             mock_collector_class.return_value = mock_collector_instance
-
-            # Set loop_count to match save interval
-            thread.loop_count = 10
 
             # Call loop
             result = thread.loop()
@@ -104,22 +103,20 @@ class TestAPRSDStatsStoreThread(unittest.TestCase):
             mock_collector_instance.collect.assert_called_once()
             mock_save.assert_called_once()
 
-    def test_loop_without_save(self):
-        """Test loop method when save interval is not reached."""
+    def test_loop_calls_wait(self):
+        """Test loop method calls wait() at the end."""
         thread = APRSDStatsStoreThread()
 
         # Mock the collector and save methods
         with (
             mock.patch('aprsd.stats.collector.Collector') as mock_collector_class,
-            mock.patch('aprsd.utils.objectstore.ObjectStoreMixin.save') as mock_save,
+            mock.patch('aprsd.utils.objectstore.ObjectStoreMixin.save'),
+            mock.patch.object(thread, 'wait') as mock_wait,
         ):
             # Setup mock collector to return some stats
             mock_collector_instance = mock.Mock()
             mock_collector_instance.collect.return_value = {'test': 'data'}
             mock_collector_class.return_value = mock_collector_instance
-
-            # Set loop_count to not match save interval
-            thread.loop_count = 1
 
             # Call loop
             result = thread.loop()
@@ -127,21 +124,21 @@ class TestAPRSDStatsStoreThread(unittest.TestCase):
             # Should return True (continue looping)
             self.assertTrue(result)
 
-            # Should not have called save
-            mock_save.assert_not_called()
+            # Should have called wait
+            mock_wait.assert_called_once()
 
     def test_loop_with_exception(self):
         """Test loop method when an exception occurs."""
         thread = APRSDStatsStoreThread()
 
         # Mock the collector to raise an exception
-        with mock.patch('aprsd.stats.collector.Collector') as mock_collector_class:
+        with (
+            mock.patch('aprsd.stats.collector.Collector') as mock_collector_class,
+            mock.patch.object(thread, 'wait'),
+        ):
             mock_collector_instance = mock.Mock()
             mock_collector_instance.collect.side_effect = RuntimeError('Test exception')
             mock_collector_class.return_value = mock_collector_instance
-
-            # Set loop_count to match save interval
-            thread.loop_count = 10
 
             # Should raise the exception
             with self.assertRaises(RuntimeError):
@@ -177,24 +174,31 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
             self.assertEqual(thread.period, 15)
             self.assertFalse(thread.send_packetlist)
 
-    def test_loop_skips_push_when_period_not_reached(self):
-        """Test loop does not POST when loop_count not divisible by period."""
+    def test_loop_pushes_stats_every_call(self):
+        """Test loop POSTs stats on every call (timing controlled by wait)."""
         thread = APRSDPushStatsThread(
             push_url='https://example.com',
             frequency_seconds=10,
         )
-        thread.loop_count = 3  # 3 % 10 != 0
 
         with (
             mock.patch('aprsd.threads.stats.collector.Collector') as mock_collector,
             mock.patch('aprsd.threads.stats.requests.post') as mock_post,
-            mock.patch('aprsd.threads.stats.time.sleep'),
+            mock.patch.object(thread, 'wait'),
+            mock.patch('aprsd.threads.stats.datetime') as mock_dt,
         ):
+            mock_collector.return_value.collect.return_value = {}
+            mock_dt.datetime.now.return_value.strftime.return_value = (
+                '01-01-2025 12:00:00'
+            )
+            mock_post.return_value.status_code = 200
+            mock_post.return_value.raise_for_status = mock.Mock()
+
             result = thread.loop()
 
         self.assertTrue(result)
-        mock_collector.return_value.collect.assert_not_called()
-        mock_post.assert_not_called()
+        mock_collector.return_value.collect.assert_called_once_with(serializable=True)
+        mock_post.assert_called_once()
 
     def test_loop_pushes_stats_and_removes_packetlist_by_default(self):
         """Test loop collects stats, POSTs to url/stats, and strips PacketList.packets."""
@@ -203,7 +207,6 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
             frequency_seconds=10,
             send_packetlist=False,
         )
-        thread.loop_count = 10
 
         collected = {
             'PacketList': {'packets': [1, 2, 3], 'rx': 5, 'tx': 1},
@@ -215,7 +218,7 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
                 'aprsd.threads.stats.collector.Collector'
             ) as mock_collector_class,
             mock.patch('aprsd.threads.stats.requests.post') as mock_post,
-            mock.patch('aprsd.threads.stats.time.sleep'),
+            mock.patch.object(thread, 'wait'),
             mock.patch('aprsd.threads.stats.datetime') as mock_dt,
         ):
             mock_collector_class.return_value.collect.return_value = collected
@@ -247,7 +250,6 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
             frequency_seconds=10,
             send_packetlist=True,
         )
-        thread.loop_count = 10
 
         collected = {'PacketList': {'packets': [1, 2, 3], 'rx': 5}}
 
@@ -256,7 +258,7 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
                 'aprsd.threads.stats.collector.Collector'
             ) as mock_collector_class,
             mock.patch('aprsd.threads.stats.requests.post') as mock_post,
-            mock.patch('aprsd.threads.stats.time.sleep'),
+            mock.patch.object(thread, 'wait'),
             mock.patch('aprsd.threads.stats.datetime') as mock_dt,
         ):
             mock_collector_class.return_value.collect.return_value = collected
@@ -276,14 +278,13 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
             push_url='https://example.com',
             frequency_seconds=10,
         )
-        thread.loop_count = 10
 
         with (
             mock.patch(
                 'aprsd.threads.stats.collector.Collector'
             ) as mock_collector_class,
             mock.patch('aprsd.threads.stats.requests.post') as mock_post,
-            mock.patch('aprsd.threads.stats.time.sleep'),
+            mock.patch.object(thread, 'wait'),
             mock.patch('aprsd.threads.stats.datetime') as mock_dt,
             mock.patch('aprsd.threads.stats.LOGU') as mock_logu,
         ):
@@ -306,14 +307,13 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
             push_url='https://example.com',
             frequency_seconds=10,
         )
-        thread.loop_count = 10
 
         with (
             mock.patch(
                 'aprsd.threads.stats.collector.Collector'
             ) as mock_collector_class,
             mock.patch('aprsd.threads.stats.requests.post') as mock_post,
-            mock.patch('aprsd.threads.stats.time.sleep'),
+            mock.patch.object(thread, 'wait'),
             mock.patch('aprsd.threads.stats.datetime') as mock_dt,
             mock.patch('aprsd.threads.stats.LOGU') as mock_logu,
         ):
@@ -337,14 +337,13 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
             push_url='https://example.com',
             frequency_seconds=10,
         )
-        thread.loop_count = 10
 
         with (
             mock.patch(
                 'aprsd.threads.stats.collector.Collector'
             ) as mock_collector_class,
             mock.patch('aprsd.threads.stats.requests.post') as mock_post,
-            mock.patch('aprsd.threads.stats.time.sleep'),
+            mock.patch.object(thread, 'wait'),
             mock.patch('aprsd.threads.stats.datetime') as mock_dt,
             mock.patch('aprsd.threads.stats.LOGU') as mock_logu,
         ):
@@ -368,14 +367,13 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
             push_url='https://example.com',
             frequency_seconds=10,
         )
-        thread.loop_count = 10
 
         with (
             mock.patch(
                 'aprsd.threads.stats.collector.Collector'
             ) as mock_collector_class,
             mock.patch('aprsd.threads.stats.requests.post') as mock_post,
-            mock.patch('aprsd.threads.stats.time.sleep'),
+            mock.patch.object(thread, 'wait'),
             mock.patch('aprsd.threads.stats.datetime') as mock_dt,
             mock.patch('aprsd.threads.stats.LOGU') as mock_logu,
         ):
@@ -398,7 +396,6 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
             frequency_seconds=10,
             send_packetlist=False,
         )
-        thread.loop_count = 10
 
         collected = {'Only': 'data', 'No': 'PacketList'}
 
@@ -407,7 +404,7 @@ class TestAPRSDPushStatsThread(unittest.TestCase):
                 'aprsd.threads.stats.collector.Collector'
             ) as mock_collector_class,
             mock.patch('aprsd.threads.stats.requests.post') as mock_post,
-            mock.patch('aprsd.threads.stats.time.sleep'),
+            mock.patch.object(thread, 'wait'),
             mock.patch('aprsd.threads.stats.datetime') as mock_dt,
         ):
             mock_collector_class.return_value.collect.return_value = collected

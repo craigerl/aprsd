@@ -2,8 +2,6 @@ import abc
 import datetime
 import logging
 import threading
-import time
-from typing import List
 
 import wrapt
 
@@ -13,21 +11,26 @@ LOG = logging.getLogger('APRSD')
 class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
     """Base class for all threads in APRSD."""
 
+    # Class attributes - subclasses override as needed
+    daemon = True  # Most threads are daemon threads
+    period = 1  # Default wait period in seconds
     loop_count = 1
     _pause = False
-    thread_stop = False
 
     def __init__(self, name):
         super().__init__(name=name)
-        self.thread_stop = False
+        # Set daemon from class attribute
+        self.daemon = self.__class__.daemon
+        # Set period from class attribute (can be overridden in __init__)
+        self.period = self.__class__.period
+        self._shutdown_event = threading.Event()
+        self.loop_count = 0
         APRSDThreadList().add(self)
         self._last_loop = datetime.datetime.now()
 
     def _should_quit(self):
-        """see if we have a quit message from the global queue."""
-        if self.thread_stop:
-            return True
-        return False
+        """Check if thread should exit."""
+        return self._shutdown_event.is_set()
 
     def pause(self):
         """Logically pause the processing of the main loop."""
@@ -40,11 +43,24 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         self._pause = False
 
     def stop(self):
+        """Signal thread to stop. Returns immediately."""
         LOG.debug(f"Stopping thread '{self.name}'")
-        self.thread_stop = True
+        self._shutdown_event.set()
+
+    def wait(self, timeout: float | None = None) -> bool:
+        """Wait for shutdown signal or timeout.
+
+        Args:
+            timeout: Seconds to wait. Defaults to self.period.
+
+        Returns:
+            True if shutdown was signaled, False if timeout expired.
+        """
+        wait_time = timeout if timeout is not None else self.period
+        return self._shutdown_event.wait(timeout=wait_time)
 
     @abc.abstractmethod
-    def loop(self):
+    def loop(self) -> bool:
         pass
 
     def _cleanup(self):
@@ -64,7 +80,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         LOG.debug('Starting')
         while not self._should_quit():
             if self._pause:
-                time.sleep(1)
+                self.wait(timeout=1)
             else:
                 self.loop_count += 1
                 can_loop = self.loop()
@@ -81,7 +97,7 @@ class APRSDThreadList:
 
     _instance = None
 
-    threads_list: List[APRSDThread] = []
+    threads_list: list[APRSDThread] = []
     lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
@@ -167,3 +183,15 @@ class APRSDThreadList:
     @wrapt.synchronized(lock)
     def __len__(self):
         return len(self.threads_list)
+
+    @wrapt.synchronized(lock)
+    def join_non_daemon(self, timeout: float = 5.0):
+        """Wait for non-daemon threads to complete gracefully.
+
+        Args:
+            timeout: Maximum seconds to wait per thread.
+        """
+        for th in self.threads_list:
+            if not th.daemon and th.is_alive():
+                LOG.info(f'Waiting for non-daemon thread {th.name} to finish')
+                th.join(timeout=timeout)
