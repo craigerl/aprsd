@@ -2,7 +2,6 @@ import abc
 import datetime
 import logging
 import threading
-from typing import List
 
 import wrapt
 
@@ -61,7 +60,7 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
         return self._shutdown_event.wait(timeout=wait_time)
 
     @abc.abstractmethod
-    def loop(self):
+    def loop(self) -> bool:
         pass
 
     def _cleanup(self):
@@ -98,7 +97,7 @@ class APRSDThreadList:
 
     _instance = None
 
-    threads_list: List[APRSDThread] = []
+    threads_list: list[APRSDThread] = []
     lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
