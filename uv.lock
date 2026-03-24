@@ -38,6 +38,7 @@ dependencies = [
     { name = "rfc3986" },
     { name = "rich" },
     { name = "rush" },
+    { name = "setuptools" },
     { name = "stevedore" },
     { name = "thesmuggler" },
     { name = "timeago" },
@@ -81,7 +82,7 @@ type = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aprslib", git = "https://github.com/hemna/aprs-python.git?rev=telemetry" },
+    { name = "aprslib", git = "https://github.com/hemna/aprs-python.git?rev=09cd7a2829a2e9d28ee1566881c843cc4769e590" },
     { name = "attrs", specifier = "==25.4.0" },
     { name = "ax253", specifier = "==0.1.5.post1" },
     { name = "bitarray", specifier = "==3.8.0" },
@@ -125,6 +126,7 @@ requires-dist = [
     { name = "rich", specifier = "==14.2.0" },
     { name = "ruff", marker = "extra == 'dev'" },
     { name = "rush", specifier = "==2021.4.0" },
+    { name = "setuptools", specifier = "==82.0.1" },
     { name = "stevedore", specifier = "==5.6.0" },
     { name = "thesmuggler", specifier = "==1.0.1" },
     { name = "timeago", specifier = "==1.0.16" },
@@ -140,7 +142,7 @@ requires-dist = [
     { name = "typing-inspect", specifier = "==0.9.0" },
     { name = "tzlocal", specifier = "==5.3.1" },
     { name = "update-checker", specifier = "==0.18.0" },
-    { name = "urllib3", specifier = "==2.6.2" },
+    { name = "urllib3", specifier = "==2.6.3" },
     { name = "wheel", marker = "extra == 'dev'" },
     { name = "wrapt", specifier = "==2.0.1" },
     { name = "zipp", specifier = "==3.23.0" },
@@ -150,7 +152,7 @@ provides-extras = ["dev", "tests", "type"]
 [[package]]
 name = "aprslib"
 version = "0.7.2"
-source = { git = "https://github.com/hemna/aprs-python.git?rev=telemetry#09cd7a2829a2e9d28ee1566881c843cc4769e590" }
+source = { git = "https://github.com/hemna/aprs-python.git?rev=09cd7a2829a2e9d28ee1566881c843cc4769e590#09cd7a2829a2e9d28ee1566881c843cc4769e590" }
 
 [[package]]
 name = "attrs"
@@ -1108,11 +1110,11 @@ wheels = [
 
 [[package]]
 name = "setuptools"
-version = "80.9.0"
+version = "82.0.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/18/5d/3bf57dcd21979b887f014ea83c24ae194cfcd12b9e0fda66b957c69d1fca/setuptools-80.9.0.tar.gz", hash = "sha256:f36b47402ecde768dbfafc46e8e4207b4360c654f1f3bb84475f0a28628fb19c", size = 1319958, upload-time = "2025-05-27T00:56:51.443Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4f/db/cfac1baf10650ab4d1c111714410d2fbb77ac5a616db26775db562c8fab2/setuptools-82.0.1.tar.gz", hash = "sha256:7d872682c5d01cfde07da7bccc7b65469d3dca203318515ada1de5eda35efbf9", size = 1152316, upload-time = "2026-03-09T12:47:17.221Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl", hash = "sha256:062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922", size = 1201486, upload-time = "2025-05-27T00:56:49.664Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/76/f789f7a86709c6b087c5a2f52f911838cad707cc613162401badc665acfe/setuptools-82.0.1-py3-none-any.whl", hash = "sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb", size = 1006223, upload-time = "2026-03-09T12:47:15.026Z" },
 ]
 
 [[package]]
@@ -1314,11 +1316,11 @@ wheels = [
 
 [[package]]
 name = "urllib3"
-version = "2.6.2"
+version = "2.6.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/1e/24/a2a2ed9addd907787d7aa0355ba36a6cadf1768b934c652ea78acbd59dcd/urllib3-2.6.2.tar.gz", hash = "sha256:016f9c98bb7e98085cb2b4b17b87d2c702975664e4f060c6532e64d1c1a5e797", size = 432930, upload-time = "2025-12-11T15:56:40.252Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/24/5f1b3bdffd70275f6661c76461e25f024d5a38a46f04aaca912426a2b1d3/urllib3-2.6.3.tar.gz", hash = "sha256:1b62b6884944a57dbe321509ab94fd4d3b307075e0c2eae991ac71ee15ad38ed", size = 435556, upload-time = "2026-01-07T16:24:43.925Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6d/b9/4095b668ea3678bf6a0af005527f39de12fb026516fb3df17495a733b7f8/urllib3-2.6.2-py3-none-any.whl", hash = "sha256:ec21cddfe7724fc7cb4ba4bea7aa8e2ef36f607a4bab81aa6ce42a13dc3f03dd", size = 131182, upload-time = "2025-12-11T15:56:38.584Z" },
+    { url = "https://files.pythonhosted.org/packages/39/08/aaaad47bc4e9dc8c725e68f9d04865dbcb2052843ff09c97b08904852d84/urllib3-2.6.3-py3-none-any.whl", hash = "sha256:bf272323e553dfb2e87d9bfd225ca7b0f467b919d7bbd355436d3fd37cb0acd4", size = 131584, upload-time = "2026-01-07T16:24:42.685Z" },
 ]
 
 [[package]]
