@@ -15,17 +15,18 @@ class TestAPRSDRXThread(unittest.TestCase):
         self.packet_queue = queue.Queue()
         self.rx_thread = rx.APRSDRXThread(self.packet_queue)
         self.rx_thread.pkt_count = 0  # Reset packet count
-        # Mock time.sleep to speed up tests
-        self.sleep_patcher = mock.patch('aprsd.threads.rx.time.sleep')
-        self.mock_sleep = self.sleep_patcher.start()
+        # Mock self.wait to speed up tests
+        self.wait_patcher = mock.patch.object(
+            self.rx_thread, 'wait', return_value=False
+        )
+        self.mock_wait = self.wait_patcher.start()
 
     def tearDown(self):
         """Clean up after tests."""
+        self.wait_patcher.stop()
         self.rx_thread.stop()
         if self.rx_thread.is_alive():
             self.rx_thread.join(timeout=1)
-        # Stop the sleep patcher
-        self.sleep_patcher.stop()
 
     def test_init(self):
         """Test initialization."""
@@ -39,13 +40,13 @@ class TestAPRSDRXThread(unittest.TestCase):
         self.rx_thread._client = mock.MagicMock()
         self.rx_thread.stop()
 
-        self.assertTrue(self.rx_thread.thread_stop)
+        self.assertTrue(self.rx_thread._shutdown_event.is_set())
         self.rx_thread._client.close.assert_called()
 
     def test_stop_no_client(self):
         """Test stop() when client is None."""
         self.rx_thread.stop()
-        self.assertTrue(self.rx_thread.thread_stop)
+        self.assertTrue(self.rx_thread._shutdown_event.is_set())
 
     def test_loop_no_client(self):
         """Test loop() when client is None."""
@@ -237,18 +238,18 @@ class TestAPRSDFilterThread(unittest.TestCase):
                 """Process packet - required by base class."""
                 pass
 
+        # Mock APRSDClient to avoid config requirements
+        self.client_patcher = mock.patch('aprsd.threads.rx.APRSDClient')
+        self.mock_client = self.client_patcher.start()
+
         self.filter_thread = TestFilterThread('TestFilterThread', self.packet_queue)
-        # Mock time.sleep to speed up tests
-        self.sleep_patcher = mock.patch('aprsd.threads.rx.time.sleep')
-        self.mock_sleep = self.sleep_patcher.start()
 
     def tearDown(self):
         """Clean up after tests."""
+        self.client_patcher.stop()
         self.filter_thread.stop()
         if self.filter_thread.is_alive():
             self.filter_thread.join(timeout=1)
-        # Stop the sleep patcher
-        self.sleep_patcher.stop()
 
     def test_init(self):
         """Test initialization."""
@@ -330,18 +331,18 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
             def process_our_message_packet(self, packet):
                 pass
 
+        # Mock APRSDClient to avoid config requirements
+        self.client_patcher = mock.patch('aprsd.threads.rx.APRSDClient')
+        self.mock_client = self.client_patcher.start()
+
         self.process_thread = ConcreteProcessThread(self.packet_queue)
-        # Mock time.sleep to speed up tests
-        self.sleep_patcher = mock.patch('aprsd.threads.rx.time.sleep')
-        self.mock_sleep = self.sleep_patcher.start()
 
     def tearDown(self):
         """Clean up after tests."""
+        self.client_patcher.stop()
         self.process_thread.stop()
         if self.process_thread.is_alive():
             self.process_thread.join(timeout=1)
-        # Stop the sleep patcher
-        self.sleep_patcher.stop()
 
     def test_init(self):
         """Test initialization."""
