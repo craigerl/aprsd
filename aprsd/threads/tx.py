@@ -241,6 +241,8 @@ class PacketSendSchedulerThread(aprsd_threads.APRSDThread):
     separate thread for each packet.
     """
 
+    daemon = False  # Non-daemon for graceful packet handling
+
     def __init__(self, max_workers=5):
         super().__init__('PacketSendSchedulerThread')
         self.executor = ThreadPoolExecutor(
@@ -272,7 +274,7 @@ class PacketSendSchedulerThread(aprsd_threads.APRSDThread):
             # The worker will check timing and send if needed
             self.executor.submit(_send_packet_worker, msg_no)
 
-        time.sleep(1)  # Check every second
+        self.wait()  # Check every period (default 1 second)
         return True
 
     def _cleanup(self):
@@ -288,6 +290,8 @@ class AckSendSchedulerThread(aprsd_threads.APRSDThread):
     send tasks to a threadpool executor, avoiding the need to create a
     separate thread for each ack.
     """
+
+    daemon = False  # Non-daemon for graceful ACK handling
 
     def __init__(self, max_workers=3):
         super().__init__('AckSendSchedulerThread')
@@ -320,7 +324,7 @@ class AckSendSchedulerThread(aprsd_threads.APRSDThread):
             # Submit send task to threadpool
             self.executor.submit(_send_ack_worker, msg_no, self.max_retries)
 
-        time.sleep(1)  # Check every second
+        self.wait()  # Check every period (default 1 second)
         return True
 
     def _cleanup(self):
@@ -330,8 +334,6 @@ class AckSendSchedulerThread(aprsd_threads.APRSDThread):
 
 
 class SendPacketThread(aprsd_threads.APRSDThread):
-    loop_count: int = 1
-
     def __init__(self, packet):
         self.packet = packet
         super().__init__(f'TX-{packet.to_call}-{self.packet.msgNo}')
@@ -401,14 +403,12 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                     if sent:
                         packet.send_count += 1
 
-            time.sleep(1)
+            self.wait()
             # Make sure we get called again.
-            self.loop_count += 1
             return True
 
 
 class SendAckThread(aprsd_threads.APRSDThread):
-    loop_count: int = 1
     max_retries = 3
 
     def __init__(self, packet):
@@ -462,8 +462,7 @@ class SendAckThread(aprsd_threads.APRSDThread):
 
             self.packet.last_send_time = int(round(time.time()))
 
-        time.sleep(1)
-        self.loop_count += 1
+        self.wait()
         return True
 
 
@@ -473,11 +472,9 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
     Settings are in the [DEFAULT] section of the config file.
     """
 
-    _loop_cnt: int = 1
-
     def __init__(self):
         super().__init__('BeaconSendThread')
-        self._loop_cnt = 1
+        self.period = CONF.beacon_interval
         # Make sure Latitude and Longitude are set.
         if not CONF.latitude or not CONF.longitude:
             LOG.error(
@@ -491,25 +488,23 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
         )
 
     def loop(self):
-        # Only dump out the stats every N seconds
-        if self._loop_cnt % CONF.beacon_interval == 0:
-            pkt = core.BeaconPacket(
-                from_call=CONF.callsign,
-                to_call='APRS',
-                latitude=float(CONF.latitude),
-                longitude=float(CONF.longitude),
-                comment='APRSD GPS Beacon',
-                symbol=CONF.beacon_symbol,
-            )
-            try:
-                # Only send it once
-                pkt.retry_count = 1
-                send(pkt, direct=True)
-            except Exception as e:
-                LOG.error(f'Failed to send beacon: {e}')
-                APRSDClient().reset()
-                time.sleep(5)
+        pkt = core.BeaconPacket(
+            from_call=CONF.callsign,
+            to_call='APRS',
+            latitude=float(CONF.latitude),
+            longitude=float(CONF.longitude),
+            comment='APRSD GPS Beacon',
+            symbol=CONF.beacon_symbol,
+        )
+        try:
+            # Only send it once
+            pkt.retry_count = 1
+            send(pkt, direct=True)
+        except Exception as e:
+            LOG.error(f'Failed to send beacon: {e}')
+            APRSDClient().reset()
+            if self.wait(timeout=5):
+                return False
 
-        self._loop_cnt += 1
-        time.sleep(1)
+        self.wait()
         return True
