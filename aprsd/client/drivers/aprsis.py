@@ -32,8 +32,12 @@ class APRSISDriver:
     connected = False
 
     def __init__(self):
-        max_timeout = {'hours': 0.0, 'minutes': 2, 'seconds': 0}
-        self.max_delta = datetime.timedelta(**max_timeout)
+        # Use configurable stale_timeout, defaulting to 120 seconds if not set
+        try:
+            stale_timeout = CONF.aprs_network.stale_timeout
+        except (cfg.NoSuchOptError, cfg.NoSuchGroupError):
+            stale_timeout = 120  # Default to 2 minutes for backward compatibility
+        self.max_delta = datetime.timedelta(seconds=stale_timeout)
         self.login_status = {
             'success': False,
             'message': None,
