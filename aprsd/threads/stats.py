@@ -32,10 +32,11 @@ class APRSDStatsStoreThread(APRSDThread):
     """Save APRSD Stats to disk periodically."""
 
     daemon = False
-    period = 10
 
     def __init__(self):
         super().__init__('StatsStore')
+        # Use config value for period, default to 10 seconds
+        self.period = CONF.stats_store_interval
 
     def loop(self):
         stats = collector.Collector().collect()

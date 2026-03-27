@@ -133,6 +133,12 @@ aprsd_opts = [
         help='Enable the Callsign seen list tracking feature.  This allows aprsd to keep track of '
         'callsigns that have been seen and when they were last seen.',
     ),
+    cfg.IntOpt(
+        'stats_store_interval',
+        default=10,
+        help='Interval in seconds between stats file saves to disk. '
+        'Lower values provide more frequent updates but increase disk I/O.',
+    ),
     cfg.BoolOpt(
         'enable_packet_logging',
         default=True,

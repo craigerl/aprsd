@@ -72,11 +72,20 @@ class TestAPRSDStatsStoreThread(unittest.TestCase):
 
     def test_init(self):
         """Test APRSDStatsStoreThread initialization."""
-        thread = APRSDStatsStoreThread()
-        self.assertEqual(thread.name, 'StatsStore')
-        self.assertEqual(thread.period, 10)
-        self.assertFalse(thread.daemon)
-        self.assertTrue(hasattr(thread, 'loop_count'))
+        with mock.patch('aprsd.threads.stats.CONF') as mock_conf:
+            mock_conf.stats_store_interval = 10
+            thread = APRSDStatsStoreThread()
+            self.assertEqual(thread.name, 'StatsStore')
+            self.assertEqual(thread.period, 10)
+            self.assertFalse(thread.daemon)
+            self.assertTrue(hasattr(thread, 'loop_count'))
+
+    def test_init_with_custom_interval(self):
+        """Test APRSDStatsStoreThread uses stats_store_interval from config."""
+        with mock.patch('aprsd.threads.stats.CONF') as mock_conf:
+            mock_conf.stats_store_interval = 60
+            thread = APRSDStatsStoreThread()
+            self.assertEqual(thread.period, 60)
 
     def test_loop_with_save(self):
         """Test loop method saves stats every call."""
