@@ -47,6 +47,14 @@ aprs_opts = [
         default=14580,
         help='APRS-IS port',
     ),
+    cfg.IntOpt(
+        'stale_timeout',
+        default=120,
+        help='Seconds without receiving data before connection is considered stale. '
+        'When a connection goes stale, it will be automatically reconnected. '
+        'Lower values detect dead connections faster but may cause unnecessary '
+        'reconnects during brief network hiccups. Default is 120 seconds (2 minutes).',
+    ),
 ]
 
 kiss_serial_opts = [

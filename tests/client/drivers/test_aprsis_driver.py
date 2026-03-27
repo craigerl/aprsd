@@ -24,6 +24,7 @@ class TestAPRSISDriver(unittest.TestCase):
         self.mock_conf.aprs_network.password = '12345'
         self.mock_conf.aprs_network.host = 'rotate.aprs.net'
         self.mock_conf.aprs_network.port = 14580
+        self.mock_conf.aprs_network.stale_timeout = 120  # Default 2 minutes
 
         # Mock APRS Lib Client
         self.aprslib_patcher = mock.patch('aprsd.client.drivers.aprsis.APRSLibClient')
@@ -71,10 +72,22 @@ class TestAPRSISDriver(unittest.TestCase):
     def test_init(self):
         """Test initialization sets default values."""
         self.assertIsInstance(self.driver.max_delta, datetime.timedelta)
-        self.assertEqual(self.driver.max_delta, datetime.timedelta(minutes=2))
+        # Default stale_timeout is 120 seconds (2 minutes)
+        self.assertEqual(self.driver.max_delta, datetime.timedelta(seconds=120))
         self.assertFalse(self.driver.login_status['success'])
         self.assertIsNone(self.driver.login_status['message'])
         self.assertIsNone(self.driver._client)
+
+    def test_init_custom_stale_timeout(self):
+        """Test initialization with custom stale_timeout."""
+        # Set a custom stale_timeout
+        self.mock_conf.aprs_network.stale_timeout = 60  # 1 minute
+
+        # Create a new driver instance with custom timeout
+        driver = APRSISDriver.__new__(APRSISDriver)
+        driver.__init__()
+
+        self.assertEqual(driver.max_delta, datetime.timedelta(seconds=60))
 
     def test_is_enabled_true(self):
         """Test is_enabled returns True when APRS-IS is enabled."""
