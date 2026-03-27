@@ -83,11 +83,11 @@ class TestAPRSISDriver(unittest.TestCase):
         # Set a custom stale_timeout
         self.mock_conf.aprs_network.stale_timeout = 60  # 1 minute
 
-        # Create a new driver instance with custom timeout
-        driver = APRSISDriver.__new__(APRSISDriver)
-        driver.__init__()
+        # Re-initialize the existing driver with new config
+        # (singleton pattern means we can't create a new instance)
+        self.driver.__init__()
 
-        self.assertEqual(driver.max_delta, datetime.timedelta(seconds=60))
+        self.assertEqual(self.driver.max_delta, datetime.timedelta(seconds=60))
 
     def test_is_enabled_true(self):
         """Test is_enabled returns True when APRS-IS is enabled."""
