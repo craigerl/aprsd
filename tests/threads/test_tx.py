@@ -822,3 +822,208 @@ class TestBeaconSendThread(unittest.TestCase):
                 mock_log.error.assert_called()
                 mock_client_class.return_value.reset.assert_called()
         thread.stop()
+
+
+class TestSchedulerTimingGuards(unittest.TestCase):
+    """Tests for scheduler timing guards that prevent threadpool race conditions.
+
+    These tests verify that the scheduler does NOT submit workers to the
+    threadpool when a packet was recently sent, preventing the race where
+    multiple workers fire before send_count is incremented.
+    """
+
+    def setUp(self):
+        """Set up test fixtures."""
+        from oslo_config import cfg
+
+        CONF = cfg.CONF
+        CONF.default_ack_send_count = 3
+        tracker.PacketTrack._instance = None
+        tracker.PacketTrack.data = {}
+        tracker.PacketTrack.total_tracked = 0
+
+    def tearDown(self):
+        """Clean up after tests."""
+        tracker.PacketTrack._instance = None
+        tracker.PacketTrack.data = {}
+        tracker.PacketTrack.total_tracked = 0
+
+    def test_ack_scheduler_skips_recently_sent(self):
+        """AckSendSchedulerThread must not re-submit if sent < 31 seconds ago.
+
+        This prevents the threadpool race where multiple workers fire for
+        the same ack before send_count is incremented, causing rapid-fire
+        duplicate acks on RF.
+        """
+        scheduler = tx.AckSendSchedulerThread(max_workers=2)
+        try:
+            ack_packet = fake.fake_ack_packet()
+            ack_packet.send_count = 1
+            ack_packet.last_send_time = int(round(time.time()))  # Just sent
+
+            mock_tracker = mock.MagicMock()
+            mock_tracker.keys.return_value = ['12']
+            mock_tracker.get.return_value = ack_packet
+            with mock.patch(
+                'aprsd.threads.tx.tracker.PacketTrack', return_value=mock_tracker
+            ):
+                with mock.patch.object(scheduler.executor, 'submit') as mock_submit:
+                    result = scheduler.loop()
+
+                    self.assertTrue(result)
+                    # Should NOT submit — sent too recently
+                    mock_submit.assert_not_called()
+        finally:
+            scheduler.stop()
+            scheduler.executor.shutdown(wait=False)
+
+    def test_ack_scheduler_submits_after_31_seconds(self):
+        """AckSendSchedulerThread submits worker after 31 second cooldown."""
+        scheduler = tx.AckSendSchedulerThread(max_workers=2)
+        try:
+            ack_packet = fake.fake_ack_packet()
+            ack_packet.send_count = 1
+            ack_packet.last_send_time = int(round(time.time())) - 32  # 32 seconds ago
+
+            mock_tracker = mock.MagicMock()
+            mock_tracker.keys.return_value = ['12']
+            mock_tracker.get.return_value = ack_packet
+            with mock.patch(
+                'aprsd.threads.tx.tracker.PacketTrack', return_value=mock_tracker
+            ):
+                with mock.patch.object(scheduler.executor, 'submit') as mock_submit:
+                    result = scheduler.loop()
+
+                    self.assertTrue(result)
+                    # Should submit — enough time has passed
+                    mock_submit.assert_called_once()
+        finally:
+            scheduler.stop()
+            scheduler.executor.shutdown(wait=False)
+
+    def test_ack_scheduler_submits_first_send(self):
+        """AckSendSchedulerThread submits worker on first send (no last_send_time)."""
+        scheduler = tx.AckSendSchedulerThread(max_workers=2)
+        try:
+            ack_packet = fake.fake_ack_packet()
+            ack_packet.send_count = 0
+            ack_packet.last_send_time = None  # Never sent
+
+            mock_tracker = mock.MagicMock()
+            mock_tracker.keys.return_value = ['12']
+            mock_tracker.get.return_value = ack_packet
+            with mock.patch(
+                'aprsd.threads.tx.tracker.PacketTrack', return_value=mock_tracker
+            ):
+                with mock.patch.object(scheduler.executor, 'submit') as mock_submit:
+                    result = scheduler.loop()
+
+                    self.assertTrue(result)
+                    # Should submit — first time, no last_send_time
+                    mock_submit.assert_called_once()
+        finally:
+            scheduler.stop()
+            scheduler.executor.shutdown(wait=False)
+
+    def test_packet_scheduler_skips_recently_sent(self):
+        """PacketSendSchedulerThread must not re-submit if sent recently.
+
+        Similar to ack scheduler, prevents threadpool race for message
+        packets where multiple workers could fire before send_count updates.
+        """
+        scheduler = tx.PacketSendSchedulerThread(max_workers=2)
+        try:
+            packet = fake.fake_packet(msg_number='123')
+            packet.send_count = 0
+            packet.retry_count = 3
+            packet.last_send_time = int(round(time.time()))  # Just sent
+
+            mock_tracker = mock.MagicMock()
+            mock_tracker.keys.return_value = ['123']
+            mock_tracker.get.return_value = packet
+            with mock.patch(
+                'aprsd.threads.tx.tracker.PacketTrack', return_value=mock_tracker
+            ):
+                with mock.patch.object(scheduler.executor, 'submit') as mock_submit:
+                    result = scheduler.loop()
+
+                    self.assertTrue(result)
+                    # Should NOT submit — sent too recently
+                    mock_submit.assert_not_called()
+        finally:
+            scheduler.stop()
+            scheduler.executor.shutdown(wait=False)
+
+    def test_packet_scheduler_submits_after_backoff(self):
+        """PacketSendSchedulerThread submits after exponential backoff elapses."""
+        scheduler = tx.PacketSendSchedulerThread(max_workers=2)
+        try:
+            packet = fake.fake_packet(msg_number='123')
+            packet.send_count = 1  # Second send: backoff = (1+1)*31 = 62s
+            packet.retry_count = 3
+            packet.last_send_time = int(round(time.time())) - 63  # 63 seconds ago
+
+            mock_tracker = mock.MagicMock()
+            mock_tracker.keys.return_value = ['123']
+            mock_tracker.get.return_value = packet
+            with mock.patch(
+                'aprsd.threads.tx.tracker.PacketTrack', return_value=mock_tracker
+            ):
+                with mock.patch.object(scheduler.executor, 'submit') as mock_submit:
+                    result = scheduler.loop()
+
+                    self.assertTrue(result)
+                    # Should submit — backoff period has elapsed
+                    mock_submit.assert_called_once()
+        finally:
+            scheduler.stop()
+            scheduler.executor.shutdown(wait=False)
+
+    def test_ack_scheduler_cleans_up_max_retries(self):
+        """AckSendSchedulerThread removes packets that hit max retries."""
+        scheduler = tx.AckSendSchedulerThread(max_workers=2)
+        try:
+            ack_packet = fake.fake_ack_packet()
+            ack_packet.send_count = 3  # At max
+
+            mock_tracker = mock.MagicMock()
+            mock_tracker.keys.return_value = ['12']
+            mock_tracker.get.return_value = ack_packet
+            with mock.patch(
+                'aprsd.threads.tx.tracker.PacketTrack', return_value=mock_tracker
+            ):
+                with mock.patch.object(scheduler.executor, 'submit') as mock_submit:
+                    result = scheduler.loop()
+
+                    self.assertTrue(result)
+                    mock_submit.assert_not_called()
+                    # Should have called remove to clean up
+                    mock_tracker.remove.assert_called_once_with('12')
+        finally:
+            scheduler.stop()
+            scheduler.executor.shutdown(wait=False)
+
+    def test_packet_scheduler_cleans_up_max_retries(self):
+        """PacketSendSchedulerThread removes packets that hit max retries."""
+        scheduler = tx.PacketSendSchedulerThread(max_workers=2)
+        try:
+            packet = fake.fake_packet(msg_number='123')
+            packet.send_count = 3
+            packet.retry_count = 3
+
+            mock_tracker = mock.MagicMock()
+            mock_tracker.keys.return_value = ['123']
+            mock_tracker.get.return_value = packet
+            with mock.patch(
+                'aprsd.threads.tx.tracker.PacketTrack', return_value=mock_tracker
+            ):
+                with mock.patch.object(scheduler.executor, 'submit') as mock_submit:
+                    result = scheduler.loop()
+
+                    self.assertTrue(result)
+                    mock_submit.assert_not_called()
+                    # Should have called remove to clean up
+                    mock_tracker.remove.assert_called_once_with('123')
+        finally:
+            scheduler.stop()
+            scheduler.executor.shutdown(wait=False)

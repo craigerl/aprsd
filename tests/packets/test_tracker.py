@@ -1,6 +1,6 @@
 import unittest
 
-from aprsd.packets import tracker
+from aprsd.packets import core, tracker
 from tests import fake
 
 
@@ -218,3 +218,137 @@ class TestPacketTrack(unittest.TestCase):
 
         pt.tx(fake.fake_packet(msg_number='456'))
         self.assertEqual(len(pt), 2)
+
+    def test_tx_skips_beacon_packet(self):
+        """Test tx() does not track BeaconPackets.
+
+        BeaconPackets are fire-and-forget — they never receive an ack,
+        so tracking them would cause the scheduler to retransmit them
+        as unwanted duplicates flooding RF.
+        """
+        pt = tracker.PacketTrack()
+        beacon = core.BeaconPacket(
+            from_call='KFAKE',
+            to_call='APRS',
+            latitude=38.0,
+            longitude=-121.0,
+            comment='Test Beacon',
+        )
+        beacon.prepare(create_msg_number=True)
+        initial_total = pt.total_tracked
+
+        pt.tx(beacon)
+
+        # Beacon should NOT be tracked
+        self.assertEqual(len(pt), 0)
+        self.assertEqual(pt.total_tracked, initial_total)
+
+    def test_tx_beacon_not_tracked_even_with_retry_count(self):
+        """Test tx() skips BeaconPacket regardless of retry_count setting."""
+        pt = tracker.PacketTrack()
+        beacon = core.BeaconPacket(
+            from_call='KFAKE',
+            to_call='APDW16',
+            latitude=38.0,
+            longitude=-121.0,
+            comment='WebChat Beacon',
+        )
+        beacon.retry_count = 3  # Even with retries set, don't track
+        beacon.prepare(create_msg_number=True)
+
+        pt.tx(beacon)
+
+        self.assertEqual(len(pt), 0)
+
+    def test_tx_ack_not_reset_when_already_tracked(self):
+        """Test tx() does not reset send_count for an ack already being tracked.
+
+        When the same message arrives via multiple digipeater paths, each
+        copy triggers an ack send. The tracker must NOT reset send_count
+        on the existing ack, otherwise the retry counter restarts and
+        floods RF with duplicate acks.
+        """
+        pt = tracker.PacketTrack()
+
+        # First ack for msgNo '8817'
+        ack1 = core.AckPacket(
+            from_call='KM6LYW',
+            to_call='KM6LYW-9',
+            msgNo='8817',
+        )
+        pt.tx(ack1)
+        self.assertIn('8817', pt.data)
+        self.assertEqual(pt.data['8817'].send_count, 0)
+
+        # Simulate ack being partially sent (scheduler incremented send_count)
+        pt.data['8817'].send_count = 2
+
+        # Second ack for the same msgNo (from a digi copy of the message)
+        ack2 = core.AckPacket(
+            from_call='KM6LYW',
+            to_call='KM6LYW-9',
+            msgNo='8817',
+        )
+        pt.tx(ack2)
+
+        # send_count must NOT be reset to 0
+        self.assertEqual(pt.data['8817'].send_count, 2)
+        # total_tracked should not have incremented again
+        self.assertEqual(pt.total_tracked, 1)
+
+    def test_tx_ack_tracked_on_first_occurrence(self):
+        """Test tx() properly tracks an ack on first occurrence."""
+        pt = tracker.PacketTrack()
+        ack = core.AckPacket(
+            from_call='KM6LYW',
+            to_call='KM6LYW-9',
+            msgNo='100',
+        )
+        pt.tx(ack)
+
+        self.assertIn('100', pt.data)
+        self.assertEqual(pt.data['100'].send_count, 0)
+        self.assertEqual(pt.total_tracked, 1)
+
+    def test_tx_message_packet_still_resets_on_duplicate(self):
+        """Test that non-ack packets still get reset if sent again.
+
+        MessagePackets may legitimately need to be re-sent with fresh
+        retry state (e.g., user re-sends a message).
+        """
+        pt = tracker.PacketTrack()
+        pkt = fake.fake_packet(msg_number='999')
+        pt.tx(pkt)
+        pt.data['999'].send_count = 2
+
+        # Re-sending the same message should reset
+        pkt2 = fake.fake_packet(msg_number='999')
+        pt.tx(pkt2)
+
+        self.assertEqual(pt.data['999'].send_count, 0)
+
+    def test_heavy_traffic_multiple_digi_paths(self):
+        """Simulate heavy traffic: same message arrives via 5 digipeater paths.
+
+        Each arrival triggers an ack. Only the first ack should be tracked.
+        Subsequent ack sends for the same msgNo must not reset the tracker,
+        preventing an ack flood on RF.
+        """
+        pt = tracker.PacketTrack()
+
+        # Simulate 5 copies of the same message arriving via different paths
+        for i in range(5):
+            ack = core.AckPacket(
+                from_call='KM6LYW',
+                to_call='KM6LYW-9',
+                msgNo='8817',
+            )
+            pt.tx(ack)
+
+            # After first add, simulate partial sending
+            if i == 0:
+                pt.data['8817'].send_count = 1
+
+        # Only tracked once, send_count preserved from after first send
+        self.assertEqual(pt.total_tracked, 1)
+        self.assertEqual(pt.data['8817'].send_count, 1)
