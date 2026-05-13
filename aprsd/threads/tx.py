@@ -267,8 +267,17 @@ class PacketSendSchedulerThread(aprsd_threads.APRSDThread):
 
             # Check if packet is still being tracked (not acked)
             if packet.send_count >= packet.retry_count:
-                # Max retries reached, will be cleaned up by worker
+                # Max retries reached, clean up
+                pkt_tracker.remove(msg_no)
                 continue
+
+            # Don't submit if we sent recently (prevents threadpool race
+            # where multiple workers fire before send_count is incremented)
+            if packet.last_send_time:
+                now = int(round(time.time()))
+                sleeptime = (packet.send_count + 1) * 31
+                if now - packet.last_send_time < sleeptime:
+                    continue
 
             # Submit send task to threadpool
             # The worker will check timing and send if needed
@@ -318,8 +327,16 @@ class AckSendSchedulerThread(aprsd_threads.APRSDThread):
 
             # Check if ack is still being tracked
             if packet.send_count >= self.max_retries:
-                # Max retries reached, will be cleaned up by worker
+                # Max retries reached, clean up
+                pkt_tracker.remove(msg_no)
                 continue
+
+            # Don't submit if we sent recently (prevents threadpool race
+            # where multiple workers fire before send_count is incremented)
+            if packet.last_send_time:
+                now = int(round(time.time()))
+                if now - packet.last_send_time < 31:
+                    continue
 
             # Submit send task to threadpool
             self.executor.submit(_send_ack_worker, msg_no, self.max_retries)

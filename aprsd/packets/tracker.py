@@ -88,9 +88,25 @@ class PacketTrack(objectstore.ObjectStoreMixin):
             self._remove(packet.ackMsgNo)
 
     def tx(self, packet: type[core.Packet]) -> None:
-        """Add a packet that was sent."""
+        """Add a packet that was sent.
+
+        BeaconPackets are skipped — they are fire-and-forget and never
+        receive an ack, so tracking them only causes the scheduler to
+        re-transmit them as unwanted duplicates.
+
+        AckPackets that are already being tracked are NOT reset — this
+        prevents digipeated duplicates of the same message from restarting
+        the ack retry counter, which caused ack floods on RF.
+        """
+        if isinstance(packet, core.BeaconPacket):
+            return
         with self.lock:
             key = packet.msgNo
+            if key in self.data and isinstance(packet, core.AckPacket):
+                # Already tracking this ack — don't reset send_count.
+                # This happens when the same message arrives via multiple
+                # digipeater paths and each copy triggers an ack send.
+                return
             packet.send_count = 0
             self.data[key] = packet
             self.total_tracked += 1
