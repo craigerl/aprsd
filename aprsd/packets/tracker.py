@@ -114,6 +114,29 @@ class PacketTrack(objectstore.ObjectStoreMixin):
     def remove(self, key):
         self._remove(key)
 
+    def load(self):
+        """Load tracked packets from disk, filtering out stale BeaconPackets.
+
+        BeaconPackets should never be retried (they are fire-and-forget),
+        but older versions persisted them to disk.  Strip them on load so
+        they don't get retransmitted after a restart.
+        """
+        super().load()
+        with self.lock:
+            stale = [
+                key
+                for key, pkt in self.data.items()
+                if isinstance(pkt, core.BeaconPacket)
+                or (isinstance(pkt, dict) and pkt.get('_type') == 'BeaconPacket')
+            ]
+            for key in stale:
+                del self.data[key]
+            if stale:
+                LOG.info(
+                    f'PacketTrack: removed {len(stale)} stale BeaconPacket(s) '
+                    f'from persisted data.',
+                )
+
     def _remove(self, key):
         with self.lock:
             try:
