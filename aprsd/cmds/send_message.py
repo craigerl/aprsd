@@ -130,7 +130,7 @@ def send_message(
                 sys.exit(0)
 
     try:
-        APRSDClient().client  # noqa: B018
+        APRSDClient()  # noqa: B018
     except LoginError:
         sys.exit(-1)
 
