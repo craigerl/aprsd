@@ -44,6 +44,13 @@ class APRSLibClient(aprslib.IS):
     select_timeout = 1
     lock = threading.Lock()
 
+    # Shared lock between RX (reader) and TX (writer) to prevent
+    # socket state races. The reader sets setblocking(0) and the
+    # writer's sendall (in aprslib) sets setblocking(1). Without
+    # synchronization, these can race causing partial writes and
+    # stream corruption on retransmits.
+    _socket_lock = threading.Lock()
+
     def stop(self):
         self.thread_stop = True
         LOG.warning('Shutdown Aprsdis client.')
@@ -54,8 +61,15 @@ class APRSLibClient(aprslib.IS):
 
     @wrapt.synchronized(lock)
     def send(self, packet: core.Packet):
-        """Send an APRS Message object."""
-        self.sendall(packet.raw)
+        """Send an APRS Message object.
+
+        Uses _socket_lock to prevent racing with the reader thread's
+        setblocking(0) call. The upstream aprslib sendall() sets
+        setblocking(1) before writing, which can corrupt in-progress
+        recv() calls if unsynchronized.
+        """
+        with self._socket_lock:
+            self.sendall(packet.raw)
 
     def is_alive(self):
         """If the connection is alive or not."""
@@ -141,7 +155,13 @@ class APRSLibClient(aprslib.IS):
                     continue
 
             try:
-                short_buf = self.sock.recv(4096)
+                with self._socket_lock:
+                    # Re-ensure non-blocking mode inside the lock.
+                    # The send() path (via aprslib sendall) sets
+                    # setblocking(1), so we must restore non-blocking
+                    # before recv() to avoid blocking indefinitely.
+                    self.sock.setblocking(0)
+                    short_buf = self.sock.recv(4096)
 
                 # sock.recv returns empty if the connection drops
                 if not short_buf:
