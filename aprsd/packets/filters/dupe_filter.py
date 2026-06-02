@@ -53,8 +53,9 @@ class DupePacketFilter:
                 # We haven't seen this packet before, so we process it.
                 return packet
 
-            if not packet.processed:
-                # We haven't processed this packet through the plugins.
+            if not found.processed:
+                # The previously seen packet hasn't been processed yet,
+                # so let this one through too.
                 return packet
             elif abs(packet.timestamp - found.timestamp) < CONF.packet_dupe_timeout:
                 # If the packet came in within N seconds of the
