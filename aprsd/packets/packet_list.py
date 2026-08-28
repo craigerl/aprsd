@@ -56,7 +56,7 @@ class PacketList(objectstore.ObjectStoreMixin):
             type_stats['rx'] += 1
 
     def tx(self, packet: type[core.Packet]):
-        """Add a packet that was received."""
+        """Add a packet that was transmitted."""
         with self.lock:
             self._total_tx += 1
             self._add(packet)
