@@ -300,16 +300,16 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
             if reply:
                 return reply
 
-        list = []
+        plugin_names = []
         for p in pm.get_plugins():
             LOG.debug(p)
             if p.enabled and isinstance(p, APRSDRegexCommandPluginBase):
                 name = p.command_name.lower()
-                if name not in list and 'help' not in name:
-                    list.append(name)
+                if name not in plugin_names and 'help' not in name:
+                    plugin_names.append(name)
 
-        list.sort()
-        reply = ' '.join(list)
+        plugin_names.sort()
+        reply = ' '.join(plugin_names)
         lines = textwrap.wrap(reply, 60)
         replies = ["Send APRS MSG of 'help' or 'help <plugin>'"]
         for line in lines:
