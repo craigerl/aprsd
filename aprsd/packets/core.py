@@ -780,11 +780,28 @@ def is_mice_packet(packet: dict[Any, Any]) -> bool:
     return get_packet_type(packet) == PACKET_TYPE_MICE
 
 
+# Allowlist of class names that factory() may deserialise from disk.
+# Built lazily from TYPE_LOOKUP so it stays in sync automatically.
+_KNOWN_PACKET_TYPE_NAMES: set[str] = set()
+
+
+def _known_packet_type_names() -> set[str]:
+    global _KNOWN_PACKET_TYPE_NAMES
+    if not _KNOWN_PACKET_TYPE_NAMES:
+        _KNOWN_PACKET_TYPE_NAMES = {cls.__name__ for cls in TYPE_LOOKUP.values()} | {
+            'UnknownPacket'
+        }
+    return _KNOWN_PACKET_TYPE_NAMES
+
+
 def factory(raw_packet: dict[Any, Any]) -> type[Packet]:
     """Factory method to create a packet from a raw packet string."""
     raw = raw_packet
     if '_type' in raw:
-        cls = globals()[raw['_type']]
+        type_name = raw['_type']
+        if type_name not in _known_packet_type_names():
+            raise ValueError(f'Unknown packet type {type_name!r} in saved data')
+        cls = globals()[type_name]
         return cls.from_dict(raw)
 
     raw['raw_dict'] = raw.copy()
