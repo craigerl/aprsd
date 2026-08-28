@@ -121,8 +121,6 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
             return reply
         else:
             # if no second argument, search for calling station
-            fromcall = fromcall
-
             api_key = CONF.aprs_fi.apiKey
 
             try:
