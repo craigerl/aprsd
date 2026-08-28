@@ -2,7 +2,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Due to a failure in python 3.8
 from typing import Any, List, Optional, Type, TypeVar, Union
@@ -316,7 +316,9 @@ class GPSPacket(Packet):
     def _build_time_zulu(self):
         """Build the timestamp in UTC/zulu."""
         if self.timestamp:
-            return datetime.utcfromtimestamp(self.timestamp).strftime('%d%H%M')
+            return datetime.fromtimestamp(self.timestamp, tz=timezone.utc).strftime(
+                '%d%H%M'
+            )
 
     def _build_payload(self):
         """The payload is the non headers portion of the packet."""

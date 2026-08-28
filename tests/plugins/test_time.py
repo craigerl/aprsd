@@ -1,3 +1,4 @@
+import datetime as _dt
 from unittest import mock
 
 import pytz
@@ -15,7 +16,7 @@ class TestTimePlugins(test_plugin.TestPlugin):
     @mock.patch('aprsd.plugins.time.TimePlugin._get_local_tz')
     @mock.patch('aprsd.plugins.time.TimePlugin._get_utcnow')
     def test_time(self, mock_utcnow, mock_localtz):
-        utcnow = pytz.datetime.datetime.utcnow()
+        utcnow = _dt.datetime.now(_dt.timezone.utc).replace(tzinfo=None)
         mock_utcnow.return_value = utcnow
         tz = pytz.timezone('US/Pacific')
         mock_localtz.return_value = tz
