@@ -125,3 +125,37 @@ class TestFactory(unittest.TestCase):
                 allowlist,
                 f'{cls.__name__} is in TYPE_LOOKUP but missing from the allowlist',
             )
+
+
+class TestRejectPacket(unittest.TestCase):
+    """Tests for RejectPacket dataclass lifecycle."""
+
+    def test_post_init_called_with_response(self):
+        """RejectPacket.__post_init__ must be called by the dataclass machinery.
+
+        The method was previously named __post__init__ (double underscores) which
+        is not a recognised dataclass lifecycle hook, so it was silently ignored.
+        """
+        import logging
+
+        with self.assertLogs(level=logging.WARNING) as cm:
+            packets.RejectPacket(
+                from_call=fake.FAKE_FROM_CALLSIGN,
+                to_call=fake.FAKE_TO_CALLSIGN,
+                response='REJ',
+            )
+        # The warning should have been emitted via __post_init__
+        self.assertTrue(
+            any('Response set!' in msg for msg in cm.output),
+            f'Expected "Response set!" warning; got: {cm.output}',
+        )
+
+    def test_post_init_called_without_response(self):
+        """RejectPacket.__post_init__ must not emit a warning when response is None."""
+        import logging
+
+        with self.assertNoLogs(level=logging.WARNING):
+            packets.RejectPacket(
+                from_call=fake.FAKE_FROM_CALLSIGN,
+                to_call=fake.FAKE_TO_CALLSIGN,
+            )
