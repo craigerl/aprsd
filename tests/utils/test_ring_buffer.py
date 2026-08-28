@@ -142,3 +142,17 @@ class TestRingBuffer(unittest.TestCase):
         result = rb.get()
         self.assertEqual(len(result), 1)
         self.assertIn(2, result)
+
+    def test_instances_do_not_share_data(self):
+        """RingBuffer instances must not share the class-level data list.
+
+        Previously 'data: list = []' at class level created a single shared list
+        object.  Even though __init__ rebinds self.data, this is a regression guard
+        to ensure two independently created instances have independent lists.
+        """
+        rb1 = RingBuffer(5)
+        rb2 = RingBuffer(5)
+        rb1.append(42)
+        # rb2 should still be empty — class-level shared list would have 42 here
+        self.assertEqual(len(rb2), 0)
+        self.assertIsNot(rb1.data, rb2.data)
