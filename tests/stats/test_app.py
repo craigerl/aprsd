@@ -62,10 +62,10 @@ class TestAPRSDStats(unittest.TestCase):
         self.assertIn('memory_current_str', result)
         self.assertIn('memory_peak', result)
         self.assertIn('memory_peak_str', result)
-        self.assertIn('loging_queue', result)
+        self.assertIn('logging_queue', result)
         self.assertEqual(result['callsign'], 'TEST')
         self.assertEqual(result['memory_current'], 1024 * 1024)
-        self.assertEqual(result['loging_queue'], 5)
+        self.assertEqual(result['logging_queue'], 5)
 
     @mock.patch('aprsd.stats.app.tracemalloc.get_traced_memory')
     @mock.patch('aprsd.stats.app.aprsd_log.logging_queue')
