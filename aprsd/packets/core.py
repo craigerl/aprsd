@@ -574,6 +574,11 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
             return f'{self.from_call}:{self.raw_timestamp}'
         elif self.wx_raw_timestamp:
             return f'{self.from_call}:{self.wx_raw_timestamp}'
+        # Neither APRS timestamp is present — fall back to a hash of the
+        # weather payload so that two different packets from the same station
+        # get distinct keys without colliding in PacketList / dupe-filter.
+        # Using id(self) is collision-free within a single process lifetime.
+        return f'{self.from_call}:{id(self)}'
 
     @property
     def human_info(self) -> str:
