@@ -24,7 +24,9 @@ class TimePlugin(plugin.APRSDRegexCommandPluginBase):
         return pytz.timezone(str(lz))
 
     def _get_utcnow(self):
-        return pytz.datetime.datetime.utcnow()
+        import datetime as _dt
+
+        return _dt.datetime.now(_dt.timezone.utc).replace(tzinfo=None)
 
     def build_date_str(self, localzone):
         utcnow = self._get_utcnow()
