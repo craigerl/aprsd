@@ -65,6 +65,21 @@ class TestPacketTrack(unittest.TestCase):
         self.assertIn('123', keys)
         self.assertIn('456', keys)
 
+    def test_keys_returns_snapshot_not_view(self):
+        """keys() must return a list snapshot, not a live dict_keys view.
+
+        Regression test for issue #242: the old implementation returned
+        self.data.keys() after releasing the lock, giving callers an
+        unsynchronised live view that could race with concurrent mutations.
+        """
+        pt = tracker.PacketTrack()
+        pt.tx(fake.fake_packet(msg_number='1'))
+        result = pt.keys()
+        self.assertIsInstance(result, list)
+        # Mutating self.data after the call must not change the returned snapshot
+        pt.tx(fake.fake_packet(msg_number='2'))
+        self.assertNotIn('2', result)
+
     def test_items(self):
         """Test items() method."""
         pt = tracker.PacketTrack()
@@ -75,6 +90,16 @@ class TestPacketTrack(unittest.TestCase):
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0][0], '123')
         self.assertEqual(items[0][1], packet)
+
+    def test_items_returns_snapshot_not_view(self):
+        """items() must return a list snapshot, not a live dict_items view."""
+        pt = tracker.PacketTrack()
+        pt.tx(fake.fake_packet(msg_number='1'))
+        result = pt.items()
+        self.assertIsInstance(result, list)
+        pt.tx(fake.fake_packet(msg_number='2'))
+        keys_in_result = [k for k, _ in result]
+        self.assertNotIn('2', keys_in_result)
 
     def test_values(self):
         """Test values() method."""
@@ -88,6 +113,17 @@ class TestPacketTrack(unittest.TestCase):
         self.assertEqual(len(values), 2)
         self.assertIn(packet1, values)
         self.assertIn(packet2, values)
+
+    def test_values_returns_snapshot_not_view(self):
+        """values() must return a list snapshot, not a live dict_values view."""
+        pt = tracker.PacketTrack()
+        pkt1 = fake.fake_packet(msg_number='1')
+        pt.tx(pkt1)
+        result = pt.values()
+        self.assertIsInstance(result, list)
+        pkt2 = fake.fake_packet(msg_number='2')
+        pt.tx(pkt2)
+        self.assertNotIn(pkt2, result)
 
     def test_tx(self):
         """Test tx() method."""

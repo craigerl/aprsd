@@ -48,15 +48,15 @@ class PacketTrack(objectstore.ObjectStoreMixin):
 
     def keys(self):
         with self.lock:
-            return self.data.keys()
+            return list(self.data.keys())
 
     def items(self):
         with self.lock:
-            return self.data.items()
+            return list(self.data.items())
 
     def values(self):
         with self.lock:
-            return self.data.values()
+            return list(self.data.values())
 
     def stats(self, serializable=False):
         with self.lock:
