@@ -347,13 +347,32 @@ class TestAPRSDClient(unittest.TestCase):
         result = client.decode_packet(frame='test')
         self.assertIsNone(result)
 
+    def test_checks_initialised_to_false(self):
+        """_checks must be False right after __init__ — no AttributeError on first keepalive."""
+        client = APRSDClient(auto_connect=False)
+        self.assertFalse(
+            client._checks,
+            '_checks should be initialised to False in __init__',
+        )
+
+    def test_keepalive_check_first_call_no_reset(self):
+        """First keepalive_check() call must never reset regardless of driver state."""
+        client = APRSDClient(auto_connect=False)
+        self.mock_driver._alive = False  # driver is dead, but _checks is False
+
+        with mock.patch.object(client, 'reset') as mock_reset:
+            # Should not raise AttributeError, and should not reset on first call
+            client.keepalive_check()
+            mock_reset.assert_not_called()
+
+        self.assertTrue(client._checks)
+
     def test_keepalive_check(self):
         """Test keepalive_check() method."""
         client = APRSDClient(auto_connect=False)
-        client._checks = False
         self.mock_driver._alive = True
 
-        # First check should not reset
+        # First check should not reset (driver alive, _checks False → no reset)
         with mock.patch.object(client, 'reset') as mock_reset:
             client.keepalive_check()
             self.assertTrue(client._checks)
