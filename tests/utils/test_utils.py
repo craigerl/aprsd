@@ -11,7 +11,7 @@ class TestUtils(unittest.TestCase):
     """Unit tests for utility functions in aprsd.utils."""
 
     def test_singleton_decorator(self):
-        """Test singleton() decorator."""
+        """Test singleton() decorator — same instance on repeated calls."""
 
         @utils.singleton
         class TestClass:
@@ -23,6 +23,60 @@ class TestUtils(unittest.TestCase):
 
         self.assertIs(instance1, instance2)
         self.assertEqual(instance1.value, 42)
+        TestClass.reset()  # clean up
+
+    def test_singleton_has_reset(self):
+        """@singleton-decorated class must expose a .reset() method."""
+
+        @utils.singleton
+        class Resettable:
+            pass
+
+        self.assertTrue(callable(Resettable.reset))
+        Resettable.reset()  # clean up
+
+    def test_singleton_reset_clears_instance(self):
+        """reset() must clear the stored instance so the next call creates a new one.
+
+        Regression test for issue #240: @singleton classes stored their instance
+        in wrapper_singleton.instance inside a closure. There was no way to clear
+        it in test setUp/tearDown (unlike the __new__-based singletons which expose
+        _instance = None). This caused state to leak between tests.
+        """
+
+        @utils.singleton
+        class Counter:
+            _count = 0
+
+            def __init__(self):
+                Counter._count += 1
+                self.id = Counter._count
+
+        a = Counter()
+        self.assertEqual(a.id, 1)
+        # Second call before reset returns same instance
+        b = Counter()
+        self.assertIs(a, b)
+
+        # After reset(), a new instance is created
+        Counter.reset()
+        c = Counter()
+        self.assertIsNot(a, c)
+        self.assertEqual(c.id, 2)
+        Counter.reset()  # clean up
+
+    def test_singleton_instance_is_none_before_first_call(self):
+        """instance attribute must be None before the class is first called."""
+
+        @utils.singleton
+        class Fresh:
+            pass
+
+        self.assertIsNone(Fresh.instance)
+        Fresh()
+        self.assertIsNotNone(Fresh.instance)
+        Fresh.reset()
+        self.assertIsNone(Fresh.instance)
 
     def test_env(self):
         """Test env() function."""

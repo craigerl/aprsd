@@ -11,7 +11,7 @@ class TestDriverRegistry(unittest.TestCase):
 
     def setUp(self):
         # Reset the singleton instance before each test
-        DriverRegistry.instance = None
+        DriverRegistry.reset()
         self.registry = DriverRegistry()
         self.registry.drivers = []
 

@@ -25,7 +25,18 @@ else:
 
 
 def singleton(cls):
-    """Make a class a Singleton class (only one instance)"""
+    """Make a class a Singleton class (only one instance).
+
+    The returned callable exposes a ``.instance`` attribute (the live
+    instance, or ``None`` before first use) and a ``.reset()`` method
+    that clears the stored instance so the next call creates a fresh one.
+    This mirrors the ``ClassName._instance = None`` idiom used by the
+    ``__new__``-based singletons, allowing test setUp/tearDown methods to
+    reset either pattern uniformly::
+
+        SomeClass.reset()        # @singleton-decorated class
+        OtherClass._instance = None  # __new__-based singleton
+    """
 
     @functools.wraps(cls)
     def wrapper_singleton(*args, **kwargs):
@@ -34,6 +45,12 @@ def singleton(cls):
         return wrapper_singleton.instance
 
     wrapper_singleton.instance = None
+
+    def reset():
+        """Clear the singleton instance so the next call creates a new one."""
+        wrapper_singleton.instance = None
+
+    wrapper_singleton.reset = reset
     return wrapper_singleton
 
 
