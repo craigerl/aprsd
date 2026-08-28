@@ -15,21 +15,21 @@ on:
 jobs:
   tox:
     runs-on: ubuntu-latest
-    container:
-      image: catthehacker/ubuntu:act-latest
     strategy:
       matrix:
         python-version: ["3.11"]
     steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
       run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        python -m pip install --upgrade pip
+        pip install tox tox-gh>=1.2
     - name: Test with tox
-      run: |
-        $HOME/.local/bin/uv tool install tox --with tox-uv
-        $HOME/.local/bin/tox -e py$(echo ${{ matrix.python-version }} | tr -d .)
+      run: tox
 
   build:
     needs: tox
