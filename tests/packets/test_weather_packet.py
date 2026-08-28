@@ -149,3 +149,54 @@ class TestWeatherPacket(unittest.TestCase):
         self.assertEqual(restored.pressure, packet.pressure)
         self.assertEqual(restored.wind_speed, packet.wind_speed)
         self.assertEqual(restored.wind_direction, packet.wind_direction)
+
+    def test_key_with_raw_timestamp(self):
+        """WeatherPacket.key returns from_call:raw_timestamp when raw_timestamp is set."""
+        packet = packets.WeatherPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            raw_timestamp='121234z',
+        )
+        self.assertEqual(packet.key, f'{fake.FAKE_FROM_CALLSIGN}:121234z')
+
+    def test_key_with_wx_raw_timestamp(self):
+        """WeatherPacket.key returns from_call:wx_raw_timestamp when only wx_raw_timestamp is set."""
+        packet = packets.WeatherPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            wx_raw_timestamp='121230z',
+        )
+        self.assertEqual(packet.key, f'{fake.FAKE_FROM_CALLSIGN}:121230z')
+
+    def test_key_without_timestamps_is_not_none(self):
+        """WeatherPacket.key must not return None when both timestamps are absent.
+
+        Previously the property fell off the end without a return statement when
+        neither raw_timestamp nor wx_raw_timestamp was set, silently returning None.
+        """
+        packet = packets.WeatherPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+        )
+        key = packet.key
+        self.assertIsNotNone(key)
+        self.assertIsInstance(key, str)
+        # Key must include from_call as prefix
+        self.assertTrue(key.startswith(fake.FAKE_FROM_CALLSIGN))
+
+    def test_key_without_timestamps_no_collision(self):
+        """Two WeatherPackets from the same station with no timestamps must not
+        share the same key, otherwise PacketList / dupe-filter will collide.
+
+        The fallback uses id(self) which is unique per object instance.
+        """
+        p1 = packets.WeatherPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+        )
+        p2 = packets.WeatherPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+        )
+        # Distinct objects — keys must differ regardless of timing
+        self.assertNotEqual(p1.key, p2.key)
