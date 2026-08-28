@@ -202,3 +202,26 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
         packet = fake.fake_packet(message='metar')
         actual = wx.filter(packet)
         self.assertEqual(expected, actual)
+
+    @mock.patch('aprsd.plugins.weather.plugin_utils.get_aprs_fi')
+    def test_process_no_station_arg_uses_fromcall(self, mock_aprs_fi):
+        """USMetarPlugin.process() must use packet.from_call when no station arg given.
+
+        Previously the else-branch contained the no-op 'fromcall = fromcall' which
+        was dead code.  This test verifies that fromcall is still passed correctly
+        to get_aprs_fi after that line was removed.
+        """
+        mock_aprs_fi.side_effect = Exception('aprs.fi down')
+
+        CONF.aprs_fi.apiKey = 'abc123'
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        wx = weather_plugin.USMetarPlugin()
+        wx.enabled = True
+
+        # A message with no second word: regex will not match → else-branch
+        packet = fake.fake_packet(message='metar')
+        result = wx.filter(packet)
+
+        # Should call get_aprs_fi with the packet's from_call
+        mock_aprs_fi.assert_called_once_with('abc123', fake.FAKE_FROM_CALLSIGN)
+        self.assertIn('Failed', result)
