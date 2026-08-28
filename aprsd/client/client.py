@@ -47,6 +47,7 @@ class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
 
     def __init__(self, auto_connect: bool = True):
         self.auto_connect = auto_connect
+        self._checks = False
         if not self.driver:
             self.driver = DriverRegistry().get_driver()
         if self.auto_connect:
