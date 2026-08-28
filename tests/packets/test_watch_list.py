@@ -14,8 +14,10 @@ class TestWatchList(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        # Reset singleton instance
+        # Reset singleton AND class-level state fully between tests
         watch_list.WatchList._instance = None
+        watch_list.WatchList.data = {}
+        watch_list.WatchList.initialized = False
         # Mock config
         CONF.watch_list.enabled = True
         CONF.watch_list.callsigns = ['TEST*']
@@ -24,6 +26,8 @@ class TestWatchList(unittest.TestCase):
     def tearDown(self):
         """Clean up after tests."""
         watch_list.WatchList._instance = None
+        watch_list.WatchList.data = {}
+        watch_list.WatchList.initialized = False
 
     def test_singleton_pattern(self):
         """Test that WatchList is a singleton."""
@@ -46,6 +50,58 @@ class TestWatchList(unittest.TestCase):
         # Should have entries for TEST1 and TEST2 (without *)
         self.assertIn('TEST1', wl.data)
         self.assertIn('TEST2', wl.data)
+
+    def test_stats_empty(self):
+        """stats() returns an empty dict when the watch list is empty."""
+        watch_list.WatchList._instance = None
+        CONF.watch_list.callsigns = []
+        wl = watch_list.WatchList()
+        self.assertEqual(wl.stats(), {})
+
+    def test_stats_returns_enriched_shape(self):
+        """stats() must return the enriched dict shape, not the raw internal data.
+
+        Regression test for the early-return bug: 'return self.data' was the
+        first statement in stats(), bypassing the lock and returning the raw
+        internal dict instead of the expected {callsign: {last, packet, age, old}}
+        shape that callers rely on.
+        """
+        watch_list.WatchList._instance = None
+        CONF.watch_list.callsigns = ['ENRICHED*']
+        wl = watch_list.WatchList()
+
+        # Populate with a seen packet so there is something to report
+        from tests import fake
+
+        packet = fake.fake_packet(fromcall='ENRICHED')
+        wl.rx(packet)
+
+        stats = wl.stats()
+
+        self.assertIn('ENRICHED', stats)
+        entry = stats['ENRICHED']
+        # These keys are built by the locked loop — absent if early return fires
+        self.assertIn('last', entry)
+        self.assertIn('packet', entry)
+        self.assertIn('age', entry)
+        self.assertIn('old', entry)
+        # Confirm we are NOT getting the raw internal key that only exists there
+        self.assertNotIn('was_old_before_update', entry)
+
+    def test_stats_not_raw_internal_dict(self):
+        """stats() must not return the raw self.data reference.
+
+        If stats() returns self.data directly, mutations via rx() after the
+        call would silently alter the returned value — and any consumer
+        that sees 'was_old_before_update' knows it got the raw dict.
+        """
+        watch_list.WatchList._instance = None
+        CONF.watch_list.callsigns = ['RAW*']
+        wl = watch_list.WatchList()
+
+        stats = wl.stats()
+        # stats() should return a freshly-built dict, not the live self.data ref
+        self.assertIsNot(stats, wl.data)
 
     def test_stats(self):
         """Test stats() method."""
