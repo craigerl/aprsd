@@ -330,6 +330,11 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
         else:
             to_call = None
 
+        # Capture the sender's msgNo so we can embed it as a piggyback ACK
+        # (Reply-Ack per http://www.aprs.org/aprs11/replyacks.txt) in any
+        # plain-string reply MessagePacket we build here.
+        reply_ack = packet.msgNo if packet.msgNo else None
+
         pm = plugin.PluginManager()
         try:
             results, handled = pm.run(packet)
@@ -352,6 +357,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                                     from_call=CONF.callsign,
                                     to_call=from_call,
                                     message_text=subreply,
+                                    ackMsgNo=reply_ack,
                                 ),
                             )
                 elif isinstance(reply, packets.Packet):
@@ -371,6 +377,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                                 from_call=CONF.callsign,
                                 to_call=from_call,
                                 message_text=reply,
+                                ackMsgNo=reply_ack,
                             ),
                         )
 
@@ -392,6 +399,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                         from_call=CONF.callsign,
                         to_call=from_call,
                         message_text=message_text,
+                        ackMsgNo=reply_ack,
                     ),
                 )
         except Exception as ex:
@@ -405,6 +413,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                         from_call=CONF.callsign,
                         to_call=from_call,
                         message_text=reply,
+                        ackMsgNo=reply_ack,
                     ),
                 )
 

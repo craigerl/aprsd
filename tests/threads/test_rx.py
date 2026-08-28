@@ -396,3 +396,92 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
 
             self.process_thread.process_other_packet(packet, for_us=True)
             self.assertEqual(mock_log.info.call_count, 2)
+
+
+class TestPluginProcessPacketPiggybackAck(unittest.TestCase):
+    """Integration tests for Reply-Ack (piggyback ACK) in APRSDPluginProcessPacketThread."""
+
+    def setUp(self):
+        from oslo_config import cfg
+
+        from aprsd import conf  # noqa: F401  - side-effect: registers oslo.config opts
+
+        self.CONF = cfg.CONF
+        self.CONF.callsign = 'W1AW'
+
+        self.packet_queue = queue.Queue()
+
+        self.client_patcher = mock.patch('aprsd.threads.rx.APRSDClient')
+        self.client_patcher.start()
+
+    def tearDown(self):
+        self.client_patcher.stop()
+
+    def test_reply_contains_ack_msg_no(self):
+        """When a plugin returns a plain string, the outbound MessagePacket
+        carries ackMsgNo equal to the incoming packet's msgNo."""
+        from aprsd import packets as aprsd_packets
+        from aprsd.threads import rx, tx
+
+        incoming = fake.fake_packet(message='ping', msg_number='HQ')
+        incoming.addresse = 'W1AW'
+        incoming.from_call = 'KJ4ERJ'
+
+        sent_packets = []
+
+        def capture_send(pkt, **kwargs):
+            sent_packets.append(pkt)
+
+        with mock.patch.object(tx, 'send', side_effect=capture_send):
+            thread = rx.APRSDPluginProcessPacketThread(self.packet_queue)
+            with mock.patch('aprsd.threads.rx.plugin') as mock_plugin_mod:
+                mock_pm = mock.MagicMock()
+                mock_pm.run.return_value = (['pong'], True)
+                mock_plugin_mod.PluginManager.return_value = mock_pm
+
+                thread.process_our_message_packet(incoming)
+
+        # At least one MessagePacket should have been sent
+        msg_pkts = [
+            p for p in sent_packets if isinstance(p, aprsd_packets.MessagePacket)
+        ]
+        self.assertTrue(len(msg_pkts) >= 1, 'Expected at least one MessagePacket reply')
+        for pkt in msg_pkts:
+            self.assertEqual(
+                pkt.ackMsgNo,
+                'HQ',
+                f'Expected ackMsgNo=HQ on reply, got {pkt.ackMsgNo!r}',
+            )
+
+    def test_no_reply_ack_when_incoming_has_no_msgNo(self):
+        """Replies should have ackMsgNo=None when the incoming packet has no msgNo."""
+        from aprsd import packets as aprsd_packets
+        from aprsd.threads import rx, tx
+
+        incoming = fake.fake_packet(message='ping')
+        incoming.msgNo = None
+        incoming.addresse = 'W1AW'
+        incoming.from_call = 'KJ4ERJ'
+
+        sent_packets = []
+
+        def capture_send(pkt, **kwargs):
+            sent_packets.append(pkt)
+
+        with mock.patch.object(tx, 'send', side_effect=capture_send):
+            thread = rx.APRSDPluginProcessPacketThread(self.packet_queue)
+            with mock.patch('aprsd.threads.rx.plugin') as mock_plugin_mod:
+                mock_pm = mock.MagicMock()
+                mock_pm.run.return_value = (['pong'], True)
+                mock_plugin_mod.PluginManager.return_value = mock_pm
+
+                thread.process_our_message_packet(incoming)
+
+        msg_pkts = [
+            p for p in sent_packets if isinstance(p, aprsd_packets.MessagePacket)
+        ]
+        for pkt in msg_pkts:
+            self.assertIsNone(
+                pkt.ackMsgNo,
+                f'Expected ackMsgNo=None on reply, got {pkt.ackMsgNo!r}',
+            )

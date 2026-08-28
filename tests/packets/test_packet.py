@@ -159,3 +159,56 @@ class TestRejectPacket(unittest.TestCase):
                 from_call=fake.FAKE_FROM_CALLSIGN,
                 to_call=fake.FAKE_TO_CALLSIGN,
             )
+
+
+class TestMessagePacketPiggybackAck(unittest.TestCase):
+    """Tests for MessagePacket Reply-Ack (piggyback ACK) support."""
+
+    def test_standard_format_no_ack(self):
+        """Standard message with msgNo uses old {XXXXX format (no piggyback)."""
+        pkt = packets.MessagePacket(
+            from_call='W1AW',
+            to_call='KJ4ERJ',
+            message_text='hello',
+            msgNo='42',
+        )
+        pkt.prepare()
+        self.assertIn('{42', pkt.raw)
+        # Must NOT have a closing brace (old format)
+        self.assertNotIn('{42}', pkt.raw)
+
+    def test_reply_ack_format(self):
+        """MessagePacket with ackMsgNo uses new {MM}AA wire format."""
+        pkt = packets.MessagePacket(
+            from_call='W1AW',
+            to_call='KJ4ERJ',
+            message_text='hello',
+            msgNo='42',
+            ackMsgNo='HQ',
+        )
+        pkt.prepare()
+        self.assertIn('{42}HQ', pkt.raw)
+
+    def test_reply_ack_parsed_by_aprslib(self):
+        """aprslib must parse back both msgNo and ackMsgNo from a Reply-Ack packet."""
+        pkt = packets.MessagePacket(
+            from_call='W1AW',
+            to_call='KJ4ERJ',
+            message_text='test msg',
+            msgNo='AB',
+            ackMsgNo='HQ',
+        )
+        pkt.prepare()
+        parsed = aprslib.parse(pkt.raw)
+        self.assertEqual(parsed['msgNo'], 'AB')
+        self.assertEqual(parsed['ackMsgNo'], 'HQ')
+
+    def test_no_msgNo_no_ack_suffix(self):
+        """MessagePacket without msgNo produces no {…} suffix at all."""
+        pkt = packets.MessagePacket(
+            from_call='W1AW',
+            to_call='KJ4ERJ',
+            message_text='no number',
+        )
+        pkt._build_payload()
+        self.assertNotIn('{', pkt.payload)
