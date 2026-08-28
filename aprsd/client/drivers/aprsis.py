@@ -73,7 +73,7 @@ class APRSISDriver:
                 )
 
             return True
-        return True
+        return False
 
     @property
     def is_alive(self):
