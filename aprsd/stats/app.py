@@ -43,6 +43,6 @@ class APRSDStats:
             'memory_current_str': utils.human_size(current),
             'memory_peak': int(peak),
             'memory_peak_str': utils.human_size(peak),
-            'loging_queue': qsize,
+            'logging_queue': qsize,
         }
         return stats
