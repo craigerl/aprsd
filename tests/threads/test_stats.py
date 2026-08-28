@@ -18,7 +18,27 @@ class TestStatsStore(unittest.TestCase):
         """Test StatsStore initialization."""
         ss = StatsStore()
         self.assertIsNotNone(ss.lock)
-        self.assertFalse(hasattr(ss, 'data'))
+        # data must be initialised to {} in __init__ so that save() calling
+        # len(self) does not raise AttributeError before add() is ever called
+        self.assertTrue(hasattr(ss, 'data'))
+        self.assertEqual(ss.data, {})
+
+    def test_save_before_add_does_not_raise(self):
+        """save() must not raise AttributeError when called before add().
+
+        Regression test for issue #241: ObjectStoreMixin.save() calls len(self)
+        which calls len(self.data). If data is not initialised in __init__,
+        this raises AttributeError and crashes APRSDStatsStoreThread.
+        """
+        ss = StatsStore()
+        # save() reads CONF.enable_save; patch it to False so we skip disk I/O
+        with mock.patch('aprsd.threads.stats.CONF') as mock_conf:
+            mock_conf.enable_save = False
+            # Must not raise AttributeError
+            try:
+                ss.save()
+            except AttributeError as e:
+                self.fail(f'save() raised AttributeError before add(): {e}')
 
     def test_add(self):
         """Test add method."""

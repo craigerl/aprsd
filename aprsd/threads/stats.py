@@ -22,6 +22,7 @@ class StatsStore(objectstore.ObjectStoreMixin):
 
     def __init__(self):
         self.lock = threading.RLock()
+        self.data = {}
 
     def add(self, stats: dict):
         with self.lock:
