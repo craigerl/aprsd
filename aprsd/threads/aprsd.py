@@ -147,7 +147,7 @@ class APRSDThreadList:
                 LOG.info(f'{th.name} packet {th.packet}')
             th.stop()
 
-    @wrapt.synchronized
+    @wrapt.synchronized(lock)
     def pause_all(self):
         """Iterate over all threads and pause them."""
         for th in self.threads_list:
@@ -156,7 +156,7 @@ class APRSDThreadList:
                 LOG.info(f'{th.name} packet {th.packet}')
             th.pause()
 
-    @wrapt.synchronized
+    @wrapt.synchronized(lock)
     def unpause_all(self):
         """Iterate over all threads and resume them."""
         for th in self.threads_list:
