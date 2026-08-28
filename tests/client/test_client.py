@@ -15,8 +15,8 @@ class TestAPRSDClient(unittest.TestCase):
         # Reset singleton instances
         APRSDClient._instance = None
         APRSDClient.driver = None
-        # Reset DriverRegistry singleton - the singleton decorator stores instance here
-        DriverRegistry.instance = None
+        # Reset DriverRegistry singleton — use .reset() for @singleton-decorated classes
+        DriverRegistry.reset()
 
         # Mock APRSISDriver to prevent it from being checked
         self.aprsis_patcher = mock.patch('aprsd.client.drivers.aprsis.APRSISDriver')
@@ -85,7 +85,7 @@ class TestAPRSDClient(unittest.TestCase):
         self.registry_patcher.stop()
         try:
             # Reset singleton
-            DriverRegistry.instance = None
+            DriverRegistry.reset()
             registry = DriverRegistry()
             mock_driver_class = mock.MagicMock()
             mock_driver_class.is_enabled.return_value = True
@@ -103,7 +103,7 @@ class TestAPRSDClient(unittest.TestCase):
         self.registry_patcher.stop()
         try:
             # Reset singleton
-            DriverRegistry.instance = None
+            DriverRegistry.reset()
             registry = DriverRegistry()
             registry.drivers = []
 
@@ -119,7 +119,7 @@ class TestAPRSDClient(unittest.TestCase):
         self.registry_patcher.stop()
         try:
             # Reset singleton
-            DriverRegistry.instance = None
+            DriverRegistry.reset()
             registry = DriverRegistry()
             mock_driver_class = mock.MagicMock()
             mock_driver_class.is_enabled.return_value = True
@@ -138,7 +138,7 @@ class TestAPRSDClient(unittest.TestCase):
         self.registry_patcher.stop()
         try:
             # Reset singleton
-            DriverRegistry.instance = None
+            DriverRegistry.reset()
             registry = DriverRegistry()
             registry.drivers = []
 
