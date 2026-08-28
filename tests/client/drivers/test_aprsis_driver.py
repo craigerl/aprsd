@@ -162,9 +162,9 @@ class TestAPRSISDriver(unittest.TestCase):
                 APRSISDriver.is_configured()
 
     def test_is_configured_disabled(self):
-        """Test is_configured returns True when not enabled."""
+        """Test is_configured returns False when not enabled."""
         with mock.patch.object(APRSISDriver, 'is_enabled', return_value=False):
-            self.assertTrue(APRSISDriver.is_configured())
+            self.assertFalse(APRSISDriver.is_configured())
 
     def test_is_alive_no_client(self):
         """Test is_alive returns False when no client."""
