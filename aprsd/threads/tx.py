@@ -68,13 +68,15 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
 @msg_throttle_decorator.sleep_and_retry
 def _send_packet(packet: core.Packet, direct=False, aprs_client=None):
     if not direct:
-        # Use threadpool scheduler instead of creating individual threads
+        # The packet was already registered in PacketTrack via
+        # collector.PacketCollector().tx(packet) in send() before this
+        # function was called.  PacketSendSchedulerThread polls PacketTrack
+        # every second and will find the packet there — nothing more needs
+        # to be done here.  The scheduler is started (or confirmed alive)
+        # as a side-effect of _get_packet_scheduler().
         scheduler = _get_packet_scheduler()
-        if scheduler and scheduler.is_alive():
-            # Scheduler will handle the packet
-            pass
-        else:
-            # Fallback to old method if scheduler not available
+        if not (scheduler and scheduler.is_alive()):
+            # Fallback: scheduler failed to start — send directly in a thread
             thread = SendPacketThread(packet=packet)
             thread.start()
     else:
@@ -84,13 +86,12 @@ def _send_packet(packet: core.Packet, direct=False, aprs_client=None):
 @ack_throttle_decorator.sleep_and_retry
 def _send_ack(packet: core.AckPacket, direct=False, aprs_client=None):
     if not direct:
-        # Use threadpool scheduler instead of creating individual threads
+        # Same implicit handoff as _send_packet: the ack was registered in
+        # PacketTrack before this call; AckSendSchedulerThread polls and
+        # picks it up.  Starting/verifying the scheduler is all that's needed.
         scheduler = _get_ack_scheduler()
-        if scheduler and scheduler.is_alive():
-            # Scheduler will handle the packet
-            pass
-        else:
-            # Fallback to old method if scheduler not available
+        if not (scheduler and scheduler.is_alive()):
+            # Fallback: scheduler failed to start — send directly in a thread
             thread = SendAckThread(packet=packet)
             thread.start()
     else:
