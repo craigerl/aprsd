@@ -4,7 +4,9 @@ on: [push, pull_request]
 
 jobs:
   tox:
-    runs-on: docker
+    runs-on: ubuntu-latest
+    container:
+      image: catthehacker/ubuntu:act-latest
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
@@ -16,5 +18,5 @@ jobs:
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
     - name: Test with tox
       run: |
-        uv tool install tox --with tox-uv
-        tox -e py$(echo ${{ matrix.python-version }} | tr -d .)
+        $HOME/.local/bin/uv tool install tox --with tox-uv
+        $HOME/.local/bin/tox -e py$(echo ${{ matrix.python-version }} | tr -d .)
