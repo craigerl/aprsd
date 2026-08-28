@@ -250,10 +250,19 @@ class MessagePacket(Packet):
 
     def _build_payload(self):
         if self.msgNo:
-            self.payload = ':{}:{}{{{}'.format(
+            if self.ackMsgNo:
+                # Per http://www.aprs.org/aprs11/replyacks.txt, the Reply-Ack
+                # wire format is "text{MM}AA" where MM is our 2-char outbound
+                # sequence number and AA is the piggyback ack (the sender's
+                # msgNo we are acknowledging).
+                suffix = f'{{{self.msgNo}}}{self.ackMsgNo}'
+            else:
+                # Standard APRS message format: "text{XXXXX"
+                suffix = f'{{{self.msgNo}'
+            self.payload = ':{}:{}{}'.format(
                 self.to_call.ljust(9),
                 self._filter_for_send(self.message_text).rstrip('\n'),
-                str(self.msgNo),
+                suffix,
             )
         else:
             self.payload = ':{}:{}'.format(
