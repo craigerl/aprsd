@@ -51,7 +51,6 @@ class WatchList(objectstore.ObjectStoreMixin):
     @trace.no_trace
     def stats(self, serializable=False) -> dict:
         stats = {}
-        return self.data
         with self.lock:
             for callsign in self.data:
                 stats[callsign] = {
