@@ -229,7 +229,7 @@ class RejectPacket(Packet):
     _type: str = field(default='RejectPacket', hash=False)
     response: Optional[str] = field(default=None)
 
-    def __post__init__(self):
+    def __post_init__(self):
         if self.response:
             LOG.warning('Response set!')
 
