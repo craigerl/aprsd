@@ -2,11 +2,10 @@ class RingBuffer:
     """class that implements a not-yet-full buffer"""
 
     max: int = 100
-    data: list = []
 
     def __init__(self, size_max):
         self.max = size_max
-        self.data = []
+        self.data: list = []
 
     class __Full:
         """class that implements a full buffer"""
