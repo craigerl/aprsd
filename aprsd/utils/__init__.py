@@ -7,6 +7,7 @@ import os
 import re
 import sys
 import traceback
+from collections.abc import MutableMapping
 
 import update_checker
 
@@ -17,11 +18,6 @@ from .fuzzyclock import fuzzy  # noqa: F401
 # Make these available by anyone importing
 # aprsd.utils
 from .ring_buffer import RingBuffer  # noqa: F401
-
-if sys.version_info.major == 3 and sys.version_info.minor >= 3:
-    from collections.abc import MutableMapping
-else:
-    from collections.abc import MutableMapping
 
 
 def singleton(cls):

@@ -323,3 +323,22 @@ class TestUtils(unittest.TestCase):
         level, msg = utils._check_version()
         self.assertEqual(level, 1)
         self.assertEqual(msg, 'New version available')
+
+
+class TestDeadCodeRemoval(unittest.TestCase):
+    """Regression tests for dead code that was removed."""
+
+    def test_mutable_mapping_importable(self):
+        """MutableMapping must be importable from aprsd.utils after dead-code removal.
+
+        The version guard
+            if sys.version_info.major == 3 and sys.version_info.minor >= 3:
+                from collections.abc import MutableMapping
+            else:
+                from collections.abc import MutableMapping
+        had both branches do the same thing.  After removing the guard the import
+        must still succeed on all supported Python versions.
+        """
+        from aprsd.utils import MutableMapping as MM  # noqa: N814
+
+        self.assertTrue(issubclass(dict, MM))
