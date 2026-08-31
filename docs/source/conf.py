@@ -29,6 +29,11 @@ author = 'Walter A. Boring IV'
 # The full version, including alpha/beta/rc tags
 release = Distribution.from_name('aprsd').version
 
+# Use the first Markdown heading as the document title; release headings then
+# remain nested under the single changelog page in the navigation.
+myst_title_to_header = True
+myst_heading_anchors = 0
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -49,6 +54,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx_copybutton',
     'sphinx_rtd_theme',
+    'myst_parser',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -58,7 +64,10 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
 
 # The master toctree document.
 master_doc = 'index'
