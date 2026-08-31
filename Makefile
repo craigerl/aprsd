@@ -28,8 +28,8 @@ changelog: dev
 	auto-changelog -l false --sort-commits date -o ChangeLog.md
 
 docs: changelog
-	m2r --overwrite ChangeLog.md
-	cp README.rst docs/readme.rst
+	$(VENV)/pip install -e ".[docs]"
+	$(VENV)/m2r2 --overwrite ChangeLog.md
 	mv ChangeLog.rst docs/source/changelog.rst
 	tox -edocs
 
