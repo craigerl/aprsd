@@ -133,7 +133,7 @@ dev = [
 ]
 docs = [
     "alabaster==1.0.0",
-    "m2r2",
+    "myst-parser",
     "Sphinx",
     "sphinx-copybutton==0.5.2",
     "sphinx-rtd-theme==3.0.2",
