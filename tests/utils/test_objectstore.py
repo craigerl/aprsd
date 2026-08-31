@@ -98,6 +98,26 @@ class TestObjectStoreMixin(unittest.TestCase):
         self.assertIn('testobjectstore', filename.lower())
         self.assertTrue(filename.endswith('.json'))
 
+    def test_save_uses_atomic_replace(self):
+        """Save writes a complete file through a temporary replacement."""
+        obj = TestObjectStore()
+        obj.data['key1'] = 'value1'
+
+        original_replace = os.replace
+
+        def replace(source, target):
+            original_replace(source, target)
+
+        with mock.patch(
+            'aprsd.utils.objectstore.os.replace', side_effect=replace
+        ) as mock_replace:
+            obj.save()
+
+        mock_replace.assert_called_once()
+        temporary_path, target_path = mock_replace.call_args.args
+        self.assertEqual(target_path, obj._save_filename())
+        self.assertFalse(os.path.exists(temporary_path))
+
     def test_save(self):
         """Test save() method."""
         obj = TestObjectStore()
