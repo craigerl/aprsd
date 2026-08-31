@@ -17,8 +17,9 @@ Makefile.venv:
 help:	# Help for the Makefile
 	@egrep -h '\s##\s' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-dev: REQUIREMENTS_TXT = requirements.txt requirements-dev.txt
+dev: REQUIREMENTS_TXT = requirements.txt
 dev: venv  ## Create a python virtual environment for development of aprsd
+	$(VENV)/pip install -e ".[dev]"
 
 run: venv  ## Create a virtual environment for running aprsd commands
 
