@@ -792,15 +792,15 @@ wheels = [
 
 [[package]]
 name = "m2r2"
-version = "0.3.4"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docutils" },
     { name = "mistune" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/26/a9/ab03ff21972cfb2e6ea766b1dc015c2c081af70f8f956806e948c62044ba/m2r2-0.3.4.tar.gz", hash = "sha256:e278f5f337e9aa7b2080fcc3e94b051bda9615b02e36c6fb3f23ff019872f043", size = 17082, upload-time = "2025-05-01T16:55:53.244Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/70/f38317d303dc0e29d74d5e310037ffc3f88ec2c2b98cbd938ce9bb5164f2/m2r2-0.3.1.tar.gz", hash = "sha256:6bf2d74e4cd15ce8a795999326cc7a4924af69ac1d114cac8064c1599ab11892", size = 16966, upload-time = "2021-07-18T09:35:46.794Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/50/5b1d70de548fb1e11e15ea9ebec0480365462d202f98b66ad7e154284327/m2r2-0.3.4-py3-none-any.whl", hash = "sha256:1a445514af8a229496bfb1380c52da8dd38313e48600359ee92b2c9d2e4df34a", size = 11199, upload-time = "2025-05-01T16:55:51.87Z" },
+    { url = "https://files.pythonhosted.org/packages/36/0b/6bb31ff9101100e78bddb36ebbb5ed13790add34d400fe5a705f6dd4de49/m2r2-0.3.1-py3-none-any.whl", hash = "sha256:c2b62b8dec16f82d9e4d8aecf58830a87835ca90441716fc571e573e32c7d829", size = 11124, upload-time = "2021-07-18T09:35:45.377Z" },
 ]
 
 [[package]]
@@ -912,11 +912,11 @@ wheels = [
 
 [[package]]
 name = "mistune"
-version = "0.8.4"
+version = "3.3.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2d/a4/509f6e7783ddd35482feda27bc7f72e65b5e7dc910eca4ab2164daf9c577/mistune-0.8.4.tar.gz", hash = "sha256:59a3429db53c50b5c6bcc8a07f8848cb00d7dc8bdb431a4ab41920d201d4756e", size = 58322, upload-time = "2018-10-11T06:59:27.908Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/9c/1939635275ec7258e2b43b00dafabc36d89ad11aa7838d375dc1b0e561cb/mistune-3.3.0.tar.gz", hash = "sha256:3074ec4c61b384abe725128e4dcbb483f5a09cc4632012505cdee655d3a113b9", size = 110936, upload-time = "2026-06-21T13:11:39.458Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/09/ec/4b43dae793655b7d8a25f76119624350b4d65eb663459eb9603d7f1f0345/mistune-0.8.4-py2.py3-none-any.whl", hash = "sha256:88a1051873018da288eee8538d476dffe1262495144b33ecb586c4ab266bb8d4", size = 16220, upload-time = "2018-10-11T06:59:26.044Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/76/b90f9d48d43fbd80a79a20d3eab2e5109859c7a56dc663b23187385898f3/mistune-3.3.0-py3-none-any.whl", hash = "sha256:a758e578acda49d8195f9a860b132dae2cf7bf409381393b1c4e6e489a65397b", size = 61250, upload-time = "2026-06-21T13:11:37.938Z" },
 ]
 
 [[package]]
