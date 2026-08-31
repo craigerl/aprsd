@@ -29,7 +29,7 @@ changelog: dev
 docs: changelog
 	m2r --overwrite ChangeLog.md
 	cp README.rst docs/readme.rst
-	mv ChangeLog.rst docs/changelog.rst
+	mv ChangeLog.rst docs/source/changelog.rst
 	tox -edocs
 
 clean: clean-dev clean-test clean-build clean-pyc ## remove all build, test, coverage and Python artifacts
