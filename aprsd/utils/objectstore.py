@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import pathlib
+import tempfile
 
 from oslo_config import cfg
 
@@ -89,8 +90,24 @@ class ObjectStoreMixin:
                 f'{save_filename}',
             )
             with self.lock:
-                with open(save_filename, 'w') as fp:
-                    json.dump(self.data, fp, cls=SimpleJSONEncoder, indent=2)
+                temporary_path = None
+                try:
+                    with tempfile.NamedTemporaryFile(
+                        mode='w',
+                        dir=os.path.dirname(save_filename),
+                        prefix=f'.{os.path.basename(save_filename)}.',
+                        suffix='.tmp',
+                        delete=False,
+                    ) as fp:
+                        temporary_path = fp.name
+                        json.dump(self.data, fp, cls=SimpleJSONEncoder, indent=2)
+                        fp.flush()
+                        os.fsync(fp.fileno())
+                    os.replace(temporary_path, save_filename)
+                except Exception:
+                    if temporary_path and os.path.exists(temporary_path):
+                        os.unlink(temporary_path)
+                    raise
         else:
             LOG.debug(
                 "{} Nothing to save, flushing old save file '{}'".format(
