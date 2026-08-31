@@ -31,7 +31,7 @@ docs: changelog
 	$(VENV)/pip install -e ".[docs]"
 	$(VENV)/m2r2 --overwrite ChangeLog.md
 	mv ChangeLog.rst docs/source/changelog.rst
-	tox -edocs
+	$(VENV)/sphinx-build -M html docs/source docs/build
 
 clean: clean-dev clean-test clean-build clean-pyc ## remove all build, test, coverage and Python artifacts
 
