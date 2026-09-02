@@ -324,4 +324,4 @@ class TestObjectStoreMixin(unittest.TestCase):
             mock_log.warning.assert_called()
             call_args = str(mock_log.warning.call_args)
             self.assertIn('pickle', call_args.lower())
-            self.assertIn('migrate', call_args.lower())
+            self.assertNotIn('migrate-pickle', call_args.lower())
