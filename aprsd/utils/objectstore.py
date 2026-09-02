@@ -130,7 +130,6 @@ class ObjectStoreMixin:
             if not os.path.exists(json_file) and os.path.exists(pickle_file):
                 LOG.warning(
                     f'{self.__class__.__name__}::Found old pickle file {pickle_file}. '
-                    f'Please run "aprsd dev migrate-pickle" to convert to JSON format. '
                     f'Skipping load to avoid security risk.'
                 )
                 return
