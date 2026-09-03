@@ -1,6 +1,7 @@
 import abc
 import logging
 import queue
+import re
 
 import aprslib
 from oslo_config import cfg
@@ -244,6 +245,34 @@ class APRSDProcessPacketThread(APRSDFilterThread):
         ):
             self.process_reject_packet(packet)
         else:
+            malformed_ack = None
+            if (
+                isinstance(packet, packets.MessagePacket)
+                and to_call
+                and to_call.lower() == our_call
+                and packet.message_text
+            ):
+                malformed_ack = re.fullmatch(
+                    r'ack([A-Za-z0-9]+)\}[A-Za-z0-9]+',
+                    packet.message_text,
+                    re.IGNORECASE,
+                )
+
+            if malformed_ack:
+                LOG.warning(
+                    'Received malformed Reply-Ack %r; acknowledging message %s',
+                    packet.message_text,
+                    malformed_ack.group(1),
+                )
+                self.process_ack_packet(
+                    packets.AckPacket(
+                        from_call=packet.from_call,
+                        to_call=packet.addresse,
+                        msgNo=malformed_ack.group(1),
+                    ),
+                )
+                return False
+
             if hasattr(packet, 'ackMsgNo') and packet.ackMsgNo:
                 # we got an ack embedded in this packet
                 # we need to handle the ack

@@ -364,6 +364,36 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
             self.process_thread.process_ack_packet(packet)
             mock_rx.assert_called_with(packet)
 
+    def test_malformed_reply_ack_does_not_dispatch_as_command(self):
+        """Treat an appending-piggyback ACK as an ACK, not a command."""
+        from oslo_config import cfg
+
+        from aprsd import packets
+        from aprsd.threads import tx
+
+        CONF = cfg.CONF
+        CONF.callsign = 'TEST'
+        packet = fake.fake_packet(
+            fromcall='KJ4ERJ',
+            tocall='TEST',
+            message='ack3677}67392',
+        )
+
+        with (
+            mock.patch.object(self.process_thread, 'process_ack_packet') as mock_ack,
+            mock.patch.object(
+                self.process_thread, 'process_our_message_packet'
+            ) as mock_plugin,
+            mock.patch.object(tx, 'send') as mock_send,
+        ):
+            self.process_thread.process_packet(packet)
+
+        ack_packet = mock_ack.call_args.args[0]
+        self.assertIsInstance(ack_packet, packets.AckPacket)
+        self.assertEqual(ack_packet.msgNo, '3677')
+        mock_plugin.assert_not_called()
+        mock_send.assert_not_called()
+
     def test_process_piggyback_ack(self):
         """Test process_piggyback_ack() method."""
         from aprsd.packets import collector
