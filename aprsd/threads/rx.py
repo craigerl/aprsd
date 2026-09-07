@@ -186,8 +186,8 @@ class APRSDProcessPacketThread(APRSDFilterThread):
 
     This is the base class for processing packets coming from
     the consumer.  This base class handles sending ack packets and
-    will ack a message after sending the packet to the subclass
-    for processing."""
+    will defer the ACK until subclass processing only when piggyback
+    acknowledgements are enabled."""
 
     def __init__(self, packet_queue: queue.Queue):
         super().__init__('ProcessPKT', packet_queue=packet_queue)
@@ -252,8 +252,21 @@ class APRSDProcessPacketThread(APRSDFilterThread):
             if isinstance(packet, packets.MessagePacket):
                 if to_call and to_call.lower() == our_call:
                     # It's a MessagePacket and it's for us!
-                    piggybacked = self.process_our_message_packet(packet)
-                    if msg_id and not piggybacked:
+                    if CONF.enable_piggyback_ack_packets:
+                        piggybacked = self.process_our_message_packet(packet)
+                    else:
+                        piggybacked = False
+                        if msg_id:
+                            tx.send(
+                                packets.AckPacket(
+                                    from_call=CONF.callsign,
+                                    to_call=from_call,
+                                    msgNo=msg_id,
+                                ),
+                            )
+                        self.process_our_message_packet(packet)
+
+                    if msg_id and not piggybacked and CONF.enable_piggyback_ack_packets:
                         tx.send(
                             packets.AckPacket(
                                 from_call=CONF.callsign,
