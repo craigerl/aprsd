@@ -186,7 +186,7 @@ class APRSDProcessPacketThread(APRSDFilterThread):
 
     This is the base class for processing packets coming from
     the consumer.  This base class handles sending ack packets and
-    will ack a message before sending the packet to the subclass
+    will ack a message after sending the packet to the subclass
     for processing."""
 
     def __init__(self, packet_queue: queue.Queue):
@@ -252,9 +252,8 @@ class APRSDProcessPacketThread(APRSDFilterThread):
             if isinstance(packet, packets.MessagePacket):
                 if to_call and to_call.lower() == our_call:
                     # It's a MessagePacket and it's for us!
-                    # let any threads do their thing, then ack
-                    # send an ack last
-                    if msg_id:
+                    piggybacked = self.process_our_message_packet(packet)
+                    if msg_id and not piggybacked:
                         tx.send(
                             packets.AckPacket(
                                 from_call=CONF.callsign,
@@ -262,8 +261,6 @@ class APRSDProcessPacketThread(APRSDFilterThread):
                                 msgNo=msg_id,
                             ),
                         )
-
-                    self.process_our_message_packet(packet)
                 else:
                     # Packet wasn't meant for us!
                     self.process_other_packet(packet, for_us=False)
@@ -322,6 +319,52 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             LOG.error('Plugin failed!!!')
             LOG.exception(ex)
 
+    def _attach_piggyback_ack(self, response, reply_ack):
+        """Attach one Reply-Ack when the response fits the message limit."""
+        if (
+            not CONF.enable_piggyback_ack_packets
+            or not reply_ack
+            or not isinstance(response, packets.MessagePacket)
+        ):
+            return False
+
+        response.prepare(create_msg_number=True)
+        message_text = response._filter_for_send(response.message_text).rstrip('\n')
+        reply_ack_suffix = f'{{{response.msgNo}}}{reply_ack}'
+        if len(message_text) + len(reply_ack_suffix) > 67:
+            return False
+
+        response.ackMsgNo = reply_ack
+        return True
+
+    def _send_plugin_reply(self, reply, from_call, reply_ack, piggybacked):
+        """Send a plugin result and return the updated piggyback state."""
+        if isinstance(reply, list):
+            for subreply in reply:
+                piggybacked = self._send_plugin_reply(
+                    subreply,
+                    from_call,
+                    reply_ack,
+                    piggybacked,
+                )
+            return piggybacked
+
+        if isinstance(reply, packets.Packet):
+            if not piggybacked:
+                piggybacked = self._attach_piggyback_ack(reply, reply_ack)
+            tx.send(reply)
+            return piggybacked
+
+        response = packets.MessagePacket(
+            from_call=CONF.callsign,
+            to_call=from_call,
+            message_text=reply,
+        )
+        if not piggybacked:
+            piggybacked = self._attach_piggyback_ack(response, reply_ack)
+        tx.send(response)
+        return piggybacked
+
     def process_our_message_packet(self, packet):
         """Send the packet through the plugins."""
         from_call = packet.from_call
@@ -334,6 +377,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
         # (Reply-Ack per http://www.aprs.org/aprs11/replyacks.txt) in any
         # plain-string reply MessagePacket we build here.
         reply_ack = packet.msgNo if packet.msgNo else None
+        piggybacked = False
 
         pm = plugin.PluginManager()
         try:
@@ -345,41 +389,13 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             LOG.debug(f'Replied: {replied}, Handled: {handled}')
             for reply in results:
                 LOG.debug(f'Reply: {reply}')
-                if isinstance(reply, list):
-                    # one of the plugins wants to send multiple messages
-                    for subreply in reply:
-                        LOG.debug(f"Sending '{subreply}'")
-                        if isinstance(subreply, packets.Packet):
-                            tx.send(subreply)
-                        else:
-                            tx.send(
-                                packets.MessagePacket(
-                                    from_call=CONF.callsign,
-                                    to_call=from_call,
-                                    message_text=subreply,
-                                    ackMsgNo=reply_ack,
-                                ),
-                            )
-                elif isinstance(reply, packets.Packet):
-                    # We have a message based object.
-                    tx.send(reply)
-                else:
-                    # A plugin can return a null message flag which signals
-                    # us that they processed the message correctly, but have
-                    # nothing to reply with, so we avoid replying with a
-                    # usage string
-                    # Note: NULL_MESSAGE results are already filtered out
-                    # in PluginManager.run(), so we can safely send this
-                    if reply is not packets.NULL_MESSAGE:
-                        LOG.debug(f"Sending '{reply}'")
-                        tx.send(
-                            packets.MessagePacket(
-                                from_call=CONF.callsign,
-                                to_call=from_call,
-                                message_text=reply,
-                                ackMsgNo=reply_ack,
-                            ),
-                        )
+                if reply is not packets.NULL_MESSAGE:
+                    piggybacked = self._send_plugin_reply(
+                        reply,
+                        from_call,
+                        reply_ack,
+                        piggybacked,
+                    )
 
             # If the message was for us and we didn't have a
             # response, then we send a usage statement.
@@ -394,13 +410,11 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
                     LOG.warning('Unknown command!')
                     message_text = 'Unknown command!'
 
-                tx.send(
-                    packets.MessagePacket(
-                        from_call=CONF.callsign,
-                        to_call=from_call,
-                        message_text=message_text,
-                        ackMsgNo=reply_ack,
-                    ),
+                piggybacked = self._send_plugin_reply(
+                    message_text,
+                    from_call,
+                    reply_ack,
+                    piggybacked,
                 )
         except Exception as ex:
             LOG.error('Plugin failed!!!')
@@ -408,13 +422,12 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             # Do we need to send a reply?
             if to_call == CONF.callsign:
                 reply = 'A Plugin failed! try again?'
-                tx.send(
-                    packets.MessagePacket(
-                        from_call=CONF.callsign,
-                        to_call=from_call,
-                        message_text=reply,
-                        ackMsgNo=reply_ack,
-                    ),
+                piggybacked = self._send_plugin_reply(
+                    reply,
+                    from_call,
+                    reply_ack,
+                    piggybacked,
                 )
 
         LOG.debug('Completed process_our_message_packet')
+        return piggybacked
