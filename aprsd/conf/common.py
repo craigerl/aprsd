@@ -156,6 +156,11 @@ aprsd_opts = [
         'APRSD from sending ack packets.',
     ),
     cfg.BoolOpt(
+        'enable_piggyback_ack_packets',
+        default=False,
+        help='Set this to True to add Reply-Acks to eligible outgoing message packets.',
+    ),
+    cfg.BoolOpt(
         'is_digipi',
         default=False,
         help='Set this to True, if APRSD is running on a Digipi.'

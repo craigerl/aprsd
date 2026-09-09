@@ -124,9 +124,13 @@ Sample config file
 
     # Set this to False, to disable sending of ack packets. This will
     # entirely stopAPRSD from sending ack packets. (boolean value)
-    #enable_sending_ack_packets = true
+     #enable_sending_ack_packets = true
 
-    # Set this to True, if APRSD is running on a Digipi.This is useful for
+     # Set this to True to add Reply-Acks to the first eligible outgoing
+     # message packet when there is room. (boolean value)
+     #enable_piggyback_ack_packets = false
+
+     # Set this to True, if APRSD is running on a Digipi.This is useful for
     # changing the behavior of APRSD to work with Digipi. (boolean value)
     #is_digipi = false
 

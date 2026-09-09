@@ -408,6 +408,7 @@ class TestPluginProcessPacketPiggybackAck(unittest.TestCase):
 
         self.CONF = cfg.CONF
         self.CONF.callsign = 'W1AW'
+        self.CONF.enable_piggyback_ack_packets = True
 
         self.packet_queue = queue.Queue()
 
@@ -485,3 +486,184 @@ class TestPluginProcessPacketPiggybackAck(unittest.TestCase):
                 pkt.ackMsgNo,
                 f'Expected ackMsgNo=None on reply, got {pkt.ackMsgNo!r}',
             )
+
+    def test_plugin_response_replaces_standalone_ack(self):
+        """A fitting first message response carries the incoming ACK."""
+        from aprsd import packets as aprsd_packets
+        from aprsd.threads import rx, tx
+
+        incoming = fake.fake_packet(message='ping', msg_number='HQ')
+        incoming.addresse = 'W1AW'
+        incoming.from_call = 'KJ4ERJ'
+        sent_packets = []
+
+        with mock.patch.object(tx, 'send', side_effect=sent_packets.append):
+            thread = rx.APRSDPluginProcessPacketThread(self.packet_queue)
+            with mock.patch('aprsd.threads.rx.plugin') as mock_plugin_mod:
+                mock_pm = mock.MagicMock()
+                mock_pm.run.return_value = (['pong'], True)
+                mock_plugin_mod.PluginManager.return_value = mock_pm
+
+                thread.process_packet(incoming)
+
+        self.assertEqual(len(sent_packets), 1)
+        self.assertIsInstance(sent_packets[0], aprsd_packets.MessagePacket)
+        self.assertEqual(sent_packets[0].ackMsgNo, 'HQ')
+
+    def test_disabled_piggyback_ack_uses_standalone_ack(self):
+        """Disabled piggyback ACKs retain the standalone ACK behavior."""
+        from aprsd import packets as aprsd_packets
+        from aprsd.threads import rx, tx
+
+        self.CONF.enable_piggyback_ack_packets = False
+        incoming = fake.fake_packet(message='ping', msg_number='HQ')
+        incoming.addresse = 'W1AW'
+        incoming.from_call = 'KJ4ERJ'
+        sent_packets = []
+
+        with mock.patch.object(tx, 'send', side_effect=sent_packets.append):
+            thread = rx.APRSDPluginProcessPacketThread(self.packet_queue)
+            with mock.patch('aprsd.threads.rx.plugin') as mock_plugin_mod:
+                mock_pm = mock.MagicMock()
+                mock_pm.run.return_value = (['pong'], True)
+                mock_plugin_mod.PluginManager.return_value = mock_pm
+
+                thread.process_packet(incoming)
+
+        message_packets = [
+            packet
+            for packet in sent_packets
+            if isinstance(packet, aprsd_packets.MessagePacket)
+        ]
+        ack_packets = [
+            packet
+            for packet in sent_packets
+            if isinstance(packet, aprsd_packets.AckPacket)
+        ]
+        self.assertEqual(len(message_packets), 1)
+        self.assertIsNone(message_packets[0].ackMsgNo)
+        self.assertEqual(len(ack_packets), 1)
+
+    def test_disabled_piggyback_ack_is_sent_before_plugin_processing(self):
+        """Disabled piggyback ACKs do not wait for plugin processing."""
+        from aprsd import packets as aprsd_packets
+        from aprsd.threads import rx, tx
+
+        self.CONF.enable_piggyback_ack_packets = False
+        incoming = fake.fake_packet(message='ping', msg_number='HQ')
+        incoming.addresse = 'W1AW'
+        incoming.from_call = 'KJ4ERJ'
+        events = []
+
+        def capture_send(packet, **kwargs):
+            events.append(
+                'ack' if isinstance(packet, aprsd_packets.AckPacket) else 'response'
+            )
+
+        with mock.patch.object(tx, 'send', side_effect=capture_send):
+            thread = rx.APRSDPluginProcessPacketThread(self.packet_queue)
+            with mock.patch('aprsd.threads.rx.plugin') as mock_plugin_mod:
+                mock_pm = mock.MagicMock()
+
+                def run_plugins(packet):
+                    events.append('plugins')
+                    return (['pong'], True)
+
+                mock_pm.run.side_effect = run_plugins
+                mock_plugin_mod.PluginManager.return_value = mock_pm
+
+                thread.process_packet(incoming)
+
+        self.assertEqual(events, ['ack', 'plugins', 'response'])
+
+    def test_only_first_message_response_carries_piggyback_ack(self):
+        """Only one response acknowledges the incoming message."""
+        from aprsd import packets as aprsd_packets
+        from aprsd.threads import rx, tx
+
+        incoming = fake.fake_packet(message='ping', msg_number='HQ')
+        incoming.addresse = 'W1AW'
+        incoming.from_call = 'KJ4ERJ'
+        sent_packets = []
+
+        with mock.patch.object(tx, 'send', side_effect=sent_packets.append):
+            thread = rx.APRSDPluginProcessPacketThread(self.packet_queue)
+            with mock.patch('aprsd.threads.rx.plugin') as mock_plugin_mod:
+                mock_pm = mock.MagicMock()
+                mock_pm.run.return_value = (['one', 'two'], True)
+                mock_plugin_mod.PluginManager.return_value = mock_pm
+
+                thread.process_packet(incoming)
+
+        message_packets = [
+            packet
+            for packet in sent_packets
+            if isinstance(packet, aprsd_packets.MessagePacket)
+        ]
+        self.assertEqual([packet.ackMsgNo for packet in message_packets], ['HQ', None])
+
+    def test_non_message_response_does_not_carry_piggyback_ack(self):
+        """A non-message response leaves the standalone ACK required."""
+        from aprsd import packets as aprsd_packets
+        from aprsd.threads import rx, tx
+
+        incoming = fake.fake_packet(message='ping', msg_number='HQ')
+        incoming.addresse = 'W1AW'
+        incoming.from_call = 'KJ4ERJ'
+        sent_packets = []
+
+        with mock.patch.object(tx, 'send', side_effect=sent_packets.append):
+            thread = rx.APRSDPluginProcessPacketThread(self.packet_queue)
+            with mock.patch('aprsd.threads.rx.plugin') as mock_plugin_mod:
+                mock_pm = mock.MagicMock()
+                mock_pm.run.return_value = (
+                    [
+                        aprsd_packets.AckPacket(
+                            from_call='W1AW', to_call='KJ4ERJ', msgNo='7'
+                        )
+                    ],
+                    True,
+                )
+                mock_plugin_mod.PluginManager.return_value = mock_pm
+
+                thread.process_packet(incoming)
+
+        self.assertEqual(
+            sum(isinstance(packet, aprsd_packets.AckPacket) for packet in sent_packets),
+            2,
+        )
+
+    def test_oversized_response_uses_standalone_ack(self):
+        """A response without room for Reply-Ack keeps its text unchanged."""
+        from aprsd import packets as aprsd_packets
+        from aprsd.threads import rx, tx
+
+        response_text = 'x' * 67
+        incoming = fake.fake_packet(message='ping', msg_number='HQ')
+        incoming.addresse = 'W1AW'
+        incoming.from_call = 'KJ4ERJ'
+        sent_packets = []
+
+        with mock.patch.object(tx, 'send', side_effect=sent_packets.append):
+            thread = rx.APRSDPluginProcessPacketThread(self.packet_queue)
+            with mock.patch('aprsd.threads.rx.plugin') as mock_plugin_mod:
+                mock_pm = mock.MagicMock()
+                mock_pm.run.return_value = ([response_text], True)
+                mock_plugin_mod.PluginManager.return_value = mock_pm
+
+                thread.process_packet(incoming)
+
+        message_packets = [
+            packet
+            for packet in sent_packets
+            if isinstance(packet, aprsd_packets.MessagePacket)
+        ]
+        ack_packets = [
+            packet
+            for packet in sent_packets
+            if isinstance(packet, aprsd_packets.AckPacket)
+        ]
+        self.assertEqual(len(message_packets), 1)
+        self.assertIsNone(message_packets[0].ackMsgNo)
+        self.assertEqual(message_packets[0].message_text, response_text)
+        self.assertEqual(len(ack_packets), 1)
