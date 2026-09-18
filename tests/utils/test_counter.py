@@ -1,7 +1,7 @@
 import threading
 import unittest
 
-from aprsd.utils.counter import PacketCounter
+from aprsd.utils.counter import MAX_PACKET_ID, PacketCounter
 
 
 class TestPacketCounter(unittest.TestCase):
@@ -27,7 +27,11 @@ class TestPacketCounter(unittest.TestCase):
         counter = PacketCounter()
         value = int(counter.value)
         self.assertGreaterEqual(value, 1)
-        self.assertLessEqual(value, 9999)
+        self.assertLessEqual(value, MAX_PACKET_ID)
+
+    def test_max_packet_id_is_standard_aprs_range(self):
+        """Test MAX_PACKET_ID matches the standard APRS-I range (1-999)."""
+        self.assertEqual(MAX_PACKET_ID, 999)
 
     def test_increment(self):
         """Test increment() method."""
@@ -36,7 +40,7 @@ class TestPacketCounter(unittest.TestCase):
         counter.increment()
         new_value = int(counter.value)
 
-        if initial_value == 9999:
+        if initial_value == MAX_PACKET_ID:
             self.assertEqual(new_value, 1)
         else:
             self.assertEqual(new_value, initial_value + 1)
@@ -44,7 +48,7 @@ class TestPacketCounter(unittest.TestCase):
     def test_increment_wraps_around(self):
         """Test increment() wraps around at MAX_PACKET_ID."""
         counter = PacketCounter()
-        counter._val = 9999
+        counter._val = MAX_PACKET_ID
         counter.increment()
         self.assertEqual(int(counter.value), 1)
 
@@ -96,12 +100,12 @@ class TestPacketCounter(unittest.TestCase):
         # All values should be valid
         for value in results:
             self.assertGreaterEqual(value, 1)
-            self.assertLessEqual(value, 9999)
+            self.assertLessEqual(value, MAX_PACKET_ID)
 
         # Final value should be consistent
         final_value = int(counter.value)
         self.assertGreaterEqual(final_value, 1)
-        self.assertLessEqual(final_value, 9999)
+        self.assertLessEqual(final_value, MAX_PACKET_ID)
 
     def test_concurrent_access(self):
         """Test concurrent access to value property."""
@@ -121,4 +125,4 @@ class TestPacketCounter(unittest.TestCase):
         # All values should be valid
         for value in values:
             self.assertGreaterEqual(value, 1)
-            self.assertLessEqual(value, 9999)
+            self.assertLessEqual(value, MAX_PACKET_ID)
