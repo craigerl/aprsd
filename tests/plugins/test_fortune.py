@@ -32,3 +32,20 @@ class TestFortunePlugin(test_plugin.TestPlugin):
         packet = fake.fake_packet(message='fortune')
         actual = fortune.filter(packet)
         self.assertEqual(expected, actual)
+
+    @mock.patch('subprocess.check_output')
+    @mock.patch('shutil.which')
+    def test_fortune_command_is_list_args_without_shell(self, mock_which, mock_output):
+        mock_which.return_value = '/usr/bin/games/fortune'
+        mock_output.return_value = 'Funny fortune'
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        fortune = fortune_plugin.FortunePlugin()
+        packet = fake.fake_packet(message='fortune')
+        fortune.filter(packet)
+
+        args, kwargs = mock_output.call_args
+        self.assertEqual(
+            args[0],
+            ['/usr/bin/games/fortune', '-s', '-n', '60'],
+        )
+        self.assertNotIn('shell', kwargs)
