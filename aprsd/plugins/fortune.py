@@ -37,11 +37,9 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
         LOG.info('FortunePlugin')
         reply = packets.NULL_MESSAGE
         try:
-            cmnd = [self.fortune_path, '-s', '-n 60']
-            command = ' '.join(cmnd)
+            cmnd = [self.fortune_path, '-s', '-n', '60']
             output = subprocess.check_output(
-                command,
-                shell=True,
+                cmnd,
                 timeout=3,
                 text=True,
             )
