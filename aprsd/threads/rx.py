@@ -200,19 +200,16 @@ class APRSDProcessPacketThread(APRSDFilterThread):
         """We got an ack for a message, no need to resend it."""
         ack_num = packet.msgNo
         LOG.debug(f'Got ack for message {ack_num}')
-        collector.PacketCollector().rx(packet)
 
     def process_piggyback_ack(self, packet):
         """We got an ack embedded in a packet."""
         ack_num = packet.ackMsgNo
         LOG.debug(f'Got PiggyBackAck for message {ack_num}')
-        collector.PacketCollector().rx(packet)
 
     def process_reject_packet(self, packet):
         """We got a reject message for a packet.  Stop sending the message."""
         ack_num = packet.msgNo
         LOG.debug(f'Got REJECT for message {ack_num}')
-        collector.PacketCollector().rx(packet)
 
     def process_packet(self, packet):
         """Process a packet received from aprs-is server."""
