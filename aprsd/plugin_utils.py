@@ -6,6 +6,10 @@ import requests
 
 LOG = logging.getLogger('APRSD')
 
+# Timeout in seconds for outbound HTTP requests so a hung upstream host
+# cannot block a plugin request indefinitely.
+REQUEST_TIMEOUT = 10
+
 
 def get_aprs_fi(api_key, callsign):
     LOG.debug(f"Fetch aprs.fi location for '{callsign}'")
@@ -15,7 +19,7 @@ def get_aprs_fi(api_key, callsign):
                 api_key, callsign
             )
         )
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
     except Exception as e:
         raise Exception('Failed to get aprs.fi location') from e
     else:
@@ -37,7 +41,7 @@ def get_weather_gov_for_gps(lat, lon):
             # f"https://api.weather.gov/points/{lat},{lon}"
         )
         LOG.debug(f"Fetching weather '{url2}'")
-        response = requests.get(url2, headers=headers, timeout=10)
+        response = requests.get(url2, headers=headers, timeout=REQUEST_TIMEOUT)
     except Exception as e:
         LOG.error(e)
         raise Exception('Failed to get weather') from e
@@ -52,7 +56,7 @@ def get_weather_gov_metar(station):
         url = 'https://api.weather.gov/stations/{}/observations/latest'.format(
             station,
         )
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
     except Exception as e:
         raise Exception('Failed to fetch metar') from e
     else:
@@ -76,7 +80,7 @@ def fetch_openweathermap(api_key, lat, lon, units='metric', exclude=None):
             )
         )
         LOG.debug(f"Fetching OWM weather '{url}'")
-        response = requests.get(url, timeout=10)
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
     except Exception as e:
         LOG.error(e)
         raise Exception('Failed to get weather') from e

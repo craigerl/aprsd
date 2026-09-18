@@ -7,9 +7,13 @@ from aprsd import plugin_utils
 class TestPluginUtilsTimeouts(unittest.TestCase):
     """Every outbound requests.get() must use an explicit timeout."""
 
+    def test_request_timeout_is_positive(self):
+        self.assertIsInstance(plugin_utils.REQUEST_TIMEOUT, int)
+        self.assertGreater(plugin_utils.REQUEST_TIMEOUT, 0)
+
     def _assert_timeout(self, mock_get):
         args, kwargs = mock_get.call_args
-        self.assertEqual(kwargs.get('timeout'), 10)
+        self.assertEqual(kwargs.get('timeout'), plugin_utils.REQUEST_TIMEOUT)
 
     def test_get_aprs_fi_uses_timeout(self):
         with (
