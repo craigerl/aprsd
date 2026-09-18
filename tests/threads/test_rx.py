@@ -348,8 +348,35 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
         """Test initialization."""
         self.assertEqual(self.process_thread.name, 'ProcessPKT')
 
+    def test_loop_collects_each_packet_once(self):
+        """Test loop() collects each processed packet exactly once."""
+        packet = fake.fake_packet()
+        self.packet_queue.put(packet)
+        self.process_thread._client.decode_packet.return_value = packet
+
+        with mock.patch.object(
+            self.process_thread, 'filter_packet', return_value=packet
+        ):
+            with mock.patch.object(self.process_thread, 'print_packet'):
+                with mock.patch.object(
+                    self.process_thread, 'process_packet'
+                ) as mock_process:
+                    with mock.patch(
+                        'aprsd.threads.rx.collector.PacketCollector'
+                    ) as mock_collector:
+                        result = self.process_thread.loop()
+                        self.assertTrue(result)
+
+        self.assertEqual(mock_collector.return_value.rx.call_count, 1)
+        mock_collector.return_value.rx.assert_called_once_with(packet)
+        mock_process.assert_called_once_with(packet)
+
     def test_process_ack_packet(self):
-        """Test process_ack_packet() method."""
+        """Test process_ack_packet() does not collect the packet.
+
+        APRSDFilterThread.loop() already collects each packet exactly once;
+        the per-type handler must not collect it a second time.
+        """
         from oslo_config import cfg
 
         from aprsd.packets import collector
@@ -362,10 +389,14 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
 
         with mock.patch.object(collector.PacketCollector(), 'rx') as mock_rx:
             self.process_thread.process_ack_packet(packet)
-            mock_rx.assert_called_with(packet)
+            mock_rx.assert_not_called()
 
     def test_process_piggyback_ack(self):
-        """Test process_piggyback_ack() method."""
+        """Test process_piggyback_ack() does not collect the packet.
+
+        APRSDFilterThread.loop() already collects each packet exactly once;
+        the per-type handler must not collect it a second time.
+        """
         from aprsd.packets import collector
 
         packet = fake.fake_packet()
@@ -373,10 +404,14 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
 
         with mock.patch.object(collector.PacketCollector(), 'rx') as mock_rx:
             self.process_thread.process_piggyback_ack(packet)
-            mock_rx.assert_called_with(packet)
+            mock_rx.assert_not_called()
 
     def test_process_reject_packet(self):
-        """Test process_reject_packet() method."""
+        """Test process_reject_packet() does not collect the packet.
+
+        APRSDFilterThread.loop() already collects each packet exactly once;
+        the per-type handler must not collect it a second time.
+        """
         from aprsd.packets import collector
 
         packet = fake.fake_packet()
@@ -384,7 +419,7 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
 
         with mock.patch.object(collector.PacketCollector(), 'rx') as mock_rx:
             self.process_thread.process_reject_packet(packet)
-            mock_rx.assert_called_with(packet)
+            mock_rx.assert_not_called()
 
     def test_process_other_packet(self):
         """Test process_other_packet() method."""
