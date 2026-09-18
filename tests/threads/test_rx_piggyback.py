@@ -1,3 +1,4 @@
+import queue
 import unittest
 from unittest import mock
 
@@ -18,6 +19,7 @@ class TestAttachPiggybackAck(unittest.TestCase):
         self.client_patcher = mock.patch('aprsd.threads.rx.APRSDClient')
         self.client_patcher.start()
         CONF.callsign = 'W1AW'
+        self.process_thread = rx.APRSDPluginProcessPacketThread(queue.Queue())
 
     def tearDown(self):
         """Clean up after tests."""
@@ -28,9 +30,7 @@ class TestAttachPiggybackAck(unittest.TestCase):
         response = fake.fake_packet(message='pong')
 
         with mock.patch.object(CONF, 'enable_piggyback_ack_packets', True):
-            attached = rx.APRSDPluginProcessPacketThread._attach_piggyback_ack(
-                None, response, '12'
-            )
+            attached = self.process_thread._attach_piggyback_ack(response, '12')
 
         self.assertTrue(attached)
         self.assertEqual(response.ackMsgNo, '12')
@@ -41,9 +41,7 @@ class TestAttachPiggybackAck(unittest.TestCase):
         response.ackMsgNo = '5'
 
         with mock.patch.object(CONF, 'enable_piggyback_ack_packets', True):
-            attached = rx.APRSDPluginProcessPacketThread._attach_piggyback_ack(
-                None, response, '12'
-            )
+            attached = self.process_thread._attach_piggyback_ack(response, '12')
 
         self.assertFalse(attached)
         self.assertEqual(response.ackMsgNo, '5')
@@ -53,9 +51,7 @@ class TestAttachPiggybackAck(unittest.TestCase):
         response = fake.fake_packet(message='pong')
 
         with mock.patch.object(CONF, 'enable_piggyback_ack_packets', False):
-            attached = rx.APRSDPluginProcessPacketThread._attach_piggyback_ack(
-                None, response, '12'
-            )
+            attached = self.process_thread._attach_piggyback_ack(response, '12')
 
         self.assertFalse(attached)
         self.assertIsNone(response.ackMsgNo)
