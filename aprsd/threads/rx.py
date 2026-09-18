@@ -330,12 +330,22 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
             LOG.exception(ex)
 
     def _attach_piggyback_ack(self, response, reply_ack):
-        """Attach one Reply-Ack when the response fits the message limit."""
+        """Attach a Reply-Ack to the response when allowed.
+
+        The ack is only attached when piggyback ack packets are enabled
+        (enable_piggyback_ack_packets), the response carries no ackMsgNo
+        set already (for example by a plugin), and the response with the
+        appended ack still fits the 67-character message limit.
+        When the ack is not attached, a standalone ack is sent instead,
+        if enable_sending_ack_packets is enabled.
+        """
         if (
             not CONF.enable_piggyback_ack_packets
             or not reply_ack
             or not isinstance(response, packets.MessagePacket)
         ):
+            return False
+        if response.ackMsgNo:
             return False
 
         response.prepare(create_msg_number=True)
@@ -392,7 +402,7 @@ class APRSDPluginProcessPacketThread(APRSDProcessPacketThread):
         pm = plugin.PluginManager()
         try:
             results, handled = pm.run(packet)
-            # Check if any plugin replied (results may be unordered due to parallel execution)
+            # Check if any plugin replied (results are processed sequentially in this implementation)
             replied = any(
                 result and result is not packets.NULL_MESSAGE for result in results
             )
