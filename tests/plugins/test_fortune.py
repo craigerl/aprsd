@@ -1,3 +1,4 @@
+import subprocess
 from unittest import mock
 
 from oslo_config import cfg
@@ -49,3 +50,33 @@ class TestFortunePlugin(test_plugin.TestPlugin):
             ['/usr/bin/games/fortune', '-s', '-n', '60'],
         )
         self.assertNotIn('shell', kwargs)
+
+    @mock.patch(
+        'subprocess.check_output',
+        side_effect=FileNotFoundError(2, 'No such file or directory'),
+    )
+    @mock.patch('shutil.which')
+    def test_fortune_missing_binary_returns_graceful_reply(
+        self, mock_which, mock_output
+    ):
+        """A removed fortune binary answers gracefully instead of raising."""
+        mock_which.return_value = '/usr/bin/games/fortune'
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        fortune = fortune_plugin.FortunePlugin()
+        packet = fake.fake_packet(message='fortune')
+        actual = fortune.filter(packet)
+        self.assertIn('No such file or directory', actual)
+
+    @mock.patch(
+        'subprocess.check_output',
+        side_effect=subprocess.TimeoutExpired('fortune', 3),
+    )
+    @mock.patch('shutil.which')
+    def test_fortune_timeout_returns_graceful_reply(self, mock_which, mock_output):
+        """A hung fortune command answers gracefully instead of raising."""
+        mock_which.return_value = '/usr/bin/games/fortune'
+        CONF.callsign = fake.FAKE_TO_CALLSIGN
+        fortune = fortune_plugin.FortunePlugin()
+        packet = fake.fake_packet(message='fortune')
+        actual = fortune.filter(packet)
+        self.assertIn('failed', actual)

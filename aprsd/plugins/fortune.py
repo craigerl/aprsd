@@ -51,6 +51,12 @@ class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
             )
         except subprocess.CalledProcessError as ex:
             reply = f"Fortune command failed '{ex.output}'"
+        except (subprocess.TimeoutExpired, OSError) as ex:
+            # TimeoutExpired (hung binary) and OSError (which includes
+            # FileNotFoundError when the fortune binary has been removed)
+            # are not CalledProcessError, so catch them separately and
+            # answer gracefully instead of letting the exception escape.
+            reply = f'Fortune command failed: {ex}'
         else:
             reply = output
 
