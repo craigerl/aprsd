@@ -73,6 +73,41 @@ class TestPacketCounter(unittest.TestCase):
         self.assertIsInstance(counter_repr, str)
         self.assertTrue(counter_repr.isdigit())
 
+    def test_next_value_increments_and_returns(self):
+        """Test next_value() increments and returns the new value atomically."""
+        counter = PacketCounter()
+        counter._val = 5
+        self.assertEqual(counter.next_value(), '6')
+        self.assertEqual(counter.value, '6')
+
+    def test_next_value_wraps_around(self):
+        """Test next_value() wraps around at MAX_PACKET_ID."""
+        counter = PacketCounter()
+        counter._val = MAX_PACKET_ID
+        self.assertEqual(counter.next_value(), '1')
+        self.assertEqual(counter.value, '1')
+
+    def test_next_value_thread_safety(self):
+        """Test concurrent next_value() calls never return duplicates."""
+        counter = PacketCounter()
+        counter._val = 1
+        results = []
+        lock = threading.Lock()
+
+        def get_values():
+            local = [counter.next_value() for _ in range(180)]
+            with lock:
+                results.extend(local)
+
+        threads = [threading.Thread(target=get_values) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        self.assertEqual(len(results), 900)
+        self.assertEqual(len(set(results)), 900)
+
     def test_thread_safety(self):
         """Test that counter operations are thread-safe."""
         counter = PacketCounter()

@@ -61,8 +61,7 @@ def _init_msgNo():  # noqa: N802
     we use this workaround.
     """
     c = counter.PacketCounter()
-    c.increment()
-    return c.value
+    return c.next_value()
 
 
 def _translate_fields(raw: dict) -> dict:

@@ -36,6 +36,21 @@ class PacketCounter:
         else:
             self._val += 1
 
+    @wrapt.synchronized(lock)
+    def next_value(self):
+        """Atomically increment and return the new value.
+
+        Combining the increment and the read in a single locked section
+        avoids the race between a separate increment() call and a later
+        value() read, which could hand the same message number to two
+        different packets under concurrent access.
+        """
+        if self._val == MAX_PACKET_ID:
+            self._val = 1
+        else:
+            self._val += 1
+        return str(self._val)
+
     @property
     @wrapt.synchronized(lock)
     def value(self):
