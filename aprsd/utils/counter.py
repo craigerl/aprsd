@@ -3,7 +3,7 @@ import threading
 
 import wrapt
 
-MAX_PACKET_ID = 9999
+MAX_PACKET_ID = 999
 
 
 class PacketCounter:
