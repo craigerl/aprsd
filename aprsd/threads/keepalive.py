@@ -46,7 +46,7 @@ class KeepAliveThread(APRSDThread):
         else:
             last_msg_time = 'N/A'
 
-        tracked_packets = stats_json['PacketTrack']['total_tracked']
+        tracked_packets = stats_json.get('PacketTrack', {}).get('total_tracked', 0)
         tx_msg = 0
         rx_msg = 0
         if 'PacketList' in stats_json:
@@ -55,20 +55,21 @@ class KeepAliveThread(APRSDThread):
                 tx_msg = msg_packets.get('tx', 0)
                 rx_msg = msg_packets.get('rx', 0)
 
+        aprsd_stats = stats_json.get('APRSDStats', {})
         keepalive = (
             '{} - Uptime {} RX:{} TX:{} Tracker:{} Msgs TX:{} RX:{} '
             'Last:{} - RAM Current:{} Peak:{} Threads:{} LoggingQueue:{}'
         ).format(
-            stats_json['APRSDStats']['callsign'],
-            stats_json['APRSDStats']['uptime'],
+            aprsd_stats.get('callsign', 'N/A'),
+            aprsd_stats.get('uptime', 'N/A'),
             pl.total_rx(),
             pl.total_tx(),
             tracked_packets,
             tx_msg,
             rx_msg,
             last_msg_time,
-            stats_json['APRSDStats']['memory_current_str'],
-            stats_json['APRSDStats']['memory_peak_str'],
+            aprsd_stats.get('memory_current_str', 'N/A'),
+            aprsd_stats.get('memory_peak_str', 'N/A'),
             len(thread_list),
             aprsd_log.logging_queue.qsize(),
         )
