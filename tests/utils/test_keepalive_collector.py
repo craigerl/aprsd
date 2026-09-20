@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 from aprsd.utils.keepalive_collector import KeepAliveCollector
 
@@ -100,7 +101,12 @@ class TestKeepAliveCollector(unittest.TestCase):
         self.assertTrue(producer2().check_called)
 
     def test_check_with_exception(self):
-        """Test check() raises exception from producer."""
+        """Test check() does not raise when a producer errors.
+
+        A failing producer must not propagate its exception out of
+        check(): the KeepAliveThread calls it and an unhandled exception
+        there kills the monitoring thread itself.
+        """
         collector = KeepAliveCollector()
 
         class FailingProducer:
@@ -120,8 +126,53 @@ class TestKeepAliveCollector(unittest.TestCase):
         producer = FailingProducer()
         collector.register(producer)
 
-        with self.assertRaises(RuntimeError):
+        # Should log the error but NOT raise
+        with mock.patch('aprsd.utils.keepalive_collector.LOG') as mock_log:
             collector.check()
+            mock_log.error.assert_called_once()
+
+    def test_check_continues_after_failing_producer(self):
+        """Test check() still calls subsequent producers after an error."""
+        collector = KeepAliveCollector()
+        call_order = []
+
+        class FailingProducer:
+            _instance = None
+
+            def __call__(self):
+                if self._instance is None:
+                    self._instance = self
+                return self._instance
+
+            def keepalive_check(self):
+                call_order.append('fail')
+                raise RuntimeError('Check error')
+
+            def keepalive_log(self):
+                pass
+
+        class GoodProducer:
+            _instance = None
+
+            def __call__(self):
+                if self._instance is None:
+                    self._instance = self
+                return self._instance
+
+            def keepalive_check(self):
+                call_order.append('good')
+
+            def keepalive_log(self):
+                pass
+
+        collector.register(FailingProducer())
+        collector.register(GoodProducer())
+
+        with mock.patch('aprsd.utils.keepalive_collector.LOG'):
+            collector.check()
+
+        # The good producer after the failing one still ran
+        self.assertEqual(call_order, ['fail', 'good'])
 
     def test_log(self):
         """Test log() method."""
@@ -137,7 +188,7 @@ class TestKeepAliveCollector(unittest.TestCase):
         self.assertTrue(producer2().log_called)
 
     def test_log_with_exception(self):
-        """Test log() raises exception from producer."""
+        """Test log() does not raise when a producer errors."""
         collector = KeepAliveCollector()
 
         class FailingProducer:
@@ -157,8 +208,53 @@ class TestKeepAliveCollector(unittest.TestCase):
         producer = FailingProducer()
         collector.register(producer)
 
-        with self.assertRaises(RuntimeError):
+        # Should log the error but NOT raise
+        with mock.patch('aprsd.utils.keepalive_collector.LOG') as mock_log:
             collector.log()
+            mock_log.error.assert_called_once()
+
+    def test_log_continues_after_failing_producer(self):
+        """Test log() still calls subsequent producers after an error."""
+        collector = KeepAliveCollector()
+        call_order = []
+
+        class FailingProducer:
+            _instance = None
+
+            def __call__(self):
+                if self._instance is None:
+                    self._instance = self
+                return self._instance
+
+            def keepalive_check(self):
+                pass
+
+            def keepalive_log(self):
+                call_order.append('fail')
+                raise RuntimeError('Log error')
+
+        class GoodProducer:
+            _instance = None
+
+            def __call__(self):
+                if self._instance is None:
+                    self._instance = self
+                return self._instance
+
+            def keepalive_check(self):
+                pass
+
+            def keepalive_log(self):
+                call_order.append('good')
+
+        collector.register(FailingProducer())
+        collector.register(GoodProducer())
+
+        with mock.patch('aprsd.utils.keepalive_collector.LOG'):
+            collector.log()
+
+        # The good producer after the failing one still ran
+        self.assertEqual(call_order, ['fail', 'good'])
 
     def test_multiple_producers(self):
         """Test multiple producers are called."""

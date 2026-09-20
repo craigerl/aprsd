@@ -207,6 +207,34 @@ class TestAPRSDThread(unittest.TestCase):
             # Can't instantiate abstract class directly
             APRSDThread('AbstractThread')
 
+    def test_run_loop_exception_does_not_kill_thread(self):
+        """Test run() survives an exception raised in loop().
+
+        A transient error in one loop() iteration must not kill a
+        long-running daemon thread: the exception is logged and the
+        thread keeps looping.
+        """
+
+        class ExplodingThread(APRSDThread):
+            def __init__(self, name):
+                super().__init__(name)
+                self.iterations = 0
+
+            def loop(self):
+                self.iterations += 1
+                if self.iterations == 1:
+                    raise RuntimeError('boom')
+                return False
+
+        thread = ExplodingThread('ExplodeTest')
+        thread.start()
+        thread.join(timeout=2)
+
+        # loop() ran twice: first raised (caught), second returned False
+        # which stops the thread normally.
+        self.assertEqual(thread.iterations, 2)
+        self.assertFalse(thread.is_alive())
+
 
 class TestAPRSDThreadList(unittest.TestCase):
     """Unit tests for the APRSDThreadList class."""

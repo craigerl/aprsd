@@ -110,7 +110,12 @@ class TestStatsCollector(unittest.TestCase):
         self.assertIsInstance(stats, dict)
 
     def test_collect_with_exception(self):
-        """Test collect() raises exception from producer."""
+        """Test collect() does not raise when a producer errors.
+
+        A failing producer must not propagate its exception out of
+        collect(): the KeepAliveThread calls collect() and an unhandled
+        exception there kills the monitoring thread itself.
+        """
         c = collector.Collector()
 
         class FailingProducer:
@@ -127,8 +132,50 @@ class TestStatsCollector(unittest.TestCase):
         producer = FailingProducer()
         c.register_producer(producer)
 
-        with self.assertRaises(RuntimeError):
-            c.collect()
+        # Should log the error but NOT raise
+        with mock.patch('aprsd.stats.collector.LOG') as mock_log:
+            stats = c.collect()
+            self.assertEqual(stats, {})
+            mock_log.error.assert_called_once()
+
+    def test_collect_continues_after_failing_producer(self):
+        """Test collect() still calls subsequent producers after an error."""
+        c = collector.Collector()
+        call_order = []
+
+        class FailingProducer:
+            _instance = None
+
+            def __call__(self):
+                if self._instance is None:
+                    self._instance = self
+                return self._instance
+
+            def stats(self, serializable=False):
+                call_order.append('fail')
+                raise RuntimeError('Stats error')
+
+        class GoodProducer:
+            _instance = None
+
+            def __call__(self):
+                if self._instance is None:
+                    self._instance = self
+                return self._instance
+
+            def stats(self, serializable=False):
+                call_order.append('good')
+                return {'ok': True}
+
+        c.register_producer(FailingProducer())
+        c.register_producer(GoodProducer())
+
+        with mock.patch('aprsd.stats.collector.LOG'):
+            stats = c.collect()
+
+        # The good producer after the failing one still ran
+        self.assertEqual(call_order, ['fail', 'good'])
+        self.assertIn('GoodProducer', stats)
 
     def test_stop_all(self):
         """Test stop_all() method."""

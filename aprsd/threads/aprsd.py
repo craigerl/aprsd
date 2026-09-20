@@ -83,7 +83,16 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
                 self.wait(timeout=1)
             else:
                 self.loop_count += 1
-                can_loop = self.loop()
+                try:
+                    can_loop = self.loop()
+                except Exception as e:
+                    # A transient error in one loop() iteration must not
+                    # kill a long-running daemon thread.  Log it, wait a
+                    # beat so we don't busy-loop on a persistent error,
+                    # and keep going.
+                    LOG.exception(f'Exception in thread {self.name} loop: {e}')
+                    self.wait(timeout=1)
+                    continue
                 self._last_loop = datetime.datetime.now()
                 if not can_loop:
                     self.stop()
