@@ -57,11 +57,11 @@ For developers you should clone the repo from github, then use the Makefile
 .. code-block:: shell
 
    $ cd <path/to/clone>
-   $ make
+   $ make dev
 
-This creates a virtualenv_ directory, install all the requirements for
-development as well as aprsd in `editable <https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs>`_ mode.
-It will install all of the pre-commit git hooks required to test prior to committing code.
+This creates a ``.venv`` directory with `uv <https://docs.astral.sh/uv/>`_,
+installs all of the development requirements as well as aprsd in `editable <https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs>`_ mode,
+and installs the pre-commit git hooks required to test prior to committing code.
 
 
 .. include:: links.rst

@@ -342,7 +342,7 @@ instance test messages
 
 -   `git clone git@github.com:craigerl/aprsd.git`
 -   `cd aprsd`
--   `make`
+-   `make dev`
 
 #### Workflow
 
