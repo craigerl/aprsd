@@ -9,6 +9,10 @@ from aprsd import threads as aprsd_threads
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
 
+# Timeout in seconds for the registry HTTP POST so a hung registry
+# server cannot block the thread's loop() indefinitely.
+REQUEST_TIMEOUT = 10
+
 
 class APRSRegistryThread(aprsd_threads.APRSDThread):
     """This sends service information to the configured APRS Registry."""
@@ -43,6 +47,7 @@ class APRSRegistryThread(aprsd_threads.APRSDThread):
             requests.post(
                 f'{CONF.aprs_registry.registry_url}',
                 json=info,
+                timeout=REQUEST_TIMEOUT,
             )
         except Exception as e:
             LOG.error(f'Failed to send registry info: {e}')
