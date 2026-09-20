@@ -8,24 +8,27 @@ The current build environment uses `pre-commit`, and `uv`.
 
 ```console
 pip install uv
-uv venv
-uv pip install pip-tools
 git clone git@github.com:craigerl/aprsd.git
 cd aprsd
-pre-commit install
+uv venv
+uv pip install -e ".[dev]"
+uv run pre-commit install
 
 # Optionally run the pre-commit scripts at any time
-pre-commit run --all-files
+uv run pre-commit run --all-files
 ```
 
 ### Running and testing:
 
-From the aprstastic directory:
+From the aprsd directory:
 
 ```console
-cd aprsd
-uv pip install -e .
-
 # Running
 uv run aprsd
+
+# Testing
+uv run pytest tests
+
+# Full matrix (lint + all supported Python versions)
+uv run tox
 ```
