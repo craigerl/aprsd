@@ -831,6 +831,25 @@ class TestBeaconSendThread(unittest.TestCase):
         self.assertTrue(thread._shutdown_event.is_set())
         thread.stop()
 
+    def test_init_non_numeric_coordinates(self):
+        """Test initialization with non-numeric coordinates.
+
+        CONF.latitude/longitude are StrOpt, so a bad config value like
+        'abc' passes the truthiness check but would raise ValueError in
+        loop()'s float() calls, which are OUTSIDE the try block and would
+        kill the beacon thread.  Initialization must detect this and stop
+        the thread instead.
+        """
+        from oslo_config import cfg
+
+        CONF = cfg.CONF
+        CONF.latitude = 'not-a-number'
+        CONF.longitude = '-74.0060'
+
+        thread = tx.BeaconSendThread()
+        self.assertTrue(thread._shutdown_event.is_set())
+        thread.stop()
+
     @mock.patch('aprsd.threads.tx.send')
     def test_loop_send_beacon(self, mock_send):
         """Test loop() sends beacon."""
