@@ -30,8 +30,8 @@ class TestRingBuffer(unittest.TestCase):
 
         self.assertEqual(len(rb), 3)
         self.assertEqual(rb.get(), [1, 2, 3])
-        # Should transition to full state
-        self.assertEqual(rb.__class__.__name__, '__Full')
+        # The instance type must not change once full (no __class__ swap)
+        self.assertIs(type(rb), RingBuffer)
 
     def test_append_overwrites_when_full(self):
         """Test append() overwrites oldest when full."""
