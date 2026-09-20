@@ -61,7 +61,7 @@ def get_weather_gov_metar(station):
         raise Exception('Failed to fetch metar') from e
     else:
         response.raise_for_status()
-        return json.loads(response)
+        return json.loads(response.text)
 
 
 def fetch_openweathermap(api_key, lat, lon, units='metric', exclude=None):
