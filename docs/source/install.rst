@@ -4,7 +4,7 @@ APRSD installation
 Install info in a nutshell
 --------------------------
 
-**Pythons**: Python 3.6 or later
+**Pythons**: Python 3.11 or later
 
 **Operating systems**: Linux, OSX, Unix
 

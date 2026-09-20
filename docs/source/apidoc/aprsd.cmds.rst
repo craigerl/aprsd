@@ -20,6 +20,22 @@ aprsd.cmds.dev module
    :show-inheritance:
    :undoc-members:
 
+aprsd.cmds.export\_config module
+--------------------------------
+
+.. automodule:: aprsd.cmds.export_config
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+aprsd.cmds.export\_plugins module
+---------------------------------
+
+.. automodule:: aprsd.cmds.export_plugins
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 aprsd.cmds.fetch\_stats module
 ------------------------------
 
