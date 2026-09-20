@@ -406,18 +406,19 @@ class PluginManager:
                 LOG.error(f"Failed to load Plugin '{module_name}' : '{ex}'")
             return
 
-        assert hasattr(module, class_name), 'class {} is not in {}'.format(
-            class_name,
-            module_name,
-        )
+        if not hasattr(module, class_name):
+            raise ImportError('class {} is not in {}'.format(class_name, module_name))
         # click.echo('reading class {} from module {}'.format(
         #     class_name, module_name))
         cls = getattr(module, class_name)
         if super_cls is not None:
-            assert issubclass(cls, super_cls), 'class {} should inherit from {}'.format(
-                class_name,
-                super_cls.__name__,
-            )
+            if not issubclass(cls, super_cls):
+                raise TypeError(
+                    'class {} should inherit from {}'.format(
+                        class_name,
+                        super_cls.__name__,
+                    )
+                )
         # click.echo('initialising {} with params {}'.format(class_name, kwargs))
         obj = cls(**kwargs)
         return obj
