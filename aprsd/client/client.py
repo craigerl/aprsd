@@ -33,6 +33,7 @@ class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
     connected = False
     running = False
     auto_connect = True
+    _keepalive_registered = False
     login_status = {
         'success': False,
         'message': None,
@@ -42,7 +43,6 @@ class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
         """This magic turns this into a singleton."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            keepalive_collector.KeepAliveCollector().register(cls)
         return cls._instance
 
     def __init__(self, auto_connect: bool = True):
@@ -52,6 +52,13 @@ class APRSDClient(metaclass=trace.TraceWrapperMetaclass):
             self.driver = DriverRegistry().get_driver()
         if self.auto_connect:
             self.connect()
+        # Register as a keepalive producer only after a successful
+        # __init__.  Registering in __new__ ran before the driver was set
+        # up, so a failed instantiation left the class registered and
+        # keepalive_check() would be invoked on a broken object.
+        if not self._keepalive_registered:
+            self._keepalive_registered = True
+            keepalive_collector.KeepAliveCollector().register(self.__class__)
 
     def stats(self, serializable=False) -> dict:
         stats = {}

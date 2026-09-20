@@ -403,3 +403,45 @@ class TestAPRSDClient(unittest.TestCase):
         with mock.patch('aprsd.client.client.LOGU') as mock_logu:
             client.keepalive_log()
             mock_logu.opt.assert_called()
+
+    def test_keepalive_registered_once(self):
+        """APRSDClient must be registered as a keepalive producer once.
+
+        Registration happens in __init__ after a successful setup (not in
+        __new__), so a failed instantiation cannot leave the class
+        registered as a producer that will be invoked on a broken object.
+        """
+        from aprsd.utils import keepalive_collector
+
+        # Reset the collector so we observe only this instantiation.
+        keepalive_collector.KeepAliveCollector._instance = None
+        ka = keepalive_collector.KeepAliveCollector()
+        ka.producers = []
+
+        APRSDClient(auto_connect=False)
+
+        self.assertIn(APRSDClient, ka.producers)
+        self.assertEqual(ka.producers.count(APRSDClient), 1)
+
+    def test_keepalive_not_registered_when_init_fails(self):
+        """A failed __init__ must not leave the class registered.
+
+        Registration used to live in __new__, which runs before __init__
+        and before the driver is set up.  If __init__ then failed, the
+        class stayed registered and keepalive_check() would be invoked on
+        a half-initialized object.
+        """
+        from aprsd.utils import keepalive_collector
+
+        keepalive_collector.KeepAliveCollector._instance = None
+        ka = keepalive_collector.KeepAliveCollector()
+        ka.producers = []
+
+        # Force __init__ to raise after __new__ has run.
+        with mock.patch.object(
+            APRSDClient, 'connect', side_effect=RuntimeError('boom')
+        ):
+            with self.assertRaises(RuntimeError):
+                APRSDClient(auto_connect=True)
+
+        self.assertNotIn(APRSDClient, ka.producers)
