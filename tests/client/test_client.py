@@ -438,8 +438,10 @@ class TestAPRSDClient(unittest.TestCase):
         ka.producers = []
 
         # Force __init__ to raise after __new__ has run.
-        with mock.patch.object(APRSDClient, 'connect', side_effect=Exception('boom')):
-            with self.assertRaises(Exception):
+        with mock.patch.object(
+            APRSDClient, 'connect', side_effect=RuntimeError('boom')
+        ):
+            with self.assertRaises(RuntimeError):
                 APRSDClient(auto_connect=True)
 
         self.assertNotIn(APRSDClient, ka.producers)
