@@ -1,3 +1,4 @@
+import threading
 import time
 import unittest
 from unittest import mock
@@ -65,7 +66,7 @@ class TestSendFunctions(unittest.TestCase):
         mock_send_ack.assert_called()
 
     @mock.patch('aprsd.threads.tx.collector.PacketCollector')
-    @mock.patch('aprsd.threads.tx._send_ack')
+    @mock.patch('aprsd.threads.tx._send_packet')
     def test_send_ack_disabled(self, mock_send_ack, mock_collector):
         """Test send() with AckPacket when acks are disabled."""
         from oslo_config import cfg
@@ -79,6 +80,55 @@ class TestSendFunctions(unittest.TestCase):
             tx.send(packet)
             mock_log.info.assert_called()
             mock_send_ack.assert_not_called()
+
+    def test_send_throttle_sleep_does_not_hold_global_lock(self):
+        """Throttle sleep must happen OUTSIDE the global send lock.
+
+        Decorator order matters: if @wrapt.synchronized(s_lock) is the outer
+        decorator, the throttle's sleep_and_retry runs while holding the
+        lock, serializing ALL outbound sends behind a single throttled one.
+        This test proves the lock is acquirable while send() is sleeping in
+        its throttle backoff.
+        """
+        from oslo_config import cfg
+
+        from aprsd.threads import tx as tx_module
+
+        CONF = cfg.CONF
+        CONF.enable_sending_ack_packets = True
+
+        packet = fake.fake_packet()
+
+        # Throttle blocks the first check (long retry_after) then allows.
+        state = {'n': 0}
+
+        def check_side_effect(*args, **kwargs):
+            state['n'] += 1
+            if state['n'] == 1:
+                return mock.MagicMock(
+                    limited=True,
+                    retry_after=mock.MagicMock(total_seconds=lambda: 1.0),
+                )
+            return mock.MagicMock(limited=False)
+
+        fake_throttle = mock.MagicMock()
+        fake_throttle.check.side_effect = check_side_effect
+
+        with mock.patch.object(
+            tx_module.msg_throttle_decorator, 'throttle', fake_throttle
+        ):
+            with mock.patch.object(tx_module, '_send_packet', return_value=None):
+                sender = threading.Thread(target=tx_module.send, args=(packet,))
+                sender.start()
+                # Give the sender time to enter the throttle sleep.
+                time.sleep(0.2)
+                # If the throttle sleep held s_lock, this acquire would time out.
+                got_lock = tx_module.s_lock.acquire(timeout=0.5)
+                if got_lock:
+                    tx_module.s_lock.release()
+                sender.join(timeout=2)
+
+        self.assertTrue(got_lock)
 
     @mock.patch('aprsd.threads.tx._get_packet_scheduler')
     def test_send_packet_threaded(self, mock_get_scheduler):

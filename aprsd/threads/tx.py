@@ -46,8 +46,8 @@ _ack_scheduler = None
 _scheduler_lock = threading.Lock()
 
 
-@wrapt.synchronized(s_lock)
 @msg_throttle_decorator.sleep_and_retry
+@wrapt.synchronized(s_lock)
 def send(packet: core.Packet, direct=False, aprs_client=None):
     """Send a packet either in a thread or directly to the client."""
     # prepare the packet for sending.
