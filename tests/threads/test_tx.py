@@ -81,6 +81,28 @@ class TestSendFunctions(unittest.TestCase):
             mock_log.info.assert_called()
             mock_send_ack.assert_not_called()
 
+    def test_throttle_rate_read_lazily_from_conf(self):
+        """The throttle rate must be read from CONF at first use, not import.
+
+        The msg/ack throttles used to read CONF.msg_rate_limit_period /
+        CONF.ack_rate_limit_period at module import time.  That is
+        import-order fragile (importing tx.py requires the config options
+        to already be registered) and bakes the rate in at import so a
+        config change needs a restart.  The lazy proxy defers the CONF
+        read to the first check().
+        """
+        from oslo_config import cfg
+
+        CONF = cfg.CONF
+        CONF.msg_rate_limit_period = 7
+
+        lazy = tx._LazyThrottle('msg_rate_limit_period')
+        # Not built yet — CONF not read at construction
+        self.assertIsNone(lazy._throttle)
+        lazy.check(key='x', quantity=1)
+        self.assertIsNotNone(lazy._throttle)
+        self.assertEqual(lazy._throttle.rate.count, 7)
+
     def test_send_throttle_sleep_does_not_hold_global_lock(self):
         """Throttle sleep must happen OUTSIDE the global send lock.
 

@@ -19,22 +19,40 @@ from aprsd.packets import log as packet_log
 CONF = cfg.CONF
 LOG = logging.getLogger('APRSD')
 
-msg_t = throttle.Throttle(
-    limiter=periodic.PeriodicLimiter(
-        store=dictionary.DictionaryStore(),
-    ),
-    rate=quota.Quota.per_second(
-        count=CONF.msg_rate_limit_period,
-    ),
-)
-ack_t = throttle.Throttle(
-    limiter=periodic.PeriodicLimiter(
-        store=dictionary.DictionaryStore(),
-    ),
-    rate=quota.Quota.per_second(
-        count=CONF.ack_rate_limit_period,
-    ),
-)
+
+class _LazyThrottle:
+    """Throttle proxy that reads its rate limit from CONF on first use.
+
+    The msg/ack throttles used to read CONF.msg_rate_limit_period /
+    CONF.ack_rate_limit_period at module import time, which is
+    import-order fragile (importing this module requires the config
+    options to already be registered) and bakes the rate in at import
+    time so a config change needs a restart.  This proxy defers the CONF
+    read to the first check() call.
+    """
+
+    def __init__(self, conf_attr: str):
+        self._conf_attr = conf_attr
+        self._throttle = None
+
+    def _get(self) -> throttle.Throttle:
+        if self._throttle is None:
+            self._throttle = throttle.Throttle(
+                limiter=periodic.PeriodicLimiter(
+                    store=dictionary.DictionaryStore(),
+                ),
+                rate=quota.Quota.per_second(
+                    count=getattr(CONF, self._conf_attr),
+                ),
+            )
+        return self._throttle
+
+    def check(self, key: str, quantity: int):
+        return self._get().check(key=key, quantity=quantity)
+
+
+msg_t = _LazyThrottle('msg_rate_limit_period')
+ack_t = _LazyThrottle('ack_rate_limit_period')
 
 msg_throttle_decorator = decorator.ThrottleDecorator(throttle=msg_t)
 ack_throttle_decorator = decorator.ThrottleDecorator(throttle=ack_t)
