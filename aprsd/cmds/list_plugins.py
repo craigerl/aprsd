@@ -180,7 +180,7 @@ def list_plugins(ctx):
 @click.pass_context
 @cli_helper.process_standard_options_no_config
 def list_extensions(ctx):
-    """List the built in plugins available to APRSD."""
+    """List the built in extensions available to APRSD."""
     console = Console()
 
     with console.status('Show APRSD Extensions') as status:
