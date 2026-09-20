@@ -432,6 +432,51 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
             self.process_thread.process_other_packet(packet, for_us=True)
             self.assertEqual(mock_log.info.call_count, 2)
 
+    def test_process_packet_no_destination_no_crash(self):
+        """A packet with no addresse/to_call must not raise AttributeError.
+
+        process_packet() dereferences addresse/to_call with .lower() to
+        decide packet routing.  A packet that carries neither field (e.g. a
+        malformed or third-party frame) previously raised AttributeError,
+        which -- since loop() only catches queue.Empty -- silently killed
+        the ProcessPKT thread.
+        """
+        from oslo_config import cfg
+
+        from aprsd.packets import core
+
+        CONF = cfg.CONF
+        CONF.callsign = 'TEST'
+
+        packet = core.StatusPacket(
+            from_call='KJ4ERJ',
+            to_call=None,
+            status='test status',
+        )
+        packet.addresse = None
+
+        # Must not raise
+        self.process_thread.process_packet(packet)
+
+    def test_process_ack_packet_no_addresse_no_crash(self):
+        """An AckPacket with addresse=None must not raise AttributeError."""
+        from oslo_config import cfg
+
+        from aprsd.packets import core
+
+        CONF = cfg.CONF
+        CONF.callsign = 'TEST'
+
+        packet = core.AckPacket(
+            from_call='KJ4ERJ',
+            to_call=None,
+            msgNo='5',
+        )
+        packet.addresse = None
+
+        # Must not raise
+        self.process_thread.process_packet(packet)
+
 
 class TestPluginProcessPacketPiggybackAck(unittest.TestCase):
     """Integration tests for Reply-Ack (piggyback ACK) in APRSDPluginProcessPacketThread."""

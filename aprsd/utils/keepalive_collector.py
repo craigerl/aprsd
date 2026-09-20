@@ -33,8 +33,10 @@ class KeepAliveCollector:
             try:
                 cls.keepalive_check()
             except Exception as e:
+                # A single failing producer must not kill the caller (the
+                # KeepAliveThread calls check() in its loop).  Log and
+                # continue with the remaining producers.
                 LOG.error(f'Error in producer {name} (check): {e}')
-                raise e
 
     def log(self) -> None:
         """Log any relevant information during a KeepAlive check"""
@@ -43,8 +45,9 @@ class KeepAliveCollector:
             try:
                 cls.keepalive_log()
             except Exception as e:
+                # Same as check(): swallow producer errors so the
+                # KeepAliveThread loop cannot be killed by one bad producer.
                 LOG.error(f'Error in producer {name} (check): {e}')
-                raise e
 
     def register(self, producer_name: Callable):
         if not isinstance(producer_name, KeepAliveProducer):

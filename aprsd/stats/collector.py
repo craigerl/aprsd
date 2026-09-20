@@ -31,8 +31,10 @@ class Collector:
                     serializable=serializable
                 ).copy()
             except Exception as e:
+                # A single failing producer must not kill the caller (the
+                # KeepAliveThread calls collect() in its loop).  Log and
+                # continue with the remaining producers.
                 LOG.error(f'Error in producer {name} (stats): {e}')
-                raise e
         return stats
 
     def register_producer(self, producer_name: Callable):

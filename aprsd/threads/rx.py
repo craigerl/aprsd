@@ -232,11 +232,13 @@ class APRSDProcessPacketThread(APRSDFilterThread):
         # plugins.
         if (
             isinstance(packet, packets.AckPacket)
+            and packet.addresse
             and packet.addresse.lower() == our_call
         ):
             self.process_ack_packet(packet)
         elif (
             isinstance(packet, packets.RejectPacket)
+            and packet.addresse
             and packet.addresse.lower() == our_call
         ):
             self.process_reject_packet(packet)
@@ -277,7 +279,7 @@ class APRSDProcessPacketThread(APRSDFilterThread):
             else:
                 self.process_other_packet(
                     packet,
-                    for_us=(to_call.lower() == our_call),
+                    for_us=(bool(to_call) and to_call.lower() == our_call),
                 )
         LOG.debug(f"Packet processing complete for pkt '{packet.key}'")
         return False
