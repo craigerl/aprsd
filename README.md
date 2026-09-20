@@ -63,8 +63,11 @@ APRSD currently has the following commands to use.
  -  completion - Show the shell completion code
  -  dev - Development type subcommands
  -  dump-stats - Dump the current stats from the running APRSD instance.
+ -  export-config - Export all config options from installed APRSD plugins...
+ -  export-plugins - Export all installed APRSD plugins as JSON.
  -  fetch-stats - Fetch stats from a APRSD admin web interface.
  -  healthcheck - Check the health of the running aprsd server.
+ -  json-config - Output the current loaded configuration in JSON format.
  -  list-extensions - List the built in extensions available to APRSD.
  -  list-plugins - List the built in plugins available to APRSD.
  -  passcode - Generate an APRS passcode for a callsign.
@@ -75,7 +78,7 @@ Each of those commands can connect to the APRS-IS network if internet
 connectivity is available. If internet is not available, then APRS can
 be configured to talk to a TCP KISS TNC for radio connectivity directly.
 
-Please [read the docs](https://aprsd.readthedocs.io) to learn more!a
+Please [read the docs](https://aprsd.readthedocs.io) to learn more!
 
 [![asciicast](https://asciinema.org/a/etTzphsf26aEZWrK8iKvU5Ekp.svg)](https://asciinema.org/a/etTzphsf26aEZWrK8iKvU5Ekp)
 
@@ -173,11 +176,16 @@ Or with the traditional pip:
       check-version    Check this version against the latest in pypi.org.
       completion       Show the shell completion code
       dev              Development type subcommands
+      dump-stats       Dump the current stats from the running APRSD instance.
+      export-config    Export all config options from installed APRSD plugins...
+      export-plugins   Export all installed APRSD plugins as JSON.
       fetch-stats      Fetch stats from a APRSD admin web interface.
       healthcheck      Check the health of the running aprsd server.
-      list-extensions  List the built in plugins available to APRSD.
+      json-config      Output the current loaded configuration in JSON format.
+      list-extensions  List the built in extensions available to APRSD.
       list-plugins     List the built in plugins available to APRSD.
       listen           Listen to packets on the APRS-IS Network based on FILTER.
+      passcode         Generate an APRS passcode for a callsign.
       sample-config    Generate a sample Config file from aprsd and all...
       send-message     Send a message to a callsign via APRS_IS.
       server           Start the aprsd server gateway process.
@@ -236,18 +244,18 @@ file
 
 #### Current list plugins
 
+For detailed documentation of each built-in plugin (commands, configuration, and
+troubleshooting), see [PLUGINS.md](PLUGINS.md).
+
     └─> aprsd list-plugins
                                                         🐍 APRSD Built-in Plugins 🐍
     ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     ┃ Plugin Name       ┃ Info                                                       ┃ Type         ┃ Plugin Path                             ┃
     ┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-    │ AVWXWeatherPlugin │ AVWX weather of GPS Beacon location                        │ RegexCommand │ aprsd.plugins.weather.AVWXWeatherPlugin │
     │ FortunePlugin     │ Give me a fortune                                          │ RegexCommand │ aprsd.plugins.fortune.FortunePlugin     │
     │ NotifySeenPlugin  │ Notify me when a CALLSIGN is recently seen on APRS-IS      │ WatchList    │ aprsd.plugins.notify.NotifySeenPlugin   │
-    │ OWMWeatherPlugin  │ OpenWeatherMap weather of GPS Beacon location              │ RegexCommand │ aprsd.plugins.weather.OWMWeatherPlugin  │
     │ PingPlugin        │ reply with a Pong!                                         │ RegexCommand │ aprsd.plugins.ping.PingPlugin           │
-    │ TimeOWMPlugin     │ Current time of GPS beacon's timezone. Uses OpenWeatherMap │ RegexCommand │ aprsd.plugins.time.TimeOWMPlugin        │
-    │ TimePlugin        │ What is the current local time.                            │ RegexCommand │ aprsd.plugins.time.TimePlugin           │
+    │ TimePlugin        │ What is the current local time.                            │ RegexCommand │ aprsd.plugins.time.TimePlugin         │
     │ USMetarPlugin     │ USA only METAR of GPS Beacon location                      │ RegexCommand │ aprsd.plugins.weather.USMetarPlugin     │
     │ USWeatherPlugin   │ Provide USA only weather of GPS Beacon location            │ RegexCommand │ aprsd.plugins.weather.USWeatherPlugin   │
     │ VersionPlugin     │ What is the APRSD Version                                  │ RegexCommand │ aprsd.plugins.version.VersionPlugin     │
@@ -356,7 +364,7 @@ While working aprsd, The workflow is as follows:
 
 -   Run Tox with the following options:
 
-    -   `tox -epep8`
+    -   `tox -efast8`
     -   `tox -efmt`
     -   `tox -p`
 
