@@ -42,6 +42,26 @@ class TestPluginUtilsTimeouts(unittest.TestCase):
             plugin_utils.get_weather_gov_metar('KJFK')
             self._assert_timeout(mock_get)
 
+    def test_get_weather_gov_metar_returns_parsed_json(self):
+        """get_weather_gov_metar must return the parsed JSON dict.
+
+        It previously called json.loads(response) with a requests.Response
+        object, which raises TypeError: the JSON object must be str, bytes
+        or bytearray.  That made every METAR-by-station request fail.
+        """
+
+        class Response:
+            text = '{"properties": {"rawMessage": "BOGUSMETAR"}}'
+
+            def raise_for_status(self):
+                pass
+
+        with mock.patch('aprsd.plugin_utils.requests.get') as mock_get:
+            mock_get.return_value = Response()
+            result = plugin_utils.get_weather_gov_metar('KJFK')
+
+        self.assertEqual(result, {'properties': {'rawMessage': 'BOGUSMETAR'}})
+
     def test_fetch_openweathermap_uses_timeout(self):
         with (
             mock.patch('aprsd.plugin_utils.requests.get') as mock_get,

@@ -158,10 +158,7 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
 
     @mock.patch('aprsd.plugin_utils.get_weather_gov_metar')
     def test_airport_works(self, mock_metar):
-        class Response:
-            text = '{"properties": {"rawMessage": "BOGUSMETAR"}}'
-
-        mock_metar.return_value = Response()
+        mock_metar.return_value = {'properties': {'rawMessage': 'BOGUSMETAR'}}
 
         CONF.aprs_fi.apiKey = 'abc123'
         CONF.callsign = fake.FAKE_TO_CALLSIGN
@@ -180,8 +177,7 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
             'location': {'metar': 'BOGUSMETAR'},
         }
 
-        class Response:
-            text = '{"properties": {"rawMessage": "BOGUSMETAR"}}'
+        mock_metar.return_value = {'properties': {'rawMessage': 'BOGUSMETAR'}}
 
         mock_check_aprs.return_value = {
             'entries': [
@@ -192,7 +188,6 @@ class TestUSMetarPlugin(test_plugin.TestPlugin):
                 },
             ],
         }
-        mock_metar.return_value = Response()
 
         CONF.aprs_fi.apiKey = 'abc123'
         CONF.callsign = fake.FAKE_TO_CALLSIGN

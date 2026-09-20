@@ -1,4 +1,3 @@
-import json
 import logging
 import re
 
@@ -115,7 +114,8 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
                 LOG.debug(f'Weather failed with:  {str(e)}')
                 reply = 'Unable to find station METAR'
             else:
-                station_data = json.loads(resp.text)
+                # get_weather_gov_metar already returns parsed JSON
+                station_data = resp
                 reply = station_data['properties']['rawMessage']
 
             return reply
@@ -151,7 +151,8 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
                     LOG.debug(f'Weather failed with:  {str(e)}')
                     reply = 'Failed to get Metar'
                 else:
-                    station_data = json.loads(resp.text)
+                    # get_weather_gov_metar already returns parsed JSON
+                    station_data = resp
                     reply = station_data['properties']['rawMessage']
             else:
                 # Couldn't find a station
