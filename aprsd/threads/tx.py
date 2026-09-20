@@ -500,6 +500,19 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
                 'Beacon will not be sent and thread is STOPPED.',
             )
             self.stop()
+        else:
+            # CONF.latitude/longitude are StrOpt, so validate they parse
+            # as floats up front.  Otherwise loop()'s float() would raise
+            # a ValueError outside its try/except and kill the thread.
+            try:
+                self.latitude = float(CONF.latitude)
+                self.longitude = float(CONF.longitude)
+            except (TypeError, ValueError):
+                LOG.error(
+                    'Latitude and Longitude must be numeric in the config file.'
+                    'Beacon will not be sent and thread is STOPPED.',
+                )
+                self.stop()
         LOG.info(
             'Beacon thread is running and will send '
             f'beacons every {CONF.beacon_interval} seconds.',
@@ -509,8 +522,8 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
         pkt = core.BeaconPacket(
             from_call=CONF.callsign,
             to_call='APRS',
-            latitude=float(CONF.latitude),
-            longitude=float(CONF.longitude),
+            latitude=self.latitude,
+            longitude=self.longitude,
             comment='APRSD GPS Beacon',
             symbol=CONF.beacon_symbol,
         )
