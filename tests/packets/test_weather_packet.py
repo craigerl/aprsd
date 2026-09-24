@@ -15,10 +15,13 @@ class TestWeatherPacket(unittest.TestCase):
         packet = packets.WeatherPacket(
             from_call=fake.FAKE_FROM_CALLSIGN,
             to_call=fake.FAKE_TO_CALLSIGN,
-            latitude=37.7749,
-            longitude=-122.4194,
-            symbol='_',
-            symbol_table='/',
+            position=packets.Position(
+                latitude=37.7749,
+                longitude=-122.4194,
+                symbol='_',
+                symbol_table='/',
+                comment='Test weather comment',
+            ),
             wind_speed=10.5,
             wind_direction=180,
             wind_gust=15.0,
@@ -28,8 +31,8 @@ class TestWeatherPacket(unittest.TestCase):
             rain_since_midnight=0.3,
             humidity=65,
             pressure=1013.25,
-            comment='Test weather comment',
         )
+
         json_str = packet.to_json()
         self.assertIsInstance(json_str, str)
         json_dict = json.loads(json_str)
@@ -75,9 +78,9 @@ class TestWeatherPacket(unittest.TestCase):
         self.assertIsInstance(packet, packets.WeatherPacket)
         self.assertEqual(packet.from_call, fake.FAKE_FROM_CALLSIGN)
         self.assertEqual(packet.to_call, fake.FAKE_TO_CALLSIGN)
-        self.assertEqual(packet.latitude, 37.7749)
-        self.assertEqual(packet.longitude, -122.4194)
-        self.assertEqual(packet.symbol, '_')
+        self.assertEqual(packet.position.latitude, 37.7749)
+        self.assertEqual(packet.position.longitude, -122.4194)
+        self.assertEqual(packet.position.symbol, '_')
         self.assertEqual(packet.wind_speed, 10.5)
         self.assertEqual(packet.wind_direction, 180)
         self.assertEqual(packet.wind_gust, 15.0)
@@ -87,17 +90,20 @@ class TestWeatherPacket(unittest.TestCase):
         self.assertEqual(packet.rain_since_midnight, 0.3)
         self.assertEqual(packet.humidity, 65)
         self.assertEqual(packet.pressure, 1013.25)
-        self.assertEqual(packet.comment, 'Test weather comment')
+        self.assertEqual(packet.position.comment, 'Test weather comment')
 
     def test_weather_packet_round_trip(self):
         """Test WeatherPacket round-trip: to_json -> from_dict."""
         original = packets.WeatherPacket(
             from_call=fake.FAKE_FROM_CALLSIGN,
             to_call=fake.FAKE_TO_CALLSIGN,
-            latitude=37.7749,
-            longitude=-122.4194,
-            symbol='_',
-            symbol_table='/',
+            position=packets.Position(
+                latitude=37.7749,
+                longitude=-122.4194,
+                symbol='_',
+                symbol_table='/',
+                comment='Test weather comment',
+            ),
             wind_speed=10.5,
             wind_direction=180,
             wind_gust=15.0,
@@ -107,16 +113,16 @@ class TestWeatherPacket(unittest.TestCase):
             rain_since_midnight=0.3,
             humidity=65,
             pressure=1013.25,
-            comment='Test weather comment',
         )
+
         json_str = original.to_json()
         packet_dict = json.loads(json_str)
         restored = packets.WeatherPacket.from_dict(packet_dict)
         self.assertEqual(restored.from_call, original.from_call)
         self.assertEqual(restored.to_call, original.to_call)
-        self.assertEqual(restored.latitude, original.latitude)
-        self.assertEqual(restored.longitude, original.longitude)
-        self.assertEqual(restored.symbol, original.symbol)
+        self.assertEqual(restored.position.latitude, original.position.latitude)
+        self.assertEqual(restored.position.longitude, original.position.longitude)
+        self.assertEqual(restored.position.symbol, original.position.symbol)
         self.assertEqual(restored.wind_speed, original.wind_speed)
         self.assertEqual(restored.wind_direction, original.wind_direction)
         self.assertEqual(restored.wind_gust, original.wind_gust)
@@ -126,7 +132,7 @@ class TestWeatherPacket(unittest.TestCase):
         self.assertEqual(restored.rain_since_midnight, original.rain_since_midnight)
         self.assertEqual(restored.humidity, original.humidity)
         self.assertEqual(restored.pressure, original.pressure)
-        self.assertEqual(restored.comment, original.comment)
+        self.assertEqual(restored.position.comment, original.position.comment)
         self.assertEqual(restored._type, original._type)
 
     def test_weather_packet_from_raw_string(self):

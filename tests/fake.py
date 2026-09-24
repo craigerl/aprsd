@@ -41,10 +41,12 @@ def fake_gps_packet():
     packet = core.GPSPacket(
         from_call=FAKE_FROM_CALLSIGN,
         to_call=FAKE_TO_CALLSIGN,
-        latitude=37.7749,
-        longitude=-122.4194,
-        symbol='>',
-        comment='Test GPS comment',
+        position=core.Position(
+            latitude=37.7749,
+            longitude=-122.4194,
+            symbol='>',
+            comment='Test GPS comment',
+        ),
     )
     # Call prepare to build the raw data
     packet.prepare()

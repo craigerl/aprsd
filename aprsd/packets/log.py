@@ -168,9 +168,17 @@ def log(
             logit.append(f'<light-yellow><b>{msg}</b></light-yellow>')
 
     # is there distance information?
-    if isinstance(packet, GPSPacket) and CONF.latitude and CONF.longitude:
+    if (
+        isinstance(packet, GPSPacket)
+        and packet.position
+        and CONF.latitude
+        and CONF.longitude
+    ):
         my_coords = (float(CONF.latitude), float(CONF.longitude))
-        packet_coords = (float(packet.latitude), float(packet.longitude))
+        packet_coords = (
+            float(packet.position.latitude),
+            float(packet.position.longitude),
+        )
         try:
             bearing = utils.calculate_initial_compass_bearing(my_coords, packet_coords)
         except Exception as e:

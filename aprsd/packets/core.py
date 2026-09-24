@@ -1,7 +1,8 @@
 import logging
 import re
 import time
-from dataclasses import dataclass, field
+import warnings
+from dataclasses import MISSING, dataclass, field, fields, replace
 from datetime import datetime, timezone
 
 # Due to a failure in python 3.8
@@ -348,68 +349,47 @@ class StatusPacket(Packet):
 
 
 @dataclass_json
-@dataclass(unsafe_hash=True)
-class GPSPacket(Packet):
-    _type: str = field(default='GPSPacket', hash=False)
-    latitude: float = field(default=0.00)
-    longitude: float = field(default=0.00)
-    altitude: float = field(default=0.00)
-    rng: float = field(default=0.00)
-    posambiguity: int = field(default=0)
-    messagecapable: bool = field(default=False)
-    comment: Optional[str] = field(default=None)
-    symbol: str = field(default='l')
-    symbol_table: str = field(default='/')
-    raw_timestamp: Optional[str] = field(default=None)
-    object_name: Optional[str] = field(default=None)
-    object_format: Optional[str] = field(default=None)
-    alive: Optional[bool] = field(default=None)
-    course: Optional[int] = field(default=None)
-    speed: Optional[float] = field(default=None)
-    phg: Optional[str] = field(default=None)
-    phg_power: Optional[int] = field(default=None)
-    phg_height: Optional[float] = field(default=None)
-    phg_gain: Optional[int] = field(default=None)
-    phg_dir: Optional[str] = field(default=None)
-    phg_range: Optional[float] = field(default=None)
-    phg_rate: Optional[int] = field(default=None)
+@dataclass(frozen=True)
+class Position:
+    """A station position: coordinates, symbol and movement/PHG data.
+
+    Composed into GPSPacket (has-a) instead of being spread across the GPS
+    subclass hierarchy (is-a).  Keeps the conversion/formatting logic in one
+    testable value object.
+    """
+
+    latitude: float = 0.00
+    longitude: float = 0.00
+    altitude: float = 0.00
+    rng: float = 0.00
+    posambiguity: int = 0
+    symbol: str = 'l'
+    symbol_table: str = '/'
+    comment: Optional[str] = None
+    course: Optional[int] = None
+    speed: Optional[float] = None
+    phg: Optional[str] = None
+    phg_power: Optional[int] = None
+    phg_height: Optional[float] = None
+    phg_gain: Optional[int] = None
+    phg_dir: Optional[str] = None
+    phg_range: Optional[float] = None
+    phg_rate: Optional[int] = None
     # http://www.aprs.org/datum.txt
-    daodatumbyte: Optional[str] = field(default=None)
+    daodatumbyte: Optional[str] = None
 
-    def _build_time_zulu(self):
+    def zulu_time(self, timestamp: float) -> str:
         """Build the timestamp in UTC/zulu."""
-        if self.timestamp:
-            return datetime.fromtimestamp(self.timestamp, tz=timezone.utc).strftime(
-                '%d%H%M'
-            )
+        return datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime('%d%H%M')
 
-    def _build_payload(self):
-        """The payload is the non headers portion of the packet."""
-        time_zulu = self._build_time_zulu()
-        lat = aprslib_util.latitude_to_ddm(self.latitude)
-        long = aprslib_util.longitude_to_ddm(self.longitude)
-        payload = [
-            '@' if self.timestamp else '!',
-            time_zulu,
-            lat,
-            self.symbol_table,
-            long,
-            self.symbol,
-        ]
+    def ddm_latitude(self) -> str:
+        return aprslib_util.latitude_to_ddm(self.latitude)
 
-        if self.comment:
-            payload.append(self._filter_for_send(self.comment))
+    def ddm_longitude(self) -> str:
+        return aprslib_util.longitude_to_ddm(self.longitude)
 
-        self.payload = ''.join(payload)
-
-    def _build_raw(self):
-        self.raw = f'{self.from_call}>{self.to_call},WIDE2-1:{self.payload}'
-
-    @property
     def human_info(self) -> str:
-        h_str = []
-        h_str.append(f'Lat:{self.latitude:03.3f}')
-        h_str.append(f'Lon:{self.longitude:03.3f}')
+        h_str = [f'Lat:{self.latitude:03.3f}', f'Lon:{self.longitude:03.3f}']
         if self.altitude:
             h_str.append(f'Altitude {self.altitude:03.0f}')
         if self.speed:
@@ -420,12 +400,223 @@ class GPSPacket(Packet):
             h_str.append(f'RNG {self.rng:03.0f}')
         if self.phg:
             h_str.append(f'PHG {self.phg}')
-
         return ' '.join(h_str)
 
 
-@dataclass_json
-@dataclass(unsafe_hash=True)
+# The flat keyword names that the backward-compat GPSPacket.__init__ accepts
+# (see the TODO(remove) note below).
+_POSITION_FIELD_NAMES: frozenset[str] = frozenset(Position.__dataclass_fields__)
+
+
+@dataclass(init=False, unsafe_hash=True)
+class GPSPacket(Packet, DataClassJsonMixin):
+    # NB: uses the DataClassJsonMixin base instead of the @dataclass_json
+    # decorator because the decorator unconditionally overwrites to_dict()/
+    # from_dict() with the mixin's versions, which would clobber the
+    # flattening overrides below.
+    #
+    # NB: init=False + the custom __init__ below is a backward-compatibility
+    # shim.  It lets external plugins/extensions keep constructing GPS packet
+    # types with the legacy flat position keyword arguments
+    # (latitude=, longitude=, symbol=, comment=, ...) and keep reading flat
+    # attributes (packet.latitude) even though the position data now lives in
+    # a composed Position object.  TODO(remove): delete the flat-kwargs branch
+    # of __init__ and the flat attribute properties (and restore plain
+    # @dataclass on the GPS subclasses) in the next major release once the
+    # plugin ecosystem has migrated to position=Position(...).
+    _type: str = field(default='GPSPacket', hash=False)
+    position: Optional[Position] = field(default=None, compare=True, hash=True)
+    messagecapable: bool = field(default=False)
+    raw_timestamp: Optional[str] = field(default=None)
+    object_name: Optional[str] = field(default=None)
+    object_format: Optional[str] = field(default=None)
+    alive: Optional[bool] = field(default=None)
+
+    def __init__(self, *args, **kwargs):
+        # TODO(remove): backward-compat shim - see class docstring/comment.
+        if args:
+            raise TypeError(
+                f'{type(self).__name__} only accepts keyword arguments; '
+                'pass position=Position(...) for GPS data.'
+            )
+        pos = kwargs.pop('position', None)
+        flat = {k: kwargs.pop(k) for k in list(kwargs) if k in _POSITION_FIELD_NAMES}
+        if pos is not None and flat:
+            raise TypeError(
+                'pass either position=Position(...) or the legacy flat '
+                f'position keyword arguments ({", ".join(sorted(flat))}), '
+                'not both'
+            )
+        if pos is None and flat:
+            # Deprecated legacy constructor form.  Build the Position from the
+            # class's default so per-type symbol conventions (ObjectPacket 'r',
+            # WeatherPacket '_') are preserved exactly as before.
+            warnings.warn(
+                'Passing flat position keyword arguments (latitude=, '
+                'longitude=, ...) to GPS packet types is deprecated; use '
+                'position=Position(...) instead.  This backward-compatibility '
+                'shim will be removed in a future release.',
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            pos = replace(self.__class__._position_default(), **flat)
+        # Apply every dataclass field (including inherited and subclass
+        # fields): explicit kwargs win, otherwise use the declared default.
+        for f in fields(self):
+            if f.name == 'position':
+                continue
+            if f.name in kwargs:
+                setattr(self, f.name, kwargs.pop(f.name))
+            elif f.default is not MISSING:
+                setattr(self, f.name, f.default)
+            elif f.default_factory is not MISSING:
+                setattr(self, f.name, f.default_factory())
+        if kwargs:
+            raise TypeError(f'Unexpected keyword argument(s): {sorted(kwargs)}')
+        self.position = pos
+
+    @classmethod
+    def _position_default(cls) -> Position:
+        """The Position used when a packet carries none (e.g. via from_dict)."""
+        return Position()
+
+    def _position(self) -> Position:
+        return self.position if self.position is not None else self._position_default()
+
+    # TODO(remove): the flat attribute properties below are a backward-compat
+    # read shim (see class comment).  Once the shim is removed, callers use
+    # packet.position.<field> instead.
+    @property
+    def latitude(self) -> float:
+        return self._position().latitude
+
+    @property
+    def longitude(self) -> float:
+        return self._position().longitude
+
+    @property
+    def altitude(self) -> float:
+        return self._position().altitude
+
+    @property
+    def rng(self) -> float:
+        return self._position().rng
+
+    @property
+    def posambiguity(self) -> int:
+        return self._position().posambiguity
+
+    @property
+    def symbol(self) -> str:
+        return self._position().symbol
+
+    @property
+    def symbol_table(self) -> str:
+        return self._position().symbol_table
+
+    @property
+    def comment(self) -> Optional[str]:
+        return self._position().comment
+
+    @property
+    def course(self) -> Optional[int]:
+        return self._position().course
+
+    @property
+    def speed(self) -> Optional[float]:
+        return self._position().speed
+
+    @property
+    def phg(self) -> Optional[str]:
+        return self._position().phg
+
+    @property
+    def phg_power(self) -> Optional[int]:
+        return self._position().phg_power
+
+    @property
+    def phg_height(self) -> Optional[float]:
+        return self._position().phg_height
+
+    @property
+    def phg_gain(self) -> Optional[int]:
+        return self._position().phg_gain
+
+    @property
+    def phg_dir(self) -> Optional[str]:
+        return self._position().phg_dir
+
+    @property
+    def phg_range(self) -> Optional[float]:
+        return self._position().phg_range
+
+    @property
+    def phg_rate(self) -> Optional[int]:
+        return self._position().phg_rate
+
+    @property
+    def daodatumbyte(self) -> Optional[str]:
+        return self._position().daodatumbyte
+
+    def _build_time_zulu(self):
+        """Build the timestamp in UTC/zulu."""
+        if self.timestamp:
+            return self._position().zulu_time(self.timestamp)
+
+    @classmethod
+    def from_dict(cls: Type[A], kvs: Json, *, infer_missing=False) -> A:
+        """Deserialize a packet from a flat dict.
+
+        Position data lives in a nested Position object, but the JSON/disk
+        format stays flat (latitude, longitude, symbol, ...) so persisted
+        data keeps loading.  The flat position keys are folded into the
+        nested 'position' field here.
+        """
+        raw = dict(kvs)
+        pos_keys = set(Position.__dataclass_fields__)
+        pos = {k: raw.pop(k) for k in list(raw) if k in pos_keys}
+        if pos:
+            raw['position'] = pos
+        return super().from_dict(raw, infer_missing=infer_missing)
+
+    def to_dict(self, encode_json=False):
+        """Serialize the packet, flattening position back to top-level keys."""
+        d = super().to_dict(encode_json=encode_json)
+        if isinstance(d, dict):
+            pos = d.pop('position', None)
+            if pos:
+                d.update(pos)
+        return d
+
+    def _build_payload(self):
+        """The payload is the non headers portion of the packet."""
+        time_zulu = self._build_time_zulu()
+        pos = self._position()
+        payload = [
+            '@' if self.timestamp else '!',
+            time_zulu,
+            pos.ddm_latitude(),
+            pos.symbol_table,
+            pos.ddm_longitude(),
+            pos.symbol,
+        ]
+
+        if pos.comment:
+            payload.append(self._filter_for_send(pos.comment))
+
+        self.payload = ''.join(payload)
+
+    def _build_raw(self):
+        self.raw = f'{self.from_call}>{self.to_call},WIDE2-1:{self.payload}'
+
+    @property
+    def human_info(self) -> str:
+        return self._position().human_info()
+
+
+@dataclass(
+    init=False, unsafe_hash=True
+)  # TODO(remove): init=False only needed for the backward-compat GPSPacket.__init__ shim
 class BeaconPacket(GPSPacket):
     _type: str = field(default='BeaconPacket', hash=False)
     packet_type: ClassVar[str] = PACKET_TYPE_BEACON
@@ -433,16 +624,17 @@ class BeaconPacket(GPSPacket):
     def _build_payload(self):
         """The payload is the non headers portion of the packet."""
         time_zulu = self._build_time_zulu()
-        lat = aprslib_util.latitude_to_ddm(self.latitude)
-        lon = aprslib_util.longitude_to_ddm(self.longitude)
+        pos = self._position()
+        lat = pos.ddm_latitude()
+        lon = pos.ddm_longitude()
 
-        self.payload = f'@{time_zulu}z{lat}{self.symbol_table}{lon}'
+        self.payload = f'@{time_zulu}z{lat}{pos.symbol_table}{lon}'
 
-        if self.comment:
-            comment = self._filter_for_send(self.comment)
-            self.payload = f'{self.payload}{self.symbol}{comment}'
+        if pos.comment:
+            comment = self._filter_for_send(pos.comment)
+            self.payload = f'{self.payload}{pos.symbol}{comment}'
         else:
-            self.payload = f'{self.payload}{self.symbol}APRSD Beacon'
+            self.payload = f'{self.payload}{pos.symbol}APRSD Beacon'
 
     def _build_raw(self):
         self.raw = f'{self.from_call}>APZ100:{self.payload}'
@@ -457,26 +649,24 @@ class BeaconPacket(GPSPacket):
 
     @property
     def human_info(self) -> str:
-        h_str = []
-        h_str.append(f'Lat:{self.latitude:03.3f}')
-        h_str.append(f'Lon:{self.longitude:03.3f}')
-        h_str.append(f'{self.comment}')
+        pos = self._position()
+        h_str = [
+            f'Lat:{pos.latitude:03.3f}',
+            f'Lon:{pos.longitude:03.3f}',
+            f'{pos.comment}',
+        ]
         return ' '.join(h_str)
 
 
-@dataclass_json
-@dataclass(unsafe_hash=True)
+@dataclass(
+    init=False, unsafe_hash=True
+)  # TODO(remove): see GPSPacket.__init__ compat note
 class MicEPacket(GPSPacket):
     _type: str = field(default='MicEPacket', hash=False)
     packet_type: ClassVar[str] = PACKET_TYPE_MICE
-    messagecapable: bool = False
     mbits: Optional[str] = None
     mtype: Optional[str] = None
     telemetry: Optional[dict] = field(default=None, hash=False)
-    # in MPH
-    speed: float = 0.00
-    # 0 to 360
-    course: int = 0
 
     @property
     def key(self) -> str:
@@ -489,21 +679,17 @@ class MicEPacket(GPSPacket):
         return f'{h_info} {self.mbits} mbits'
 
 
-@dataclass_json
-@dataclass(unsafe_hash=True)
+@dataclass(
+    init=False, unsafe_hash=True
+)  # TODO(remove): see GPSPacket.__init__ compat note
 class TelemetryPacket(GPSPacket):
     _type: str = field(default='TelemetryPacket', hash=False)
     packet_type: ClassVar[str] = PACKET_TYPE_TELEMETRY
-    messagecapable: bool = False
     mbits: Optional[str] = None
     mtype: Optional[str] = None
     telemetry: Optional[dict] = field(default=None)
     tPARM: Optional[list[str]] = field(default=None, hash=False)  # noqa: N815
     tUNIT: Optional[list[str]] = field(default=None, hash=False)  # noqa: N815
-    # in MPH
-    speed: float = 0.00
-    # 0 to 360
-    course: int = 0
 
     @property
     def key(self) -> str:
@@ -519,18 +705,18 @@ class TelemetryPacket(GPSPacket):
         return f'{h_info} {self.telemetry}'
 
 
-@dataclass_json
-@dataclass(unsafe_hash=True)
+@dataclass(
+    init=False, unsafe_hash=True
+)  # TODO(remove): see GPSPacket.__init__ compat note
 class ObjectPacket(GPSPacket):
     _type: str = field(default='ObjectPacket', hash=False)
     packet_type: ClassVar[str] = PACKET_TYPE_OBJECT
     alive: bool = True
     raw_timestamp: Optional[str] = None
-    symbol: str = field(default='r')
-    # in MPH
-    speed: float = 0.00
-    # 0 to 360
-    course: int = 0
+
+    @classmethod
+    def _position_default(cls) -> Position:
+        return Position(symbol='r')
 
     @classmethod
     def matches(cls, raw: dict) -> bool:
@@ -539,13 +725,14 @@ class ObjectPacket(GPSPacket):
 
     def _build_payload(self):
         time_zulu = self._build_time_zulu()
-        lat = aprslib_util.latitude_to_ddm(self.latitude)
-        long = aprslib_util.longitude_to_ddm(self.longitude)
+        pos = self._position()
+        lat = pos.ddm_latitude()
+        long = pos.ddm_longitude()
 
-        self.payload = f'*{time_zulu}z{lat}{self.symbol_table}{long}{self.symbol}'
+        self.payload = f'*{time_zulu}z{lat}{pos.symbol_table}{long}{pos.symbol}'
 
-        if self.comment:
-            comment = self._filter_for_send(self.comment)
+        if pos.comment:
+            comment = self._filter_for_send(pos.comment)
             self.payload = f'{self.payload}{comment}'
 
     def _build_raw(self):
@@ -564,14 +751,15 @@ class ObjectPacket(GPSPacket):
     @property
     def human_info(self) -> str:
         h_info = super().human_info
-        return f'{h_info} {self.comment}'
+        return f'{h_info} {self._position().comment}'
 
 
-@dataclass(unsafe_hash=True)
+@dataclass(
+    init=False, unsafe_hash=True
+)  # TODO(remove): see GPSPacket.__init__ compat note
 class WeatherPacket(GPSPacket, DataClassJsonMixin):
     _type: str = field(default='WeatherPacket', hash=False)
     packet_type: ClassVar[str] = PACKET_TYPE_WEATHER
-    symbol: str = '_'
     wind_speed: float = 0.00
     wind_direction: int = 0
     wind_gust: float = 0.00
@@ -582,11 +770,12 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
     rain_since_midnight: float = 0.00
     humidity: int = 0
     pressure: float = 0.00
-    comment: Optional[str] = field(default=None)
     luminosity: Optional[int] = field(default=None)
     wx_raw_timestamp: Optional[str] = field(default=None)
-    course: Optional[int] = field(default=None)
-    speed: Optional[float] = field(default=None)
+
+    @classmethod
+    def _position_default(cls) -> Position:
+        return Position(symbol='_')
 
     @classmethod
     def matches(cls, raw: dict) -> bool:
@@ -702,13 +891,14 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
 
         """
         time_zulu = self._build_time_zulu()
+        pos = self._position()
 
         contents = [
-            f'@{time_zulu}z{self.latitude}{self.symbol_table}',
-            f'{self.longitude}{self.symbol}',
+            f'@{time_zulu}z{pos.latitude}{pos.symbol_table}',
+            f'{pos.longitude}{pos.symbol}',
             f'{self.wind_direction:03d}',
             # Speed = sustained 1 minute wind speed in mph
-            f'{self.symbol_table}',
+            f'{pos.symbol_table}',
             f'{self.wind_speed:03.0f}',
             # wind gust (peak wind speed in mph in the last 5 minutes)
             f'g{self.wind_gust:03.0f}',
@@ -725,8 +915,8 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
             # Barometric pressure (in tenths of millibars/tenths of hPascal)
             f'b{self.pressure:05.0f}',
         ]
-        if self.comment:
-            comment = self._filter_for_send(self.comment)
+        if self._position().comment:
+            comment = self._filter_for_send(self._position().comment)
             contents.append(comment)
         self.payload = ''.join(contents)
 

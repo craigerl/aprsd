@@ -62,10 +62,12 @@ class TestPacketLog(unittest.TestCase):
         packet = packets.GPSPacket(
             from_call=fake.FAKE_FROM_CALLSIGN,
             to_call=fake.FAKE_TO_CALLSIGN,
-            latitude=37.7749,
-            longitude=-122.4194,
-            symbol='>',
-            comment='Test GPS comment',
+            position=packets.Position(
+                latitude=37.7749,
+                longitude=-122.4194,
+                symbol='>',
+                comment='Test GPS comment',
+            ),
         )
         packet.send_count = 2
 
@@ -145,10 +147,12 @@ class TestPacketLog(unittest.TestCase):
         packet = packets.GPSPacket(
             from_call=fake.FAKE_FROM_CALLSIGN,
             to_call=fake.FAKE_TO_CALLSIGN,
-            latitude=37.7749,
-            longitude=-122.4194,
-            symbol='>',
-            comment='Test GPS comment',
+            position=packets.Position(
+                latitude=37.7749,
+                longitude=-122.4194,
+                symbol='>',
+                comment='Test GPS comment',
+            ),
         )
         packet.send_count = 2
 
