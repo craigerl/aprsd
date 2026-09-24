@@ -135,7 +135,13 @@ class APRSDFilterThread(APRSDThread):
         super().__init__(thread_name)
         self.packet_queue = packet_queue
         self.packet_count = 0
-        self._client = APRSDClient()
+        # The client is created lazily in loop() rather than here.  Creating
+        # it in __init__ forced every subclass constructor to require a fully
+        # configured APRS-IS connection (APRSDClient() raises
+        # MissingConfigOptionException otherwise), which broke constructing
+        # filter-thread subclasses in unconfigured/test environments even
+        # when the subclass never decodes packets (e.g. MQTTRawPlugin).
+        self._client = None
 
     def filter_packet(self, packet: type[core.Packet]) -> type[core.Packet] | None:
         # Do any packet filtering prior to processing
@@ -153,6 +159,8 @@ class APRSDFilterThread(APRSDThread):
         packet_log.log(packet, packet_count=self.packet_count)
 
     def loop(self):
+        if not self._client:
+            self._client = APRSDClient()
         try:
             pkt = self.packet_queue.get(timeout=self.period)
             self.packet_count += 1
