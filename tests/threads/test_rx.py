@@ -243,6 +243,7 @@ class TestAPRSDFilterThread(unittest.TestCase):
         self.mock_client = self.client_patcher.start()
 
         self.filter_thread = TestFilterThread('TestFilterThread', self.packet_queue)
+        self.filter_thread._client = self.mock_client
 
     def tearDown(self):
         """Clean up after tests."""
@@ -255,6 +256,26 @@ class TestAPRSDFilterThread(unittest.TestCase):
         """Test initialization."""
         self.assertEqual(self.filter_thread.name, 'TestFilterThread')
         self.assertEqual(self.filter_thread.packet_queue, self.packet_queue)
+
+    def test_constructor_without_client(self):
+        """Filter thread must construct without a configured APRS-IS client.
+
+        The client is created lazily in loop(); constructing the thread
+        must not require aprs_network to be configured (this broke plugin
+        subclasses such as MQTTRawPlugin that never decode packets).
+        """
+        self.client_patcher.stop()
+        try:
+
+            class MinimalFilterThread(rx.APRSDFilterThread):
+                def process_packet(self, packet):
+                    pass
+
+            thread = MinimalFilterThread('NoClientThread', self.packet_queue)
+            self.assertIsNone(thread._client)
+            thread.stop()
+        finally:
+            self.client_patcher.start()
 
     def test_filter_packet(self):
         """Test filter_packet() method."""
@@ -336,6 +357,7 @@ class TestAPRSDProcessPacketThread(unittest.TestCase):
         self.mock_client = self.client_patcher.start()
 
         self.process_thread = ConcreteProcessThread(self.packet_queue)
+        self.process_thread._client = self.mock_client
 
     def tearDown(self):
         """Clean up after tests."""
