@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 # Due to a failure in python 3.8
-from typing import Any, List, Optional, Type, TypeVar, Union
+from typing import Any, ClassVar, List, Optional, Type, TypeVar, Union
 
 from aprslib import util as aprslib_util
 from dataclasses_json import (
@@ -78,9 +78,43 @@ def _translate_fields(raw: dict) -> dict:
     return raw
 
 
+# Ordered list of packet classes used to dispatch a raw aprslib dict to the
+# right packet type.  Every concrete Packet subclass auto-registers here via
+# __init_subclass__; the catch-all UnknownPacket is appended explicitly at the
+# bottom of the module so it is always evaluated last.
+_REGISTRY: list[type['Packet']] = []
+
+
+def register_packet_type(cls: type) -> type:
+    """Explicitly register a packet class (used for non-Packet catch-alls)."""
+    _REGISTRY.append(cls)
+    return cls
+
+
 @dataclass_json
 @dataclass(unsafe_hash=True)
 class Packet:
+    # The APRS category string this packet class represents (e.g. 'message').
+    # Empty for abstract base classes.  Concrete subclasses set this and are
+    # automatically registered for factory() dispatch.
+    packet_type: ClassVar[str] = ''
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls.packet_type:
+            _REGISTRY.append(cls)
+
+    @classmethod
+    def matches(cls, raw: dict) -> bool:
+        """Return True if this packet class handles the raw aprslib dict.
+
+        The default implementation matches on the 'format' key.  Subclasses
+        with a more specific classifier (e.g. ack vs reject vs message, or
+        weather detection) override this so the registry lookup is independent
+        of class definition order.
+        """
+        return raw.get('format') == cls.packet_type
+
     _type: str = field(default='Packet', hash=False)
     from_call: Optional[str] = field(default=None)
     to_call: Optional[str] = field(default=None)
@@ -196,6 +230,11 @@ class Packet:
 @dataclass(unsafe_hash=True)
 class AckPacket(Packet):
     _type: str = field(default='AckPacket', hash=False)
+    packet_type: ClassVar[str] = PACKET_TYPE_ACK
+
+    @classmethod
+    def matches(cls, raw: dict) -> bool:
+        return raw.get('format') == PACKET_TYPE_MESSAGE and raw.get('response') == 'ack'
 
     def _build_payload(self):
         self.payload = f':{self.to_call: <9}:ack{self.msgNo}'
@@ -205,6 +244,7 @@ class AckPacket(Packet):
 @dataclass(unsafe_hash=True)
 class BulletinPacket(Packet):
     _type: str = 'BulletinPacket'
+    packet_type: ClassVar[str] = PACKET_TYPE_BULLETIN
     # Holds the encapsulated packet
     bid: Optional[str] = field(default='1')
     message_text: Optional[str] = field(default=None)
@@ -226,7 +266,12 @@ class BulletinPacket(Packet):
 @dataclass(unsafe_hash=True)
 class RejectPacket(Packet):
     _type: str = field(default='RejectPacket', hash=False)
+    packet_type: ClassVar[str] = PACKET_TYPE_REJECT
     response: Optional[str] = field(default=None)
+
+    @classmethod
+    def matches(cls, raw: dict) -> bool:
+        return raw.get('format') == PACKET_TYPE_MESSAGE and raw.get('response') == 'rej'
 
     def __post_init__(self):
         if self.response:
@@ -240,7 +285,16 @@ class RejectPacket(Packet):
 @dataclass(unsafe_hash=True)
 class MessagePacket(Packet):
     _type: str = field(default='MessagePacket', hash=False)
+    packet_type: ClassVar[str] = PACKET_TYPE_MESSAGE
     message_text: Optional[str] = field(default=None)
+
+    @classmethod
+    def matches(cls, raw: dict) -> bool:
+        # ack/reject are more specific classifiers and must take precedence
+        return raw.get('format') == PACKET_TYPE_MESSAGE and raw.get('response') not in (
+            'ack',
+            'rej',
+        )
 
     @property
     def human_info(self) -> str:
@@ -274,6 +328,7 @@ class MessagePacket(Packet):
 @dataclass(unsafe_hash=True)
 class StatusPacket(Packet):
     _type: str = field(default='StatusPacket', hash=False)
+    packet_type: ClassVar[str] = PACKET_TYPE_STATUS
     status: Optional[str] = field(default=None)
     messagecapable: bool = field(default=False)
     comment: Optional[str] = field(default=None)
@@ -373,6 +428,7 @@ class GPSPacket(Packet):
 @dataclass(unsafe_hash=True)
 class BeaconPacket(GPSPacket):
     _type: str = field(default='BeaconPacket', hash=False)
+    packet_type: ClassVar[str] = PACKET_TYPE_BEACON
 
     def _build_payload(self):
         """The payload is the non headers portion of the packet."""
@@ -412,6 +468,7 @@ class BeaconPacket(GPSPacket):
 @dataclass(unsafe_hash=True)
 class MicEPacket(GPSPacket):
     _type: str = field(default='MicEPacket', hash=False)
+    packet_type: ClassVar[str] = PACKET_TYPE_MICE
     messagecapable: bool = False
     mbits: Optional[str] = None
     mtype: Optional[str] = None
@@ -436,6 +493,7 @@ class MicEPacket(GPSPacket):
 @dataclass(unsafe_hash=True)
 class TelemetryPacket(GPSPacket):
     _type: str = field(default='TelemetryPacket', hash=False)
+    packet_type: ClassVar[str] = PACKET_TYPE_TELEMETRY
     messagecapable: bool = False
     mbits: Optional[str] = None
     mtype: Optional[str] = None
@@ -465,6 +523,7 @@ class TelemetryPacket(GPSPacket):
 @dataclass(unsafe_hash=True)
 class ObjectPacket(GPSPacket):
     _type: str = field(default='ObjectPacket', hash=False)
+    packet_type: ClassVar[str] = PACKET_TYPE_OBJECT
     alive: bool = True
     raw_timestamp: Optional[str] = None
     symbol: str = field(default='r')
@@ -472,6 +531,11 @@ class ObjectPacket(GPSPacket):
     speed: float = 0.00
     # 0 to 360
     course: int = 0
+
+    @classmethod
+    def matches(cls, raw: dict) -> bool:
+        # An object that carries a weather payload is a weather packet
+        return raw.get('format') == cls.packet_type and 'weather' not in raw
 
     def _build_payload(self):
         time_zulu = self._build_time_zulu()
@@ -506,6 +570,7 @@ class ObjectPacket(GPSPacket):
 @dataclass(unsafe_hash=True)
 class WeatherPacket(GPSPacket, DataClassJsonMixin):
     _type: str = field(default='WeatherPacket', hash=False)
+    packet_type: ClassVar[str] = PACKET_TYPE_WEATHER
     symbol: str = '_'
     wind_speed: float = 0.00
     wind_direction: int = 0
@@ -522,6 +587,18 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
     wx_raw_timestamp: Optional[str] = field(default=None)
     course: Optional[int] = field(default=None)
     speed: Optional[float] = field(default=None)
+
+    @classmethod
+    def matches(cls, raw: dict) -> bool:
+        # Weather data arrives via several aprslib 'format' values.
+        return (
+            raw.get('format') == PACKET_TYPE_WX
+            or (
+                raw.get('format') == PACKET_TYPE_UNCOMPRESSED
+                and raw.get('symbol') == '_'
+            )
+            or (raw.get('format') == PACKET_TYPE_OBJECT and 'weather' in raw)
+        )
 
     def _translate(self, raw: dict) -> dict:
         # aprslib returns the weather data in a 'weather' key
@@ -660,8 +737,9 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
 @dataclass(unsafe_hash=True)
 class ThirdPartyPacket(Packet, DataClassJsonMixin):
     _type: str = 'ThirdPartyPacket'
+    packet_type: ClassVar[str] = PACKET_TYPE_THIRDPARTY
     # Holds the encapsulated packet
-    subpacket: Optional[type[Packet]] = field(default=None, compare=True, hash=False)
+    subpacket: Optional[Packet] = field(default=None, compare=True, hash=False)
 
     def __repr__(self):
         """Build the repr version of the packet."""
@@ -677,7 +755,13 @@ class ThirdPartyPacket(Packet, DataClassJsonMixin):
     @classmethod
     def from_dict(cls: Type[A], kvs: Json, *, infer_missing=False) -> A:
         obj = super().from_dict(kvs)
-        obj.subpacket = factory(obj.subpacket)  # type: ignore
+        sub = kvs.get('subpacket')
+        if isinstance(sub, dict):
+            # Disptach the raw sub-packet dict through factory() so the
+            # concrete subtype (e.g. MessagePacket) is preserved.  We use the
+            # original input rather than obj.subpacket, which dataclasses-json
+            # may have pre-built as a base Packet.
+            obj.subpacket = factory(sub)  # type: ignore
         return obj
 
     @property
@@ -693,6 +777,7 @@ class ThirdPartyPacket(Packet, DataClassJsonMixin):
 
 @dataclass_json(undefined=Undefined.INCLUDE)
 @dataclass(unsafe_hash=True)
+@register_packet_type
 class UnknownPacket:
     """Catchall Packet for things we don't know about.
 
@@ -716,6 +801,11 @@ class UnknownPacket:
     # Was the packet previously processed (for dupe checking)
     processed: bool = field(repr=False, default=False, compare=False, hash=False)
 
+    @classmethod
+    def matches(cls, raw: dict) -> bool:
+        """Catch-all: always matches, so it is evaluated last."""
+        return True
+
     @property
     def key(self) -> str:
         """Build a key for finding this packet in a dict."""
@@ -726,61 +816,33 @@ class UnknownPacket:
         return str(self.unknown_fields)
 
 
+# Mapping of packet_type category string -> class, derived from the registry
+# so it stays in sync automatically.
 TYPE_LOOKUP: dict[str, type[Packet]] = {
-    PACKET_TYPE_BULLETIN: BulletinPacket,
-    PACKET_TYPE_WX: WeatherPacket,
-    PACKET_TYPE_WEATHER: WeatherPacket,
-    PACKET_TYPE_MESSAGE: MessagePacket,
-    PACKET_TYPE_ACK: AckPacket,
-    PACKET_TYPE_REJECT: RejectPacket,
-    PACKET_TYPE_MICE: MicEPacket,
-    PACKET_TYPE_OBJECT: ObjectPacket,
-    PACKET_TYPE_STATUS: StatusPacket,
-    PACKET_TYPE_BEACON: BeaconPacket,
-    PACKET_TYPE_UNKNOWN: UnknownPacket,
-    PACKET_TYPE_THIRDPARTY: ThirdPartyPacket,
-    PACKET_TYPE_TELEMETRY: TelemetryPacket,
+    cls.packet_type: cls for cls in _REGISTRY if cls.packet_type
 }
+# The catch-all doesn't declare a ClassVar packet_type (it has a runtime
+# packet_type field instead), so add it explicitly.
+TYPE_LOOKUP[PACKET_TYPE_UNKNOWN] = UnknownPacket
 
 
 def get_packet_type(packet: dict) -> str:
-    """Decode the packet type from the packet."""
+    """Decode the packet type from the packet.
 
-    pkt_format = packet.get('format')
-    msg_response = packet.get('response')
-    packet_type = PACKET_TYPE_UNKNOWN
-    if pkt_format == 'message' and msg_response == 'ack':
-        packet_type = PACKET_TYPE_ACK
-    elif pkt_format == 'message' and msg_response == 'rej':
-        packet_type = PACKET_TYPE_REJECT
-    elif pkt_format == 'message':
-        packet_type = PACKET_TYPE_MESSAGE
-    elif pkt_format == 'mic-e':
-        packet_type = PACKET_TYPE_MICE
-    elif pkt_format == 'object':
-        packet_type = PACKET_TYPE_OBJECT
-    elif pkt_format == 'status':
-        packet_type = PACKET_TYPE_STATUS
-    elif pkt_format == PACKET_TYPE_BULLETIN:
-        packet_type = PACKET_TYPE_BULLETIN
-    elif pkt_format == PACKET_TYPE_BEACON:
-        packet_type = PACKET_TYPE_BEACON
-    elif pkt_format == PACKET_TYPE_TELEMETRY:
-        packet_type = PACKET_TYPE_TELEMETRY
-    elif pkt_format == PACKET_TYPE_WX:
-        packet_type = PACKET_TYPE_WEATHER
-    elif pkt_format == PACKET_TYPE_UNCOMPRESSED:
-        if packet.get('symbol') == '_':
-            packet_type = PACKET_TYPE_WEATHER
-    elif pkt_format == PACKET_TYPE_THIRDPARTY:
-        packet_type = PACKET_TYPE_THIRDPARTY
-
-    if packet_type == PACKET_TYPE_UNKNOWN:
-        if 'latitude' in packet:
-            packet_type = PACKET_TYPE_BEACON
-        else:
-            packet_type = PACKET_TYPE_UNKNOWN
-    return packet_type
+    Returns the packet_type of the first registered class whose matches()
+    classifier accepts the raw packet dict.  An unrecognized packet that
+    still carries a position is treated as a beacon (matching the original
+    get_packet_type() fallback).
+    """
+    for cls in _REGISTRY:
+        if cls is UnknownPacket:
+            # The catch-all is evaluated explicitly below
+            continue
+        if cls.matches(packet):
+            return cls.packet_type
+    if 'latitude' in packet:
+        return PACKET_TYPE_BEACON
+    return PACKET_TYPE_UNKNOWN
 
 
 def is_message_packet(packet: dict) -> bool:
@@ -796,27 +858,27 @@ def is_mice_packet(packet: dict[Any, Any]) -> bool:
 
 
 # Allowlist of class names that factory() may deserialise from disk.
-# Built lazily from TYPE_LOOKUP so it stays in sync automatically.
+# Built lazily from the registry so it stays in sync automatically.
 _KNOWN_PACKET_TYPE_NAMES: set[str] = set()
+_PACKET_TYPE_NAME_LOOKUP: dict[str, type] = {}
 
 
 def _known_packet_type_names() -> set[str]:
-    global _KNOWN_PACKET_TYPE_NAMES
+    global _KNOWN_PACKET_TYPE_NAMES, _PACKET_TYPE_NAME_LOOKUP
     if not _KNOWN_PACKET_TYPE_NAMES:
-        _KNOWN_PACKET_TYPE_NAMES = {cls.__name__ for cls in TYPE_LOOKUP.values()} | {
-            'UnknownPacket'
-        }
+        _KNOWN_PACKET_TYPE_NAMES = {cls.__name__ for cls in _REGISTRY}
+        _PACKET_TYPE_NAME_LOOKUP = {cls.__name__: cls for cls in _REGISTRY}
     return _KNOWN_PACKET_TYPE_NAMES
 
 
-def factory(raw_packet: dict[Any, Any]) -> type[Packet]:
-    """Factory method to create a packet from a raw packet string."""
+def factory(raw_packet: dict[Any, Any]) -> Packet | UnknownPacket:
+    """Factory method to create a packet from a raw packet dict."""
     raw = raw_packet
     if '_type' in raw:
         type_name = raw['_type']
         if type_name not in _known_packet_type_names():
             raise ValueError(f'Unknown packet type {type_name!r} in saved data')
-        cls = globals()[type_name]
+        cls = _PACKET_TYPE_NAME_LOOKUP[type_name]
         return cls.from_dict(raw)
 
     raw['raw_dict'] = raw.copy()
@@ -826,27 +888,4 @@ def factory(raw_packet: dict[Any, Any]) -> type[Packet]:
 
     raw['packet_type'] = packet_type
     packet_class = TYPE_LOOKUP[packet_type]
-    if packet_type == PACKET_TYPE_WX:
-        # the weather information is in a dict
-        # this brings those values out to the outer dict
-        packet_class = WeatherPacket
-    elif packet_type == PACKET_TYPE_OBJECT and 'weather' in raw:
-        packet_class = WeatherPacket
-    elif packet_type == PACKET_TYPE_UNKNOWN:
-        # Try and figure it out here
-        if 'latitude' in raw:
-            packet_class = GPSPacket
-        else:
-            # LOG.warning(raw)
-            packet_class = UnknownPacket
-
-    raw.get('addresse', raw.get('to_call'))
-
-    # TODO: Find a global way to enable/disable this
-    # LOGU.opt(colors=True).info(
-    #     f"factory(<green>{packet_type: <8}</green>):"
-    #     f"(<red>{packet_class.__name__: <13}</red>): "
-    #     f"<light-blue>{raw.get('from_call'): <9}</light-blue> -> <cyan>{to: <9}</cyan>")
-    # LOG.info(raw.get('msgNo'))
-
-    return packet_class().from_dict(raw)  # type: ignore
+    return packet_class().from_dict(raw)
