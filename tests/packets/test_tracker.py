@@ -266,9 +266,11 @@ class TestPacketTrack(unittest.TestCase):
         beacon = core.BeaconPacket(
             from_call='KFAKE',
             to_call='APRS',
-            latitude=38.0,
-            longitude=-121.0,
-            comment='Test Beacon',
+            position=core.Position(
+                latitude=38.0,
+                longitude=-121.0,
+                comment='Test Beacon',
+            ),
         )
         beacon.prepare(create_msg_number=True)
         initial_total = pt.total_tracked
@@ -285,9 +287,11 @@ class TestPacketTrack(unittest.TestCase):
         beacon = core.BeaconPacket(
             from_call='KFAKE',
             to_call='APDW16',
-            latitude=38.0,
-            longitude=-121.0,
-            comment='WebChat Beacon',
+            position=core.Position(
+                latitude=38.0,
+                longitude=-121.0,
+                comment='WebChat Beacon',
+            ),
         )
         beacon.retry_count = 3  # Even with retries set, don't track
         beacon.prepare(create_msg_number=True)

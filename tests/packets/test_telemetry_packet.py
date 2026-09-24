@@ -4,7 +4,7 @@ import unittest
 import aprslib
 
 from aprsd import packets
-from aprsd.packets.core import TelemetryPacket
+from aprsd.packets.core import Position, TelemetryPacket
 from tests import fake
 
 
@@ -16,16 +16,19 @@ class TestTelemetryPacket(unittest.TestCase):
         packet = TelemetryPacket(
             from_call=fake.FAKE_FROM_CALLSIGN,
             to_call=fake.FAKE_TO_CALLSIGN,
-            latitude=37.7749,
-            longitude=-122.4194,
-            speed=25.5,
-            course=180,
+            position=Position(
+                latitude=37.7749,
+                longitude=-122.4194,
+                speed=25.5,
+                course=180,
+            ),
             mbits='test',
             mtype='test_type',
             telemetry={'key': 'value'},
             tPARM=['parm1', 'parm2'],
             tUNIT=['unit1', 'unit2'],
         )
+
         json_str = packet.to_json()
         self.assertIsInstance(json_str, str)
         json_dict = json.loads(json_str)
@@ -59,10 +62,10 @@ class TestTelemetryPacket(unittest.TestCase):
         self.assertIsInstance(packet, TelemetryPacket)
         self.assertEqual(packet.from_call, fake.FAKE_FROM_CALLSIGN)
         self.assertEqual(packet.to_call, fake.FAKE_TO_CALLSIGN)
-        self.assertEqual(packet.latitude, 37.7749)
-        self.assertEqual(packet.longitude, -122.4194)
-        self.assertEqual(packet.speed, 25.5)
-        self.assertEqual(packet.course, 180)
+        self.assertEqual(packet.position.latitude, 37.7749)
+        self.assertEqual(packet.position.longitude, -122.4194)
+        self.assertEqual(packet.position.speed, 25.5)
+        self.assertEqual(packet.position.course, 180)
         self.assertEqual(packet.mbits, 'test')
         self.assertEqual(packet.mtype, 'test_type')
 
@@ -71,25 +74,28 @@ class TestTelemetryPacket(unittest.TestCase):
         original = TelemetryPacket(
             from_call=fake.FAKE_FROM_CALLSIGN,
             to_call=fake.FAKE_TO_CALLSIGN,
-            latitude=37.7749,
-            longitude=-122.4194,
-            speed=25.5,
-            course=180,
+            position=Position(
+                latitude=37.7749,
+                longitude=-122.4194,
+                speed=25.5,
+                course=180,
+            ),
             mbits='test',
             mtype='test_type',
             telemetry={'key': 'value'},
             tPARM=['parm1', 'parm2'],
             tUNIT=['unit1', 'unit2'],
         )
+
         json_str = original.to_json()
         packet_dict = json.loads(json_str)
         restored = TelemetryPacket.from_dict(packet_dict)
         self.assertEqual(restored.from_call, original.from_call)
         self.assertEqual(restored.to_call, original.to_call)
-        self.assertEqual(restored.latitude, original.latitude)
-        self.assertEqual(restored.longitude, original.longitude)
-        self.assertEqual(restored.speed, original.speed)
-        self.assertEqual(restored.course, original.course)
+        self.assertEqual(restored.position.latitude, original.position.latitude)
+        self.assertEqual(restored.position.longitude, original.position.longitude)
+        self.assertEqual(restored.position.speed, original.position.speed)
+        self.assertEqual(restored.position.course, original.position.course)
         self.assertEqual(restored.mbits, original.mbits)
         self.assertEqual(restored.mtype, original.mtype)
         self.assertEqual(restored._type, original._type)

@@ -540,10 +540,12 @@ class BeaconSendThread(aprsd_threads.APRSDThread):
         pkt = core.BeaconPacket(
             from_call=CONF.callsign,
             to_call='APRS',
-            latitude=self.latitude,
-            longitude=self.longitude,
-            comment='APRSD GPS Beacon',
-            symbol=CONF.beacon_symbol,
+            position=core.Position(
+                latitude=self.latitude,
+                longitude=self.longitude,
+                comment='APRSD GPS Beacon',
+                symbol=CONF.beacon_symbol,
+            ),
         )
         try:
             # Only send it once

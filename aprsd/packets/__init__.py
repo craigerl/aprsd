@@ -8,6 +8,7 @@ from aprsd.packets.core import (  # noqa: F401
     MicEPacket,
     ObjectPacket,
     Packet,
+    Position,
     RejectPacket,
     StatusPacket,
     ThirdPartyPacket,

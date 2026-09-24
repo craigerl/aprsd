@@ -151,8 +151,8 @@ class TestPacketBase(unittest.TestCase):
         self.assertEqual(3.0, packet.wind_speed)
         self.assertEqual(232, packet.wind_direction)
         self.assertEqual(6.0, packet.wind_gust)
-        self.assertEqual(29.899, packet.latitude)
-        self.assertEqual(-84.39616666666667, packet.longitude)
+        self.assertEqual(29.899, packet.position.latitude)
+        self.assertEqual(-84.39616666666667, packet.position.longitude)
 
     def test_mice_factory(self):
         packet_raw = 'kh2sr-15>S7TSYR,WIDE1-1,WIDE2-1,qAO,KO6KL-1:`1`7\x1c\x1c.#/`"4,}QuirkyQRP 4.6V  35.3C S06'
@@ -204,11 +204,13 @@ class TestPacketBase(unittest.TestCase):
         packet = packets.BeaconPacket(
             from_call=fake.FAKE_FROM_CALLSIGN,
             to_call=fake.FAKE_TO_CALLSIGN,
-            latitude=lat,
-            longitude=lon,
+            position=packets.Position(
+                latitude=lat,
+                longitude=lon,
+                symbol='>',
+                comment=comment,
+            ),
             timestamp=ts,
-            symbol='>',
-            comment=comment,
         )
 
         expected_lat = aprslib_util.latitude_to_ddm(lat)
@@ -224,10 +226,12 @@ class TestPacketBase(unittest.TestCase):
         packet = packets.BeaconPacket(
             from_call=fake.FAKE_FROM_CALLSIGN,
             to_call=fake.FAKE_TO_CALLSIGN,
-            latitude=lat,
-            longitude=lon,
+            position=packets.Position(
+                latitude=lat,
+                longitude=lon,
+                symbol='>',
+            ),
             timestamp=ts,
-            symbol='>',
         )
         empty_comment = 'APRSD Beacon'
 
