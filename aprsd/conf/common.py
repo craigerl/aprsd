@@ -220,10 +220,9 @@ enabled_plugins_opts = [
         'enabled_plugins',
         default=[
             'aprsd.plugins.fortune.FortunePlugin',
-            'aprsd.plugins.location.LocationPlugin',
             'aprsd.plugins.ping.PingPlugin',
             'aprsd.plugins.time.TimePlugin',
-            'aprsd.plugins.weather.OWMWeatherPlugin',
+            'aprsd.plugins.weather.USWeatherPlugin',
             'aprsd.plugins.version.VersionPlugin',
             'aprsd.plugins.notify.NotifySeenPlugin',
         ],
