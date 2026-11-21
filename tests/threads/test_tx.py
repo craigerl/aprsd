@@ -186,8 +186,10 @@ class TestSendFunctions(unittest.TestCase):
     def test_send_packet_direct(self, mock_send_direct):
         """Test _send_packet() with direct send."""
         packet = fake.fake_packet()
-        tx._send_packet(packet, direct=True)
+        mock_send_direct.return_value = False
+        result = tx._send_packet(packet, direct=True)
         mock_send_direct.assert_called_with(packet, aprs_client=None)
+        self.assertFalse(result)
 
     @mock.patch('aprsd.threads.tx._get_ack_scheduler')
     def test_send_ack_threaded(self, mock_get_scheduler):
@@ -223,8 +225,10 @@ class TestSendFunctions(unittest.TestCase):
     def test_send_ack_direct(self, mock_send_direct):
         """Test _send_ack() with direct send."""
         packet = fake.fake_ack_packet()
-        tx._send_ack(packet, direct=True)
+        mock_send_direct.return_value = True
+        result = tx._send_ack(packet, direct=True)
         mock_send_direct.assert_called_with(packet, aprs_client=None)
+        self.assertTrue(result)
 
     @mock.patch('aprsd.threads.tx.APRSDClient')
     @mock.patch('aprsd.threads.tx.packet_log')

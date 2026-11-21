@@ -6,9 +6,12 @@ non-asyncio KISSInterface implementation.
 """
 
 import datetime
+import errno
 import logging
 import select
 import socket
+import threading
+import time
 from typing import Any
 
 import aprslib
@@ -40,6 +43,10 @@ class TCPKISSDriver(KISSDriver):
     client_name = None
     socket = None
     path = None
+    # Reconnect when the TNC restarts and this socket dies.
+    # read_frame already referenced this and never defined it.
+    auto_reconnect = True
+    _reconnect_lock = None
 
     def __new__(cls, *args, **kwargs):
         """This magic turns this into a singleton."""
@@ -58,6 +65,8 @@ class TCPKISSDriver(KISSDriver):
         # keepalive is set in parent KISSDriver.__init__()
         # This is initialized in setup_connection()
         self.socket = None
+        if self._reconnect_lock is None:
+            self._reconnect_lock = threading.Lock()
 
     @staticmethod
     def transport() -> str:
@@ -94,6 +103,64 @@ class TCPKISSDriver(KISSDriver):
             except Exception as e:
                 LOG.error(f'Error closing TCP KISS socket: {e}')
 
+    def _drop_socket(self) -> None:
+        """Forget the current socket. The peer is gone or we are replacing it."""
+        self._connected = False
+        sock = self.socket
+        self.socket = None
+        if sock is not None:
+            try:
+                sock.close()
+            except Exception:
+                pass
+
+    def _socket_is_dead(self, exc: BaseException) -> bool:
+        if isinstance(
+            exc, (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)
+        ):
+            return True
+        return isinstance(exc, OSError) and getattr(exc, 'errno', None) in {
+            errno.EPIPE,
+            errno.ECONNRESET,
+            errno.ENOTCONN,
+            errno.EBADF,
+            errno.ECONNABORTED,
+        }
+
+    def _reconnect(self, attempts: int = 5) -> bool:
+        """Close a dead KISS socket and connect again, once per second."""
+        if self._reconnect_lock is None:
+            self._reconnect_lock = threading.Lock()
+        with self._reconnect_lock:
+            self._drop_socket()
+            for attempt in range(1, attempts + 1):
+                if self.connect():
+                    LOG.warning(
+                        'Reconnected TCP KISS to '
+                        f'{CONF.kiss_tcp.host}:{CONF.kiss_tcp.port} '
+                        f'(attempt {attempt})'
+                    )
+                    return True
+                if attempt < attempts:
+                    time.sleep(1)
+        LOG.error(f'TCP KISS reconnect failed after {attempts} attempts')
+        return False
+
+    def _send_bytes(self, frame_kiss: bytes) -> None:
+        """Send one KISS frame, reconnecting once if the socket has died."""
+        if not self._connected or self.socket is None:
+            if not (self.auto_reconnect and self._reconnect()):
+                raise aprslib.ConnectionDrop('KISS interface not connected')
+        try:
+            self.socket.send(frame_kiss)
+        except OSError as exc:
+            if not self._socket_is_dead(exc) or not self.auto_reconnect:
+                raise
+            LOG.warning(f'KISS send failed ({exc}); reconnecting')
+            if not self._reconnect():
+                raise
+            self.socket.send(frame_kiss)
+
     def send(self, packet: core.Packet) -> bool:
         """Send an APRS packet.
 
@@ -106,8 +173,9 @@ class TCPKISSDriver(KISSDriver):
         Raises:
             Exception: If not connected or send fails
         """
-        if not self.socket:
-            raise Exception('KISS interface not initialized')
+        if not self._connected or not self.socket:
+            if not (self.auto_reconnect and self._reconnect()):
+                raise Exception('KISS interface not initialized')
 
         payload = None
         path = self.path
@@ -135,7 +203,7 @@ class TCPKISSDriver(KISSDriver):
         frame_kiss = b''.join(
             [kiss_constants.FEND, command.value, frame_escaped, kiss_constants.FEND]
         )
-        self.socket.send(frame_kiss)
+        self._send_bytes(frame_kiss)
         # Update last packet sent time
         self.last_packet_sent = datetime.datetime.now()
         # Increment packets sent counter
@@ -278,14 +346,12 @@ class TCPKISSDriver(KISSDriver):
 
             try:
                 short_buf = self.socket.recv(1024)
-                # sock.recv returns empty if the connection drops
+                # Empty means the peer closed the socket, not "no data yet".
+                # A non-blocking socket raises BlockingIOError when it has
+                # nothing to read. b'' is an orderly shutdown in both modes.
                 if not short_buf:
-                    if not blocking:
-                        # We could just not be blocking, so empty is expected
-                        continue
-                    else:
-                        self.logger.error('socket.recv(): returned empty')
-                        raise aprslib.ConnectionDrop('connection dropped')
+                    LOG.warning('KISS peer closed the connection')
+                    raise aprslib.ConnectionDrop('connection dropped')
 
                 raw_frame = self.fix_raw_frame(short_buf)
                 return ax25frame.Frame.from_bytes(raw_frame)
@@ -295,6 +361,11 @@ class TCPKISSDriver(KISSDriver):
                     if not blocking:
                         if len(short_buf) == 0:
                             break
+            except aprslib.ConnectionDrop:
+                if self.auto_reconnect and self._reconnect():
+                    continue
+                self._connected = False
+                raise
             except socket.timeout:
                 continue
             except (KeyboardInterrupt, SystemExit):
