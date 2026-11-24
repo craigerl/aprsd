@@ -978,7 +978,9 @@ class UnknownPacket:
     _type: str = 'UnknownPacket'
     from_call: Optional[str] = field(default=None)
     to_call: Optional[str] = field(default=None)
-    msgNo: str = field(default_factory=_init_msgNo)  # noqa: N815
+    # msgNo is only assigned on send (prepare()); inbound/unknown packets must
+    # not consume the shared outgoing message counter (fixes #317).
+    msgNo: Optional[str] = field(default=None)  # noqa: N815
     format: Optional[str] = field(default=None)
     timestamp: float = field(default_factory=_init_timestamp, compare=False, hash=False)
     raw: Optional[str] = field(default=None)
