@@ -1,4 +1,5 @@
 import datetime
+import errno
 import socket
 import unittest
 from unittest import mock
@@ -37,6 +38,7 @@ class TestTCPKISSDriver(unittest.TestCase):
 
         # Create an instance of the driver
         self.driver = TCPKISSDriver()
+        self.driver.auto_reconnect = True
 
     def tearDown(self):
         self.conf_patcher.stop()
@@ -195,6 +197,7 @@ class TestTCPKISSDriver(unittest.TestCase):
 
         # Set up the driver
         self.driver.socket = self.mock_socket
+        self.driver._connected = True
         self.driver.path = ['WIDE1-1', 'WIDE2-1']
 
         # Create a mock packet
@@ -225,11 +228,148 @@ class TestTCPKISSDriver(unittest.TestCase):
     def test_send_with_no_socket(self):
         """Test send raises exception when socket not initialized."""
         self.driver.socket = None
+        self.driver.auto_reconnect = False
         mock_packet = mock.MagicMock(spec=core.Packet)
 
         with self.assertRaises(Exception) as context:
             self.driver.send(mock_packet)
         self.assertIn('KISS interface not initialized', str(context.exception))
+
+    @mock.patch('aprsd.client.drivers.tcpkiss.ax25frame.Frame.ui')
+    def test_send_retries_after_broken_pipe(self, mock_frame_ui):
+        """A dead KISS socket is reconnected and the frame is sent again."""
+        mock_frame = mock.MagicMock()
+        mock_frame.__bytes__ = mock.MagicMock(return_value=b'mock_frame_data')
+        mock_frame_ui.return_value = mock_frame
+
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.driver.path = ['WIDE1-1', 'WIDE2-1']
+        self.mock_socket.send.side_effect = [BrokenPipeError(), None]
+
+        mock_packet = mock.MagicMock(spec=core.Packet)
+        mock_packet.path = None
+        mock_packet.payload = 'Test'
+
+        result = self.driver.send(mock_packet)
+
+        self.assertTrue(result)
+        self.assertEqual(self.mock_socket.send.call_count, 2)
+        self.assertTrue(self.driver._connected)
+
+    @mock.patch('aprsd.client.drivers.tcpkiss.time.sleep')
+    @mock.patch('aprsd.client.drivers.tcpkiss.ax25frame.Frame.ui')
+    def test_send_raises_when_reconnect_fails(self, mock_frame_ui, mock_sleep):
+        """A failed reconnect leaves the send as a failure."""
+        mock_frame = mock.MagicMock()
+        mock_frame.__bytes__ = mock.MagicMock(return_value=b'mock_frame_data')
+        mock_frame_ui.return_value = mock_frame
+
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.driver.path = ['WIDE1-1', 'WIDE2-1']
+        self.mock_socket.send.side_effect = BrokenPipeError()
+        self.mock_socket.connect.side_effect = OSError('tnc down')
+
+        mock_packet = mock.MagicMock(spec=core.Packet)
+        mock_packet.path = None
+        mock_packet.payload = 'Test'
+
+        with self.assertRaises(BrokenPipeError):
+            self.driver.send(mock_packet)
+        self.assertFalse(self.driver._connected)
+        self.assertEqual(mock_sleep.call_count, 4)
+
+    def test_read_frame_empty_recv_reconnects(self):
+        """recv() == b'' is the peer closing, including when non-blocking."""
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.mock_select.select.side_effect = [
+            ([self.mock_socket], [], []),
+            ([], [], []),
+        ]
+        self.mock_socket.recv.return_value = b''
+
+        result = self.driver.read_frame(blocking=False)
+
+        self.assertIsNone(result)
+        self.assertTrue(self.driver._connected)
+        self.mock_socket.connect.assert_called()
+
+    def test_read_frame_empty_recv_without_reconnect_raises(self):
+        """With reconnect off, a peer close is reported to the caller."""
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.driver.auto_reconnect = False
+        self.mock_select.select.return_value = ([self.mock_socket], [], [])
+        self.mock_socket.recv.return_value = b''
+
+        with self.assertRaises(aprslib.ConnectionDrop):
+            self.driver.read_frame(blocking=False)
+        self.assertFalse(self.driver._connected)
+
+    def test_read_frame_connection_reset_reconnects(self):
+        """A TCP reset on read reconnects instead of spinning."""
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.mock_select.select.side_effect = [
+            ([self.mock_socket], [], []),
+            ([], [], []),
+        ]
+        self.mock_socket.recv.side_effect = ConnectionResetError()
+
+        result = self.driver.read_frame(blocking=False)
+
+        self.assertIsNone(result)
+        self.assertTrue(self.driver._connected)
+        self.mock_socket.connect.assert_called()
+        # Once at the start of read_frame, again on the new socket.
+        self.assertEqual(self.mock_socket.setblocking.call_count, 2)
+        self.mock_socket.setblocking.assert_called_with(0)
+
+    def test_read_frame_connection_reset_without_reconnect_raises(self):
+        """With reconnect off, a TCP reset is reported to the caller."""
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.driver.auto_reconnect = False
+        self.mock_select.select.return_value = ([self.mock_socket], [], [])
+        self.mock_socket.recv.side_effect = ConnectionResetError()
+
+        with self.assertRaises(aprslib.ConnectionDrop):
+            self.driver.read_frame(blocking=False)
+        self.assertFalse(self.driver._connected)
+        self.mock_socket.connect.assert_not_called()
+
+    @mock.patch('aprsd.client.drivers.tcpkiss.ax25frame.Frame.ui')
+    def test_send_retries_when_socket_attribute_is_cleared(self, mock_frame_ui):
+        """A send holds the socket it checked, then retries if that socket dies."""
+        mock_frame = mock.MagicMock()
+        mock_frame.__bytes__ = mock.MagicMock(return_value=b'mock_frame_data')
+        mock_frame_ui.return_value = mock_frame
+
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.driver.path = ['WIDE1-1', 'WIDE2-1']
+
+        def close_underneath(frame):
+            if close_underneath.calls == 0:
+                close_underneath.calls += 1
+                self.driver.socket = None
+                raise OSError(errno.EBADF, 'Bad file descriptor')
+            close_underneath.calls += 1
+            return None
+
+        close_underneath.calls = 0
+        self.mock_socket.send.side_effect = close_underneath
+
+        mock_packet = mock.MagicMock(spec=core.Packet)
+        mock_packet.path = None
+        mock_packet.payload = 'Test'
+
+        result = self.driver.send(mock_packet)
+
+        self.assertTrue(result)
+        self.assertEqual(self.mock_socket.send.call_count, 2)
 
     def test_stats(self):
         """Test stats method returns correct data."""

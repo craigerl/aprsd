@@ -76,11 +76,10 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
     collector.PacketCollector().tx(packet)
     if isinstance(packet, core.AckPacket):
         if CONF.enable_sending_ack_packets:
-            _send_ack(packet, direct=direct, aprs_client=aprs_client)
-        else:
-            LOG.info('Sending ack packets is disabled. Not sending AckPacket.')
-    else:
-        _send_packet(packet, direct=direct, aprs_client=aprs_client)
+            return _send_ack(packet, direct=direct, aprs_client=aprs_client)
+        LOG.info('Sending ack packets is disabled. Not sending AckPacket.')
+        return False
+    return _send_packet(packet, direct=direct, aprs_client=aprs_client)
 
 
 @msg_throttle_decorator.sleep_and_retry
@@ -97,8 +96,9 @@ def _send_packet(packet: core.Packet, direct=False, aprs_client=None):
             # Fallback: scheduler failed to start — send directly in a thread
             thread = SendPacketThread(packet=packet)
             thread.start()
-    else:
-        _send_direct(packet, aprs_client=aprs_client)
+        # Queued. The scheduler sends it later, so this is not a wire ack.
+        return True
+    return _send_direct(packet, aprs_client=aprs_client)
 
 
 @ack_throttle_decorator.sleep_and_retry
@@ -112,8 +112,8 @@ def _send_ack(packet: core.AckPacket, direct=False, aprs_client=None):
             # Fallback: scheduler failed to start — send directly in a thread
             thread = SendAckThread(packet=packet)
             thread.start()
-    else:
-        _send_direct(packet, aprs_client=aprs_client)
+        return True
+    return _send_direct(packet, aprs_client=aprs_client)
 
 
 @msg_throttle_decorator.sleep_and_retry
