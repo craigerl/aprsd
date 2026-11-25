@@ -135,12 +135,21 @@ class TCPKISSDriver(KISSDriver):
             self._drop_socket()
             for attempt in range(1, attempts + 1):
                 if self.connect():
-                    LOG.warning(
-                        'Reconnected TCP KISS to '
-                        f'{CONF.kiss_tcp.host}:{CONF.kiss_tcp.port} '
-                        f'(attempt {attempt})'
-                    )
-                    return True
+                    # connect() leaves a 0.1s timeout. The read loop
+                    # expects a non-blocking socket.
+                    try:
+                        if self.socket is not None:
+                            self.socket.setblocking(0)
+                    except OSError as exc:
+                        LOG.warning(f'KISS socket would not go non-blocking ({exc})')
+                        self._drop_socket()
+                    else:
+                        LOG.warning(
+                            'Reconnected TCP KISS to '
+                            f'{CONF.kiss_tcp.host}:{CONF.kiss_tcp.port} '
+                            f'(attempt {attempt})'
+                        )
+                        return True
                 if attempt < attempts:
                     time.sleep(1)
         LOG.error(f'TCP KISS reconnect failed after {attempts} attempts')

@@ -323,6 +323,9 @@ class TestTCPKISSDriver(unittest.TestCase):
         self.assertIsNone(result)
         self.assertTrue(self.driver._connected)
         self.mock_socket.connect.assert_called()
+        # Once at the start of read_frame, again on the new socket.
+        self.assertEqual(self.mock_socket.setblocking.call_count, 2)
+        self.mock_socket.setblocking.assert_called_with(0)
 
     def test_read_frame_connection_reset_without_reconnect_raises(self):
         """With reconnect off, a TCP reset is reported to the caller."""
