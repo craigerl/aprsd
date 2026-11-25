@@ -128,7 +128,11 @@ class TCPKISSDriver(KISSDriver):
         }
 
     def _reconnect(self, attempts: int = 5) -> bool:
-        """Close a dead KISS socket and connect again, once per second."""
+        """Close a dead KISS socket and connect again.
+
+        Waits one second between attempts. Each connect can block for
+        up to five seconds, so a dead host can take about half a minute.
+        """
         if self._reconnect_lock is None:
             self._reconnect_lock = threading.Lock()
         with self._reconnect_lock:
