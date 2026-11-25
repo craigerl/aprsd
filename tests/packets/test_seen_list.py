@@ -1,4 +1,6 @@
 import datetime
+import shutil
+import tempfile
 import unittest
 from unittest import mock
 
@@ -117,6 +119,32 @@ class TestSeenList(unittest.TestCase):
         self.assertNotIn('AAA1', sl.data)
         self.assertIn('CCC3', sl.data)
         self.assertIn('DDD4', sl.data)
+
+    def test_rx_after_flush_still_updates(self):
+        """flush() leaves a plain dict; rx() must repair it, not raise."""
+        sl = seen_list.SeenList()
+        sl.rx(fake.fake_packet(fromcall='AAA1'))
+        temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp_dir)
+        with mock.patch('aprsd.utils.objectstore.CONF') as mock_conf:
+            mock_conf.enable_save = True
+            mock_conf.save_location = temp_dir
+            sl.flush()
+        self.assertEqual(len(sl.data), 0)
+
+        sl.rx(fake.fake_packet(fromcall='AAA1'))
+        sl.rx(fake.fake_packet(fromcall='AAA1'))
+        self.assertEqual(sl.data['AAA1']['count'], 2)
+
+    def test_load_trims_unbounded_file_to_maxlen(self):
+        """An oversized (pre-cap) save file is trimmed when restored."""
+        sl = seen_list.SeenList()
+        sl.maxlen = 2
+        sl.data = {f'N{i}': {'last': None, 'count': 1} for i in range(5)}
+
+        sl._restore_ordereddict()
+
+        self.assertEqual(list(sl.data), ['N3', 'N4'])
 
     def test_stats_with_data(self):
         """Test stats() with data."""

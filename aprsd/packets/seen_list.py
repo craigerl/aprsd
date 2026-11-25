@@ -29,9 +29,12 @@ class SeenList(objectstore.ObjectStoreMixin):
 
     def _restore_ordereddict(self):
         """Restore OrderedDict after loading from JSON (dict keeps order, but
-        only OrderedDict has move_to_end / popitem(last=False))."""
+        only OrderedDict has move_to_end / popitem(last=False)), then trim a
+        previously unbounded save file down to maxlen."""
         if not isinstance(self.data, OrderedDict):
             self.data = OrderedDict(self.data)
+        while self.maxlen > 0 and len(self.data) > self.maxlen:
+            self.data.popitem(last=False)
 
     def stats(self, serializable=False):
         """Return the stats for the PacketTrack class."""
@@ -54,6 +57,8 @@ class SeenList(objectstore.ObjectStoreMixin):
     def rx(self, packet: type[core.Packet]):
         """When we get a packet from the network, update the seen list."""
         with self.lock:
+            # flush()/a corrupt save file replace data with a plain dict.
+            self._restore_ordereddict()
             callsign = None
             if packet.from_call:
                 callsign = packet.from_call
