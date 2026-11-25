@@ -146,6 +146,15 @@ class TCPKISSDriver(KISSDriver):
         LOG.error(f'TCP KISS reconnect failed after {attempts} attempts')
         return False
 
+    def _read_lost(self, exc: BaseException | None = None) -> None:
+        """Reconnect after a read loses the socket, or raise if that fails."""
+        if self.auto_reconnect and self._reconnect():
+            return
+        self._connected = False
+        if exc is None:
+            raise aprslib.ConnectionDrop('connection dropped')
+        raise aprslib.ConnectionDrop('connection dropped') from exc
+
     def _send_bytes(self, frame_kiss: bytes) -> None:
         """Send one KISS frame, reconnecting once if the socket has died."""
         if not self._connected or self.socket is None:
@@ -356,16 +365,20 @@ class TCPKISSDriver(KISSDriver):
                 raw_frame = self.fix_raw_frame(short_buf)
                 return ax25frame.Frame.from_bytes(raw_frame)
             except OSError as e:
-                # self.logger.error("socket error on recv(): %s" % str(e))
+                # A TCP reset is an OSError. Leaving it unhandled spins
+                # this loop: select() stays readable and recv() raises
+                # again. BlockingIOError is "no data" and falls through.
+                if self._socket_is_dead(e):
+                    LOG.warning(f'KISS read failed ({e})')
+                    self._read_lost(e)
+                    continue
                 if 'Resource temporarily unavailable' in str(e):
                     if not blocking:
                         if len(short_buf) == 0:
                             break
             except aprslib.ConnectionDrop:
-                if self.auto_reconnect and self._reconnect():
-                    continue
-                self._connected = False
-                raise
+                self._read_lost()
+                continue
             except socket.timeout:
                 continue
             except (KeyboardInterrupt, SystemExit):

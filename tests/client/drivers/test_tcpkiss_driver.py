@@ -307,6 +307,35 @@ class TestTCPKISSDriver(unittest.TestCase):
             self.driver.read_frame(blocking=False)
         self.assertFalse(self.driver._connected)
 
+    def test_read_frame_connection_reset_reconnects(self):
+        """A TCP reset on read reconnects instead of spinning."""
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.mock_select.select.side_effect = [
+            ([self.mock_socket], [], []),
+            ([], [], []),
+        ]
+        self.mock_socket.recv.side_effect = ConnectionResetError()
+
+        result = self.driver.read_frame(blocking=False)
+
+        self.assertIsNone(result)
+        self.assertTrue(self.driver._connected)
+        self.mock_socket.connect.assert_called()
+
+    def test_read_frame_connection_reset_without_reconnect_raises(self):
+        """With reconnect off, a TCP reset is reported to the caller."""
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.driver.auto_reconnect = False
+        self.mock_select.select.return_value = ([self.mock_socket], [], [])
+        self.mock_socket.recv.side_effect = ConnectionResetError()
+
+        with self.assertRaises(aprslib.ConnectionDrop):
+            self.driver.read_frame(blocking=False)
+        self.assertFalse(self.driver._connected)
+        self.mock_socket.connect.assert_not_called()
+
     def test_stats(self):
         """Test stats method returns correct data."""
         # Set up test data
