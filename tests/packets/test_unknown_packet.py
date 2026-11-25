@@ -4,11 +4,36 @@ import unittest
 import aprslib
 
 from aprsd import packets
+from aprsd.utils.counter import PacketCounter
 from tests import fake
 
 
 class TestUnknownPacket(unittest.TestCase):
     """Test UnknownPacket JSON serialization."""
+
+    def setUp(self):
+        self._counter_instance = PacketCounter._instance
+        PacketCounter._instance = None
+
+    def tearDown(self):
+        PacketCounter._instance = self._counter_instance
+
+    def test_unknown_packet_does_not_consume_msg_counter(self):
+        """Constructing an UnknownPacket must not advance the outgoing counter.
+
+        Regression for #317: inbound/unknown packets were burning the shared
+        1..999 message counter, so outbound sends could wrap onto the number
+        of an un-acked packet and overwrite it in the send tracker.
+        """
+        before = PacketCounter().value
+        packets.UnknownPacket(
+            from_call=fake.FAKE_FROM_CALLSIGN,
+            to_call=fake.FAKE_TO_CALLSIGN,
+            format='unknown_format',
+            packet_type='unknown',
+            unknown_fields={'extra_field': 'extra_value'},
+        )
+        self.assertEqual(PacketCounter().value, before)
 
     def test_unknown_packet_to_json(self):
         """Test UnknownPacket.to_json() method."""
