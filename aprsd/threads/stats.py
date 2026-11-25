@@ -118,14 +118,20 @@ class StatsLogThread(APRSDThread):
         rx_delta = total_rx - self._last_total_rx
         rate = rx_delta / self.period
 
-        # Get unique callsigns count from SeenList stats
-        seen_list_instance = seen_list.SeenList()
-        # stats() returns data while holding lock internally, so copy it immediately
-        seen_list_stats = seen_list_instance.stats()
-        seen_list_instance.save()
-        # Copy the stats to avoid holding references to locked data
-        seen_list_stats = seen_list_stats.copy()
-        unique_callsigns_count = len(seen_list_stats)
+        # Get unique callsigns count from SeenList stats.
+        # Only read/save the (potentially large) seen list when it's enabled,
+        # otherwise the periodic full-dict save keeps running pointlessly.
+        if CONF.enable_seen_list:
+            seen_list_instance = seen_list.SeenList()
+            # stats() returns data while holding lock internally, so copy it immediately
+            seen_list_stats = seen_list_instance.stats()
+            seen_list_instance.save()
+            # Copy the stats to avoid holding references to locked data
+            seen_list_stats = seen_list_stats.copy()
+            unique_callsigns_count = len(seen_list_stats)
+        else:
+            seen_list_stats = {}
+            unique_callsigns_count = 0
 
         # Calculate uptime
         elapsed = time.time() - self.start_time

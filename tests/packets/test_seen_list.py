@@ -100,6 +100,24 @@ class TestSeenList(unittest.TestCase):
         # Should not add to data
         self.assertEqual(len(sl.data), 0)
 
+    def test_rx_lru_cap_replaces_oldest(self):
+        """At maxlen, the least recently seen callsign is dropped."""
+        sl = seen_list.SeenList()
+        sl.maxlen = 3
+        for callsign in ('AAA1', 'BBB2', 'CCC3'):
+            sl.rx(fake.fake_packet(fromcall=callsign))
+
+        self.assertEqual(len(sl.data), 3)
+
+        # Refreshing CCC3 makes it most-recent; a new callsign evicts AAA1.
+        sl.rx(fake.fake_packet(fromcall='CCC3'))
+        sl.rx(fake.fake_packet(fromcall='DDD4'))
+
+        self.assertEqual(len(sl.data), 3)
+        self.assertNotIn('AAA1', sl.data)
+        self.assertIn('CCC3', sl.data)
+        self.assertIn('DDD4', sl.data)
+
     def test_stats_with_data(self):
         """Test stats() with data."""
         sl = seen_list.SeenList()
