@@ -157,18 +157,28 @@ class TCPKISSDriver(KISSDriver):
 
     def _send_bytes(self, frame_kiss: bytes) -> None:
         """Send one KISS frame, reconnecting once if the socket has died."""
-        if not self._connected or self.socket is None:
+        # Keep the socket object we checked. The read thread can set
+        # self.socket to None while this runs, and None.send is an
+        # AttributeError that the OSError handler would miss.
+        sock = self.socket
+        if not self._connected or sock is None:
             if not (self.auto_reconnect and self._reconnect()):
                 raise aprslib.ConnectionDrop('KISS interface not connected')
+            sock = self.socket
+            if sock is None:
+                raise aprslib.ConnectionDrop('KISS interface not connected')
         try:
-            self.socket.send(frame_kiss)
+            sock.send(frame_kiss)
         except OSError as exc:
             if not self._socket_is_dead(exc) or not self.auto_reconnect:
                 raise
             LOG.warning(f'KISS send failed ({exc}); reconnecting')
             if not self._reconnect():
                 raise
-            self.socket.send(frame_kiss)
+            sock = self.socket
+            if sock is None:
+                raise aprslib.ConnectionDrop('KISS interface not connected') from exc
+            sock.send(frame_kiss)
 
     def send(self, packet: core.Packet) -> bool:
         """Send an APRS packet.

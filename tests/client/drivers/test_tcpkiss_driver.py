@@ -1,4 +1,5 @@
 import datetime
+import errno
 import socket
 import unittest
 from unittest import mock
@@ -335,6 +336,37 @@ class TestTCPKISSDriver(unittest.TestCase):
             self.driver.read_frame(blocking=False)
         self.assertFalse(self.driver._connected)
         self.mock_socket.connect.assert_not_called()
+
+    @mock.patch('aprsd.client.drivers.tcpkiss.ax25frame.Frame.ui')
+    def test_send_retries_when_socket_attribute_is_cleared(self, mock_frame_ui):
+        """A send holds the socket it checked, then retries if that socket dies."""
+        mock_frame = mock.MagicMock()
+        mock_frame.__bytes__ = mock.MagicMock(return_value=b'mock_frame_data')
+        mock_frame_ui.return_value = mock_frame
+
+        self.driver.socket = self.mock_socket
+        self.driver._connected = True
+        self.driver.path = ['WIDE1-1', 'WIDE2-1']
+
+        def close_underneath(frame):
+            if close_underneath.calls == 0:
+                close_underneath.calls += 1
+                self.driver.socket = None
+                raise OSError(errno.EBADF, 'Bad file descriptor')
+            close_underneath.calls += 1
+            return None
+
+        close_underneath.calls = 0
+        self.mock_socket.send.side_effect = close_underneath
+
+        mock_packet = mock.MagicMock(spec=core.Packet)
+        mock_packet.path = None
+        mock_packet.payload = 'Test'
+
+        result = self.driver.send(mock_packet)
+
+        self.assertTrue(result)
+        self.assertEqual(self.mock_socket.send.call_count, 2)
 
     def test_stats(self):
         """Test stats method returns correct data."""
