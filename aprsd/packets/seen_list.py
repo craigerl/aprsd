@@ -17,7 +17,7 @@ class SeenList(objectstore.ObjectStoreMixin):
 
     _instance = None
     data: OrderedDict = OrderedDict()
-    maxlen: int = 10000
+    maxlen: int = 1000
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:

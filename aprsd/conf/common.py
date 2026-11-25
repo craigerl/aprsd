@@ -129,7 +129,7 @@ aprsd_opts = [
     ),
     cfg.IntOpt(
         'seen_list_maxlen',
-        default=10000,
+        default=1000,
         help='The maximum number of callsigns to keep in the seen list. '
         'Once this is reached, the least recently seen callsign is dropped '
         'when a new one is heard. Set to 0 for unbounded.',
