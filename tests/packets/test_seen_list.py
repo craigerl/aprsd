@@ -151,6 +151,15 @@ class TestSeenList(unittest.TestCase):
             'Trimmed 3 old callsigns from the seen list to maxlen=2',
         )
 
+    def test_rx_ignored_when_disabled(self):
+        """With the feature off, no packet may be tracked."""
+        sl = seen_list.SeenList()
+        with mock.patch('aprsd.packets.seen_list.CONF') as mock_conf:
+            mock_conf.enable_seen_list = False
+            sl.rx(fake.fake_packet(fromcall='AAA1'))
+
+        self.assertEqual(len(sl.data), 0)
+
     def test_stats_with_data(self):
         """Test stats() with data."""
         sl = seen_list.SeenList()
