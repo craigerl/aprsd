@@ -142,9 +142,14 @@ class TestSeenList(unittest.TestCase):
         sl.maxlen = 2
         sl.data = {f'N{i}': {'last': None, 'count': 1} for i in range(5)}
 
-        sl._restore_ordereddict()
+        with mock.patch('aprsd.packets.seen_list.LOG') as mock_log:
+            sl._restore_ordereddict()
 
         self.assertEqual(list(sl.data), ['N3', 'N4'])
+        self.assertEqual(
+            mock_log.info.call_args.args[0],
+            'Trimmed 3 old callsigns from the seen list to maxlen=2',
+        )
 
     def test_stats_with_data(self):
         """Test stats() with data."""

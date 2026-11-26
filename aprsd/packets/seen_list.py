@@ -33,8 +33,14 @@ class SeenList(objectstore.ObjectStoreMixin):
         previously unbounded save file down to maxlen."""
         if not isinstance(self.data, OrderedDict):
             self.data = OrderedDict(self.data)
+        trimmed = 0
         while self.maxlen > 0 and len(self.data) > self.maxlen:
             self.data.popitem(last=False)
+            trimmed += 1
+        if trimmed:
+            LOG.info(
+                f'Trimmed {trimmed} old callsigns from the seen list to maxlen={self.maxlen}'
+            )
 
     def stats(self, serializable=False):
         """Return the stats for the PacketTrack class."""
