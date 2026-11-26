@@ -385,3 +385,22 @@ class TestPacketCollector(unittest.TestCase):
         pc.rx(packet)
 
         self.assertEqual(call_order, ['Monitor1', 'Monitor2', 'Monitor3'])
+
+    def test_disabled_monitor_skipped_but_still_flushed(self):
+        """A disabled monitor gets no rx/load, but an explicit flush still runs."""
+
+        class DisabledMonitor(MockPacketMonitor):
+            def is_enabled(self):
+                return False
+
+        pc = collector.PacketCollector()
+        monitor = DisabledMonitor()
+        pc.register(monitor)
+
+        pc.rx(fake.fake_packet())
+        pc.load()
+        self.assertFalse(monitor.rx_called)
+        self.assertFalse(monitor.load_called)
+
+        pc.flush()
+        self.assertTrue(monitor.flush_called)

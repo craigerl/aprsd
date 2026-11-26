@@ -1,4 +1,5 @@
 import datetime
+import pathlib
 import shutil
 import tempfile
 import unittest
@@ -151,14 +152,35 @@ class TestSeenList(unittest.TestCase):
             'Trimmed 3 old callsigns from the seen list to maxlen=2',
         )
 
-    def test_rx_ignored_when_disabled(self):
-        """With the feature off, no packet may be tracked."""
+    def test_is_enabled_follows_config(self):
+        """The store opts out of tracking/persisting when the feature is off."""
         sl = seen_list.SeenList()
         with mock.patch('aprsd.packets.seen_list.CONF') as mock_conf:
             mock_conf.enable_seen_list = False
-            sl.rx(fake.fake_packet(fromcall='AAA1'))
+            self.assertFalse(sl.is_enabled())
+            mock_conf.enable_seen_list = True
+            self.assertTrue(sl.is_enabled())
 
-        self.assertEqual(len(sl.data), 0)
+    def test_save_skipped_when_disabled_keeps_file(self):
+        """A disabled store must not overwrite or delete its save file."""
+        sl = seen_list.SeenList()
+        sl.rx(fake.fake_packet(fromcall='AAA1'))
+        temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp_dir)
+        save_file = pathlib.Path(temp_dir) / 'seenlist.json'
+        save_file.write_text('{"OLD1": {"last": null, "count": 1}}')
+
+        with (
+            mock.patch('aprsd.utils.objectstore.CONF') as mock_conf,
+            mock.patch.object(seen_list.SeenList, 'is_enabled', return_value=False),
+        ):
+            mock_conf.enable_save = True
+            mock_conf.save_location = temp_dir
+            sl.save()
+            sl.data = {}
+            sl.save()
+
+        self.assertEqual(save_file.read_text(), '{"OLD1": {"last": null, "count": 1}}')
 
     def test_stats_with_data(self):
         """Test stats() with data."""

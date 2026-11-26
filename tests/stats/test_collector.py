@@ -236,3 +236,17 @@ class TestStatsCollector(unittest.TestCase):
         c = collector.Collector()
         stats = c.collect()
         self.assertEqual(stats, {})
+
+    def test_disabled_producer_skipped(self):
+        """A producer whose is_enabled() is False is left out of the stats."""
+
+        class DisabledProducer(MockStatsProducer):
+            def is_enabled(self):
+                return False
+
+        c = collector.Collector()
+        producer = DisabledProducer()
+        c.register_producer(producer)
+
+        self.assertEqual(c.collect(), {})
+        self.assertFalse(producer.stats_called)

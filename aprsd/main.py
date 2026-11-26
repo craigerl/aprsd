@@ -89,10 +89,7 @@ def signal_handler(sig, frame):
         try:
             packets.PacketTrack().save()
             packets.WatchList().save()
-            # An empty store's save() deletes the file, which would wipe the
-            # history of an install that runs with the seen list disabled.
-            if CONF.enable_seen_list:
-                packets.SeenList().save()
+            packets.SeenList().save()
             packets.PacketList().save()
             collector.Collector().collect()
         except Exception as e:

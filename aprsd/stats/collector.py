@@ -26,6 +26,9 @@ class Collector:
         stats = {}
         for name in self.producers:
             cls = name()
+            check = getattr(cls, 'is_enabled', None)
+            if check is not None and not check():
+                continue
             try:
                 stats[cls.__class__.__name__] = cls.stats(
                     serializable=serializable

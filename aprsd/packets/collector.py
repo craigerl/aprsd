@@ -43,9 +43,19 @@ class PacketCollector:
             raise TypeError(f'Monitor {monitor} is not a PacketMonitor')
         self.monitors.remove(monitor)
 
+    def _is_enabled(self, monitor) -> bool:
+        """Honor a monitor's is_enabled(), the way the client driver registry does.
+
+        Monitors without the method are always enabled.
+        """
+        check = getattr(monitor, 'is_enabled', None)
+        return True if check is None else check()
+
     def rx(self, packet: type[core.Packet]) -> None:
         for name in self.monitors:
             cls = name()
+            if not self._is_enabled(cls):
+                continue
             try:
                 cls.rx(packet)
             except Exception as e:
@@ -54,6 +64,8 @@ class PacketCollector:
     def tx(self, packet: type[core.Packet]) -> None:
         for name in self.monitors:
             cls = name()
+            if not self._is_enabled(cls):
+                continue
             try:
                 cls.tx(packet)
             except Exception as e:
@@ -72,6 +84,8 @@ class PacketCollector:
         """Call load on the objects. This is used to load any data."""
         for name in self.monitors:
             cls = name()
+            if not self._is_enabled(cls):
+                continue
             try:
                 cls.load()
             except Exception as e:

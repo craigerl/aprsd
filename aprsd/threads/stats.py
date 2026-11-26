@@ -118,12 +118,10 @@ class StatsLogThread(APRSDThread):
         rx_delta = total_rx - self._last_total_rx
         rate = rx_delta / self.period
 
-        # Only save the (potentially large) seen list when it's enabled,
-        # otherwise the periodic full-dict save keeps running pointlessly.
-        # collect() above already built the SeenList stats dict.
+        # collect() above already built the SeenList stats dict (it skips the
+        # store when disabled), and save() is a no-op for a disabled store.
         seen_list_stats = stats_json.get('SeenList', {})
-        if CONF.enable_seen_list:
-            seen_list.SeenList().save()
+        seen_list.SeenList().save()
         unique_callsigns_count = len(seen_list_stats)
 
         # Calculate uptime

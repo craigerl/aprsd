@@ -181,7 +181,7 @@ class TestAPRSDStatsStoreThread(unittest.TestCase):
 class TestStatsLogThread(unittest.TestCase):
     """Unit tests for the StatsLogThread class."""
 
-    def _run_loop(self, enable_seen_list):
+    def _run_loop(self):
         thread = StatsLogThread()
         stats_json = {
             'PacketList': {'rx': 0, 'types': {}},
@@ -190,27 +190,25 @@ class TestStatsLogThread(unittest.TestCase):
         with (
             mock.patch('aprsd.threads.stats.collector.Collector') as mock_collector,
             mock.patch('aprsd.threads.stats.seen_list.SeenList') as mock_seen_list,
-            mock.patch('aprsd.threads.stats.CONF') as mock_conf,
             mock.patch('aprsd.threads.stats.LOGU') as mock_logu,
             mock.patch.object(thread, 'wait'),
         ):
             mock_collector.return_value.collect.return_value = stats_json
-            mock_conf.enable_seen_list = enable_seen_list
             self.assertTrue(thread.loop())
 
         return mock_seen_list, mock_logu
 
-    def test_loop_skips_seen_list_save_when_disabled(self):
-        """With the feature off, the tick must not touch the seen list at all."""
-        mock_seen_list, _ = self._run_loop(enable_seen_list=False)
-        mock_seen_list.assert_not_called()
+    def test_loop_saves_seen_list_each_tick(self):
+        """The tick always offers the seen list to the store.
 
-    def test_loop_saves_seen_list_when_enabled(self):
-        mock_seen_list, _ = self._run_loop(enable_seen_list=True)
+        A disabled store's save() returns without touching the file, so the
+        thread no longer branches on the config flag.
+        """
+        mock_seen_list, _ = self._run_loop()
         mock_seen_list.return_value.save.assert_called_once()
 
     def test_loop_counts_callsigns_from_collected_stats(self):
-        _, mock_logu = self._run_loop(enable_seen_list=True)
+        _, mock_logu = self._run_loop()
         logged = [
             call.args[0] for call in mock_logu.opt.return_value.info.call_args_list
         ]

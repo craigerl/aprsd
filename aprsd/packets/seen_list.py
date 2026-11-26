@@ -42,6 +42,9 @@ class SeenList(objectstore.ObjectStoreMixin):
                 f'Trimmed {trimmed} old callsigns from the seen list to maxlen={self.maxlen}'
             )
 
+    def is_enabled(self):
+        return CONF.enable_seen_list
+
     def stats(self, serializable=False):
         """Return the stats for the PacketTrack class."""
         with self.lock:
@@ -63,10 +66,6 @@ class SeenList(objectstore.ObjectStoreMixin):
     def rx(self, packet: type[core.Packet]):
         """When we get a packet from the network, update the seen list."""
         with self.lock:
-            # Every command that feeds packets goes through here, so honor
-            # the flag here instead of making each command unregister us.
-            if not CONF.enable_seen_list:
-                return
             # flush()/a corrupt save file replace data with a plain dict.
             self._restore_ordereddict()
             callsign = None
