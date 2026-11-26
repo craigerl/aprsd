@@ -12,7 +12,8 @@ import aprsd
 from aprsd import cli_helper, packets, plugin, threads, utils
 from aprsd.client.client import APRSDClient
 from aprsd.main import cli
-from aprsd.packets import core
+from aprsd.packets import collector as packet_collector
+from aprsd.packets import core, seen_list
 from aprsd.packets import log as packet_log
 from aprsd.packets.filter import PacketFilter
 from aprsd.packets.filters import dupe_filter, packet_type
@@ -190,6 +191,10 @@ def listen(
 
     CONF.log_opt_values(LOG, logging.DEBUG)
     collector.Collector()
+
+    if not CONF.enable_seen_list:
+        # just deregister the class from the packet collector
+        packet_collector.PacketCollector().unregister(seen_list.SeenList)
 
     # Try and load saved MsgTrack list
     LOG.debug('Loading saved MsgTrack object.')
