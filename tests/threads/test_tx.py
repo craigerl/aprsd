@@ -356,6 +356,24 @@ class TestSendFunctions(unittest.TestCase):
         self.assertEqual(result, mock_scheduler)
 
 
+class TestRetryCadence(unittest.TestCase):
+    """The two cadences the two predicates exist to keep apart."""
+
+    def test_message_backs_off_after_one_retry(self):
+        """At send_count 1 a message waits 62s, so 40s is not due."""
+        packet = fake.fake_packet(msg_number='123')
+        packet.send_count = 1
+        packet.last_send_time = int(time.time()) - 40
+        self.assertFalse(tx._packet_send_due(packet))
+
+    def test_ack_stays_on_fixed_cadence(self):
+        """Acks retry every 31s regardless of send_count."""
+        packet = fake.fake_ack_packet()
+        packet.send_count = 1
+        packet.last_send_time = int(time.time()) - 40
+        self.assertTrue(tx._ack_send_due(packet))
+
+
 class TestPacketWorkers(unittest.TestCase):
     """Unit tests for worker functions used by threadpool."""
 

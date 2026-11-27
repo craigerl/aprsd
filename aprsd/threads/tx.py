@@ -186,8 +186,9 @@ def _ack_send_due(packet):
 def _packet_attempt(packet):
     """Run one send/retry step for a non-ack packet.
 
-    Returns False when the packet is finished (acked or out of retries),
-    True while it is still being tracked.
+    Returns False when the packet is out of retries; that path removes it
+    from PacketTrack.  An acked packet never reaches here: the caller sees
+    it missing from the tracker and returns False before calling this.
     """
     if packet.send_count >= packet.retry_count:
         LOG.info(
@@ -202,8 +203,8 @@ def _packet_attempt(packet):
     if not _packet_send_due(packet):
         return True
 
-    # Stamp before sending: a blocked send must still count as an attempt
-    # so the escalating backoff moves forward.
+    # Stamp before sending so a slow or throttled send is not retried
+    # immediately; send_count only moves on a successful send.
     packet.last_send_time = int(round(time.time()))
     try:
         sent = _send_direct(packet)
@@ -219,8 +220,10 @@ def _packet_attempt(packet):
 def _ack_attempt(packet, max_retries):
     """Run one send/retry step for an ack packet.
 
-    Same contract as _packet_attempt().  Acks stamp last_send_time after
-    the attempt instead of before, because their cadence is fixed.
+    Returns False when the ack is out of retries and leaves removal to
+    AckSendSchedulerThread, which drops it from PacketTrack.  Acks stamp
+    last_send_time after the attempt instead of before, because their
+    cadence is fixed.
     """
     if packet.send_count >= max_retries:
         LOG.debug(
