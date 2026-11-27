@@ -22,7 +22,7 @@ class USWeatherPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin)
     "weather" - returns weather near the calling callsign
     """
 
-    command_regex = r'^[wW]'
+    command_regex = r'^(weather|wx|w)\b'
 
     command_name = 'USWeather'
     short_description = 'Provide USA only weather of GPS Beacon location'
@@ -93,7 +93,7 @@ class USMetarPlugin(plugin.APRSDRegexCommandPluginBase, plugin.APRSFIKEYMixin):
 
     """
 
-    command_regex = r'^([m]|[M]|[m]\s|metar)'
+    command_regex = r'^(metar|m)\b'
     command_name = 'USMetar'
     short_description = 'USA only METAR of GPS Beacon location'
 

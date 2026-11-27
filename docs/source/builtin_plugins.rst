@@ -97,7 +97,7 @@ VersionPlugin
 USWeatherPlugin
 ~~~~~~~~~~~~~~~
 
-**Command:** ``weather``, ``w``, or ``W`` (w or W at start of message)
+**Command:** ``weather``, ``wx``, ``w``, or ``W`` (whole first word of the message)
 
 **Description:** Provides weather information for locations within the United States only.
 Uses the forecast.weather.gov API to fetch weather data based on the GPS beacon location
@@ -126,7 +126,7 @@ for aprs.fi to get the GPS location.
 USMetarPlugin
 ~~~~~~~~~~~~~
 
-**Command:** ``metar``, ``m``, ``M``, or ``m`` followed by a space (m or M at start of message)
+**Command:** ``metar``, ``m``, ``M``, or ``m`` followed by a space (whole first word of the message)
 
 **Description:** Provides METAR (Meteorological Aerodrome Report) weather reports for
 stations within the United States only. Uses the forecast.weather.gov API.
@@ -155,7 +155,7 @@ aprs.fi API key is not required.
 HelpPlugin
 ~~~~~~~~~~
 
-**Command:** ``help``, ``h``, or ``H`` (h or H at start of message)
+**Command:** ``help``, ``h``, or ``H`` (whole first word of the message)
 
 **Description:** Provides help information about available plugins. Can list all available
 plugins or provide specific help for a named plugin.

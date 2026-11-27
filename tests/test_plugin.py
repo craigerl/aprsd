@@ -1,3 +1,4 @@
+import re
 import unittest
 from unittest import mock
 
@@ -11,6 +12,8 @@ from aprsd import (  # noqa: F401
 from aprsd import plugin as aprsd_plugin
 from aprsd.client.drivers.registry import DriverRegistry
 from aprsd.packets import core
+from aprsd.plugins import fortune, ping, version, weather
+from aprsd.plugins import time as time_plugin
 
 from . import fake
 from .mock_client_driver import MockClientDriver
@@ -214,3 +217,60 @@ class TestPluginBase(TestPlugin):
         expected = fake.FAKE_MESSAGE_TEXT
         actual = p.filter(packet)
         self.assertEqual(expected, actual)
+
+
+class TestCommandRegexRouting(unittest.TestCase):
+    """Builtin command matchers must match whole words, not just first letters (#321)."""
+
+    CASES = [
+        (
+            aprsd_plugin.HelpPlugin,
+            ['help', 'h', 'H', 'help weather', 'h weather'],
+            ['hello', 'how are you'],
+        ),
+        (
+            ping.PingPlugin,
+            ['ping', 'Ping', 'p', 'p now'],
+            ['pong', 'please help'],
+        ),
+        (
+            time_plugin.TimePlugin,
+            ['time', 't', 'T', 't 1234'],
+            ['thanks', 'tell me the time'],
+        ),
+        (
+            version.VersionPlugin,
+            ['version', 'v', 'V'],
+            ['verify'],
+        ),
+        (
+            fortune.FortunePlugin,
+            ['fortune', 'f', 'F'],
+            ['foobar'],
+        ),
+        (
+            weather.USWeatherPlugin,
+            ['weather', 'w', 'W', 'wx', 'weather WB4BOR'],
+            ['wind direction?', 'what is the weather'],
+        ),
+        (
+            weather.USMetarPlugin,
+            ['metar', 'm', 'M', 'metar KORD'],
+            ['morning', 'maybe'],
+        ),
+    ]
+
+    def test_whole_word_match(self):
+        for cls, matches, misses in self.CASES:
+            with self.subTest(plugin=cls.__name__):
+                plugin_obj = cls()
+                for message in matches:
+                    self.assertIsNotNone(
+                        re.search(plugin_obj.command_regex, message, re.IGNORECASE),
+                        f'{cls.__name__} should match {message!r}',
+                    )
+                for message in misses:
+                    self.assertIsNone(
+                        re.search(plugin_obj.command_regex, message, re.IGNORECASE),
+                        f'{cls.__name__} should not match {message!r}',
+                    )

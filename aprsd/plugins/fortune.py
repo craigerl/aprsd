@@ -16,7 +16,7 @@ FORTUNE_PATHS = [
 class FortunePlugin(plugin.APRSDRegexCommandPluginBase):
     """Fortune."""
 
-    command_regex = r'^([f]|[f]\s|fortune)'
+    command_regex = r'^(fortune|f)\b'
     command_name = 'fortune'
     short_description = 'Give me a fortune'
 
