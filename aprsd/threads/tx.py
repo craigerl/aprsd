@@ -1,12 +1,11 @@
+import datetime
 import logging
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-import wrapt
 from oslo_config import cfg
 from rush import quota, throttle
-from rush.contrib import decorator
 from rush.limiters import periodic
 from rush.stores import dictionary
 
@@ -41,8 +40,11 @@ class _LazyThrottle:
                 limiter=periodic.PeriodicLimiter(
                     store=dictionary.DictionaryStore(),
                 ),
-                rate=quota.Quota.per_second(
-                    count=getattr(CONF, self._conf_attr),
+                rate=quota.Quota(
+                    period=datetime.timedelta(
+                        seconds=getattr(CONF, self._conf_attr),
+                    ),
+                    count=1,
                 ),
             )
         return self._throttle
@@ -53,9 +55,6 @@ class _LazyThrottle:
 
 msg_t = _LazyThrottle('msg_rate_limit_period')
 ack_t = _LazyThrottle('ack_rate_limit_period')
-
-msg_throttle_decorator = decorator.ThrottleDecorator(throttle=msg_t)
-ack_throttle_decorator = decorator.ThrottleDecorator(throttle=ack_t)
 s_lock = threading.Lock()
 
 # Global scheduler instances (singletons)
@@ -64,16 +63,17 @@ _ack_scheduler = None
 _scheduler_lock = threading.Lock()
 
 
-@msg_throttle_decorator.sleep_and_retry
-@wrapt.synchronized(s_lock)
 def send(packet: core.Packet, direct=False, aprs_client=None):
     """Send a packet either in a thread or directly to the client."""
     # prepare the packet for sending.
     # This constructs the packet.raw
-    packet.prepare(create_msg_number=True)
-    # Have to call the collector to track the packet
-    # After prepare, as prepare assigns the msgNo
-    collector.PacketCollector().tx(packet)
+    # The lock only covers prepare/tracking: the throttle sleep in
+    # _send_direct() must not run under it (see #295).
+    with s_lock:
+        packet.prepare(create_msg_number=True)
+        # Have to call the collector to track the packet
+        # After prepare, as prepare assigns the msgNo
+        collector.PacketCollector().tx(packet)
     if isinstance(packet, core.AckPacket):
         if CONF.enable_sending_ack_packets:
             return _send_ack(packet, direct=direct, aprs_client=aprs_client)
@@ -82,7 +82,6 @@ def send(packet: core.Packet, direct=False, aprs_client=None):
     return _send_packet(packet, direct=direct, aprs_client=aprs_client)
 
 
-@msg_throttle_decorator.sleep_and_retry
 def _send_packet(packet: core.Packet, direct=False, aprs_client=None):
     if not direct:
         # The packet was already registered in PacketTrack via
@@ -101,7 +100,6 @@ def _send_packet(packet: core.Packet, direct=False, aprs_client=None):
     return _send_direct(packet, aprs_client=aprs_client)
 
 
-@ack_throttle_decorator.sleep_and_retry
 def _send_ack(packet: core.AckPacket, direct=False, aprs_client=None):
     if not direct:
         # Same implicit handoff as _send_packet: the ack was registered in
@@ -116,8 +114,16 @@ def _send_ack(packet: core.AckPacket, direct=False, aprs_client=None):
     return _send_direct(packet, aprs_client=aprs_client)
 
 
-@msg_throttle_decorator.sleep_and_retry
 def _send_direct(packet, aprs_client=None):
+    # Acks are limited by ack_rate_limit_period, non-acks by
+    # msg_rate_limit_period.  Every transmission (first attempt and retries)
+    # passes through here, so each one is charged against its quota once.
+    t = ack_t if isinstance(packet, core.AckPacket) else msg_t
+    while True:
+        result = t.check(key='tx', quantity=1)
+        if not result.limited:
+            break
+        time.sleep(result.retry_after.total_seconds())
     if aprs_client:
         cl = aprs_client
     else:
