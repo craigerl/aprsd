@@ -9,8 +9,8 @@ class HelloPlugin(plugin.APRSDRegexCommandPluginBase):
     """Hello World."""
 
     version = '1.0'
-    # matches any string starting with h or H
-    command_regex = '^[hH]'
+    # matches the whole first word hello or hi
+    command_regex = r'^(hello|hi)\b'
     command_name = 'hello'
 
     def process(self, packet: packets.MessagePacket):

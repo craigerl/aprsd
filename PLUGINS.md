@@ -90,7 +90,7 @@ APRSD: APRSD ver:4.2.4 uptime:2 days, 5:30:15 owner:WB4BOR
 
 ### USWeatherPlugin
 
-**Command:** `weather`, `w`, or `W` (w or W at start of message)
+**Command:** `weather`, `wx`, `w`, or `W` (whole first word of the message)
 
 **Description:** Provides weather information for locations within the United States only. Uses the forecast.weather.gov API to fetch weather data based on the GPS beacon location of the calling callsign (or optionally a specified callsign).
 
@@ -116,7 +116,7 @@ APRSD: 65F(60F/70F) Sunny. Tonight, Partly cloudy.
 
 ### USMetarPlugin
 
-**Command:** `metar`, `m`, `M`, or `m` followed by a space (m or M at start of message)
+**Command:** `metar`, `m`, `M`, or `m` followed by a space (whole first word of the message)
 
 **Description:** Provides METAR (Meteorological Aerodrome Report) weather reports for stations within the United States only. Uses the forecast.weather.gov API.
 
@@ -172,7 +172,7 @@ APRSD -> WB4BOR: KM6LYW was just seen by type:'BeaconPacket'
 
 ## HelpPlugin
 
-**Command:** `help`, `h`, or `H` (h or H at start of message)
+**Command:** `help`, `h`, or `H` (whole first word of the message)
 
 **Description:** Provides help information about available plugins. Can list all available plugins or provide specific help for a named plugin.
 

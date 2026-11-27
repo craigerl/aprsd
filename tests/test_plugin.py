@@ -12,7 +12,8 @@ from aprsd import (  # noqa: F401
 from aprsd import plugin as aprsd_plugin
 from aprsd.client.drivers.registry import DriverRegistry
 from aprsd.packets import core
-from aprsd.plugins import fortune, ping, time, version, weather
+from aprsd.plugins import fortune, ping, version, weather
+from aprsd.plugins import time as time_plugin
 
 from . import fake
 from .mock_client_driver import MockClientDriver
@@ -233,7 +234,7 @@ class TestCommandRegexRouting(unittest.TestCase):
             ['pong', 'please help'],
         ),
         (
-            time.TimePlugin,
+            time_plugin.TimePlugin,
             ['time', 't', 'T', 't 1234'],
             ['thanks', 'tell me the time'],
         ),
