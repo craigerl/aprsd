@@ -220,10 +220,9 @@ def _packet_attempt(packet):
 def _ack_attempt(packet, max_retries):
     """Run one send/retry step for an ack packet.
 
-    Returns False when the ack is out of retries and leaves removal to
-    AckSendSchedulerThread, which drops it from PacketTrack.  Acks stamp
-    last_send_time after the attempt instead of before, because their
-    cadence is fixed.
+    Returns False when the ack is out of retries; that path removes it from
+    PacketTrack.  Acks stamp last_send_time after the attempt instead of
+    before, because their cadence is fixed.
     """
     if packet.send_count >= max_retries:
         LOG.debug(
@@ -232,6 +231,7 @@ def _ack_attempt(packet, max_retries):
             'Send Complete. Max attempts reached'
             f' {max_retries}',
         )
+        tracker.PacketTrack().remove(packet.msgNo)
         return False
 
     if not _ack_send_due(packet):
