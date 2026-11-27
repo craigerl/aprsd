@@ -31,8 +31,7 @@ class Collector:
         for name in self.producers:
             cls = name()
             try:
-                is_enabled = getattr(cls, 'is_enabled', None)
-                if is_enabled is not None and not is_enabled():
+                if not cls.is_enabled():
                     continue
                 stats[cls.__class__.__name__] = cls.stats(
                     serializable=serializable
@@ -44,27 +43,20 @@ class Collector:
                 LOG.error(f'Error in producer {name} (stats): {e}')
         return stats
 
-    @staticmethod
-    def _check_producer(producer_name: Callable):
-        if isinstance(producer_name, StatsProducer):
-            return
-        if not hasattr(producer_name, 'stats'):
-            raise TypeError(
-                f'Producer {producer_name} is not a StatsProducer (missing stats)'
-            )
-        # Producers written before is_enabled() existed still register; the
-        # collector treats a missing method as enabled.
-        LOG.warning(
-            f'Producer {producer_name} does not implement is_enabled(); '
-            'assuming it is enabled'
-        )
-
     def register_producer(self, producer_name: Callable):
-        self._check_producer(producer_name)
+        if not isinstance(producer_name, StatsProducer):
+            missing = [
+                attr
+                for attr in ('stats', 'is_enabled')
+                if not hasattr(producer_name, attr)
+            ]
+            detail = f' (missing {", ".join(missing)})' if missing else ''
+            raise TypeError(f'Producer {producer_name} is not a StatsProducer{detail}')
         self.producers.append(producer_name)
 
     def unregister_producer(self, producer_name: Callable):
-        self._check_producer(producer_name)
+        if not isinstance(producer_name, StatsProducer):
+            raise TypeError(f'Producer {producer_name} is not a StatsProducer')
         self.producers.remove(producer_name)
 
     def stop_all(self):
