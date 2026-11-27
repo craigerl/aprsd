@@ -827,6 +827,17 @@ class TestSendAckThread(unittest.TestCase):
             mock_log.debug.assert_called()
 
     @mock.patch('aprsd.threads.tx._send_direct')
+    def test_loop_max_retries_overshoot(self, mock_send_direct):
+        """send_count above max_retries must also stop (was `==`)."""
+        self.packet.send_count = 4
+
+        with mock.patch('aprsd.threads.tx.LOG') as mock_log:
+            result = self.thread.loop()
+            self.assertFalse(result)
+            mock_log.debug.assert_called()
+            mock_send_direct.assert_not_called()
+
+    @mock.patch('aprsd.threads.tx._send_direct')
     def test_loop_send_now(self, mock_send_direct):
         """Test loop() when it's time to send."""
         self.packet.last_send_time = None
