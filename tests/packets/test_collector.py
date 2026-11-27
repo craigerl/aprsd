@@ -41,6 +41,28 @@ class MockPacketMonitor:
         return True
 
 
+class LegacyMonitor:
+    """A monitor written before is_enabled() existed."""
+
+    def __init__(self):
+        self.calls = []
+
+    def __call__(self):
+        return self
+
+    def rx(self, packet):
+        self.calls.append('rx')
+
+    def tx(self, packet):
+        self.calls.append('tx')
+
+    def flush(self):
+        self.calls.append('flush')
+
+    def load(self):
+        self.calls.append('load')
+
+
 class TestPacketMonitorProtocol(unittest.TestCase):
     """Test that PacketMonitor protocol is properly defined."""
 
@@ -123,6 +145,41 @@ class TestPacketCollector(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             pc.register(non_monitor)
+
+    def test_register_legacy_monitor_without_is_enabled(self):
+        """A monitor written before is_enabled() keeps working."""
+        pc = collector.PacketCollector()
+        monitor = LegacyMonitor()
+
+        with mock.patch('aprsd.packets.collector.LOG') as mock_log:
+            pc.register(monitor)
+            mock_log.warning.assert_called_once()
+
+        packet = fake.fake_packet()
+        pc.rx(packet)
+        pc.tx(packet)
+        pc.load()
+        pc.flush()
+        self.assertEqual(monitor.calls, ['rx', 'tx', 'load', 'flush'])
+
+        pc.unregister(monitor)
+        self.assertNotIn(monitor, pc.monitors)
+
+    def test_rx_survives_enabled_check_exception(self):
+        """A raising is_enabled() logs and drops the packet, not the thread."""
+
+        class BadEnabled(MockPacketMonitor):
+            def is_enabled(self):
+                raise RuntimeError('boom')
+
+        pc = collector.PacketCollector()
+        monitor = BadEnabled()
+        pc.register(monitor)
+
+        with mock.patch('aprsd.packets.collector.LOG') as mock_log:
+            pc.rx(fake.fake_packet())
+            mock_log.error.assert_called_once()
+        self.assertFalse(monitor.rx_called)
 
     def test_unregister(self):
         """Test unregister() method."""

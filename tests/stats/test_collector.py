@@ -27,6 +27,20 @@ class MockStatsProducer:
         return True
 
 
+class LegacyProducer:
+    """A producer written before is_enabled() existed."""
+
+    def __init__(self):
+        self.stats_called = False
+
+    def __call__(self):
+        return self
+
+    def stats(self, serializable=False):
+        self.stats_called = True
+        return {'ok': True}
+
+
 class TestStatsCollector(unittest.TestCase):
     """Unit tests for the Collector class."""
 
@@ -86,6 +100,36 @@ class TestStatsCollector(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             c.unregister_producer(non_producer)
+
+    def test_register_legacy_producer_without_is_enabled(self):
+        """A producer written before is_enabled() keeps working."""
+        c = collector.Collector()
+        producer = LegacyProducer()
+
+        with mock.patch('aprsd.stats.collector.LOG') as mock_log:
+            c.register_producer(producer)
+            mock_log.warning.assert_called_once()
+
+        self.assertEqual(c.collect(), {'LegacyProducer': {'ok': True}})
+        self.assertTrue(producer.stats_called)
+
+        c.unregister_producer(producer)
+        self.assertNotIn(producer, c.producers)
+
+    def test_collect_survives_enabled_check_exception(self):
+        """A raising is_enabled() must not escape collect()."""
+
+        class BadEnabled(MockStatsProducer):
+            def is_enabled(self):
+                raise RuntimeError('boom')
+
+        c = collector.Collector()
+        producer = BadEnabled()
+        c.register_producer(producer)
+
+        with mock.patch('aprsd.stats.collector.LOG') as mock_log:
+            self.assertEqual(c.collect(), {})
+            mock_log.error.assert_called_once()
 
     def test_collect(self):
         """Test collect() method."""

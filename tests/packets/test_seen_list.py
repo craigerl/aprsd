@@ -182,6 +182,24 @@ class TestSeenList(unittest.TestCase):
 
         self.assertEqual(save_file.read_text(), '{"OLD1": {"last": null, "count": 1}}')
 
+    def test_flush_skipped_when_disabled_keeps_file(self):
+        """`-f` must not delete the file of a switched-off store."""
+        sl = seen_list.SeenList()
+        temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp_dir)
+        save_file = pathlib.Path(temp_dir) / 'seenlist.json'
+        save_file.write_text('{"OLD1": {"last": null, "count": 1}}')
+
+        with (
+            mock.patch('aprsd.utils.objectstore.CONF') as mock_conf,
+            mock.patch.object(seen_list.SeenList, 'is_enabled', return_value=False),
+        ):
+            mock_conf.enable_save = True
+            mock_conf.save_location = temp_dir
+            sl.flush()
+
+        self.assertEqual(save_file.read_text(), '{"OLD1": {"last": null, "count": 1}}')
+
     def test_stats_with_data(self):
         """Test stats() with data."""
         sl = seen_list.SeenList()

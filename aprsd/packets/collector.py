@@ -37,22 +37,39 @@ class PacketCollector:
     def __init__(self):
         self.monitors: list[Callable] = []
 
+    @staticmethod
+    def _check_monitor(monitor: Callable) -> None:
+        if isinstance(monitor, PacketMonitor):
+            return
+        missing = [
+            attr for attr in ('rx', 'tx', 'flush', 'load') if not hasattr(monitor, attr)
+        ]
+        if missing:
+            raise TypeError(
+                f'Monitor {monitor} is not a PacketMonitor '
+                f'(missing {", ".join(missing)})'
+            )
+        # Monitors written before is_enabled() existed still register; the
+        # loops treat a missing method as enabled.
+        LOG.warning(
+            f'Monitor {monitor} does not implement is_enabled(); assuming it is enabled'
+        )
+
     def register(self, monitor: Callable) -> None:
-        if not isinstance(monitor, PacketMonitor):
-            raise TypeError(f'Monitor {monitor} is not a PacketMonitor')
+        self._check_monitor(monitor)
         self.monitors.append(monitor)
 
     def unregister(self, monitor: Callable) -> None:
-        if not isinstance(monitor, PacketMonitor):
-            raise TypeError(f'Monitor {monitor} is not a PacketMonitor')
+        self._check_monitor(monitor)
         self.monitors.remove(monitor)
 
     def rx(self, packet: type[core.Packet]) -> None:
         for name in self.monitors:
             cls = name()
-            if not cls.is_enabled():
-                continue
             try:
+                is_enabled = getattr(cls, 'is_enabled', None)
+                if is_enabled is not None and not is_enabled():
+                    continue
                 cls.rx(packet)
             except Exception as e:
                 LOG.error(f'Error in monitor {name} (rx): {e}')
@@ -60,9 +77,10 @@ class PacketCollector:
     def tx(self, packet: type[core.Packet]) -> None:
         for name in self.monitors:
             cls = name()
-            if not cls.is_enabled():
-                continue
             try:
+                is_enabled = getattr(cls, 'is_enabled', None)
+                if is_enabled is not None and not is_enabled():
+                    continue
                 cls.tx(packet)
             except Exception as e:
                 LOG.error(f'Error in monitor {name} (tx): {e}')
@@ -80,9 +98,10 @@ class PacketCollector:
         """Call load on the objects. This is used to load any data."""
         for name in self.monitors:
             cls = name()
-            if not cls.is_enabled():
-                continue
             try:
+                is_enabled = getattr(cls, 'is_enabled', None)
+                if is_enabled is not None and not is_enabled():
+                    continue
                 cls.load()
             except Exception as e:
                 LOG.error(f'Error in monitor {name} (load): {e}')

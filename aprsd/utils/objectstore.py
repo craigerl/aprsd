@@ -163,8 +163,12 @@ class ObjectStoreMixin:
                 LOG.debug(f'{self.__class__.__name__}::No save file found.')
 
     def flush(self):
-        """Remove the JSON save file and clear data."""
-        if not CONF.enable_save:
+        """Remove the JSON save file and clear data.
+
+        A switched-off store is left alone, so an explicit `-f` cannot wipe
+        the history the save/load guards are there to preserve.
+        """
+        if not CONF.enable_save or not self.is_enabled():
             return
         with self.lock:
             if os.path.exists(self._save_filename()):
