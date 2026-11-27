@@ -147,6 +147,8 @@ class TestSendFunctions(unittest.TestCase):
                 tx.s_lock.release()
             sender.join(timeout=2)
 
+        # Prove the send thread really reached the throttle and slept once.
+        self.assertGreaterEqual(state['n'], 2)
         self.assertTrue(got_lock)
 
     @mock.patch('aprsd.threads.tx.collector.PacketCollector')
