@@ -29,6 +29,9 @@ class APRSDStats:
     def uptime(self):
         return datetime.datetime.now() - self.start_time
 
+    def is_enabled(self) -> bool:
+        return True
+
     def stats(self, serializable=False) -> dict:
         current, peak = tracemalloc.get_traced_memory()
         uptime = self.uptime()

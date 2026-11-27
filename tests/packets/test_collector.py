@@ -37,6 +37,9 @@ class MockPacketMonitor:
     def load(self):
         self.load_called = True
 
+    def is_enabled(self):
+        return True
+
 
 class TestPacketMonitorProtocol(unittest.TestCase):
     """Test that PacketMonitor protocol is properly defined."""
@@ -106,6 +109,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 pass
 
+            def is_enabled(self):
+                return True
+
         monitor_class = TestMonitor()
         pc.register(monitor_class)
         self.assertIn(monitor_class, pc.monitors)
@@ -117,6 +123,22 @@ class TestPacketCollector(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             pc.register(non_monitor)
+
+    def test_rx_survives_enabled_check_exception(self):
+        """A raising is_enabled() logs and drops the packet, not the thread."""
+
+        class BadEnabled(MockPacketMonitor):
+            def is_enabled(self):
+                raise RuntimeError('boom')
+
+        pc = collector.PacketCollector()
+        monitor = BadEnabled()
+        pc.register(monitor)
+
+        with mock.patch('aprsd.packets.collector.LOG') as mock_log:
+            pc.rx(fake.fake_packet())
+            mock_log.error.assert_called_once()
+        self.assertFalse(monitor.rx_called)
 
     def test_unregister(self):
         """Test unregister() method."""
@@ -142,6 +164,9 @@ class TestPacketCollector(unittest.TestCase):
 
             def load(self):
                 pass
+
+            def is_enabled(self):
+                return True
 
         monitor_class = TestMonitor()
         pc.register(monitor_class)
@@ -197,6 +222,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 pass
 
+            def is_enabled(self):
+                return True
+
         monitor = FailingMonitor()
         pc.register(monitor)
 
@@ -246,6 +274,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 pass
 
+            def is_enabled(self):
+                return True
+
         monitor = FailingMonitor()
         pc.register(monitor)
 
@@ -292,6 +323,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 pass
 
+            def is_enabled(self):
+                return True
+
         monitor = FailingMonitor()
         pc.register(monitor)
 
@@ -337,6 +371,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 raise Exception('Monitor error')
 
+            def is_enabled(self):
+                return True
+
         monitor = FailingMonitor()
         pc.register(monitor)
 
@@ -373,6 +410,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 pass
 
+            def is_enabled(self):
+                return True
+
         monitor1 = OrderedMonitor('Monitor1')
         monitor2 = OrderedMonitor('Monitor2')
         monitor3 = OrderedMonitor('Monitor3')
@@ -385,3 +425,22 @@ class TestPacketCollector(unittest.TestCase):
         pc.rx(packet)
 
         self.assertEqual(call_order, ['Monitor1', 'Monitor2', 'Monitor3'])
+
+    def test_disabled_monitor_skipped_but_still_flushed(self):
+        """A disabled monitor gets no rx/load, but an explicit flush still runs."""
+
+        class DisabledMonitor(MockPacketMonitor):
+            def is_enabled(self):
+                return False
+
+        pc = collector.PacketCollector()
+        monitor = DisabledMonitor()
+        pc.register(monitor)
+
+        pc.rx(fake.fake_packet())
+        pc.load()
+        self.assertFalse(monitor.rx_called)
+        self.assertFalse(monitor.load_called)
+
+        pc.flush()
+        self.assertTrue(monitor.flush_called)

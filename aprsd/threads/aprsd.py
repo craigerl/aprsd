@@ -122,6 +122,9 @@ class APRSDThreadList:
                 return True
         return False
 
+    def is_enabled(self) -> bool:
+        return True
+
     def stats(self, serializable=False) -> dict:
         stats = {}
         for th in self.threads_list:

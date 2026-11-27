@@ -11,6 +11,10 @@ LOG = logging.getLogger('APRSD')
 class PacketMonitor(Protocol):
     """Protocol for Monitoring packets in some way."""
 
+    def is_enabled(self) -> bool:
+        """Whether this monitor should see rx/tx/load."""
+        ...
+
     def rx(self, packet: type[core.Packet]) -> None:
         """When we get a packet from the network."""
         ...
@@ -47,6 +51,8 @@ class PacketCollector:
         for name in self.monitors:
             cls = name()
             try:
+                if not cls.is_enabled():
+                    continue
                 cls.rx(packet)
             except Exception as e:
                 LOG.error(f'Error in monitor {name} (rx): {e}')
@@ -55,6 +61,8 @@ class PacketCollector:
         for name in self.monitors:
             cls = name()
             try:
+                if not cls.is_enabled():
+                    continue
                 cls.tx(packet)
             except Exception as e:
                 LOG.error(f'Error in monitor {name} (tx): {e}')
@@ -73,6 +81,8 @@ class PacketCollector:
         for name in self.monitors:
             cls = name()
             try:
+                if not cls.is_enabled():
+                    continue
                 cls.load()
             except Exception as e:
                 LOG.error(f'Error in monitor {name} (load): {e}')

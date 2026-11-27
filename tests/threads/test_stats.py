@@ -7,6 +7,7 @@ from aprsd.stats import collector
 from aprsd.threads.stats import (
     APRSDPushStatsThread,
     APRSDStatsStoreThread,
+    StatsLogThread,
     StatsStore,
 )
 
@@ -175,6 +176,46 @@ class TestAPRSDStatsStoreThread(unittest.TestCase):
 
     # Removed test_loop_count_increment as it's not meaningful to test in isolation
     # since the increment happens in the parent run() method, not in loop()
+
+
+class TestStatsLogThread(unittest.TestCase):
+    """Unit tests for the StatsLogThread class."""
+
+    def _run_loop(self):
+        thread = StatsLogThread()
+        stats_json = {
+            'PacketList': {'rx': 0, 'types': {}},
+            'SeenList': {'A1': {'count': 1}, 'B2': {'count': 2}},
+        }
+        with (
+            mock.patch('aprsd.threads.stats.collector.Collector') as mock_collector,
+            mock.patch('aprsd.threads.stats.seen_list.SeenList') as mock_seen_list,
+            mock.patch('aprsd.threads.stats.LOGU') as mock_logu,
+            mock.patch.object(thread, 'wait'),
+        ):
+            mock_collector.return_value.collect.return_value = stats_json
+            self.assertTrue(thread.loop())
+
+        return mock_seen_list, mock_logu
+
+    def test_loop_saves_seen_list_each_tick(self):
+        """The tick always offers the seen list to the store.
+
+        A disabled store's save() returns without touching the file, so the
+        thread no longer branches on the config flag.
+        """
+        mock_seen_list, _ = self._run_loop()
+        mock_seen_list.return_value.save.assert_called_once()
+
+    def test_loop_counts_callsigns_from_collected_stats(self):
+        _, mock_logu = self._run_loop()
+        logged = [
+            call.args[0] for call in mock_logu.opt.return_value.info.call_args_list
+        ]
+        self.assertTrue(
+            any('Unique Callsigns: 2' in line for line in logged),
+            logged,
+        )
 
 
 class TestAPRSDPushStatsThread(unittest.TestCase):

@@ -30,6 +30,10 @@ class ObjectStoreMixin:
     # Child class must create the lock.
     lock = None
 
+    def is_enabled(self):
+        """Stores that can be switched off in config override this."""
+        return True
+
     def __len__(self):
         with self.lock:
             return len(self.data)
@@ -79,7 +83,10 @@ class ObjectStoreMixin:
 
     def save(self):
         """Save any queued to disk as JSON."""
-        if not CONF.enable_save:
+        # A disabled store must never save: an empty store's save() flushes
+        # (deletes) the file, which would wipe the history of an install that
+        # ran with the feature switched off.
+        if not CONF.enable_save or not self.is_enabled():
             return
         self._init_store()
         save_filename = self._save_filename()
@@ -119,7 +126,7 @@ class ObjectStoreMixin:
 
     def load(self):
         """Load data from JSON file."""
-        if not CONF.enable_save:
+        if not CONF.enable_save or not self.is_enabled():
             return
 
         json_file = self._save_filename()
@@ -156,8 +163,12 @@ class ObjectStoreMixin:
                 LOG.debug(f'{self.__class__.__name__}::No save file found.')
 
     def flush(self):
-        """Remove the JSON save file and clear data."""
-        if not CONF.enable_save:
+        """Remove the JSON save file and clear data.
+
+        A switched-off store is left alone, so an explicit `-f` cannot wipe
+        the history the save/load guards are there to preserve.
+        """
+        if not CONF.enable_save or not self.is_enabled():
             return
         with self.lock:
             if os.path.exists(self._save_filename()):

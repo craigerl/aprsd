@@ -110,6 +110,11 @@ Sample config file
     # ui. -1 means no max. (integer value)
     #packet_list_stats_maxlen = 20
 
+    # The maximum number of callsigns to keep in the seen list. Once this
+    # is reached, the least recently seen callsign is dropped when a new
+    # one is heard. Set to 0 for unbounded. (integer value)
+    #seen_list_maxlen = 1000
+
     # Enable the Callsign seen list tracking feature.  This allows aprsd
     # to keep track of callsigns that have been seen and when they were
     # last seen. (boolean value)

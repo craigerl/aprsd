@@ -13,6 +13,9 @@ CONF = cfg.CONF
 class APRSClientStats:
     lock = threading.Lock()
 
+    def is_enabled(self) -> bool:
+        return True
+
     @wrapt.synchronized(lock)
     def stats(self, serializable=False):
         return APRSDClient().stats(serializable=serializable)

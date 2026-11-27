@@ -12,6 +12,7 @@ import aprsd
 from aprsd import cli_helper, packets, plugin, threads, utils
 from aprsd.client.client import APRSDClient
 from aprsd.main import cli
+from aprsd.packets import collector as packet_collector
 from aprsd.packets import core
 from aprsd.packets import log as packet_log
 from aprsd.packets.filter import PacketFilter
@@ -191,8 +192,10 @@ def listen(
     CONF.log_opt_values(LOG, logging.DEBUG)
     collector.Collector()
 
-    # Try and load saved MsgTrack list
-    LOG.debug('Loading saved MsgTrack object.')
+    # Load the saved tracking data, so this process writes the full history
+    # back on exit instead of overwriting it with this session only.
+    LOG.debug('Loading saved packet tracking data.')
+    packet_collector.PacketCollector().load()
 
     # Initialize the client factory and create
     # The correct client object ready for use

@@ -23,6 +23,9 @@ class MockStatsProducer:
         self.stats_called = True
         return {'test': 'data', 'serializable': serializable}
 
+    def is_enabled(self):
+        return True
+
 
 class TestStatsCollector(unittest.TestCase):
     """Unit tests for the Collector class."""
@@ -84,6 +87,21 @@ class TestStatsCollector(unittest.TestCase):
         with self.assertRaises(TypeError):
             c.unregister_producer(non_producer)
 
+    def test_collect_survives_enabled_check_exception(self):
+        """A raising is_enabled() must not escape collect()."""
+
+        class BadEnabled(MockStatsProducer):
+            def is_enabled(self):
+                raise RuntimeError('boom')
+
+        c = collector.Collector()
+        producer = BadEnabled()
+        c.register_producer(producer)
+
+        with mock.patch('aprsd.stats.collector.LOG') as mock_log:
+            self.assertEqual(c.collect(), {})
+            mock_log.error.assert_called_once()
+
     def test_collect(self):
         """Test collect() method."""
         c = collector.Collector()
@@ -129,6 +147,9 @@ class TestStatsCollector(unittest.TestCase):
             def stats(self, serializable=False):
                 raise RuntimeError('Stats error')
 
+            def is_enabled(self):
+                return True
+
         producer = FailingProducer()
         c.register_producer(producer)
 
@@ -155,6 +176,9 @@ class TestStatsCollector(unittest.TestCase):
                 call_order.append('fail')
                 raise RuntimeError('Stats error')
 
+            def is_enabled(self):
+                return True
+
         class GoodProducer:
             _instance = None
 
@@ -166,6 +190,9 @@ class TestStatsCollector(unittest.TestCase):
             def stats(self, serializable=False):
                 call_order.append('good')
                 return {'ok': True}
+
+            def is_enabled(self):
+                return True
 
         c.register_producer(FailingProducer())
         c.register_producer(GoodProducer())
@@ -212,6 +239,9 @@ class TestStatsCollector(unittest.TestCase):
                 call_order.append(self.name)
                 return {'name': self.name}
 
+            def is_enabled(self):
+                return True
+
         producer1 = OrderedProducer('Producer1')
         producer2 = OrderedProducer('Producer2')
         producer3 = OrderedProducer('Producer3')
@@ -236,3 +266,17 @@ class TestStatsCollector(unittest.TestCase):
         c = collector.Collector()
         stats = c.collect()
         self.assertEqual(stats, {})
+
+    def test_disabled_producer_skipped(self):
+        """A producer whose is_enabled() is False is left out of the stats."""
+
+        class DisabledProducer(MockStatsProducer):
+            def is_enabled(self):
+                return False
+
+        c = collector.Collector()
+        producer = DisabledProducer()
+        c.register_producer(producer)
+
+        self.assertEqual(c.collect(), {})
+        self.assertFalse(producer.stats_called)

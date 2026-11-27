@@ -127,6 +127,13 @@ aprsd_opts = [
         default=20,
         help='The maximum number of packets to send in the stats dict for admin ui. -1 means no max.',
     ),
+    cfg.IntOpt(
+        'seen_list_maxlen',
+        default=1000,
+        help='The maximum number of callsigns to keep in the seen list. '
+        'Once this is reached, the least recently seen callsign is dropped '
+        'when a new one is heard. Set to 0 for unbounded.',
+    ),
     cfg.BoolOpt(
         'enable_seen_list',
         default=True,

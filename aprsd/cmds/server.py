@@ -12,7 +12,6 @@ from aprsd import main as aprsd_main
 from aprsd.client.client import APRSDClient
 from aprsd.main import cli
 from aprsd.packets import collector as packet_collector
-from aprsd.packets import seen_list
 from aprsd.threads import keepalive, registry, rx, service, tx
 from aprsd.threads import stats as stats_thread
 from aprsd.threads.stats import StatsLogThread
@@ -107,10 +106,6 @@ def server(ctx, flush, enable_packet_stats):
     LOG.info('Watchlist Plugins enabled and running:')
     for p in watchlist_plugins:
         LOG.info(p)
-
-    if not CONF.enable_seen_list:
-        # just deregister the class from the packet collector
-        packet_collector.PacketCollector().unregister(seen_list.SeenList)
 
     # Now load the msgTrack from disk if any
     if flush:
