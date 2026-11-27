@@ -101,24 +101,20 @@ class TestSendFunctions(unittest.TestCase):
         self.assertIsNone(lazy._throttle)
         lazy.check(key='x', quantity=1)
         self.assertIsNotNone(lazy._throttle)
-        self.assertEqual(lazy._throttle.rate.count, 7)
+        # The option is a period (1 packet every N seconds), not a count.
+        self.assertEqual(lazy._throttle.rate.count, 1)
+        self.assertEqual(lazy._throttle.rate.period.total_seconds(), 7)
 
-    def test_send_throttle_sleep_does_not_hold_global_lock(self):
+    @mock.patch('aprsd.threads.tx.collector.PacketCollector')
+    @mock.patch('aprsd.threads.tx.packet_log')
+    def test_send_throttle_sleep_does_not_hold_global_lock(
+        self, mock_log, mock_collector
+    ):
         """Throttle sleep must happen OUTSIDE the global send lock.
 
-        Decorator order matters: if @wrapt.synchronized(s_lock) is the outer
-        decorator, the throttle's sleep_and_retry runs while holding the
-        lock, serializing ALL outbound sends behind a single throttled one.
-        This test proves the lock is acquirable while send() is sleeping in
-        its throttle backoff.
+        If the throttle sleep ran while holding s_lock, one throttled send
+        would serialize ALL outbound sends behind it (see #295).
         """
-        from oslo_config import cfg
-
-        from aprsd.threads import tx as tx_module
-
-        CONF = cfg.CONF
-        CONF.enable_sending_ack_packets = True
-
         packet = fake.fake_packet()
 
         # Throttle blocks the first check (long retry_after) then allows.
@@ -136,21 +132,55 @@ class TestSendFunctions(unittest.TestCase):
         fake_throttle = mock.MagicMock()
         fake_throttle.check.side_effect = check_side_effect
 
-        with mock.patch.object(
-            tx_module.msg_throttle_decorator, 'throttle', fake_throttle
-        ):
-            with mock.patch.object(tx_module, '_send_packet', return_value=None):
-                sender = threading.Thread(target=tx_module.send, args=(packet,))
-                sender.start()
-                # Give the sender time to enter the throttle sleep.
-                time.sleep(0.2)
-                # If the throttle sleep held s_lock, this acquire would time out.
-                got_lock = tx_module.s_lock.acquire(timeout=0.5)
-                if got_lock:
-                    tx_module.s_lock.release()
-                sender.join(timeout=2)
+        with mock.patch.object(tx, 'msg_t', fake_throttle):
+            sender = threading.Thread(
+                target=tx.send,
+                args=(packet,),
+                kwargs={'direct': True, 'aprs_client': mock.MagicMock()},
+            )
+            sender.start()
+            # Give the sender time to enter the throttle sleep.
+            time.sleep(0.2)
+            # If the throttle sleep held s_lock, this acquire would time out.
+            got_lock = tx.s_lock.acquire(timeout=0.5)
+            if got_lock:
+                tx.s_lock.release()
+            sender.join(timeout=2)
 
+        # Prove the send thread really reached the throttle and slept once.
+        self.assertGreaterEqual(state['n'], 2)
         self.assertTrue(got_lock)
+
+    @mock.patch('aprsd.threads.tx.collector.PacketCollector')
+    @mock.patch('aprsd.threads.tx.packet_log')
+    def test_each_transmission_charged_to_one_quota(self, mock_log, mock_coll):
+        """A send/ack transmission is charged exactly one quota (#319)."""
+        throttles = {}
+        for name in ('msg_t', 'ack_t'):
+            t = mock.MagicMock()
+            t.check.return_value = mock.MagicMock(limited=False)
+            throttles[name] = t
+
+        client = mock.MagicMock()
+        with (
+            mock.patch.object(tx, 'msg_t', throttles['msg_t']),
+            mock.patch.object(tx, 'ack_t', throttles['ack_t']),
+        ):
+            tx.send(
+                fake.fake_packet(),
+                direct=True,
+                aprs_client=client,
+            )
+            self.assertEqual(throttles['msg_t'].check.call_count, 1)
+            self.assertEqual(throttles['ack_t'].check.call_count, 0)
+
+            tx.send(
+                fake.fake_ack_packet(),
+                direct=True,
+                aprs_client=client,
+            )
+            self.assertEqual(throttles['msg_t'].check.call_count, 1)
+            self.assertEqual(throttles['ack_t'].check.call_count, 1)
 
     @mock.patch('aprsd.threads.tx._get_packet_scheduler')
     def test_send_packet_threaded(self, mock_get_scheduler):

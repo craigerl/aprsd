@@ -57,6 +57,7 @@ aprsd_opts = [
     cfg.IntOpt(
         'ack_rate_limit_period',
         default=1,
+        min=1,
         help='The wait period in seconds per Ack packet being sent.'
         '1 means 1 ack packet per second allowed.'
         '2 means 1 pack packet every 2 seconds allowed',
@@ -64,6 +65,7 @@ aprsd_opts = [
     cfg.IntOpt(
         'msg_rate_limit_period',
         default=2,
+        min=1,
         help='Wait period in seconds per non AckPacket being sent.'
         '2 means 1 packet every 2 seconds allowed.'
         '5 means 1 pack packet every 5 seconds allowed',

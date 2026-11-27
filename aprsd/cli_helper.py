@@ -192,6 +192,12 @@ def process_standard_options(f: F) -> F:
                 version=aprsd.__version__,
                 default_config_files=default_config_files,
             )
+            # oslo checks an option's min/max only when the value is read,
+            # and the rate limit periods are read on the send path. Read
+            # them now so a bad value stops startup instead of failing
+            # every packet send (#319).
+            for _name in ('msg_rate_limit_period', 'ack_rate_limit_period'):
+                getattr(CONF, _name)
         except cfg.ConfigFilesNotFoundError:
             config_file_found = False
         except cfg.RequiredOptError as roe:
@@ -207,6 +213,12 @@ def process_standard_options(f: F) -> F:
                     'responsible for this APRSD instance, which may be different than '
                     'the "callsign" used by APRSD for messaging.',
                 )
+            sys.exit(-1)
+        except cfg.ConfigFileValueError as exc:
+            import sys
+
+            LOG = logging.getLogger('APRSD')  # noqa: N806
+            LOG.error(f'Invalid value in the config file: {exc}')
             sys.exit(-1)
 
         ctx.obj['loglevel'] = kwargs['loglevel']
