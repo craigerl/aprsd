@@ -23,6 +23,9 @@ class MockStatsProducer:
         self.stats_called = True
         return {'test': 'data', 'serializable': serializable}
 
+    def is_enabled(self):
+        return True
+
 
 class TestStatsCollector(unittest.TestCase):
     """Unit tests for the Collector class."""
@@ -129,6 +132,9 @@ class TestStatsCollector(unittest.TestCase):
             def stats(self, serializable=False):
                 raise RuntimeError('Stats error')
 
+            def is_enabled(self):
+                return True
+
         producer = FailingProducer()
         c.register_producer(producer)
 
@@ -155,6 +161,9 @@ class TestStatsCollector(unittest.TestCase):
                 call_order.append('fail')
                 raise RuntimeError('Stats error')
 
+            def is_enabled(self):
+                return True
+
         class GoodProducer:
             _instance = None
 
@@ -166,6 +175,9 @@ class TestStatsCollector(unittest.TestCase):
             def stats(self, serializable=False):
                 call_order.append('good')
                 return {'ok': True}
+
+            def is_enabled(self):
+                return True
 
         c.register_producer(FailingProducer())
         c.register_producer(GoodProducer())
@@ -211,6 +223,9 @@ class TestStatsCollector(unittest.TestCase):
             def stats(self, serializable=False):
                 call_order.append(self.name)
                 return {'name': self.name}
+
+            def is_enabled(self):
+                return True
 
         producer1 = OrderedProducer('Producer1')
         producer2 = OrderedProducer('Producer2')

@@ -37,6 +37,9 @@ class MockPacketMonitor:
     def load(self):
         self.load_called = True
 
+    def is_enabled(self):
+        return True
+
 
 class TestPacketMonitorProtocol(unittest.TestCase):
     """Test that PacketMonitor protocol is properly defined."""
@@ -106,6 +109,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 pass
 
+            def is_enabled(self):
+                return True
+
         monitor_class = TestMonitor()
         pc.register(monitor_class)
         self.assertIn(monitor_class, pc.monitors)
@@ -142,6 +148,9 @@ class TestPacketCollector(unittest.TestCase):
 
             def load(self):
                 pass
+
+            def is_enabled(self):
+                return True
 
         monitor_class = TestMonitor()
         pc.register(monitor_class)
@@ -197,6 +206,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 pass
 
+            def is_enabled(self):
+                return True
+
         monitor = FailingMonitor()
         pc.register(monitor)
 
@@ -246,6 +258,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 pass
 
+            def is_enabled(self):
+                return True
+
         monitor = FailingMonitor()
         pc.register(monitor)
 
@@ -292,6 +307,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 pass
 
+            def is_enabled(self):
+                return True
+
         monitor = FailingMonitor()
         pc.register(monitor)
 
@@ -337,6 +355,9 @@ class TestPacketCollector(unittest.TestCase):
             def load(self):
                 raise Exception('Monitor error')
 
+            def is_enabled(self):
+                return True
+
         monitor = FailingMonitor()
         pc.register(monitor)
 
@@ -372,6 +393,9 @@ class TestPacketCollector(unittest.TestCase):
 
             def load(self):
                 pass
+
+            def is_enabled(self):
+                return True
 
         monitor1 = OrderedMonitor('Monitor1')
         monitor2 = OrderedMonitor('Monitor2')

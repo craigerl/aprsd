@@ -14,6 +14,10 @@ class StatsProducer(Protocol):
         """provide stats in a dictionary format."""
         ...
 
+    def is_enabled(self) -> bool:
+        """Whether this producer is part of the collected stats."""
+        ...
+
 
 @singleton
 class Collector:
@@ -26,8 +30,7 @@ class Collector:
         stats = {}
         for name in self.producers:
             cls = name()
-            check = getattr(cls, 'is_enabled', None)
-            if check is not None and not check():
+            if not cls.is_enabled():
                 continue
             try:
                 stats[cls.__class__.__name__] = cls.stats(
@@ -42,7 +45,13 @@ class Collector:
 
     def register_producer(self, producer_name: Callable):
         if not isinstance(producer_name, StatsProducer):
-            raise TypeError(f'Producer {producer_name} is not a StatsProducer')
+            missing = [
+                attr
+                for attr in ('stats', 'is_enabled')
+                if not hasattr(producer_name, attr)
+            ]
+            detail = f' (missing {", ".join(missing)})' if missing else ''
+            raise TypeError(f'Producer {producer_name} is not a StatsProducer{detail}')
         self.producers.append(producer_name)
 
     def unregister_producer(self, producer_name: Callable):
