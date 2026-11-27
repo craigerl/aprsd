@@ -14,8 +14,8 @@ LOG = logging.getLogger('APRSD')
 class TimePlugin(plugin.APRSDRegexCommandPluginBase):
     """Time command."""
 
-    # Look for t or t<space> or T<space> or time
-    command_regex = r'^([t]|[t]\s|time)'
+    # Look for the whole word t or time
+    command_regex = r'^(time|t)\b'
     command_name = 'time'
     short_description = 'What is the current local time.'
 

@@ -268,7 +268,7 @@ class HelpPlugin(APRSDRegexCommandPluginBase):
     This plugin is in this file to prevent a circular import.
     """
 
-    command_regex = '^[hH]'
+    command_regex = r'^(help|h)\b'
     command_name = 'help'
 
     def help(self):

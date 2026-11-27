@@ -9,7 +9,7 @@ LOG = logging.getLogger('APRSD')
 class PingPlugin(plugin.APRSDRegexCommandPluginBase):
     """Ping."""
 
-    command_regex = r'^([p]|[p]\s|ping)'
+    command_regex = r'^(ping|p)\b'
     command_name = 'ping'
     short_description = 'reply with a Pong!'
 
