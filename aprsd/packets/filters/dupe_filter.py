@@ -1,5 +1,4 @@
 import logging
-import threading
 from collections import OrderedDict
 from typing import Union
 
@@ -21,6 +20,10 @@ class DupePacketFilter:
     The window is time based on purpose: ``PacketList`` only keeps
     ``packet_list_maxlen`` packets, which at normal RF rates covers far
     less than ``packet_dupe_timeout`` seconds (#320).
+
+    ``_seen`` therefore holds about ``packet_dupe_timeout`` seconds worth
+    of packets with a msgNo (RX rate x timeout), so memory grows with the
+    packet rate instead of being capped at ``packet_list_maxlen``.
     """
 
     def __init__(self):
@@ -28,7 +31,6 @@ class DupePacketFilter:
         # We keep the packet object, not a copy, because ``processed`` is
         # set on it later by the processing thread.
         self._seen: OrderedDict = OrderedDict()
-        self._lock = threading.RLock()
 
     def _prune(self, now: float) -> None:
         """Drop entries that fell out of the dupe window."""
@@ -54,30 +56,29 @@ class DupePacketFilter:
             # it shouldn't get acked either.
             return packet
 
-        with self._lock:
-            # Find the packet in the list of already seen packets
-            # Based on the packet.key
-            found = self._seen.get(packet.key)
+        # Find the packet in the list of already seen packets
+        # Based on the packet.key
+        found = self._seen.get(packet.key)
 
-            if found is not None:
-                if not found.processed:
-                    # The previously seen packet hasn't been processed yet,
-                    # so let this one through too.
-                    return packet
-                if abs(packet.timestamp - found.timestamp) < CONF.packet_dupe_timeout:
-                    # If the packet came in within N seconds of the
-                    # Last time seeing the packet, then we drop it as a dupe.
-                    LOG.warning(
-                        f'Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.'
-                    )
-                    return None
+        if found is not None:
+            if not found.processed:
+                # The previously seen packet hasn't been processed yet,
+                # so let this one through too.
+                return packet
+            if abs(packet.timestamp - found.timestamp) < CONF.packet_dupe_timeout:
+                # If the packet came in within N seconds of the
+                # Last time seeing the packet, then we drop it as a dupe.
                 LOG.warning(
-                    f'Packet {packet.from_call}:{packet.msgNo} already tracked '
-                    f'but older than {CONF.packet_dupe_timeout} seconds. processing.',
+                    f'Packet {packet.from_call}:{packet.msgNo} already tracked, dropping.'
                 )
+                return None
+            LOG.warning(
+                f'Packet {packet.from_call}:{packet.msgNo} already tracked '
+                f'but older than {CONF.packet_dupe_timeout} seconds. processing.',
+            )
 
-            # Remember this copy.  Processing marks it when it's handled.
-            self._prune(packet.timestamp)
-            self._seen[packet.key] = packet
-            self._seen.move_to_end(packet.key)
-            return packet
+        # Remember this copy.  Processing marks it when it's handled.
+        self._prune(packet.timestamp)
+        self._seen[packet.key] = packet
+        self._seen.move_to_end(packet.key)
+        return packet

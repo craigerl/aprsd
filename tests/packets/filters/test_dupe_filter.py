@@ -107,37 +107,46 @@ class TestDupePacketFilter(unittest.TestCase):
         """
         from oslo_config import cfg
 
-        from aprsd.packets import packet_list
-
         CONF = cfg.CONF
         CONF.packet_dupe_timeout = 300
 
-        pl = packet_list.PacketList()
-        pl.maxlen = 100
-        pl._init_data()
-
-        def deliver(packet):
-            """Mirror the RX thread: filter -> collect -> mark processed."""
-            result = self.filter.filter(packet)
-            if result:
-                pl.rx(result)
-                result.processed = True
-            return result
-
         first = fake.fake_packet(fromcall='DUPE1', msg_number='1')
         first.timestamp = 1000
-        self.assertIs(deliver(first), first)
+        self.assertIs(self._deliver(first), first)
 
-        # Enough distinct packets to evict DUPE1 from the 100-slot list.
+        # Enough distinct packets to evict DUPE1 from a 100-slot store.
         for i in range(150):
             other = fake.fake_packet(fromcall=f'OTHER{i}', msg_number=str(i))
             other.timestamp = 1001 + i
-            self.assertIs(deliver(other), other)
+            self.assertIs(self._deliver(other), other)
 
         # Retransmit arrives 200s after the first copy, inside the 300s window.
         retransmit = fake.fake_packet(fromcall='DUPE1', msg_number='1')
         retransmit.timestamp = 1200
-        self.assertIsNone(deliver(retransmit))
+        self.assertIsNone(self._deliver(retransmit))
+
+    def test_prune_drops_packets_outside_window(self):
+        """_seen must not grow forever: entries older than the timeout go.
+
+        Without _prune() the dupe answers stay correct (the time check is
+        also done on lookup), so only this test notices the memory leak.
+        """
+        from oslo_config import cfg
+
+        CONF = cfg.CONF
+        CONF.packet_dupe_timeout = 60
+
+        first = fake.fake_packet(msg_number='1')
+        first.timestamp = 1000
+        self._deliver(first)
+        self.assertIn(first.key, self.filter._seen)
+
+        later = fake.fake_packet(msg_number='2')
+        later.timestamp = 1100  # 100s later, outside the 60s window
+        self._deliver(later)
+
+        self.assertNotIn(first.key, self.filter._seen)
+        self.assertIn(later.key, self.filter._seen)
 
     def test_filter_aprs_retransmit_via_different_digi(self):
         """Regression test for the production duplicate-reply bug.
