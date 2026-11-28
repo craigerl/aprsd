@@ -15,10 +15,6 @@ import aprsd
 
 from .fuzzyclock import fuzzy  # noqa: F401
 
-# Make these available by anyone importing
-# aprsd.utils
-from .ring_buffer import RingBuffer  # noqa: F401
-
 
 def singleton(cls):
     """Make a class a Singleton class (only one instance).

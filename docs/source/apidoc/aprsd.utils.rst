@@ -60,14 +60,6 @@ aprsd.utils.package module
    :show-inheritance:
    :undoc-members:
 
-aprsd.utils.ring\_buffer module
--------------------------------
-
-.. automodule:: aprsd.utils.ring_buffer
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 aprsd.utils.trace module
 ------------------------
 
