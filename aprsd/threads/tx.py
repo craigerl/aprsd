@@ -175,6 +175,7 @@ def _get_ack_scheduler():
 def _ensure_supervisor():
     """Start the TX supervisor once, unless it was already asked to stop."""
     global _supervisor
+    # stop_all() can land between a getter's own check and this call.
     if _shutting_down():
         return
     if _supervisor is not None and (
