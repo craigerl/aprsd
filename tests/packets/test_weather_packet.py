@@ -190,19 +190,22 @@ class TestWeatherPacket(unittest.TestCase):
         # Key must include from_call as prefix
         self.assertTrue(key.startswith(fake.FAKE_FROM_CALLSIGN))
 
-    def test_key_without_timestamps_no_collision(self):
-        """Two WeatherPackets from the same station with no timestamps must not
-        share the same key, otherwise PacketList / dupe-filter will collide.
+    def test_key_without_timestamps_is_payload_based(self):
+        """The fallback key comes from the weather payload, not id(self).
 
-        The fallback uses id(self) which is unique per object instance.
+        id() is reused after GC, so two distinct packets could share a key.
+        Same payload => same key (dedupe), different payload => different key.
         """
-        p1 = packets.WeatherPacket(
-            from_call=fake.FAKE_FROM_CALLSIGN,
-            to_call=fake.FAKE_TO_CALLSIGN,
-        )
-        p2 = packets.WeatherPacket(
-            from_call=fake.FAKE_FROM_CALLSIGN,
-            to_call=fake.FAKE_TO_CALLSIGN,
-        )
-        # Distinct objects — keys must differ regardless of timing
-        self.assertNotEqual(p1.key, p2.key)
+
+        def wx(**kwargs):
+            return packets.WeatherPacket(
+                from_call=fake.FAKE_FROM_CALLSIGN,
+                to_call=fake.FAKE_TO_CALLSIGN,
+                **kwargs,
+            )
+
+        p1 = wx(temperature=72.0)
+        p2 = wx(temperature=72.0)
+        p3 = wx(temperature=73.0)
+        self.assertEqual(p1.key, p2.key)
+        self.assertNotEqual(p1.key, p3.key)
