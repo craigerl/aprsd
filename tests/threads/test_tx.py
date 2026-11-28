@@ -364,6 +364,29 @@ class TestSendFunctions(unittest.TestCase):
 
     @mock.patch('aprsd.threads.tx.TxSchedulerSupervisor')
     @mock.patch('aprsd.threads.tx.PacketSendSchedulerThread')
+    def test_stops_scheduler_started_during_shutdown(
+        self, mock_scheduler_class, mock_supervisor_class
+    ):
+        """A race with stop_all() must not leave a non-daemon scheduler running.
+
+        stop_all() can run after the _shutting_down() check but before the new
+        scheduler is started.  Its sweep has already passed, so the getter must
+        stop it, or the process never exits.  Same race covers _ensure_supervisor,
+        which must not start a supervisor at that point either.
+        """
+        tx._packet_scheduler = None
+        tx._supervisor = None
+        scheduler = mock_scheduler_class.return_value
+        # stop_all() lands mid-creation, after the getter's first check.
+        scheduler.start.side_effect = APRSDThreadList().stop_all
+
+        tx._get_packet_scheduler()
+
+        scheduler.stop.assert_called_once()
+        mock_supervisor_class.assert_not_called()
+
+    @mock.patch('aprsd.threads.tx.TxSchedulerSupervisor')
+    @mock.patch('aprsd.threads.tx.PacketSendSchedulerThread')
     def test_get_packet_scheduler_refuses_after_shutdown(
         self, mock_scheduler_class, mock_supervisor_class
     ):

@@ -147,6 +147,12 @@ def _get_packet_scheduler():
         if _packet_scheduler is None or not _packet_scheduler.is_alive():
             _packet_scheduler = PacketSendSchedulerThread()
             _packet_scheduler.start()
+            if _shutting_down():
+                # stop_all() ran while we were building it.  Its sweep has
+                # already passed this thread, so stopping it here is the
+                # only thing that keeps a non-daemon scheduler from hanging
+                # the process at exit.
+                _packet_scheduler.stop()
         _ensure_supervisor()
         return _packet_scheduler
 
@@ -160,6 +166,8 @@ def _get_ack_scheduler():
         if _ack_scheduler is None or not _ack_scheduler.is_alive():
             _ack_scheduler = AckSendSchedulerThread()
             _ack_scheduler.start()
+            if _shutting_down():
+                _ack_scheduler.stop()
         _ensure_supervisor()
         return _ack_scheduler
 
