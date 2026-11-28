@@ -450,6 +450,24 @@ class TestPacketWorkers(unittest.TestCase):
 
     @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
     @mock.patch('aprsd.threads.tx._send_direct')
+    def test_send_ack_worker_send_count_above_max(
+        self, mock_send_direct, mock_tracker_class
+    ):
+        """send_count above max_retries must also stop (>= not ==)."""
+        mock_tracker = mock.MagicMock()
+        tracked_packet = fake.fake_ack_packet()
+        tracked_packet.send_count = 4
+        mock_tracker.get.return_value = tracked_packet
+        mock_tracker_class.return_value = mock_tracker
+
+        result = tx._send_ack_worker('123', 3)
+
+        self.assertFalse(result)
+        mock_send_direct.assert_not_called()
+        mock_tracker.remove.assert_called_once_with(tracked_packet.msgNo)
+
+    @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
+    @mock.patch('aprsd.threads.tx._send_direct')
     def test_send_ack_worker_send_now(self, mock_send_direct, mock_tracker_class):
         """Test _send_ack_worker() when it's time to send."""
         mock_tracker = mock.MagicMock()
