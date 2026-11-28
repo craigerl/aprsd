@@ -22,105 +22,122 @@ class TestDupePacketFilter(unittest.TestCase):
         result = self.filter.filter(packet)
         self.assertEqual(result, packet)
 
+    def _deliver(self, packet, processed=True):
+        """Mirror the RX thread: filter it, then mark it processed."""
+        result = self.filter.filter(packet)
+        if result is not None and processed:
+            result.processed = True
+        return result
+
     def test_filter_new_packet(self):
         """Test filter() with new packet."""
         packet = fake.fake_packet(msg_number='123')
-
-        with mock.patch(
-            'aprsd.packets.filters.dupe_filter.packets.PacketList'
-        ) as mock_list:
-            mock_list_instance = mock.MagicMock()
-            mock_list_instance.find.side_effect = KeyError('Not found')
-            mock_list.return_value = mock_list_instance
-
-            result = self.filter.filter(packet)
-            self.assertEqual(result, packet)
+        self.assertIs(self._deliver(packet), packet)
 
     def test_filter_packet_no_msgno(self):
         """Test filter() with packet without msgNo."""
         packet = fake.fake_packet()
         packet.msgNo = None
 
-        with mock.patch(
-            'aprsd.packets.filters.dupe_filter.packets.PacketList'
-        ) as mock_list:
-            mock_list_instance = mock.MagicMock()
-            found_packet = fake.fake_packet()
-            mock_list_instance.find.return_value = found_packet
-            mock_list.return_value = mock_list_instance
-
-            # Should pass even if found (no msgNo = can't detect dupe)
-            result = self.filter.filter(packet)
-            self.assertEqual(result, packet)
+        # Should pass every time (no msgNo = can't detect dupe)
+        self.assertIs(self._deliver(packet), packet)
+        self.assertIs(self._deliver(packet), packet)
 
     def test_filter_unprocessed_duplicate(self):
         """Test filter() with duplicate but unprocessed packet."""
         packet = fake.fake_packet(msg_number='123')
-        packet.processed = False
+        packet.timestamp = 1000
+        self.assertIs(self._deliver(packet, processed=False), packet)
 
-        with mock.patch(
-            'aprsd.packets.filters.dupe_filter.packets.PacketList'
-        ) as mock_list:
-            mock_list_instance = mock.MagicMock()
-            found_packet = fake.fake_packet(msg_number='123')
-            mock_list_instance.find.return_value = found_packet
-            mock_list.return_value = mock_list_instance
-
-            result = self.filter.filter(packet)
-            self.assertEqual(result, packet)
+        retransmit = fake.fake_packet(msg_number='123')
+        retransmit.timestamp = 1010
+        self.assertIs(self._deliver(retransmit), retransmit)
 
     def test_filter_duplicate_within_timeout(self):
         """Test filter() with duplicate within timeout.
 
-        The found (previously stored) packet is already processed.
-        The new incoming duplicate should be dropped.
+        The stored packet is already processed, so the new incoming
+        duplicate should be dropped.
         """
         from oslo_config import cfg
 
         CONF = cfg.CONF
         CONF.packet_dupe_timeout = 60
 
-        packet = fake.fake_packet(msg_number='123')
-        packet.timestamp = 1000
-
-        mock_list_instance = mock.MagicMock()
         found_packet = fake.fake_packet(msg_number='123')
-        found_packet.processed = True  # the stored packet was already processed
-        found_packet.timestamp = 1050  # Within 60 second timeout
-        mock_list_instance.find.return_value = found_packet
-        self.filter.pl = mock_list_instance
+        found_packet.timestamp = 1000
+        self._deliver(found_packet)
+
+        packet = fake.fake_packet(msg_number='123')
+        packet.timestamp = 1050  # Within 60 second timeout
 
         with mock.patch('aprsd.packets.filters.dupe_filter.LOG') as mock_log:
-            result = self.filter.filter(packet)
-            self.assertIsNone(result)  # Should be dropped
+            self.assertIsNone(self._deliver(packet))  # Should be dropped
             mock_log.warning.assert_called()
 
     def test_filter_duplicate_after_timeout(self):
         """Test filter() with duplicate after timeout.
 
-        The found (previously stored) packet is already processed,
-        but it arrived long ago (outside the dupe timeout window).
-        The new incoming duplicate should be re-processed with a warning.
+        The stored packet is already processed, but it arrived long ago
+        (outside the dupe timeout window), so the new duplicate should be
+        re-processed with a warning.
         """
         from oslo_config import cfg
 
         CONF = cfg.CONF
         CONF.packet_dupe_timeout = 60
 
-        packet = fake.fake_packet(msg_number='123')
-        packet.timestamp = 2000
-
-        mock_list_instance = mock.MagicMock()
         found_packet = fake.fake_packet(msg_number='123')
-        found_packet.processed = True  # the stored packet was already processed
-        found_packet.timestamp = 1000  # More than 60 seconds ago
-        mock_list_instance.find.return_value = found_packet
-        self.filter.pl = mock_list_instance
+        found_packet.timestamp = 1000
+        self._deliver(found_packet)
+
+        packet = fake.fake_packet(msg_number='123')
+        packet.timestamp = 2000  # More than 60 seconds ago
 
         with mock.patch('aprsd.packets.filters.dupe_filter.LOG') as mock_log:
-            result = self.filter.filter(packet)
-            self.assertEqual(result, packet)  # Should pass
+            self.assertIs(self._deliver(packet), packet)  # Should pass
             mock_log.warning.assert_called()
+
+    def test_dupe_survives_packet_list_eviction(self):
+        """#320: a dupe inside packet_dupe_timeout must be dropped even after
+        the packet has been evicted from PacketList's maxlen window.
+
+        At ~0.33 pkt/s the 100-slot PacketList covers less than the 300s dupe
+        timeout, so an old duplicate used to be treated as new and reprocessed.
+        """
+        from oslo_config import cfg
+
+        from aprsd.packets import packet_list
+
+        CONF = cfg.CONF
+        CONF.packet_dupe_timeout = 300
+
+        pl = packet_list.PacketList()
+        pl.maxlen = 100
+        pl._init_data()
+
+        def deliver(packet):
+            """Mirror the RX thread: filter -> collect -> mark processed."""
+            result = self.filter.filter(packet)
+            if result:
+                pl.rx(result)
+                result.processed = True
+            return result
+
+        first = fake.fake_packet(fromcall='DUPE1', msg_number='1')
+        first.timestamp = 1000
+        self.assertIs(deliver(first), first)
+
+        # Enough distinct packets to evict DUPE1 from the 100-slot list.
+        for i in range(150):
+            other = fake.fake_packet(fromcall=f'OTHER{i}', msg_number=str(i))
+            other.timestamp = 1001 + i
+            self.assertIs(deliver(other), other)
+
+        # Retransmit arrives 200s after the first copy, inside the 300s window.
+        retransmit = fake.fake_packet(fromcall='DUPE1', msg_number='1')
+        retransmit.timestamp = 1200
+        self.assertIsNone(deliver(retransmit))
 
     def test_filter_aprs_retransmit_via_different_digi(self):
         """Regression test for the production duplicate-reply bug.
@@ -147,18 +164,14 @@ class TestDupePacketFilter(unittest.TestCase):
         first_timestamp = 1000.0
         retransmit_timestamp = first_timestamp + 63
 
+        # First receipt, already processed
+        first_receipt = fake.fake_packet(msg_number='9028')
+        first_receipt.timestamp = first_timestamp
+        self._deliver(first_receipt)
+
         # Incoming duplicate — freshly decoded, processed=False (always)
         retransmit = fake.fake_packet(msg_number='9028')
         retransmit.timestamp = retransmit_timestamp
-
-        # What PacketList holds from the first receipt — already processed
-        first_receipt = fake.fake_packet(msg_number='9028')
-        first_receipt.processed = True
-        first_receipt.timestamp = first_timestamp
-
-        mock_list_instance = mock.MagicMock()
-        mock_list_instance.find.return_value = first_receipt
-        self.filter.pl = mock_list_instance
 
         with mock.patch('aprsd.packets.filters.dupe_filter.LOG') as mock_log:
             result = self.filter.filter(retransmit)
