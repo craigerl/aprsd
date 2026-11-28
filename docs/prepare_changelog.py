@@ -6,7 +6,7 @@ from pathlib import Path
 
 VERSION_HEADING = re.compile(r'^#{3,4} (?:\[)?(?:v?\d+\.\d+\.\d+|Unreleased)')
 CATEGORY_HEADING = re.compile(
-    r'^#{3,5} (?:Breaking Changes|Features|Bug Fixes|Refactoring|Security|CI|Tests)'
+    r'^#{3,5} (?:Breaking Changes|Changes|Features|Bug Fixes|Refactoring|Security|CI|Tests|Documentation|Build)'
 )
 
 
