@@ -235,6 +235,35 @@ class TestAPRSDThread(unittest.TestCase):
         self.assertEqual(thread.iterations, 2)
         self.assertFalse(thread.is_alive())
 
+    def test_run_cleans_up_when_base_exception_kills_thread(self):
+        """A thread killed by a BaseException must still clean up and leave.
+
+        run() only catches Exception, so SystemExit ends the thread.  Without
+        the finally, _cleanup() never runs (a TX scheduler would leak its
+        threadpool) and the thread stays in APRSDThreadList, where keepalive
+        logs it as dead forever.
+        """
+
+        class ExitingThread(APRSDThread):
+            def __init__(self, name):
+                super().__init__(name)
+                self.cleaned_up = False
+
+            def loop(self):
+                raise SystemExit(1)
+
+            def _cleanup(self):
+                self.cleaned_up = True
+
+        thread = ExitingThread('ExitTest')
+        # Call run() directly: a real thread would make pytest report the
+        # SystemExit through its thread-exception hook.
+        with self.assertRaises(SystemExit):
+            thread.run()
+
+        self.assertTrue(thread.cleaned_up)
+        self.assertNotIn('ExitTest', APRSDThreadList())
+
 
 class TestAPRSDThreadList(unittest.TestCase):
     """Unit tests for the APRSDThreadList class."""
@@ -355,6 +384,20 @@ class TestAPRSDThreadList(unittest.TestCase):
         thread_list.stop_all()
         self.assertTrue(thread1._shutdown_event.is_set())
         self.assertTrue(thread2._shutdown_event.is_set())
+
+    def test_stop_all_sets_stopping(self):
+        """stop_all() is the signal on-demand threads check before starting.
+
+        Without this flag the TX supervisor can start a non-daemon scheduler
+        between stop_all() stopping the supervisor and stopping that
+        scheduler, and nothing ever stops it.
+        """
+        thread_list = APRSDThreadList()
+        self.assertFalse(thread_list.stopping)
+
+        thread_list.stop_all()
+
+        self.assertTrue(thread_list.stopping)
 
     def test_pause_all(self):
         """Test pause_all() method."""

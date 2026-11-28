@@ -78,27 +78,36 @@ class APRSDThread(threading.Thread, metaclass=abc.ABCMeta):
 
     def run(self):
         LOG.debug('Starting')
-        while not self._should_quit():
-            if self._pause:
-                self.wait(timeout=1)
-            else:
-                self.loop_count += 1
-                try:
-                    can_loop = self.loop()
-                except Exception as e:
-                    # A transient error in one loop() iteration must not
-                    # kill a long-running daemon thread.  Log it, wait a
-                    # beat so we don't busy-loop on a persistent error,
-                    # and keep going.
-                    LOG.exception(f'Exception in thread {self.name} loop: {e}')
+        try:
+            while not self._should_quit():
+                if self._pause:
                     self.wait(timeout=1)
-                    continue
-                self._last_loop = datetime.datetime.now()
-                if not can_loop:
-                    self.stop()
-        self._cleanup()
-        APRSDThreadList().remove(self)
-        LOG.debug('Exiting')
+                else:
+                    self.loop_count += 1
+                    try:
+                        can_loop = self.loop()
+                    except Exception as e:
+                        # A transient error in one loop() iteration must not
+                        # kill a long-running daemon thread.  Log it, wait a
+                        # beat so we don't busy-loop on a persistent error,
+                        # and keep going.
+                        LOG.exception(f'Exception in thread {self.name} loop: {e}')
+                        self.wait(timeout=1)
+                        continue
+                    self._last_loop = datetime.datetime.now()
+                    if not can_loop:
+                        self.stop()
+        finally:
+            # Runs even when loop() raises something `except Exception`
+            # above does not catch (SystemExit).  A thread that dies that
+            # way must still release its resources (a TX scheduler's
+            # threadpool) and leave the list, or keepalive reports it dead
+            # on every cycle for the life of the process.
+            try:
+                self._cleanup()
+            finally:
+                APRSDThreadList().remove(self)
+            LOG.debug('Exiting')
 
 
 class APRSDThreadList:
@@ -108,6 +117,10 @@ class APRSDThreadList:
 
     threads_list: list[APRSDThread] = []
     lock = threading.Lock()
+    # Set by stop_all().  Anything that starts a thread on demand (the TX
+    # schedulers) must read this, or it can resurrect a non-daemon thread
+    # while the process is shutting down.
+    stopping = False
 
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
@@ -153,6 +166,7 @@ class APRSDThreadList:
     @wrapt.synchronized(lock)
     def stop_all(self):
         """Iterate over all threads and call stop on them."""
+        self.stopping = True
         for th in self.threads_list:
             LOG.info(f'Stopping Thread {th.name}')
             if hasattr(th, 'packet'):
