@@ -133,10 +133,17 @@ def _send_direct(packet, aprs_client=None):
         return True
 
 
+def _shutting_down():
+    """True once stop_all() ran; no TX thread may be started after that."""
+    return aprsd_threads.APRSDThreadList().stopping
+
+
 def _get_packet_scheduler():
     """Get or create the packet send scheduler thread (singleton)."""
     global _packet_scheduler
     with _scheduler_lock:
+        if _shutting_down():
+            return _packet_scheduler
         if _packet_scheduler is None or not _packet_scheduler.is_alive():
             _packet_scheduler = PacketSendSchedulerThread()
             _packet_scheduler.start()
@@ -148,6 +155,8 @@ def _get_ack_scheduler():
     """Get or create the ack send scheduler thread (singleton)."""
     global _ack_scheduler
     with _scheduler_lock:
+        if _shutting_down():
+            return _ack_scheduler
         if _ack_scheduler is None or not _ack_scheduler.is_alive():
             _ack_scheduler = AckSendSchedulerThread()
             _ack_scheduler.start()
@@ -158,6 +167,8 @@ def _get_ack_scheduler():
 def _ensure_supervisor():
     """Start the TX supervisor once, unless it was already asked to stop."""
     global _supervisor
+    if _shutting_down():
+        return
     if _supervisor is not None and (
         _supervisor.is_alive() or _supervisor._shutdown_event.is_set()
     ):
@@ -395,6 +406,10 @@ class TxSchedulerSupervisor(aprsd_threads.APRSDThread):
     Both schedulers recreate themselves on the next send(), but a station
     with tracked packets and nothing new to send would otherwise wait
     forever.  A scheduler whose stop() was called (shutdown) is left alone.
+
+    APRSDThread.run() catches Exception from loop(), so the only way a
+    scheduler reaches this state is a BaseException (SystemExit) escaping
+    its loop().  That is rare; the warning log is the evidence trail.
     """
 
     period = 5
@@ -403,6 +418,8 @@ class TxSchedulerSupervisor(aprsd_threads.APRSDThread):
         super().__init__('TxSchedulerSupervisor')
 
     def loop(self):
+        if _shutting_down():
+            return False
         for name, get_scheduler, scheduler in (
             ('PacketSendSchedulerThread', _get_packet_scheduler, _packet_scheduler),
             ('AckSendSchedulerThread', _get_ack_scheduler, _ack_scheduler),
