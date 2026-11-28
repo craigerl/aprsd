@@ -165,15 +165,6 @@ class TestWeatherPacket(unittest.TestCase):
         )
         self.assertEqual(packet.key, f'{fake.FAKE_FROM_CALLSIGN}:121234z')
 
-    def test_key_with_wx_raw_timestamp(self):
-        """WeatherPacket.key returns from_call:wx_raw_timestamp when only wx_raw_timestamp is set."""
-        packet = packets.WeatherPacket(
-            from_call=fake.FAKE_FROM_CALLSIGN,
-            to_call=fake.FAKE_TO_CALLSIGN,
-            wx_raw_timestamp='121230z',
-        )
-        self.assertEqual(packet.key, f'{fake.FAKE_FROM_CALLSIGN}:121230z')
-
     def test_key_without_timestamps_is_not_none(self):
         """WeatherPacket.key must not return None when both timestamps are absent.
 
@@ -190,19 +181,39 @@ class TestWeatherPacket(unittest.TestCase):
         # Key must include from_call as prefix
         self.assertTrue(key.startswith(fake.FAKE_FROM_CALLSIGN))
 
-    def test_key_without_timestamps_no_collision(self):
-        """Two WeatherPackets from the same station with no timestamps must not
-        share the same key, otherwise PacketList / dupe-filter will collide.
+    def test_key_without_timestamps_is_payload_based(self):
+        """The fallback key comes from the full weather payload, not id(self).
 
-        The fallback uses id(self) which is unique per object instance.
+        id() is reused after GC, so two distinct packets could share a key.
+        Same payload => same key (dedupe), any payload difference => different
+        key, including the fields human_info omits or rounds.
         """
-        p1 = packets.WeatherPacket(
-            from_call=fake.FAKE_FROM_CALLSIGN,
-            to_call=fake.FAKE_TO_CALLSIGN,
-        )
-        p2 = packets.WeatherPacket(
-            from_call=fake.FAKE_FROM_CALLSIGN,
-            to_call=fake.FAKE_TO_CALLSIGN,
-        )
-        # Distinct objects — keys must differ regardless of timing
-        self.assertNotEqual(p1.key, p2.key)
+
+        def wx(**kwargs):
+            return packets.WeatherPacket(
+                from_call=fake.FAKE_FROM_CALLSIGN,
+                to_call=fake.FAKE_TO_CALLSIGN,
+                **kwargs,
+            )
+
+        base = wx(temperature=72.0)
+        self.assertEqual(base.key, wx(temperature=72.0).key)
+        for field_name, other in (
+            ('temperature', 72.5),
+            ('wind_speed', 10.5),
+            ('wind_direction', 180),
+            ('wind_gust', 15.0),
+            ('rain_1h', 0.5),
+            ('rain_24h', 1.0),
+            ('rain_since_midnight', 0.5),
+            ('humidity', 50),
+            ('pressure', 1013.2),
+            ('luminosity', 88000),
+        ):
+            with self.subTest(field=field_name):
+                self.assertNotEqual(base.key, wx(**{field_name: other}).key)
+
+        # The position comment is part of the packet, so it must count too.
+        sunny = wx(position=packets.Position(comment='Sunny'))
+        rain = wx(position=packets.Position(comment='RAIN'))
+        self.assertNotEqual(sunny.key, rain.key)

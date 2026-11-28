@@ -846,13 +846,24 @@ class WeatherPacket(GPSPacket, DataClassJsonMixin):
         """Build a key for finding this packet in a dict."""
         if self.raw_timestamp:
             return f'{self.from_call}:{self.raw_timestamp}'
-        elif self.wx_raw_timestamp:
-            return f'{self.from_call}:{self.wx_raw_timestamp}'
-        # Neither APRS timestamp is present — fall back to a hash of the
-        # weather payload so that two different packets from the same station
-        # get distinct keys without colliding in PacketList / dupe-filter.
-        # Using id(self) is collision-free within a single process lifetime.
-        return f'{self.from_call}:{id(self)}'
+        # No APRS timestamp — fall back to the whole payload, which is stable
+        # across processes.  Not id(self): Python reuses ids after GC.  Not
+        # human_info: it rounds to whole degrees and drops fields, so distinct
+        # packets would collide.
+        wx = (
+            self.temperature,
+            self.wind_speed,
+            self.wind_direction,
+            self.wind_gust,
+            self.rain_1h,
+            self.rain_24h,
+            self.rain_since_midnight,
+            self.humidity,
+            self.pressure,
+            self.luminosity,
+            self._position().comment,
+        )
+        return f'{self.from_call}:{wx}'
 
     @property
     def human_info(self) -> str:

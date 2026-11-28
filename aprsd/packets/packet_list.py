@@ -74,11 +74,12 @@ class PacketList(objectstore.ObjectStoreMixin):
     def _add(self, packet):
         if not self.data.get('packets'):
             self._init_data()
-        if packet.key in self.data['packets']:
-            self.data['packets'].move_to_end(packet.key)
+        key = packet.key
+        if key in self.data['packets']:
+            self.data['packets'].move_to_end(key)
         elif len(self.data['packets']) == self.maxlen:
             self.data['packets'].popitem(last=False)
-        self.data['packets'][packet.key] = packet
+        self.data['packets'][key] = packet
 
     def find(self, packet):
         with self.lock:
