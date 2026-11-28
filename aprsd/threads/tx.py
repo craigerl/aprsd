@@ -160,69 +160,70 @@ def _get_ack_scheduler():
         return _ack_scheduler
 
 
-def _send_packet_worker(msg_no: str):
-    """Worker function for threadpool to send a packet.
+def _packet_send_due(packet):
+    """True when the next message retry is due.
 
-    This function checks if the packet needs to be sent and sends it if conditions are met.
-    Returns True if packet should continue to be tracked, False if done.
+    Message retries back off as the attempt count grows: 31s, 62s, 93s...
     """
-    pkt_tracker = tracker.PacketTrack()
-    packet = pkt_tracker.get(msg_no)
+    if not packet.last_send_time:
+        return True
+    now = int(round(time.time()))
+    return now - packet.last_send_time > (packet.send_count + 1) * 31
 
-    if not packet:
-        # Packet was acked and removed from tracker
-        return False
 
+def _ack_send_due(packet):
+    """True when the next ack retry is due.
+
+    Acks retry on a fixed 31s cadence.  APRS duplicate suppression is
+    ~30s, so a shorter gap is dropped by the receiving station.
+    """
+    if not packet.last_send_time:
+        return True
+    now = int(round(time.time()))
+    return now - packet.last_send_time > 31
+
+
+def _packet_attempt(packet):
+    """Run one send/retry step for a non-ack packet.
+
+    Returns False when the packet is out of retries; that path removes it
+    from PacketTrack.  An acked packet never reaches here: the caller sees
+    it missing from the tracker and returns False before calling this.
+    """
     if packet.send_count >= packet.retry_count:
-        # Reached max retry count
         LOG.info(
             f'{packet.__class__.__name__} '
             f'({packet.msgNo}) '
             'Message Send Complete. Max attempts reached'
             f' {packet.retry_count}',
         )
-        pkt_tracker.remove(packet.msgNo)
+        tracker.PacketTrack().remove(packet.msgNo)
         return False
 
-    # Check if it's time to send
-    send_now = False
-    if packet.last_send_time:
-        now = int(round(time.time()))
-        sleeptime = (packet.send_count + 1) * 31
-        delta = now - packet.last_send_time
-        if delta > sleeptime:
-            send_now = True
+    if not _packet_send_due(packet):
+        return True
+
+    # Stamp before sending so a slow or throttled send is not retried
+    # immediately; send_count only moves on a successful send.
+    packet.last_send_time = int(round(time.time()))
+    try:
+        sent = _send_direct(packet)
+    except Exception as ex:
+        LOG.error(f'Failed to send packet: {packet}')
+        LOG.error(ex)
     else:
-        send_now = True
-
-    if send_now:
-        packet.last_send_time = int(round(time.time()))
-        sent = False
-        try:
-            sent = _send_direct(packet)
-        except Exception as ex:
-            LOG.error(f'Failed to send packet: {packet}')
-            LOG.error(ex)
-        else:
-            if sent:
-                packet.send_count += 1
-
+        if sent:
+            packet.send_count += 1
     return True
 
 
-def _send_ack_worker(msg_no: str, max_retries: int):
-    """Worker function for threadpool to send an ack packet.
+def _ack_attempt(packet, max_retries):
+    """Run one send/retry step for an ack packet.
 
-    This function checks if the ack needs to be sent and sends it if conditions are met.
-    Returns True if ack should continue to be tracked, False if done.
+    Returns False when the ack is out of retries; that path removes it from
+    PacketTrack.  Acks stamp last_send_time after the attempt instead of
+    before, because their cadence is fixed.
     """
-    pkt_tracker = tracker.PacketTrack()
-    packet = pkt_tracker.get(msg_no)
-
-    if not packet:
-        # Packet was removed from tracker
-        return False
-
     if packet.send_count >= max_retries:
         LOG.debug(
             f'{packet.__class__.__name__}'
@@ -230,32 +231,44 @@ def _send_ack_worker(msg_no: str, max_retries: int):
             'Send Complete. Max attempts reached'
             f' {max_retries}',
         )
+        tracker.PacketTrack().remove(packet.msgNo)
         return False
 
-    # Check if it's time to send
-    send_now = False
-    if packet.last_send_time:
-        now = int(round(time.time()))
-        sleep_time = 31
-        delta = now - packet.last_send_time
-        if delta > sleep_time:
-            send_now = True
+    if not _ack_send_due(packet):
+        return True
+
+    sent = False
+    try:
+        sent = _send_direct(packet)
+    except Exception:
+        LOG.error(f'Failed to send packet: {packet}')
     else:
-        # No previous send time, send immediately
-        send_now = True
-
-    if send_now:
-        sent = False
-        try:
-            sent = _send_direct(packet)
-        except Exception:
-            LOG.error(f'Failed to send packet: {packet}')
-        else:
-            if sent:
-                packet.send_count += 1
-        packet.last_send_time = int(round(time.time()))
-
+        if sent:
+            packet.send_count += 1
+    packet.last_send_time = int(round(time.time()))
     return True
+
+
+def _send_packet_worker(msg_no: str):
+    """Threadpool entry point: one retry step for the tracked message."""
+    packet = tracker.PacketTrack().get(msg_no)
+
+    if not packet:
+        # Packet was acked and removed from tracker
+        return False
+
+    return _packet_attempt(packet)
+
+
+def _send_ack_worker(msg_no: str, max_retries: int):
+    """Threadpool entry point: one retry step for the tracked ack."""
+    packet = tracker.PacketTrack().get(msg_no)
+
+    if not packet:
+        # Packet was removed from tracker
+        return False
+
+    return _ack_attempt(packet, max_retries)
 
 
 class PacketSendSchedulerThread(aprsd_threads.APRSDThread):
@@ -298,11 +311,8 @@ class PacketSendSchedulerThread(aprsd_threads.APRSDThread):
 
             # Don't submit if we sent recently (prevents threadpool race
             # where multiple workers fire before send_count is incremented)
-            if packet.last_send_time:
-                now = int(round(time.time()))
-                sleeptime = (packet.send_count + 1) * 31
-                if now - packet.last_send_time < sleeptime:
-                    continue
+            if not _packet_send_due(packet):
+                continue
 
             # Submit send task to threadpool
             # The worker will check timing and send if needed
@@ -358,10 +368,8 @@ class AckSendSchedulerThread(aprsd_threads.APRSDThread):
 
             # Don't submit if we sent recently (prevents threadpool race
             # where multiple workers fire before send_count is incremented)
-            if packet.last_send_time:
-                now = int(round(time.time()))
-                if now - packet.last_send_time < 31:
-                    continue
+            if not _ack_send_due(packet):
+                continue
 
             # Submit send task to threadpool
             self.executor.submit(_send_ack_worker, msg_no, self.max_retries)
@@ -376,20 +384,13 @@ class AckSendSchedulerThread(aprsd_threads.APRSDThread):
 
 
 class SendPacketThread(aprsd_threads.APRSDThread):
+    """Fallback thread for when the packet scheduler fails to start."""
+
     def __init__(self, packet):
         self.packet = packet
         super().__init__(f'TX-{packet.to_call}-{self.packet.msgNo}')
 
     def loop(self):
-        """Loop until a message is acked or it gets delayed.
-
-        We only sleep for 5 seconds between each loop run, so
-        that CTRL-C can exit the app in a short period.  Each sleep
-        means the app quitting is blocked until sleep is done.
-        So we keep track of the last send attempt and only send if the
-        last send attempt is old enough.
-
-        """
         pkt_tracker = tracker.PacketTrack()
         # lets see if the message is still in the tracking queue
         packet = pkt_tracker.get(self.packet.msgNo)
@@ -402,55 +403,18 @@ class SendPacketThread(aprsd_threads.APRSDThread):
                 'Message Send Complete via Ack.',
             )
             return False
-        else:
-            send_now = False
-            if packet.send_count >= packet.retry_count:
-                # we reached the send limit, don't send again
-                # TODO(hemna) - Need to put this in a delayed queue?
-                LOG.info(
-                    f'{packet.__class__.__name__} '
-                    f'({packet.msgNo}) '
-                    'Message Send Complete. Max attempts reached'
-                    f' {packet.retry_count}',
-                )
-                pkt_tracker.remove(packet.msgNo)
-                return False
 
-            # Message is still outstanding and needs to be acked.
-            if packet.last_send_time:
-                # Message has a last send time tracking
-                now = int(round(time.time()))
-                sleeptime = (packet.send_count + 1) * 31
-                delta = now - packet.last_send_time
-                if delta > sleeptime:
-                    # It's time to try to send it again
-                    send_now = True
-            else:
-                send_now = True
+        if not _packet_attempt(packet):
+            return False
 
-            if send_now:
-                # no attempt time, so lets send it, and start
-                # tracking the time.
-                packet.last_send_time = int(round(time.time()))
-                sent = False
-                try:
-                    sent = _send_direct(packet)
-                except Exception as ex:
-                    LOG.error(f'Failed to send packet: {packet}')
-                    LOG.error(ex)
-                else:
-                    # If an exception happens while sending
-                    # we don't want this attempt to count
-                    # against the packet
-                    if sent:
-                        packet.send_count += 1
-
-            self.wait()
-            # Make sure we get called again.
-            return True
+        self.wait()
+        # Make sure we get called again.
+        return True
 
 
 class SendAckThread(aprsd_threads.APRSDThread):
+    """Fallback thread for when the ack scheduler fails to start."""
+
     max_retries = 3
 
     def __init__(self, packet):
@@ -460,49 +424,8 @@ class SendAckThread(aprsd_threads.APRSDThread):
 
     def loop(self):
         """Separate thread to send acks with retries."""
-        send_now = False
-        if self.packet.send_count == self.max_retries:
-            # we reached the send limit, don't send again
-            # TODO(hemna) - Need to put this in a delayed queue?
-            LOG.debug(
-                f'{self.packet.__class__.__name__}'
-                f'({self.packet.msgNo}) '
-                'Send Complete. Max attempts reached'
-                f' {self.max_retries}',
-            )
+        if not _ack_attempt(self.packet, self.max_retries):
             return False
-
-        if self.packet.last_send_time:
-            # Message has a last send time tracking
-            now = int(round(time.time()))
-
-            # aprs duplicate detection is 30 secs?
-            # (21 only sends first, 28 skips middle)
-            sleep_time = 31
-            delta = now - self.packet.last_send_time
-            if delta > sleep_time:
-                # It's time to try to send it again
-                send_now = True
-            elif self.loop_count % 10 == 0:
-                # LOG.debug(f'Still wating. {delta}')
-                pass
-        else:
-            send_now = True
-
-        if send_now:
-            sent = False
-            try:
-                sent = _send_direct(self.packet)
-            except Exception:
-                LOG.error(f'Failed to send packet: {self.packet}')
-            else:
-                # If an exception happens while sending
-                # we don't want this attempt to count
-                # against the packet
-                if sent:
-                    self.packet.send_count += 1
-
-            self.packet.last_send_time = int(round(time.time()))
 
         self.wait()
         return True

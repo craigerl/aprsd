@@ -356,6 +356,27 @@ class TestSendFunctions(unittest.TestCase):
         self.assertEqual(result, mock_scheduler)
 
 
+class TestRetryCadence(unittest.TestCase):
+    """The two cadences the two predicates exist to keep apart."""
+
+    def test_message_backs_off_after_one_retry(self):
+        """First retry waits 31s, growing to 62s after one send."""
+        packet = fake.fake_packet(msg_number='123')
+        packet.send_count = 1
+        packet.last_send_time = int(time.time()) - 40
+        self.assertFalse(tx._packet_send_due(packet))
+
+        packet.send_count = 0
+        self.assertTrue(tx._packet_send_due(packet))
+
+    def test_ack_stays_on_fixed_cadence(self):
+        """Acks retry every 31s regardless of send_count."""
+        packet = fake.fake_ack_packet()
+        packet.send_count = 1
+        packet.last_send_time = int(time.time()) - 40
+        self.assertTrue(tx._ack_send_due(packet))
+
+
 class TestPacketWorkers(unittest.TestCase):
     """Unit tests for worker functions used by threadpool."""
 
@@ -457,6 +478,7 @@ class TestPacketWorkers(unittest.TestCase):
             result = tx._send_ack_worker('123', 3)
             self.assertFalse(result)
             mock_log.debug.assert_called()
+            mock_tracker.remove.assert_called_once_with(tracked_packet.msgNo)
 
     @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
     @mock.patch('aprsd.threads.tx._send_direct')
@@ -825,6 +847,17 @@ class TestSendAckThread(unittest.TestCase):
             result = self.thread.loop()
             self.assertFalse(result)
             mock_log.debug.assert_called()
+
+    @mock.patch('aprsd.threads.tx._send_direct')
+    def test_loop_max_retries_overshoot(self, mock_send_direct):
+        """send_count above max_retries must also stop (was `==`)."""
+        self.packet.send_count = 4
+
+        with mock.patch('aprsd.threads.tx.LOG') as mock_log:
+            result = self.thread.loop()
+            self.assertFalse(result)
+            mock_log.debug.assert_called()
+            mock_send_direct.assert_not_called()
 
     @mock.patch('aprsd.threads.tx._send_direct')
     def test_loop_send_now(self, mock_send_direct):
