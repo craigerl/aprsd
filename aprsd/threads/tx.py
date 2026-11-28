@@ -90,11 +90,7 @@ def _send_packet(packet: core.Packet, direct=False, aprs_client=None):
         # every second and will find the packet there — nothing more needs
         # to be done here.  The scheduler is started (or confirmed alive)
         # as a side-effect of _get_packet_scheduler().
-        scheduler = _get_packet_scheduler()
-        if not (scheduler and scheduler.is_alive()):
-            # Fallback: scheduler failed to start — send directly in a thread
-            thread = SendPacketThread(packet=packet)
-            thread.start()
+        _get_packet_scheduler()
         # Queued. The scheduler sends it later, so this is not a wire ack.
         return True
     return _send_direct(packet, aprs_client=aprs_client)
@@ -105,11 +101,7 @@ def _send_ack(packet: core.AckPacket, direct=False, aprs_client=None):
         # Same implicit handoff as _send_packet: the ack was registered in
         # PacketTrack before this call; AckSendSchedulerThread polls and
         # picks it up.  Starting/verifying the scheduler is all that's needed.
-        scheduler = _get_ack_scheduler()
-        if not (scheduler and scheduler.is_alive()):
-            # Fallback: scheduler failed to start — send directly in a thread
-            thread = SendAckThread(packet=packet)
-            thread.start()
+        _get_ack_scheduler()
         return True
     return _send_direct(packet, aprs_client=aprs_client)
 
@@ -381,54 +373,6 @@ class AckSendSchedulerThread(aprsd_threads.APRSDThread):
         """Cleanup threadpool executor on thread shutdown."""
         LOG.debug('Shutting down AckSendSchedulerThread executor')
         self.executor.shutdown(wait=True)
-
-
-class SendPacketThread(aprsd_threads.APRSDThread):
-    """Fallback thread for when the packet scheduler fails to start."""
-
-    def __init__(self, packet):
-        self.packet = packet
-        super().__init__(f'TX-{packet.to_call}-{self.packet.msgNo}')
-
-    def loop(self):
-        pkt_tracker = tracker.PacketTrack()
-        # lets see if the message is still in the tracking queue
-        packet = pkt_tracker.get(self.packet.msgNo)
-        if not packet:
-            # The message has been removed from the tracking queue
-            # So it got acked and we are done.
-            LOG.info(
-                f'{self.packet.__class__.__name__}'
-                f'({self.packet.msgNo}) '
-                'Message Send Complete via Ack.',
-            )
-            return False
-
-        if not _packet_attempt(packet):
-            return False
-
-        self.wait()
-        # Make sure we get called again.
-        return True
-
-
-class SendAckThread(aprsd_threads.APRSDThread):
-    """Fallback thread for when the ack scheduler fails to start."""
-
-    max_retries = 3
-
-    def __init__(self, packet):
-        self.packet = packet
-        super().__init__(f'TXAck-{packet.to_call}-{self.packet.msgNo}')
-        self.max_retries = CONF.default_ack_send_count
-
-    def loop(self):
-        """Separate thread to send acks with retries."""
-        if not _ack_attempt(self.packet, self.max_retries):
-            return False
-
-        self.wait()
-        return True
 
 
 class BeaconSendThread(aprsd_threads.APRSDThread):
