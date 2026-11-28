@@ -270,8 +270,11 @@ class TestSendFunctions(unittest.TestCase):
             self.assertFalse(result)
             mock_log_error.error.assert_called()
 
+    @mock.patch('aprsd.threads.tx._ensure_supervisor')
     @mock.patch('aprsd.threads.tx.PacketSendSchedulerThread')
-    def test_get_packet_scheduler_creates_new(self, mock_scheduler_class):
+    def test_get_packet_scheduler_creates_new(
+        self, mock_scheduler_class, mock_ensure_supervisor
+    ):
         """Test _get_packet_scheduler() creates new scheduler if none exists."""
         tx._packet_scheduler = None
         mock_scheduler = mock.MagicMock()
@@ -283,8 +286,11 @@ class TestSendFunctions(unittest.TestCase):
         mock_scheduler.start.assert_called_once()
         self.assertEqual(result, mock_scheduler)
 
+    @mock.patch('aprsd.threads.tx._ensure_supervisor')
     @mock.patch('aprsd.threads.tx.PacketSendSchedulerThread')
-    def test_get_packet_scheduler_reuses_existing(self, mock_scheduler_class):
+    def test_get_packet_scheduler_reuses_existing(
+        self, mock_scheduler_class, mock_ensure_supervisor
+    ):
         """Test _get_packet_scheduler() reuses existing scheduler if alive."""
         existing_scheduler = mock.MagicMock()
         existing_scheduler.is_alive.return_value = True
@@ -295,8 +301,11 @@ class TestSendFunctions(unittest.TestCase):
         mock_scheduler_class.assert_not_called()
         self.assertEqual(result, existing_scheduler)
 
+    @mock.patch('aprsd.threads.tx._ensure_supervisor')
     @mock.patch('aprsd.threads.tx.PacketSendSchedulerThread')
-    def test_get_packet_scheduler_recreates_if_dead(self, mock_scheduler_class):
+    def test_get_packet_scheduler_recreates_if_dead(
+        self, mock_scheduler_class, mock_ensure_supervisor
+    ):
         """Test _get_packet_scheduler() recreates scheduler if dead."""
         dead_scheduler = mock.MagicMock()
         dead_scheduler.is_alive.return_value = False
@@ -310,8 +319,11 @@ class TestSendFunctions(unittest.TestCase):
         new_scheduler.start.assert_called_once()
         self.assertEqual(result, new_scheduler)
 
+    @mock.patch('aprsd.threads.tx._ensure_supervisor')
     @mock.patch('aprsd.threads.tx.AckSendSchedulerThread')
-    def test_get_ack_scheduler_creates_new(self, mock_scheduler_class):
+    def test_get_ack_scheduler_creates_new(
+        self, mock_scheduler_class, mock_ensure_supervisor
+    ):
         """Test _get_ack_scheduler() creates new scheduler if none exists."""
         tx._ack_scheduler = None
         mock_scheduler = mock.MagicMock()
@@ -322,6 +334,74 @@ class TestSendFunctions(unittest.TestCase):
         mock_scheduler_class.assert_called_once()
         mock_scheduler.start.assert_called_once()
         self.assertEqual(result, mock_scheduler)
+
+
+class TestTxSchedulerSupervisor(unittest.TestCase):
+    """The supervisor restarts a dead scheduler, but not a stopped one."""
+
+    def tearDown(self):
+        tx._supervisor = None
+
+    def _make_supervisor(self):
+        supervisor = tx.TxSchedulerSupervisor()
+        supervisor.wait = mock.MagicMock()
+        return supervisor
+
+    @mock.patch.object(tx, '_get_packet_scheduler')
+    @mock.patch.object(tx, '_ack_scheduler', None)
+    @mock.patch.object(tx, '_packet_scheduler')
+    def test_restarts_dead_scheduler(self, mock_scheduler, mock_get_packet):
+        mock_scheduler.is_alive.return_value = False
+        mock_scheduler._shutdown_event.is_set.return_value = False
+
+        self._make_supervisor().loop()
+
+        mock_get_packet.assert_called_once()
+
+    @mock.patch.object(tx, '_get_packet_scheduler')
+    @mock.patch.object(tx, '_ack_scheduler', None)
+    @mock.patch.object(tx, '_packet_scheduler')
+    def test_leaves_stopped_scheduler_alone(self, mock_scheduler, mock_get_packet):
+        mock_scheduler.is_alive.return_value = False
+        mock_scheduler._shutdown_event.is_set.return_value = True
+
+        self._make_supervisor().loop()
+
+        mock_get_packet.assert_not_called()
+
+    @mock.patch.object(tx, '_get_packet_scheduler')
+    @mock.patch.object(tx, '_ack_scheduler', None)
+    @mock.patch.object(tx, '_packet_scheduler')
+    def test_leaves_live_scheduler_alone(self, mock_scheduler, mock_get_packet):
+        mock_scheduler.is_alive.return_value = True
+
+        self._make_supervisor().loop()
+
+        mock_get_packet.assert_not_called()
+
+    @mock.patch('aprsd.threads.tx.TxSchedulerSupervisor')
+    def test_ensure_supervisor_starts_once(self, mock_supervisor_class):
+        tx._supervisor = None
+        instance = mock_supervisor_class.return_value
+        instance.is_alive.return_value = True
+
+        tx._ensure_supervisor()
+        tx._ensure_supervisor()
+
+        mock_supervisor_class.assert_called_once()
+        instance.start.assert_called_once()
+
+    @mock.patch('aprsd.threads.tx.TxSchedulerSupervisor')
+    def test_ensure_supervisor_after_stop(self, mock_supervisor_class):
+        tx._supervisor = None
+        instance = mock_supervisor_class.return_value
+        instance.is_alive.return_value = False
+        instance._shutdown_event.is_set.return_value = True
+
+        tx._ensure_supervisor()
+        tx._ensure_supervisor()
+
+        mock_supervisor_class.assert_called_once()
 
 
 class TestRetryCadence(unittest.TestCase):

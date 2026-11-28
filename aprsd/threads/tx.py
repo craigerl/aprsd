@@ -60,6 +60,7 @@ s_lock = threading.Lock()
 # Global scheduler instances (singletons)
 _packet_scheduler = None
 _ack_scheduler = None
+_supervisor = None
 _scheduler_lock = threading.Lock()
 
 
@@ -139,6 +140,7 @@ def _get_packet_scheduler():
         if _packet_scheduler is None or not _packet_scheduler.is_alive():
             _packet_scheduler = PacketSendSchedulerThread()
             _packet_scheduler.start()
+        _ensure_supervisor()
         return _packet_scheduler
 
 
@@ -149,7 +151,19 @@ def _get_ack_scheduler():
         if _ack_scheduler is None or not _ack_scheduler.is_alive():
             _ack_scheduler = AckSendSchedulerThread()
             _ack_scheduler.start()
+        _ensure_supervisor()
         return _ack_scheduler
+
+
+def _ensure_supervisor():
+    """Start the TX supervisor once, unless it was already asked to stop."""
+    global _supervisor
+    if _supervisor is not None and (
+        _supervisor.is_alive() or _supervisor._shutdown_event.is_set()
+    ):
+        return
+    _supervisor = TxSchedulerSupervisor()
+    _supervisor.start()
 
 
 def _packet_send_due(packet):
@@ -373,6 +387,35 @@ class AckSendSchedulerThread(aprsd_threads.APRSDThread):
         """Cleanup threadpool executor on thread shutdown."""
         LOG.debug('Shutting down AckSendSchedulerThread executor')
         self.executor.shutdown(wait=True)
+
+
+class TxSchedulerSupervisor(aprsd_threads.APRSDThread):
+    """Restarts a TX scheduler that died without being asked to stop.
+
+    Both schedulers recreate themselves on the next send(), but a station
+    with tracked packets and nothing new to send would otherwise wait
+    forever.  A scheduler whose stop() was called (shutdown) is left alone.
+    """
+
+    period = 5
+
+    def __init__(self):
+        super().__init__('TxSchedulerSupervisor')
+
+    def loop(self):
+        for name, get_scheduler, scheduler in (
+            ('PacketSendSchedulerThread', _get_packet_scheduler, _packet_scheduler),
+            ('AckSendSchedulerThread', _get_ack_scheduler, _ack_scheduler),
+        ):
+            if (
+                scheduler is not None
+                and not scheduler.is_alive()
+                and not scheduler._shutdown_event.is_set()
+            ):
+                LOG.warning(f'{name} died without a stop request; restarting')
+                get_scheduler()
+        self.wait()
+        return True
 
 
 class BeaconSendThread(aprsd_threads.APRSDThread):
