@@ -196,22 +196,6 @@ class TestSendFunctions(unittest.TestCase):
         # Scheduler should be alive and will handle the packet
         self.assertTrue(mock_scheduler.is_alive())
 
-    @mock.patch('aprsd.threads.tx.SendPacketThread')
-    @mock.patch('aprsd.threads.tx._get_packet_scheduler')
-    def test_send_packet_fallback(self, mock_get_scheduler, mock_thread_class):
-        """Test _send_packet() falls back to old method if scheduler not available."""
-        packet = fake.fake_packet()
-        mock_scheduler = mock.MagicMock()
-        mock_scheduler.is_alive.return_value = False
-        mock_get_scheduler.return_value = mock_scheduler
-        mock_thread = mock.MagicMock()
-        mock_thread_class.return_value = mock_thread
-
-        tx._send_packet(packet, direct=False)
-
-        mock_thread_class.assert_called_with(packet=packet)
-        mock_thread.start.assert_called()
-
     @mock.patch('aprsd.threads.tx._send_direct')
     def test_send_packet_direct(self, mock_send_direct):
         """Test _send_packet() with direct send."""
@@ -234,22 +218,6 @@ class TestSendFunctions(unittest.TestCase):
         mock_get_scheduler.assert_called()
         # Scheduler should be alive and will handle the packet
         self.assertTrue(mock_scheduler.is_alive())
-
-    @mock.patch('aprsd.threads.tx.SendAckThread')
-    @mock.patch('aprsd.threads.tx._get_ack_scheduler')
-    def test_send_ack_fallback(self, mock_get_scheduler, mock_thread_class):
-        """Test _send_ack() falls back to old method if scheduler not available."""
-        packet = fake.fake_ack_packet()
-        mock_scheduler = mock.MagicMock()
-        mock_scheduler.is_alive.return_value = False
-        mock_get_scheduler.return_value = mock_scheduler
-        mock_thread = mock.MagicMock()
-        mock_thread_class.return_value = mock_thread
-
-        tx._send_ack(packet, direct=False)
-
-        mock_thread_class.assert_called_with(packet=packet)
-        mock_thread.start.assert_called()
 
     @mock.patch('aprsd.threads.tx._send_direct')
     def test_send_ack_direct(self, mock_send_direct):
@@ -479,6 +447,24 @@ class TestPacketWorkers(unittest.TestCase):
             self.assertFalse(result)
             mock_log.debug.assert_called()
             mock_tracker.remove.assert_called_once_with(tracked_packet.msgNo)
+
+    @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
+    @mock.patch('aprsd.threads.tx._send_direct')
+    def test_send_ack_worker_send_count_above_max(
+        self, mock_send_direct, mock_tracker_class
+    ):
+        """send_count above max_retries must also stop (>= not ==)."""
+        mock_tracker = mock.MagicMock()
+        tracked_packet = fake.fake_ack_packet()
+        tracked_packet.send_count = 4
+        mock_tracker.get.return_value = tracked_packet
+        mock_tracker_class.return_value = mock_tracker
+
+        result = tx._send_ack_worker('123', 3)
+
+        self.assertFalse(result)
+        mock_send_direct.assert_not_called()
+        mock_tracker.remove.assert_called_once_with(tracked_packet.msgNo)
 
     @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
     @mock.patch('aprsd.threads.tx._send_direct')
@@ -714,173 +700,6 @@ class TestAckSendSchedulerThread(unittest.TestCase):
                 self.scheduler._cleanup()
                 mock_shutdown.assert_called_once_with(wait=True)
                 mock_log.debug.assert_called()
-
-
-class TestSendPacketThread(unittest.TestCase):
-    """Unit tests for the SendPacketThread class."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        tracker.PacketTrack._instance = None
-        self.packet = fake.fake_packet(msg_number='123')
-        self.thread = tx.SendPacketThread(self.packet)
-        # Mock wait to speed up tests
-        self.wait_patcher = mock.patch.object(self.thread, 'wait', return_value=False)
-        self.mock_wait = self.wait_patcher.start()
-
-    def tearDown(self):
-        """Clean up after tests."""
-        self.wait_patcher.stop()
-        self.thread.stop()
-        if self.thread.is_alive():
-            self.thread.join(timeout=1)
-        tracker.PacketTrack._instance = None
-
-    def test_init(self):
-        """Test initialization."""
-        self.assertEqual(self.thread.packet, self.packet)
-        self.assertIn('TX-', self.thread.name)
-        # loop_count starts at 0 from base class, incremented in run()
-        self.assertEqual(self.thread.loop_count, 0)
-
-    @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
-    def test_loop_packet_acked(self, mock_tracker_class):
-        """Test loop() when packet is acked."""
-        mock_tracker = mock.MagicMock()
-        mock_tracker.get.return_value = None  # Packet removed = acked
-        mock_tracker_class.return_value = mock_tracker
-
-        with mock.patch('aprsd.threads.tx.LOG') as mock_log:
-            result = self.thread.loop()
-            self.assertFalse(result)
-            mock_log.info.assert_called()
-
-    @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
-    def test_loop_max_retries(self, mock_tracker_class):
-        """Test loop() when max retries reached."""
-        mock_tracker = mock.MagicMock()
-        tracked_packet = fake.fake_packet(msg_number='123')
-        tracked_packet.send_count = 3
-        tracked_packet.retry_count = 3
-        mock_tracker.get.return_value = tracked_packet
-        mock_tracker_class.return_value = mock_tracker
-
-        with mock.patch('aprsd.threads.tx.LOG') as mock_log:
-            result = self.thread.loop()
-            self.assertFalse(result)
-            mock_log.info.assert_called()
-            mock_tracker.remove.assert_called()
-
-    @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
-    @mock.patch('aprsd.threads.tx._send_direct')
-    def test_loop_send_now(self, mock_send_direct, mock_tracker_class):
-        """Test loop() when it's time to send."""
-        mock_tracker = mock.MagicMock()
-        tracked_packet = fake.fake_packet(msg_number='123')
-        tracked_packet.send_count = 0
-        tracked_packet.retry_count = 3
-        tracked_packet.last_send_time = None
-        mock_tracker.get.return_value = tracked_packet
-        mock_tracker_class.return_value = mock_tracker
-
-        mock_send_direct.return_value = True
-
-        result = self.thread.loop()
-
-        self.assertTrue(result)
-        mock_send_direct.assert_called()
-        self.assertEqual(tracked_packet.send_count, 1)
-
-    @mock.patch('aprsd.threads.tx.tracker.PacketTrack')
-    @mock.patch('aprsd.threads.tx._send_direct')
-    def test_loop_send_failed(self, mock_send_direct, mock_tracker_class):
-        """Test loop() when send fails."""
-        mock_tracker = mock.MagicMock()
-        tracked_packet = fake.fake_packet(msg_number='123')
-        tracked_packet.send_count = 0
-        tracked_packet.retry_count = 3
-        tracked_packet.last_send_time = None
-        mock_tracker.get.return_value = tracked_packet
-        mock_tracker_class.return_value = mock_tracker
-
-        mock_send_direct.return_value = False
-
-        result = self.thread.loop()
-
-        self.assertTrue(result)
-        self.assertEqual(
-            tracked_packet.send_count, 0
-        )  # Should not increment on failure
-
-
-class TestSendAckThread(unittest.TestCase):
-    """Unit tests for the SendAckThread class."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        from oslo_config import cfg
-
-        CONF = cfg.CONF
-        CONF.default_ack_send_count = 3
-
-        self.packet = fake.fake_ack_packet()
-        self.packet.send_count = 0
-        self.thread = tx.SendAckThread(self.packet)
-
-    def tearDown(self):
-        """Clean up after tests."""
-        self.thread.stop()
-        if self.thread.is_alive():
-            self.thread.join(timeout=1)
-
-    def test_init(self):
-        """Test initialization."""
-        self.assertEqual(self.thread.packet, self.packet)
-        self.assertIn('TXAck-', self.thread.name)
-        self.assertEqual(self.thread.max_retries, 3)
-
-    def test_loop_max_retries(self):
-        """Test loop() when max retries reached."""
-        self.packet.send_count = 3
-
-        with mock.patch('aprsd.threads.tx.LOG') as mock_log:
-            result = self.thread.loop()
-            self.assertFalse(result)
-            mock_log.debug.assert_called()
-
-    @mock.patch('aprsd.threads.tx._send_direct')
-    def test_loop_max_retries_overshoot(self, mock_send_direct):
-        """send_count above max_retries must also stop (was `==`)."""
-        self.packet.send_count = 4
-
-        with mock.patch('aprsd.threads.tx.LOG') as mock_log:
-            result = self.thread.loop()
-            self.assertFalse(result)
-            mock_log.debug.assert_called()
-            mock_send_direct.assert_not_called()
-
-    @mock.patch('aprsd.threads.tx._send_direct')
-    def test_loop_send_now(self, mock_send_direct):
-        """Test loop() when it's time to send."""
-        self.packet.last_send_time = None
-        mock_send_direct.return_value = True
-
-        result = self.thread.loop()
-
-        self.assertTrue(result)
-        mock_send_direct.assert_called()
-        self.assertEqual(self.packet.send_count, 1)
-
-    @mock.patch('aprsd.threads.tx._send_direct')
-    def test_loop_waiting(self, mock_send_direct):
-        """Test loop() when waiting for next send."""
-        self.packet.last_send_time = int(time.time()) - 10  # Too soon
-        mock_send_direct.return_value = True
-
-        result = self.thread.loop()
-
-        self.assertTrue(result)
-        mock_send_direct.assert_not_called()
 
 
 class TestBeaconSendThread(unittest.TestCase):
