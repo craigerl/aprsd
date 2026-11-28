@@ -98,12 +98,13 @@ class TestDupePacketFilter(unittest.TestCase):
             self.assertIs(self._deliver(packet), packet)  # Should pass
             mock_log.warning.assert_called()
 
-    def test_dupe_survives_packet_list_eviction(self):
+    def test_dupe_survives_many_other_packets(self):
         """#320: a dupe inside packet_dupe_timeout must be dropped even after
-        the packet has been evicted from PacketList's maxlen window.
+        many other packets arrived in between.
 
-        At ~0.33 pkt/s the 100-slot PacketList covers less than the 300s dupe
-        timeout, so an old duplicate used to be treated as new and reprocessed.
+        At ~0.33 pkt/s the old 100-slot PacketList covered less than the 300s
+        dupe timeout, so an old duplicate used to be treated as new and
+        reprocessed.
         """
         from oslo_config import cfg
 
@@ -114,7 +115,7 @@ class TestDupePacketFilter(unittest.TestCase):
         first.timestamp = 1000
         self.assertIs(self._deliver(first), first)
 
-        # Enough distinct packets to evict DUPE1 from a 100-slot store.
+        # More packets than a 100-slot store would keep.
         for i in range(150):
             other = fake.fake_packet(fromcall=f'OTHER{i}', msg_number=str(i))
             other.timestamp = 1001 + i
